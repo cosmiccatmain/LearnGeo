@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LearnGeo — Study every country, capital and location</title>
+<meta name="description" content="A focused study tool for the world's 213 countries and territories: their capitals and where they sit on the map. Learn, practice test and flashcard modes over OpenStreetMap.">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="stylesheet" href="assets/css/app.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌍</text></svg>">
+</head>
+<body>
+
+<!-- ============================== LANDING ============================== -->
+<div id="landing" class="landing">
+
+  <nav class="nav">
+    <a class="brand" href="#top">
+      <span class="brand__mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18a15 15 0 0 1 0-18"/></svg></span>
+      <span class="brand__text">LearnGeo</span>
+    </a>
+    <div class="nav__links">
+      <a href="#modes">Modes</a>
+      <a href="#coverage">Coverage</a>
+      <a href="#screens">The app</a>
+      <a href="#how">How it works</a>
+      <a href="#rewards">Progress</a>
+    </div>
+    <div class="nav__spacer"></div>
+    <button class="btn btn--ghost btn--sm" data-auth="login">Log in</button>
+    <button class="btn btn--primary btn--sm" data-auth="signup">Create account</button>
+  </nav>
+
+  <header class="hero" id="top">
+    <div class="hero__grid"></div>
+    <span class="pill"><span class="pill__dot"></span> <b>213</b> countries &amp; territories · <b>every</b> capital</span>
+    <h1>Know every country, capital and <em>where it is</em>.</h1>
+    <p class="hero__sub">
+      LearnGeo is a focused geography trainer. Three study modes, one dataset — the 193 UN member states,
+      the 2 permanent observers and 18 major territories — all plotted on a live OpenStreetMap.
+      No flags, no filler. Just places, names and locations until you know them cold.
+    </p>
+    <div class="hero__cta">
+      <button class="btn btn--accent btn--lg" data-auth="signup">Create your free account</button>
+      <button class="btn btn--ghost btn--lg" data-auth="login">I already have an account</button>
+    </div>
+    <p class="hero__note">Runs entirely in your browser · free account · progress saves on this device</p>
+  </header>
+
+  <section class="stats">
+    <div class="stat"><div class="stat__n" id="s-total">213</div><div class="stat__l">Countries &amp; territories</div></div>
+    <div class="stat"><div class="stat__n" id="s-members">193</div><div class="stat__l">UN member states</div></div>
+    <div class="stat"><div class="stat__n">3</div><div class="stat__l">Study modes</div></div>
+    <div class="stat"><div class="stat__n">4</div><div class="stat__l">Question types</div></div>
+  </section>
+
+  <!-- modes -->
+  <section class="section" id="modes">
+    <div class="section__head">
+      <span class="eyebrow">Three ways to study</span>
+      <h2>Learn it, drill it, then prove it.</h2>
+      <p>Each mode does one job well. Move between them freely — they all feed the same mastery record,
+         so the app always knows which countries you keep missing.</p>
+    </div>
+    <div class="modes">
+      <div class="mode-card">
+        <div class="mode-card__icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></div>
+        <h3>Learn</h3>
+        <p>Endless practice with instant feedback. Answer in the sidebar, and the map flies to the capital
+           the moment you commit — so the name and the place land together.</p>
+        <ul>
+          <li>Weakest-first ordering</li>
+          <li>Multiple choice or free typing</li>
+          <li>Streak multipliers up to ×3</li>
+          <li>Context notes on tricky capitals</li>
+        </ul>
+      </div>
+      <div class="mode-card">
+        <div class="mode-card__icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2h6a1 1 0 0 1 1 1v1H8V3a1 1 0 0 1 1-1z"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 12l2 2 4-4"/></svg></div>
+        <h3>Practice test</h3>
+        <p>A real sitting. Choose length, regions and timing, then work through a fixed section with a
+           question navigator and flags — and get a scored report at the end.</p>
+        <ul>
+          <li>10 / 20 / 40 / 75 question sections</li>
+          <li>Timed sections and exam mode</li>
+          <li>Flag questions to revisit</li>
+          <li>Score report by region and type</li>
+        </ul>
+      </div>
+      <div class="mode-card">
+        <div class="mode-card__icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="14" height="14" rx="2"/><path d="M7 3h11a3 3 0 0 1 3 3v11"/></svg></div>
+        <h3>Flashcards</h3>
+        <p>Classic two-sided cards with a spaced-repetition queue. Rate each card and the shaky ones
+           come back before the session ends.</p>
+        <ul>
+          <li>Country → capital, or the reverse</li>
+          <li>Again / Hard / Good / Easy grading</li>
+          <li>Location revealed on the flip</li>
+          <li>Decks of 10 to 100 cards</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- coverage -->
+  <section class="section--paper section" id="coverage">
+    <div class="section__inner">
+      <div class="split">
+        <div>
+          <span class="eyebrow">The dataset</span>
+          <h2 style="margin-top:12px;font-size:clamp(28px,3.4vw,40px)">Everything in the UN, plus the places people actually get asked about.</h2>
+          <p style="margin-top:16px;color:var(--muted);font-size:17px">
+            The United Nations has 193 member states and 2 permanent observer states. LearnGeo covers all
+            195 — and adds 18 widely-studied territories, giving 213 entries in total. You can narrow the set
+            to UN members only whenever you want a strict list.
+          </p>
+          <ul class="feature-list" style="margin-top:24px">
+            <li>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m20 6-11 11-5-5"/></svg>
+              <div><b>193 UN member states</b><span>Every one, with its official capital.</span></div>
+            </li>
+            <li>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m20 6-11 11-5-5"/></svg>
+              <div><b>2 permanent observers</b><span>Vatican City and Palestine.</span></div>
+            </li>
+            <li>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m20 6-11 11-5-5"/></svg>
+              <div><b>18 territories and dependencies</b><span>Taiwan, Kosovo, Greenland, Puerto Rico, Hong Kong and more.</span></div>
+            </li>
+            <li>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m20 6-11 11-5-5"/></svg>
+              <div><b>Contested capitals explained</b><span>Bolivia, South Africa, the Netherlands and others carry a short note rather than a bare answer.</span></div>
+            </li>
+          </ul>
+        </div>
+        <div>
+          <div class="preview-card">
+            <div class="preview-card__bar">
+              <span class="preview-card__dot"></span><span class="preview-card__dot"></span><span class="preview-card__dot"></span>
+            </div>
+            <div class="preview-card__body">
+              <div class="pv-q">Which country has the capital</div>
+              <div class="pv-a">Ljubljana</div>
+              <div class="pv-opts">
+                <div class="pv-opt">Croatia</div>
+                <div class="pv-opt is-right">Slovenia
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m20 6-11 11-5-5"/></svg>
+                </div>
+                <div class="pv-opt">Slovakia</div>
+                <div class="pv-opt">Austria</div>
+              </div>
+              <div class="pv-rewards">
+                <span class="chip chip--xp mono">+20 XP</span>
+                <span class="chip chip--gem mono">+8 💎</span>
+                <span class="chip chip--fire mono">×2 streak</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- app screenshots -->
+  <section class="section--paper section" id="screens">
+    <div class="section__inner">
+      <div class="section__head" style="max-width:62ch;margin-left:auto;margin-right:auto;text-align:center">
+        <span class="eyebrow">Inside the app</span>
+        <h2>What you actually study in.</h2>
+        <p>A question sidebar next to a live OpenStreetMap, a scored report after every section,
+           and a flashcard deck that puts the location on the back.</p>
+      </div>
+      <div class="shots">
+        <div class="shot">
+          <div class="shot__bar">
+            <span class="shot__dot"></span><span class="shot__dot"></span><span class="shot__dot"></span>
+            <span class="shot__label">Learn</span>
+          </div>
+          <div class="shot__body mini">
+            <div class="mini__app">
+              <div class="mini__side">
+                <div class="mini__eyebrow">Capital → Country</div>
+                <div class="mini__q">Ljubljana</div>
+                <div class="mini__opt">Croatia</div>
+                <div class="mini__opt is-right">Slovenia ✓</div>
+                <div class="mini__opt">Slovakia</div>
+                <div class="mini__opt">Austria</div>
+              </div>
+              <div class="mini__map">
+                <span class="mini__pin" style="background:#0E9F6E;left:44%;top:38%"></span>
+                <span class="mini__pin" style="background:#9CA3AF;left:62%;top:56%"></span>
+                <span class="mini__pin" style="background:#9CA3AF;left:30%;top:62%"></span>
+              </div>
+            </div>
+          </div>
+          <div class="shot__caption">Answer on the left — the map flies to the capital and drops the pin.</div>
+        </div>
+
+        <div class="shot">
+          <div class="shot__bar">
+            <span class="shot__dot"></span><span class="shot__dot"></span><span class="shot__dot"></span>
+            <span class="shot__label">Score report</span>
+          </div>
+          <div class="shot__body mini">
+            <div class="mini__ring">
+              <svg width="104" height="104" viewBox="0 0 104 104">
+                <circle cx="52" cy="52" r="44" fill="none" stroke="#E6E8EC" stroke-width="8"/>
+                <circle cx="52" cy="52" r="44" fill="none" stroke="#0E9F6E" stroke-width="8"
+                        stroke-linecap="round" stroke-dasharray="276" stroke-dashoffset="55"
+                        transform="rotate(-90 52 52)"/>
+                <text x="52" y="50" text-anchor="middle" font-family="JetBrains Mono, monospace"
+                      font-size="22" font-weight="600" fill="#0A0A0B">80%</text>
+                <text x="52" y="65" text-anchor="middle" font-family="Inter, sans-serif"
+                      font-size="9" fill="#9CA3AF">16 / 20</text>
+              </svg>
+            </div>
+            <div style="padding:0 16px 16px">
+              <div class="region-row" style="grid-template-columns:64px 1fr 40px;font-size:11px;padding:6px 0">
+                <div>Africa</div><div class="pbar"><div class="pbar__fill pbar__fill--success" style="width:83%"></div></div>
+                <div class="region-row__n" style="font-size:10px">5/6</div>
+              </div>
+              <div class="region-row" style="grid-template-columns:64px 1fr 40px;font-size:11px;padding:6px 0">
+                <div>Asia</div><div class="pbar"><div class="pbar__fill pbar__fill--success" style="width:75%"></div></div>
+                <div class="region-row__n" style="font-size:10px">6/8</div>
+              </div>
+              <div class="region-row" style="grid-template-columns:64px 1fr 40px;font-size:11px;padding:6px 0">
+                <div>Europe</div><div class="pbar"><div class="pbar__fill pbar__fill--accent" style="width:83%"></div></div>
+                <div class="region-row__n" style="font-size:10px">5/6</div>
+              </div>
+            </div>
+          </div>
+          <div class="shot__caption">Accuracy broken down by region and question type.</div>
+        </div>
+
+        <div class="shot">
+          <div class="shot__bar">
+            <span class="shot__dot"></span><span class="shot__dot"></span><span class="shot__dot"></span>
+            <span class="shot__label">Flashcards</span>
+          </div>
+          <div class="shot__body mini">
+            <div class="mini__card">
+              <div class="mini__eyebrow">Capital city</div>
+              <b style="display:block;margin-top:8px">Wellington</b>
+              <div style="color:var(--faint);font-size:10px;margin-top:6px" class="mono">-41.29°, 174.78°</div>
+            </div>
+            <div class="mini__rate">
+              <span>Again</span><span>Hard</span><span>Good</span><span>Easy</span>
+            </div>
+          </div>
+          <div class="shot__caption">Rate each card — the shaky ones come back before you finish.</div>
+        </div>
+
+        <div class="shot">
+          <div class="shot__bar">
+            <span class="shot__dot"></span><span class="shot__dot"></span><span class="shot__dot"></span>
+            <span class="shot__label">Study centre</span>
+          </div>
+          <div class="shot__body mini" style="padding:16px">
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:7px">
+              <div class="metric" style="padding:10px 6px"><div class="metric__n" style="font-size:17px">Lv 7</div><div class="metric__l" style="font-size:9px">level</div></div>
+              <div class="metric" style="padding:10px 6px"><div class="metric__n" style="font-size:17px">2,140</div><div class="metric__l" style="font-size:9px">diamonds</div></div>
+              <div class="metric" style="padding:10px 6px"><div class="metric__n" style="font-size:17px">86</div><div class="metric__l" style="font-size:9px">mastered</div></div>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:8px">
+              <div class="mini__opt" style="text-align:center;margin:0">Learn</div>
+              <div class="mini__opt" style="text-align:center;margin:0">Test</div>
+              <div class="mini__opt" style="text-align:center;margin:0">Cards</div>
+            </div>
+          </div>
+          <div class="shot__caption">Your study centre — everything starts here, not in a quiz.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- how -->
+  <section class="section" id="how">
+    <div class="section__head">
+      <span class="eyebrow">How it works</span>
+      <h2>Four steps, then repetition does the rest.</h2>
+    </div>
+    <div class="steps">
+      <div class="step"><div class="step__n">01</div><h4>Pick your set</h4><p>Filter by region, or by UN members only. Study one continent at a time or the whole world.</p></div>
+      <div class="step"><div class="step__n">02</div><h4>Answer in the sidebar</h4><p>Four question types: country→capital, capital→country, find it on the map, and identify a pin.</p></div>
+      <div class="step"><div class="step__n">03</div><h4>See it placed</h4><p>Every answer drops a pin on the OpenStreetMap and flies there, tying the name to the location.</p></div>
+      <div class="step"><div class="step__n">04</div><h4>Sit a test</h4><p>When it feels solid, take a scored practice test and read the report to find what is still shaky.</p></div>
+    </div>
+  </section>
+
+  <!-- rewards -->
+  <section class="section--paper section" id="rewards">
+    <div class="section__inner">
+      <div class="prose-block">
+        <div>
+          <span class="eyebrow">Progress</span>
+          <h2 style="margin-top:12px;font-size:clamp(28px,3.4vw,40px)">Every correct answer pays out.</h2>
+          <p style="margin-top:16px;color:var(--muted);font-size:17px">
+            Correct answers earn XP and diamonds, and a running streak multiplies both — up to triple at
+            25 in a row. Diamonds buy profile add-ons: avatars, avatar decorations, animated profile effects,
+            nameplates, banners and colour themes.
+          </p>
+          <ul class="feature-list" style="margin-top:24px">
+            <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9z"/></svg>
+              <div><b>XP and levels</b><span>Level up mid-session, with a celebration you actually notice.</span></div></li>
+            <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12l4 6-10 12L2 9z"/></svg>
+              <div><b>Diamonds</b><span>Earned per answer, per test and per achievement. Spent in Customization.</span></div></li>
+            <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2s4 4 4 8a4 4 0 0 1-8 0c0-1 .5-2 1-3-3 2-5 4.5-5 8a8 8 0 0 0 16 0c0-6-8-13-8-13z"/></svg>
+              <div><b>Streaks and daily goals</b><span>A daily target ring and a day streak that rewards showing up.</span></div></li>
+            <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M6 2h12v7a6 6 0 0 1-12 0z"/><path d="M9 21h6M12 15v6"/></svg>
+              <div><b>10 achievements</b><span>Each pays a diamond bounty when it unlocks.</span></div></li>
+          </ul>
+          <button class="btn btn--accent btn--lg" style="margin-top:26px" data-auth="signup">Create your free account</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <span class="brand" style="font-size:14px">
+      <span class="brand__mark" style="width:20px;height:20px;border-radius:6px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18a15 15 0 0 1 0-18"/></svg></span>
+      <span class="brand__text">LearnGeo</span>
+    </span>
+    <span class="nav__spacer"></span>
+    <span>Map data © OpenStreetMap contributors</span>
+    <span>·</span>
+    <span>Progress stored locally in your browser</span>
+  </footer>
+</div>
+
+
+<!-- =============================== AUTH ================================ -->
+<div id="auth" class="auth-screen hidden">
+  <button class="btn btn--quiet btn--sm auth-back" id="auth-back">&larr; Back to home</button>
+  <div class="auth-card">
+    <span class="brand">
+      <span class="brand__mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18a15 15 0 0 1 0-18"/></svg></span>
+      <span class="brand__text">LearnGeo</span>
+    </span>
+    <h2 id="auth-title">Create your account</h2>
+    <p id="auth-sub">Your progress, diamonds and profile are tied to your account.</p>
+
+    <form class="auth-form" id="auth-form" autocomplete="on">
+      <div class="field" id="auth-name-field">
+        <label class="field__label" for="auth-name">Display name</label>
+        <input class="input" id="auth-name" type="text" maxlength="32" autocomplete="nickname" placeholder="How you appear on your profile">
+      </div>
+      <div class="field">
+        <label class="field__label" for="auth-email">Email</label>
+        <input class="input" id="auth-email" type="email" autocomplete="email" placeholder="you@example.com">
+      </div>
+      <div class="field">
+        <label class="field__label" for="auth-password">Password</label>
+        <input class="input" id="auth-password" type="password" autocomplete="current-password" placeholder="At least 8 characters">
+      </div>
+      <button class="btn btn--accent btn--lg btn--block" type="submit" id="auth-submit">Create account</button>
+    </form>
+
+    <div id="auth-error"></div>
+    <div class="auth-switch" id="auth-switch"></div>
+    <div class="auth-note">
+      Accounts are stored in this browser only. Passwords are salted and hashed with SHA-256 —
+      never kept as plain text — and nothing is sent anywhere.
+    </div>
+  </div>
+</div>
+
+<!-- ================================ APP ================================ -->
+<div id="app" class="app">
+
+  <header class="topbar">
+    <button class="brand" id="home-btn" title="Back to landing page">
+      <span class="brand__mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18a15 15 0 0 1 0-18"/></svg></span>
+      <span class="brand__text">LearnGeo</span>
+    </button>
+
+    <nav class="tabs">
+      <button class="tab is-active" data-view="portal"></button>
+      <button class="tab" data-view="learn"></button>
+      <button class="tab" data-view="test"></button>
+      <button class="tab" data-view="cards"></button>
+    </nav>
+
+    <div class="grow"></div>
+
+    <div class="hud">
+      <span class="hud__item hud__fire hidden" id="hud-fire" title="Answer streak">🔥 <span id="hud-streak">0</span></span>
+      <span class="hud__item hud__xp" id="hud-xp-chip" title="Level"><span id="hud-level">Lv 1</span></span>
+      <span class="hud__item hud__gem" id="hud-gem-chip" title="Diamonds">💎 <span id="hud-gems">0</span></span>
+    </div>
+
+    <button class="avatar-btn" id="avatar-btn" title="Profile" aria-haspopup="menu">
+      <span id="avatar-slot"></span>
+    </button>
+  </header>
+
+  <div class="pbar" style="height:3px;border-radius:0"><div class="pbar__fill pbar__fill--accent" id="hud-xpbar" style="width:0"></div></div>
+
+  <!-- PORTAL -->
+  <div id="view-portal" class="portal"></div>
+
+  <!-- LEARN -->
+  <div id="view-learn" class="workspace">
+    <aside class="sidebar">
+      <div class="sidebar__head" id="learn-head">
+        <div class="sidebar__title">Learn</div>
+        <div class="t-sm t-muted" style="margin-top:2px">Answer, see it placed, repeat.</div>
+      </div>
+      <div class="sidebar__body" id="learn-body"></div>
+      <div class="sidebar__foot" id="learn-foot"></div>
+    </aside>
+    <div class="map-pane"><div id="map"></div></div>
+  </div>
+
+  <!-- TEST -->
+  <div id="view-test" class="workspace hidden">
+    <aside class="sidebar">
+      <div class="sidebar__head" id="test-head"></div>
+      <div class="sidebar__body" id="test-body"></div>
+      <div class="sidebar__foot" id="test-foot"></div>
+    </aside>
+    <div id="test-setup"></div>
+    <div class="map-pane hidden" id="test-workspace"><div id="map-test"></div></div>
+    <div id="test-report" class="hidden" style="flex:1;overflow-y:auto;background:var(--white)"></div>
+  </div>
+
+  <!-- FLASHCARDS -->
+  <div id="view-cards" class="workspace hidden">
+    <aside class="sidebar">
+      <div class="sidebar__head" id="cards-head"></div>
+      <div class="sidebar__body" id="cards-body"></div>
+      <div class="sidebar__foot" id="cards-foot"></div>
+    </aside>
+    <div class="fc-shell">
+      <div class="fc-stage" id="cards-stage"></div>
+      <div class="fc-map map-strip">
+        <div id="cards-map" style="position:absolute;inset:0"></div>
+        <div class="fc-map__veil" id="cards-veil">Flip the card to see where it is</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="fx-layer"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="assets/js/data.js"></script>
+<script src="assets/js/cosmetics.js"></script>
+<script src="assets/js/avatars.js"></script>
+<script src="assets/js/core.js"></script>
+<script src="assets/js/map.js"></script>
+<script src="assets/js/quiz.js"></script>
+<script src="assets/js/auth.js"></script>
+<script src="assets/js/ui.js"></script>
+<script src="assets/js/portal.js"></script>
+<script src="assets/js/mode-learn.js"></script>
+<script src="assets/js/mode-test.js"></script>
+<script src="assets/js/mode-cards.js"></script>
+<script src="assets/js/main.js"></script>
+</body>
+</html>
