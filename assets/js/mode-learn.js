@@ -17,6 +17,7 @@
   function root() { return document.getElementById('learn-body'); }
 
   function start() {
+    global.GeoMap.loadShapes().then(function () { if (q) paintMap(); });
     render();
     if (!q) next();
   }
@@ -46,19 +47,20 @@
     global.GeoMap.clear();
 
     if (q.type === 'locate') {
+      /* whole countries are the targets now, not pins */
       q.mapChoices.forEach(function (c) {
-        var m = global.GeoMap.addPin(c, '', function (country) { pickPin(country); });
-        pinRefs.push({ country: c, marker: m });
+        var layer = global.GeoMap.drawCountry(c, 'choice', function (country) { pickCountry(country); });
+        pinRefs.push({ country: c, layer: layer });
       });
       global.GeoMap.fitAll(q.mapChoices, 80);
-      setHint('Click the pin you think is right');
+      setHint('Click the country you think it is');
     } else if (q.type === 'identify') {
-      var mk = global.GeoMap.addPin(q.country, 'cap-pin--target');
-      pinRefs.push({ country: q.country, marker: mk });
-      global.GeoMap.focus(q.country, 3.6);
-      setHint('Which country is the highlighted pin in?');
+      var l = global.GeoMap.drawCountry(q.country, 'target');
+      pinRefs.push({ country: q.country, layer: l });
+      global.GeoMap.frame(q.country, 90);
+      setHint('Which country is shaded?');
     } else {
-      setHint('Answer in the sidebar — the map reveals the location');
+      setHint('Answer in the sidebar — the map shows you where');
       global.GeoMap.reset();
     }
     setBadge('');
@@ -87,26 +89,24 @@
     var c = q.country;
     if (q.type !== 'locate') {
       global.GeoMap.clear();
-      global.GeoMap.addPin(c, 'cap-pin--right', null, c.capital);
-      global.GeoMap.focus(c, 4.6);
+      global.GeoMap.drawCountry(c, 'right', null, c.name);
+      global.GeoMap.frame(c, 80);
     }
     setHint('');
     setBadge('<b>' + W.escapeHtml(c.capital) + '</b>' +
-      '<span>' + W.escapeHtml(c.name) + ' · ' + W.escapeHtml(c.region) + '</span>' +
-      '<span class="mono" style="font-size:11px;color:var(--faint)">' +
-      c.lat.toFixed(2) + '°, ' + c.lon.toFixed(2) + '°</span>');
+      '<span>' + W.escapeHtml(c.name) + ' · ' + W.escapeHtml(c.region) + '</span>');
   }
 
   /* ---------------------------- answering --------------------------- */
-  function pickPin(country) {
+  function pickCountry(country) {
     if (answered || q.type !== 'locate') return;
     var correct = country.name === q.country.name;
     pinRefs.forEach(function (p) {
-      if (p.country.name === q.country.name) global.GeoMap.setPinClass(p.marker, 'cap-pin--right');
-      else if (p.country.name === country.name) global.GeoMap.setPinClass(p.marker, 'cap-pin--wrong');
-      else global.GeoMap.setPinClass(p.marker, 'cap-pin--dim');
+      if (p.country.name === q.country.name) global.GeoMap.setCountryState(p.layer, 'right');
+      else if (p.country.name === country.name) global.GeoMap.setCountryState(p.layer, 'wrong');
+      else global.GeoMap.setCountryState(p.layer, 'dim');
     });
-    resolve(correct, country.capital, document.querySelector('#view-learn .map-pane'));
+    resolve(correct, country.name, document.querySelector('#view-learn .map-pane'));
   }
 
   function pickOption(idx, node) {

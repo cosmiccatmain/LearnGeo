@@ -675,7 +675,7 @@
   }
 
   /* ============================ NAVIGATION ========================== */
-  var VIEWS = ['portal', 'learn', 'test', 'cards'];
+  var VIEWS = ['portal', 'learn', 'test', 'quiz', 'cards'];
 
   function go(view) {
     if (!global.Auth.isSignedIn()) return showAuth('login');
@@ -692,6 +692,7 @@
     if (view === 'portal') global.Portal.render();
     if (view === 'learn') global.LearnMode.start();
     if (view === 'test') global.TestMode.start();
+    if (view === 'quiz') global.QuizMode.start();
     if (view === 'cards') global.CardsMode.start();
     global.GeoMap.invalidate();
     refreshHud();

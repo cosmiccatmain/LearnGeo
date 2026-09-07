@@ -45,7 +45,7 @@
     }
   };
 
-  var map = null, layer = null, markers = [], hostId = null;
+  var map = null, layer = null, markers = [], hostId = null, sizeWatch = null;
 
   function providerConf() {
     var s = global.WW.state.settings;
@@ -78,8 +78,23 @@
     }).setView([22, 12], 2);
 
     applyProvider();
+    watchSize(hostEl);
     invalidate();
     return map;
+  }
+
+  /* A pane that was hidden reports 0x0, so Leaflet caches a stale size and
+     renders tiles for a viewport that no longer exists. Watching the host
+     means every show/hide and resize re-measures on its own. */
+  function watchSize(hostEl) {
+    if (sizeWatch) { sizeWatch.disconnect(); sizeWatch = null; }
+    if (!global.ResizeObserver) return;
+    sizeWatch = new global.ResizeObserver(function () {
+      if (map && hostEl.clientWidth > 0 && hostEl.clientHeight > 0) {
+        map.invalidateSize({ animate: false });
+      }
+    });
+    sizeWatch.observe(hostEl);
   }
 
   function applyProvider() {
@@ -95,6 +110,112 @@
     if (map && map.stop) map.stop();
     markers.forEach(function (m) { if (map) map.removeLayer(m); });
     markers = [];
+    clearShapes();
+  }
+
+  /* ----------------------------- shapes ------------------------------
+     Country outlines (Natural Earth 50m, via world-atlas). 211 of the 213
+     entries have a polygon; Tuvalu and Gibraltar are too small to appear at
+     this resolution and fall back to a circular highlight on the capital.
+     Loading is over fetch, so opening index.html straight off the filesystem
+     degrades to circles rather than breaking.
+  --------------------------------------------------------------------*/
+  var shapesByName = null, shapesPromise = null;
+  var shapeLayers = [];
+
+  function loadShapes() {
+    if (shapesPromise) return shapesPromise;
+    shapesPromise = fetch('assets/data/countries.geo.json')
+      .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .then(function (fc) {
+        shapesByName = {};
+        fc.features.forEach(function (f) { shapesByName[f.properties.name] = f; });
+        return shapesByName;
+      })
+      .catch(function () { shapesByName = {}; return shapesByName; });
+    return shapesPromise;
+  }
+
+  function hasShape(name) { return !!(shapesByName && shapesByName[name]); }
+
+  var STYLES = {
+    base:   { color: '#94A3B8', weight: 0.6, opacity: 0.55, fillColor: '#CBD5E1', fillOpacity: 0.18 },
+    target: { color: '#B45309', weight: 2,   opacity: 1,    fillColor: '#F5B301', fillOpacity: 0.55 },
+    right:  { color: '#0A5C42', weight: 2,   opacity: 1,    fillColor: '#0E9F6E', fillOpacity: 0.5 },
+    wrong:  { color: '#9B1C1C', weight: 2,   opacity: 1,    fillColor: '#E02424', fillOpacity: 0.45 },
+    choice: { color: '#1B4DFF', weight: 1.4, opacity: 0.9,  fillColor: '#1B4DFF', fillOpacity: 0.22 },
+    dim:    { color: '#9CA3AF', weight: 0.8, opacity: 0.5,  fillColor: '#9CA3AF', fillOpacity: 0.12 }
+  };
+
+  /* Draw one country. Falls back to a circle when there is no polygon. */
+  function drawCountry(country, state, onClick, tooltip) {
+    if (!map) return null;
+    var style = STYLES[state] || STYLES.base;
+    var layer;
+
+    if (hasShape(country.name)) {
+      layer = global.L.geoJSON(shapesByName[country.name], {
+        style: style,
+        /* keep the hit area generous on small islands */
+        onEachFeature: function (f, l) { l.options.interactive = !!onClick; }
+      });
+    } else if (finite(country)) {
+      layer = global.L.circleMarker([country.lat, country.lon], Object.assign({
+        radius: 11, interactive: !!onClick
+      }, style));
+    } else {
+      return null;
+    }
+
+    layer.addTo(map);
+    if (tooltip) layer.bindTooltip(tooltip, { sticky: true });
+    if (onClick) {
+      layer.on('click', function () { onClick(country, layer); });
+      layer.on('mouseover', function () { setStyle(layer, { weight: 2.4, fillOpacity: Math.min(0.6, (style.fillOpacity || 0.2) + 0.18) }); });
+      layer.on('mouseout',  function () { setStyle(layer, style); });
+    }
+    shapeLayers.push({ country: country, layer: layer, state: state });
+    return layer;
+  }
+
+  function setStyle(layer, style) {
+    if (layer.setStyle) layer.setStyle(style);
+  }
+
+  function setCountryState(layer, state) {
+    setStyle(layer, STYLES[state] || STYLES.base);
+  }
+
+  function clearShapes() {
+    shapeLayers.forEach(function (s) { if (map) map.removeLayer(s.layer); });
+    shapeLayers = [];
+  }
+
+  function boundsOf(country) {
+    var entry = null;
+    shapeLayers.forEach(function (s) { if (s.country.name === country.name) entry = s; });
+    if (entry && entry.layer.getBounds) {
+      try {
+        var b = entry.layer.getBounds();
+        if (b && b.isValid()) return b;
+      } catch (e) {}
+    }
+    return null;
+  }
+
+  /* Frame a country by its outline where we have one, else by its capital. */
+  function frame(country, pad) {
+    if (!ready()) return;
+    var b = boundsOf(country);
+    if (b) {
+      if (map.stop) map.stop();
+      map.invalidateSize({ animate: false });
+      try {
+        map.fitBounds(b, { padding: [pad || 60, pad || 60], maxZoom: 6, animate: true });
+        return;
+      } catch (e) {}
+    }
+    focus(country, 4.6);
   }
 
   function pinIcon(cls) {
@@ -192,6 +313,13 @@
     setPinClass: setPinClass,
     focus: focus,
     fitAll: fitAll,
+    loadShapes: loadShapes,
+    hasShape: hasShape,
+    drawCountry: drawCountry,
+    setCountryState: setCountryState,
+    clearShapes: clearShapes,
+    boundsOf: boundsOf,
+    frame: frame,
     reset: reset,
     invalidate: invalidate,
     get instance() { return map; }

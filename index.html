@@ -382,6 +382,7 @@
       <button class="tab is-active" data-view="portal"></button>
       <button class="tab" data-view="learn"></button>
       <button class="tab" data-view="test"></button>
+      <button class="tab" data-view="quiz"></button>
       <button class="tab" data-view="cards"></button>
     </nav>
 
@@ -428,6 +429,18 @@
     <div id="test-report" class="hidden" style="flex:1;overflow-y:auto;background:var(--white)"></div>
   </div>
 
+  <!-- CLASS QUIZ -->
+  <div id="view-quiz" class="workspace hidden">
+    <aside class="sidebar">
+      <div class="sidebar__head" id="quiz-head"></div>
+      <div class="sidebar__body" id="quiz-body"></div>
+      <div class="sidebar__foot" id="quiz-foot"></div>
+    </aside>
+    <div id="quiz-setup"></div>
+    <div class="map-pane hidden" id="quiz-workspace"><div id="map-quiz"></div></div>
+    <div id="quiz-report" class="hidden"></div>
+  </div>
+
   <!-- FLASHCARDS -->
   <div id="view-cards" class="workspace hidden">
     <aside class="sidebar">
@@ -459,6 +472,7 @@
 <script src="assets/js/portal.js"></script>
 <script src="assets/js/mode-learn.js"></script>
 <script src="assets/js/mode-test.js"></script>
+<script src="assets/js/mode-quiz.js"></script>
 <script src="assets/js/mode-cards.js"></script>
 <script src="assets/js/main.js"></script>
 </body>

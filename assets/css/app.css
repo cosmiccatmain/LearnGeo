@@ -403,7 +403,8 @@ a { color: inherit; text-decoration: none; }
   z-index: 0; isolation: isolate;
 }
 .map-pane { flex: 1; }
-#map { position: absolute; inset: 0; }
+/* every Leaflet host must fill its pane, or the map initialises at zero height */
+#map, #map-test, #map-quiz, #cards-map { position: absolute; inset: 0; }
 .leaflet-container { background: #F4F6F8; font-family: var(--sans); }
 
 .map-badge {
@@ -1226,3 +1227,65 @@ textarea.input:focus { outline: none; border-color: var(--accent); box-shadow: 0
 }
 .shop-item__badge svg { width: 100%; height: 100%; display: block; }
 .shop-item__vis--fx { display: flex; align-items: center; justify-content: center; gap: 3px; }
+
+/* ================================================================
+   CLASS QUIZ
+   ================================================================ */
+#quiz-setup { flex: 1; overflow-y: auto; background: var(--paper); }
+#quiz-report { flex: 1; overflow-y: auto; background: var(--white); }
+
+.quiz-steps { margin: 10px 0 0; padding-left: 18px; }
+.quiz-steps li { font-size: 13px; color: var(--muted); padding: 5px 0; }
+.quiz-steps b { color: var(--ink); font-weight: 570; }
+
+.quiz-track { list-style: none; margin: 0 0 18px; padding: 0; display: grid; gap: 6px; }
+.quiz-step {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 13px; color: var(--faint);
+  padding: 7px 10px; border-radius: 9px; border: 1px solid transparent;
+}
+.quiz-step__n {
+  width: 20px; height: 20px; border-radius: 50%; flex: none;
+  display: grid; place-items: center; font-size: 11px; font-weight: 600;
+  background: var(--line-soft); color: var(--faint);
+}
+.quiz-step.is-active { color: var(--ink); border-color: var(--accent); background: var(--accent-soft); font-weight: 550; }
+.quiz-step.is-active .quiz-step__n { background: var(--accent); color: #fff; }
+.quiz-step.is-done { color: var(--ink-2); }
+.quiz-step.is-done .quiz-step__n { background: var(--success); color: #fff; }
+
+.quiz-prompt {
+  text-align: center; padding: 26px 18px;
+  border: 1px dashed var(--line); border-radius: 14px; background: var(--paper);
+}
+.quiz-prompt__icon {
+  width: 42px; height: 42px; margin: 0 auto 12px; border-radius: 12px;
+  display: grid; place-items: center; background: #FFFBEB; color: #B45309;
+}
+.quiz-prompt b { font-size: 15px; display: block; }
+.quiz-prompt p { margin-top: 6px; font-size: 13.5px; color: var(--muted); }
+
+.quiz-answers { margin-top: 14px; display: grid; gap: 8px; }
+.quiz-answer {
+  display: grid; grid-template-columns: 68px 1fr auto; gap: 10px; align-items: center;
+  padding: 9px 12px; border: 1px solid var(--line); border-radius: 10px; font-size: 13.5px;
+}
+.quiz-answer__l { font-family: var(--mono); font-size: 11px; color: var(--faint); text-transform: uppercase; letter-spacing: .08em; }
+.quiz-answer__v.is-right { color: #0A5C42; font-weight: 560; }
+.quiz-answer__v.is-wrong { color: var(--danger); text-decoration: line-through; }
+.quiz-answer__a { font-weight: 570; }
+
+.quiz-table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 13.5px; }
+.quiz-table th {
+  text-align: left; font-family: var(--mono); font-size: 10.5px; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--faint); font-weight: 500;
+  padding: 8px 10px; border-bottom: 1px solid var(--line);
+}
+.quiz-table td { padding: 10px; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
+.quiz-table tr:last-child td { border-bottom: none; }
+.quiz-cell.is-right { color: #0A5C42; font-weight: 550; }
+.quiz-cell.is-wrong { color: var(--danger); text-decoration: line-through; }
+.quiz-cell__a { display: block; margin-top: 2px; font-weight: 560; color: var(--ink); }
+
+/* country outlines respond to hover without a pointer-cursor lie */
+.leaflet-interactive { cursor: pointer; }

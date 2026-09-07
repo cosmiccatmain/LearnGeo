@@ -21,12 +21,23 @@ others) carry a short explanatory note and accept the alternates.
 ## Modes
 
 - **Learn** — endless practice with instant feedback, weakest-first ordering, four question
-  types (country→capital, capital→country, locate on map, identify the pin).
+  types (country→capital, capital→country, locate on map, identify the shaded country).
 - **Practice test** — a scored section with a question navigator, flags, optional timer and
   exam mode, followed by a report broken down by region and question type.
+- **Class quiz** — the paper map quiz. One country is shaded gold; click it, then write its
+  name and its capital from memory. Two marks per question, no multiple choice, and a marked
+  paper at the end.
 - **Flashcards** — two-sided cards with a Leitner-style queue; Again / Hard / Good / Easy.
 
 Everything feeds one shared mastery record.
+
+## Country outlines
+
+Whole countries are shaded on the map rather than marked with pins. Outlines come from
+Natural Earth 1:50m via [world-atlas](https://github.com/topojson/world-atlas), converted to
+GeoJSON and rounded to 2 decimal places (`assets/data/countries.geo.json`, ~400 KB gzipped).
+211 of the 213 entries have a polygon; Tuvalu and Gibraltar are too small to appear at this
+resolution and fall back to a circular highlight on the capital.
 
 ## Progression
 
@@ -74,7 +85,8 @@ assets/js/map.js        Leaflet wrapper
 assets/js/quiz.js       question generation
 assets/js/ui.js         shell, profile menu, settings, customisation, shop
 assets/js/portal.js     the study centre home screen
-assets/js/mode-*.js     learn / test / flashcards
+assets/data/            country outlines (GeoJSON)
+assets/js/mode-*.js     learn / test / class quiz / flashcards
 assets/js/main.js       bootstrap and routing
 ```
 

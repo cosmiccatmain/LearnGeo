@@ -125,6 +125,7 @@
 
   function begin() {
     readSetup();
+    global.GeoMap.loadShapes();
     var qs = global.Quiz.generate({
       scope: setup.scope, regions: setup.regions, types: setup.types,
       count: setup.count, typed: setup.typed, weakFirst: false
@@ -269,27 +270,27 @@
 
     if (q.type === 'locate') {
       q.mapChoices.forEach(function (c) {
-        var cls = '';
+        var state = 'choice';
         if (reveal) {
-          if (c.name === q.country.name) cls = 'cap-pin--right';
-          else if (c.capital === T.given[T.i]) cls = 'cap-pin--wrong';
-          else cls = 'cap-pin--dim';
+          if (c.name === q.country.name) state = 'right';
+          else if (c.name === T.given[T.i]) state = 'wrong';
+          else state = 'dim';
         }
-        var m = global.GeoMap.addPin(c, cls, reveal ? null : function (country) {
-          answer(country.capital, document.querySelector('.map-pane'));
-        }, reveal ? c.capital : '');
+        global.GeoMap.drawCountry(c, state, reveal ? null : function (country) {
+          answer(country.name, document.querySelector('#view-test .map-pane'));
+        }, reveal ? c.name : null);
       });
       global.GeoMap.fitAll(q.mapChoices, 80);
-      setHint(reveal ? '' : 'Click the pin for ' + q.country.name);
+      setHint(reveal ? '' : 'Click the country');
     } else if (q.type === 'identify') {
-      global.GeoMap.addPin(q.country, reveal ? 'cap-pin--right' : 'cap-pin--target', null, reveal ? q.country.capital : '');
-      global.GeoMap.focus(q.country, reveal ? 4.6 : 3.6);
-      setHint(reveal ? '' : 'Identify the highlighted pin');
+      global.GeoMap.drawCountry(q.country, reveal ? 'right' : 'target', null, reveal ? q.country.name : null);
+      global.GeoMap.frame(q.country, 90);
+      setHint(reveal ? '' : 'Which country is shaded?');
     } else {
       setHint('');
       if (reveal) {
-        global.GeoMap.addPin(q.country, 'cap-pin--right', null, q.country.capital);
-        global.GeoMap.focus(q.country, 4.4);
+        global.GeoMap.drawCountry(q.country, 'right', null, q.country.name);
+        global.GeoMap.frame(q.country, 80);
       } else {
         global.GeoMap.reset();
       }

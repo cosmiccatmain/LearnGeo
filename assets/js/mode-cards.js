@@ -19,6 +19,7 @@
   function stage() { return document.getElementById('cards-stage'); }
 
   function start() {
+    global.GeoMap.loadShapes();
     if (!built) build();
     renderSidebar();
     renderCard();
@@ -194,8 +195,8 @@
     global.GeoMap.clear();
     var c = current();
     if (!c || !reveal) { global.GeoMap.reset(); return; }
-    global.GeoMap.addPin(c, 'cap-pin--right', null, c.capital);
-    global.GeoMap.focus(c, 4.2);
+    global.GeoMap.drawCountry(c, 'right', null, c.name);
+    global.GeoMap.frame(c, 60);
   }
 
   /* ---------------------------- sidebar ----------------------------- */

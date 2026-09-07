@@ -13,6 +13,9 @@
     { view: 'test', icon: I.clip, title: 'Practice test',
       blurb: 'Sit a scored section end to end, with a question navigator, flags and a full score report at the finish.',
       meta: '10 – 75 questions · timed' },
+    { view: 'quiz', icon: I.target, title: 'Class quiz',
+      blurb: 'The paper map quiz. A country is shaded on the map \u2014 click it, then write its name and its capital from memory.',
+      meta: 'Two marks each \u00b7 no multiple choice' },
     { view: 'cards', icon: I.cards, title: 'Flashcards',
       blurb: 'Two-sided cards with a spaced-repetition queue. Rate each card and the shaky ones return before you finish.',
       meta: 'Both directions · 10 – 100 cards' }

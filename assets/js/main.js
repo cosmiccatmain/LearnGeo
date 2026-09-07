@@ -9,6 +9,7 @@
     { view: 'portal', icon: I.grid,  label: 'Home' },
     { view: 'learn',  icon: I.book,  label: 'Learn' },
     { view: 'test',   icon: I.clip,  label: 'Practice test' },
+    { view: 'quiz',   icon: I.target, label: 'Class quiz' },
     { view: 'cards',  icon: I.cards, label: 'Flashcards' }
   ];
 

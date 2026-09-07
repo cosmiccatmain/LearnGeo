@@ -86,10 +86,10 @@
       q.aliases = answer.nameAliases;
       if (!opts.typed) q.choices = build(answer, all, 'name');
     } else if (type === 'locate') {
-      q.prompt = 'Find the capital of';
+      q.prompt = 'Find this country on the map';
       q.subject = answer.name;
-      q.sub = 'Click the correct pin on the map';
-      q.answerText = answer.capital;
+      q.sub = 'Click the country itself, not a pin';
+      q.answerText = answer.name;      /* you click the country, so the answer is its name */
       q.mapChoices = W.shuffle([answer].concat(distractors(answer, all, 4, 'name')));
     } else if (type === 'identify') {
       q.prompt = 'The highlighted pin is the capital of';
