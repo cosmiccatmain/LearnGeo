@@ -31,8 +31,8 @@
       <a href="#rewards">Progress</a>
     </div>
     <div class="nav__spacer"></div>
-    <button class="btn btn--ghost btn--sm" data-auth="login">Log in</button>
-    <button class="btn btn--primary btn--sm" data-auth="signup">Create account</button>
+    <button class="btn btn--ghost btn--sm hidden" id="nav-continue">Continue where you left off</button>
+    <button class="btn btn--primary btn--sm" data-launch="portal">Start studying</button>
   </nav>
 
   <header class="hero" id="top">
@@ -45,8 +45,8 @@
       No flags, no filler. Just places, names and locations until you know them cold.
     </p>
     <div class="hero__cta">
-      <button class="btn btn--accent btn--lg" data-auth="signup">Create your free account</button>
-      <button class="btn btn--ghost btn--lg" data-auth="login">I already have an account</button>
+      <button class="btn btn--accent btn--lg" data-launch="learn">Start learning free</button>
+      <button class="btn btn--ghost btn--lg" data-launch="test">Take a practice test</button>
     </div>
     <p class="hero__note">Runs entirely in your browser · free account · progress saves on this device</p>
   </header>
@@ -314,7 +314,7 @@
             <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M6 2h12v7a6 6 0 0 1-12 0z"/><path d="M9 21h6M12 15v6"/></svg>
               <div><b>10 achievements</b><span>Each pays a diamond bounty when it unlocks.</span></div></li>
           </ul>
-          <button class="btn btn--accent btn--lg" style="margin-top:26px" data-auth="signup">Create your free account</button>
+          <button class="btn btn--accent btn--lg" style="margin-top:26px" data-launch="learn">Start earning</button>
         </div>
       </div>
     </div>
@@ -333,42 +333,6 @@
 </div>
 
 
-<!-- =============================== AUTH ================================ -->
-<div id="auth" class="auth-screen hidden">
-  <button class="btn btn--quiet btn--sm auth-back" id="auth-back">&larr; Back to home</button>
-  <div class="auth-card">
-    <span class="brand">
-      <span class="brand__mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18a15 15 0 0 1 0-18"/></svg></span>
-      <span class="brand__text">LearnGeo</span>
-    </span>
-    <h2 id="auth-title">Create your account</h2>
-    <p id="auth-sub">Your progress, diamonds and profile are tied to your account.</p>
-
-    <form class="auth-form" id="auth-form" autocomplete="on">
-      <div class="field" id="auth-name-field">
-        <label class="field__label" for="auth-name">Display name</label>
-        <input class="input" id="auth-name" type="text" maxlength="32" autocomplete="nickname" placeholder="How you appear on your profile">
-      </div>
-      <div class="field">
-        <label class="field__label" for="auth-email">Email</label>
-        <input class="input" id="auth-email" type="email" autocomplete="email" placeholder="you@example.com">
-      </div>
-      <div class="field">
-        <label class="field__label" for="auth-password">Password</label>
-        <input class="input" id="auth-password" type="password" autocomplete="current-password" placeholder="At least 8 characters">
-      </div>
-      <button class="btn btn--accent btn--lg btn--block" type="submit" id="auth-submit">Create account</button>
-    </form>
-
-    <div id="auth-error"></div>
-    <div class="auth-switch" id="auth-switch"></div>
-    <div class="auth-note">
-      Accounts are stored in this browser only. Passwords are salted and hashed with SHA-256 —
-      never kept as plain text — and nothing is sent anywhere.
-    </div>
-  </div>
-</div>
-
 <!-- ================================ APP ================================ -->
 <div id="app" class="app">
 
@@ -378,7 +342,8 @@
       <span class="brand__text">LearnGeo</span>
     </button>
 
-    <nav class="tabs">
+    <nav class="tabs" id="mode-tabs">
+      <span class="tabs__thumb" id="tabs-thumb"></span>
       <button class="tab is-active" data-view="portal"></button>
       <button class="tab" data-view="learn"></button>
       <button class="tab" data-view="test"></button>
@@ -418,15 +383,18 @@
   </div>
 
   <!-- TEST -->
-  <div id="view-test" class="workspace hidden">
-    <aside class="sidebar">
-      <div class="sidebar__head" id="test-head"></div>
-      <div class="sidebar__body" id="test-body"></div>
-      <div class="sidebar__foot" id="test-foot"></div>
-    </aside>
-    <div id="test-setup"></div>
-    <div class="map-pane hidden" id="test-workspace"><div id="map-test"></div></div>
-    <div id="test-report" class="hidden" style="flex:1;overflow-y:auto;background:var(--white)"></div>
+  <div id="view-test" class="view-col hidden">
+    <div class="qnav hidden" id="test-nav"></div>
+    <div class="workspace">
+      <aside class="sidebar">
+        <div class="sidebar__head" id="test-head"></div>
+        <div class="sidebar__body" id="test-body"></div>
+        <div class="sidebar__foot" id="test-foot"></div>
+      </aside>
+      <div id="test-setup"></div>
+      <div class="map-pane hidden" id="test-workspace"><div id="map-test"></div></div>
+      <div id="test-report" class="hidden" style="flex:1;overflow-y:auto;background:var(--white)"></div>
+    </div>
   </div>
 
   <!-- CLASS QUIZ -->
@@ -467,7 +435,6 @@
 <script src="assets/js/core.js"></script>
 <script src="assets/js/map.js"></script>
 <script src="assets/js/quiz.js"></script>
-<script src="assets/js/auth.js"></script>
 <script src="assets/js/ui.js"></script>
 <script src="assets/js/portal.js"></script>
 <script src="assets/js/mode-learn.js"></script>

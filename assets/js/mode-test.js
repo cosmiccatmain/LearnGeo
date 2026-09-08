@@ -17,7 +17,7 @@
   var T = null;          /* live test */
   var tick = null;
 
-  function reset() { T = null; clearInterval(tick); tick = null; }
+  function reset() { T = null; clearInterval(tick); tick = null; renderNav('off'); }
 
   function start() {
     if (!T) renderSetup();
@@ -38,8 +38,64 @@
   }
 
   /* =============================== SETUP ============================ */
+  function navStrip() { return document.getElementById('test-nav'); }
+
+  /* The question navigator lives in a strip under the top bar, so jumping
+     between questions is always one click away regardless of scroll. */
+  function renderNav(mode) {
+    var bar = navStrip();
+    if (!bar) return;
+    if (!T || mode === 'off') { bar.classList.add('hidden'); bar.innerHTML = ''; return; }
+    bar.classList.remove('hidden');
+
+    var review = mode === 'review';
+    var answeredCount = T.given.filter(function (g) { return g !== null; }).length;
+    var correctCount = T.right.filter(Boolean).length;
+
+    var cells = '';
+    for (var i = 0; i < T.qs.length; i++) {
+      var cls = 'navcell';
+      if (review) cls += T.right[i] ? ' is-right' : ' is-wrong';
+      else {
+        if (T.given[i] !== null) cls += ' is-answered';
+        if (T.flags[i]) cls += ' is-flagged';
+        if (i === T.i) cls += ' is-current';
+      }
+      cells += '<button class="' + cls + '" data-n="' + i + '" ' +
+        'title="Question ' + (i + 1) + '">' + (i + 1) + '</button>';
+    }
+
+    bar.innerHTML =
+      '<div class="qnav__meta">' +
+        (review
+          ? '<b>Results</b><span>' + correctCount + '/' + T.qs.length + ' correct</span>'
+          : '<b>Question ' + (T.i + 1) + '</b><span>of ' + T.qs.length + '</span>') +
+      '</div>' +
+      '<div class="qnav__scroll"><div class="qnav__cells">' + cells + '</div></div>' +
+      '<div class="qnav__right">' +
+        (review ? '' :
+          '<div class="qnav__legend">' +
+            '<i><span class="qnav__dot" style="background:var(--ink)"></span>answered ' +
+              answeredCount + '/' + T.qs.length + '</i>' +
+            '<i><span class="qnav__dot" style="background:var(--gold)"></span>flagged ' +
+              T.flags.filter(Boolean).length + '</i>' +
+          '</div>') +
+        (T.remaining !== null && !review
+          ? '<span class="timer mono" id="ts-timer">' + W.fmtTime(Math.max(0, T.remaining)) + '</span>'
+          : '') +
+      '</div>';
+
+    W.$$('.navcell', bar).forEach(function (n) {
+      n.addEventListener('click', function () { if (!review) go(+n.dataset.n); });
+    });
+    /* keep the active cell in view on long sections */
+    var cur = bar.querySelector('.navcell.is-current');
+    if (cur && cur.scrollIntoView) cur.scrollIntoView({ block: 'nearest', inline: 'center' });
+  }
+
   function renderSetup() {
     showPane('setup');
+    renderNav('off');
     head().innerHTML = '<div class="sidebar__title">Practice test</div>' +
       '<div class="t-sm t-muted" style="margin-top:2px">Build a section, then sit it end to end.</div>';
 
@@ -171,7 +227,6 @@
         '<div><div class="sidebar__title">Question ' + (T.i + 1) +
           '<span class="t-muted" style="font-weight:500"> / ' + T.qs.length + '</span></div>' +
           '<div class="eyebrow" style="margin-top:3px">' + W.escapeHtml(global.Quiz.types[q.type].label) + '</div></div>' +
-        (T.remaining !== null ? '<span class="timer mono" id="ts-timer">' + W.fmtTime(Math.max(0, T.remaining)) + '</span>' : '') +
       '</div>' +
       '<div class="pbar" style="margin-top:12px"><div class="pbar__fill pbar__fill--accent" style="width:' +
         (((T.i + 1) / T.qs.length) * 100) + '%"></div></div>';
@@ -205,22 +260,8 @@
     }
     html += '</div><div id="ts-fb"></div>';
 
-    /* question navigator — the thing that makes a test feel like a test */
-    html += '<div class="divider"></div>' +
-      '<div class="row row--between" style="margin-bottom:10px">' +
-        '<span class="eyebrow">Navigator</span>' +
-        '<span class="t-sm t-muted mono">' + T.given.filter(function (g) { return g !== null; }).length +
-        '/' + T.qs.length + ' answered</span>' +
-      '</div><div class="navgrid" id="ts-nav">';
-    for (var i = 0; i < T.qs.length; i++) {
-      var cls = 'navcell';
-      if (T.given[i] !== null) cls += ' is-answered';
-      if (T.flags[i]) cls += ' is-flagged';
-      if (i === T.i) cls += ' is-current';
-      html += '<button class="' + cls + '" data-n="' + i + '">' + (i + 1) + '</button>';
-    }
-    html += '</div>';
     side().innerHTML = html;
+    renderNav('run');
 
     W.$$('.option', side()).forEach(function (n) {
       n.addEventListener('click', function () { answer(q.choices[+n.dataset.i].text, n); });
@@ -237,9 +278,6 @@
         if (e.key === 'Enter' && ti.value.trim()) answer(ti.value, ti);
       });
     }
-    W.$$('#ts-nav .navcell', side()).forEach(function (n) {
-      n.addEventListener('click', function () { go(+n.dataset.n); });
-    });
 
     foot().innerHTML =
       '<div class="row" style="gap:8px">' +
@@ -420,7 +458,7 @@
     var correct = T.right.filter(Boolean).length;
     var total = T.qs.length;
     var pct = Math.round((correct / total) * 100);
-    var circ = 2 * Math.PI * 74;
+    var circ = 2 * Math.PI * 52;
 
     var byRegion = {}, byType = {};
     T.qs.forEach(function (q, i) {
@@ -431,24 +469,29 @@
     var html =
       '<div class="report">' +
         '<div class="score-hero">' +
-          '<span class="eyebrow">Score report</span>' +
-          '<div class="score-ring" style="margin-top:18px">' +
-            '<svg width="168" height="168">' +
-              '<circle cx="84" cy="84" r="74" fill="none" stroke="var(--line)" stroke-width="11"/>' +
-              '<circle cx="84" cy="84" r="74" fill="none" stroke="' + ringColor(pct) + '" stroke-width="11" ' +
+          '<div class="score-dial">' +
+            '<svg viewBox="0 0 120 120" width="120" height="120" aria-hidden="true">' +
+              '<circle cx="60" cy="60" r="52" fill="none" stroke="var(--line-soft)" stroke-width="9"/>' +
+              '<circle cx="60" cy="60" r="52" fill="none" stroke="' + ringColor(pct) + '" stroke-width="9" ' +
                 'stroke-linecap="round" stroke-dasharray="' + circ + '" stroke-dashoffset="' + circ + '" ' +
-                'id="score-arc" style="transition:stroke-dashoffset 1.1s cubic-bezier(.22,.61,.36,1)"/>' +
+                'id="score-arc" style="transition:stroke-dashoffset 1.05s cubic-bezier(.22,.61,.36,1)"/>' +
             '</svg>' +
-            '<div class="score-ring__n mono">' + pct + '%<small>' + correct + ' / ' + total + '</small></div>' +
+            '<div class="score-dial__n">' + pct + '<i>%</i></div>' +
           '</div>' +
-          '<h2 style="margin-top:22px;font-size:28px">' + verdict(pct) + '</h2>' +
-          '<p class="t-muted" style="margin-top:8px">' +
-            total + ' questions · ' + W.fmtTime(T.elapsed) + ' elapsed · ' +
-            (T.instant ? 'feedback after each' : 'exam mode') + '</p>' +
-          '<div class="row" style="justify-content:center;gap:8px;margin-top:16px">' +
-            '<span class="chip chip--xp mono">+' + T.xp + ' XP</span>' +
-            '<span class="chip chip--gem mono">+' + (T.gems + T.bonus) + ' 💎</span>' +
-            (pct === 100 ? '<span class="chip chip--fire mono">Perfect +100 💎</span>' : '') +
+
+          '<div class="score-lead">' +
+            '<span class="eyebrow">Score report</span>' +
+            '<h2>' + verdict(pct) + '</h2>' +
+            '<p class="score-lead__meta">' +
+              '<b>' + correct + ' of ' + total + '</b> correct' +
+              '<span>·</span>' + W.fmtTime(T.elapsed) +
+              '<span>·</span>' + (T.instant ? 'feedback after each' : 'exam mode') +
+            '</p>' +
+            '<div class="score-lead__chips">' +
+              '<span class="chip chip--xp mono">+' + T.xp + ' XP</span>' +
+              '<span class="chip chip--gem mono">+' + (T.gems + T.bonus) + ' 💎</span>' +
+              (pct === 100 ? '<span class="chip chip--fire mono">Perfect · +100 💎</span>' : '') +
+            '</div>' +
           '</div>' +
         '</div>' +
 
@@ -499,12 +542,8 @@
 
     head().innerHTML = '<div class="sidebar__title">Results</div>' +
       '<div class="t-sm t-muted" style="margin-top:2px">' + correct + ' of ' + total + ' correct</div>';
-    side().innerHTML = '<span class="eyebrow">Navigator</span><div class="navgrid" style="margin-top:10px">' +
-      T.qs.map(function (q, i) {
-        return '<div class="navcell ' + (T.right[i] ? 'is-right' : 'is-wrong') + '">' + (i + 1) + '</div>';
-      }).join('') + '</div>' +
-      '<div class="divider"></div>' +
-      '<div class="stack-8">' + weakest() + '</div>';
+    side().innerHTML = '<div class="stack-8">' + weakest() + '</div>';
+    renderNav('review');
     foot().innerHTML = '<button class="btn btn--primary btn--block" id="rp-again2">' + I.refresh + ' Build another test</button>';
 
     document.getElementById('rp-again').addEventListener('click', newTest);

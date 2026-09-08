@@ -50,7 +50,6 @@
 
   function defaultState() {
     return {
-      loggedIn: false,
       profile: {
         displayName: 'Explorer',
         pronouns: '',

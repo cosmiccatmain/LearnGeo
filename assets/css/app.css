@@ -41,6 +41,7 @@
 
   --topbar-h: 60px;
   --ease: cubic-bezier(.22,.61,.36,1);
+  --spring: cubic-bezier(.34,1.4,.5,1);
 }
 
 * { box-sizing: border-box; }
@@ -280,16 +281,35 @@ a { color: inherit; text-decoration: none; }
   border-bottom: 1px solid var(--line); background: var(--white);
   position: relative; z-index: 60;
 }
-.tabs { display: flex; gap: 2px; margin-left: 14px; }
+/* Mode switcher: a single pill slides between the three tabs rather than
+   each one flicking its own background on and off. */
+.tabs {
+  display: flex; gap: 2px; margin-left: 14px;
+  position: relative; padding: 3px;
+  background: var(--line-soft); border-radius: 11px;
+}
+.tabs__thumb {
+  position: absolute; top: 3px; bottom: 3px; left: 0;
+  border-radius: 8px; background: var(--ink);
+  box-shadow: 0 1px 3px rgba(10,10,11,.22);
+  transform: translateX(0); width: 0;
+  transition: transform .42s var(--spring), width .42s var(--spring);
+  z-index: 0; pointer-events: none;
+}
 .tab {
+  position: relative; z-index: 1;
   height: 34px; padding: 0 14px; border-radius: 8px;
   font-size: 14px; font-weight: 520; color: var(--muted);
   display: inline-flex; align-items: center; gap: 7px;
-  transition: background .14s, color .14s;
+  background: transparent;
+  transition: color .26s var(--ease), transform .18s var(--ease);
 }
-.tab:hover { background: var(--line-soft); color: var(--ink); }
-.tab.is-active { background: var(--ink); color: #fff; }
-.tab.is-active:hover { background: var(--ink); }
+.tab:hover { color: var(--ink); }
+.tab:active { transform: scale(.96); }
+.tab.is-active { color: #fff; }
+.tab.is-active:hover { color: #fff; }
+.tab svg { transition: transform .42s var(--spring); }
+.tab.is-active svg { transform: scale(1.08); }
 
 .hud { display: flex; align-items: center; gap: 6px; }
 .hud__item {
@@ -382,6 +402,12 @@ a { color: inherit; text-decoration: none; }
 .menu__item--danger:hover { background: var(--danger-soft); color: var(--danger); }
 .menu__item--danger svg { color: var(--danger); }
 .menu__sep { height: 1px; background: var(--line-soft); margin: 5px 8px; }
+.menu__note {
+  display: flex; align-items: flex-start; gap: 11px;
+  padding: 8px 12px 6px; font-size: 13px; color: var(--ink-2); font-weight: 500;
+}
+.menu__note svg { color: var(--success); flex: none; margin-top: 2px; }
+.menu__note i { font-style: normal; font-size: 11.5px; color: var(--faint); font-weight: 400; }
 
 /* --------------------------- workspace --------------------------- */
 .workspace { flex: 1; display: flex; min-height: 0; }
@@ -578,6 +604,37 @@ textarea.input {
 textarea.input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(27,77,255,.12); }
 
 /* ---------------- test mode: navigator + report ------------------ */
+/* Test mode question navigator: a full-width strip directly under the
+   top bar, so jumping between questions never means hunting in the sidebar. */
+.view-col { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+
+.qnav {
+  flex: none; display: flex; align-items: center; gap: 16px;
+  padding: 9px 18px; background: var(--white);
+  border-bottom: 1px solid var(--line);
+  position: relative; z-index: 20;
+}
+.qnav__meta { flex: none; display: flex; align-items: baseline; gap: 8px; }
+.qnav__meta b { font-size: 14px; font-weight: 620; letter-spacing: -.015em; }
+.qnav__meta span { font-size: 12.5px; color: var(--faint); font-family: var(--mono); }
+.qnav__scroll {
+  flex: 1; min-width: 0; overflow-x: auto; overflow-y: hidden;
+  padding: 3px 0; scrollbar-width: thin;
+}
+.qnav__scroll::-webkit-scrollbar { height: 5px; }
+.qnav__scroll::-webkit-scrollbar-thumb { background: var(--line); border-radius: 99px; }
+.qnav__cells { display: flex; gap: 6px; width: max-content; }
+.qnav .navcell {
+  width: 32px; height: 32px; aspect-ratio: auto; flex: none;
+  transition: transform .2s var(--spring), background .16s, border-color .16s, color .16s;
+}
+.qnav .navcell:hover { transform: translateY(-2px); }
+.qnav .navcell.is-current { transform: translateY(-2px) scale(1.06); }
+.qnav__right { flex: none; display: flex; align-items: center; gap: 8px; }
+.qnav__legend { display: flex; gap: 12px; font-size: 11.5px; color: var(--faint); }
+.qnav__legend i { font-style: normal; display: inline-flex; align-items: center; gap: 5px; }
+.qnav__dot { width: 8px; height: 8px; border-radius: 3px; display: inline-block; }
+
 .navgrid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; }
 .navcell {
   aspect-ratio: 1; border-radius: 7px; border: 1px solid var(--line);
@@ -602,14 +659,43 @@ textarea.input:focus { outline: none; border-color: var(--accent); box-shadow: 0
 .timer.is-low { background: var(--danger-soft); color: var(--danger); animation: bump 1s infinite; }
 
 .report { max-width: 880px; margin: 0 auto; padding: 44px 32px 64px; }
-.score-hero { text-align: center; padding-bottom: 34px; border-bottom: 1px solid var(--line); }
-.score-ring { width: 168px; height: 168px; margin: 0 auto; position: relative; }
-.score-ring svg { transform: rotate(-90deg); }
-.score-ring__n {
-  position: absolute; inset: 0; display: grid; place-items: center;
-  font-family: var(--mono); font-size: 40px; font-weight: 650; letter-spacing: -.03em;
+/* Score header: the dial sits beside the verdict rather than floating alone
+   in a column of white space, and the percentage is set in the display face —
+   mono digits read as a stopwatch at this size, not a score. */
+.score-hero {
+  display: flex; align-items: center; gap: 28px;
+  padding: 4px 0 30px; border-bottom: 1px solid var(--line);
 }
-.score-ring__n small { display: block; font-size: 12px; color: var(--faint); font-weight: 500; letter-spacing: .06em; }
+.score-dial { position: relative; width: 120px; height: 120px; flex: none; }
+.score-dial svg { transform: rotate(-90deg); display: block; }
+.score-dial__n {
+  position: absolute; inset: 0; display: flex;
+  align-items: center; justify-content: center;
+  font-size: 34px; font-weight: 660; letter-spacing: -.04em; color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.score-dial__n i {
+  font-style: normal; font-size: 15px; font-weight: 570;
+  color: var(--faint); margin-left: 2px; align-self: center; letter-spacing: 0;
+}
+
+.score-lead { min-width: 0; }
+.score-lead h2 {
+  margin-top: 9px; font-size: clamp(24px, 3vw, 32px);
+  letter-spacing: -.033em; line-height: 1.1;
+}
+.score-lead__meta {
+  margin-top: 9px; font-size: 14.5px; color: var(--muted);
+  display: flex; align-items: center; gap: 7px; flex-wrap: wrap;
+}
+.score-lead__meta b { color: var(--ink); font-weight: 600; }
+.score-lead__meta span { color: var(--line); }
+.score-lead__chips { display: flex; gap: 7px; margin-top: 14px; flex-wrap: wrap; }
+
+@media (max-width: 640px) {
+  .score-hero { flex-direction: column; align-items: flex-start; gap: 18px; }
+  .score-lead__meta { font-size: 13.5px; }
+}
 
 .breakdown { margin-top: 34px; }
 .brow {
@@ -1013,6 +1099,8 @@ textarea.input:focus { outline: none; border-color: var(--accent); box-shadow: 0
   .avatar-btn { width: 34px; height: 34px; }
   .sidebar__head, .sidebar__body, .sidebar__foot { padding-left: 16px; padding-right: 16px; }
   .fc-rate { grid-template-columns: 1fr 1fr; }
+  .qnav { padding: 8px 12px; gap: 10px; }
+  .qnav__legend { display: none; }
   .modal__body { padding: 16px; }
   .vtabs { overflow-x: auto; }
   .split { grid-template-columns: 1fr !important; }

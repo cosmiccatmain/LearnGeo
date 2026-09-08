@@ -136,7 +136,9 @@
       item('custom', I.palette, 'Customization') +
       item('achievements', I.trophy, 'Achievements') +
       '<div class="menu__sep"></div>' +
-      '<button class="menu__item menu__item--danger" data-go="logout">' + I.logout + '<span>Log out</span></button>';
+      '<div class="menu__note">' + I.shield +
+        '<span>Saved in this browser<br><i>' + s.stats.answered.toLocaleString() +
+        ' answers · no account needed</i></span></div>';
 
     document.querySelector('.topbar').appendChild(menuEl);
     setTimeout(function () { document.addEventListener('mousedown', outside); }, 0);
@@ -148,7 +150,6 @@
         if (go === 'settings') openSettings();
         else if (go === 'custom') openCustomization();
         else if (go === 'achievements') openAchievements();
-        else if (go === 'logout') confirmLogout();
       });
     });
 
@@ -166,23 +167,6 @@
     if (menuEl) menuEl.remove();
     menuEl = null;
     document.removeEventListener('mousedown', outside);
-  }
-
-  function confirmLogout() {
-    modal({
-      title: 'Log out',
-      icon: I.logout,
-      body: '<p class="t-muted">You will be returned to the landing page. Your progress, diamonds and ' +
-        'customisation stay saved on this device — logging back in picks up exactly where you left off.</p>',
-      actions: [
-        { label: 'Stay signed in', cls: 'btn--ghost', close: true },
-        { label: 'Log out', cls: 'btn--primary', close: true, onClick: function () {
-            global.Auth.endSession();
-            global.UI.showLanding();
-            W.toast('Logged out', 'Your progress is saved on this device', I.check);
-          } }
-      ]
-    });
   }
 
   /* ============================= SETTINGS =========================== */
@@ -677,8 +661,30 @@
   /* ============================ NAVIGATION ========================== */
   var VIEWS = ['portal', 'learn', 'test', 'quiz', 'cards'];
 
+  /* Slide the pill under whichever tab is active. Measured rather than
+     hard-coded, so it stays correct when labels collapse on narrow screens. */
+  function positionThumb(animate) {
+    var bar = document.getElementById('mode-tabs');
+    var thumb = document.getElementById('tabs-thumb');
+    if (!bar || !thumb) return;
+    var active = bar.querySelector('.tab.is-active');
+    if (!active) return;
+    if (animate === false) thumb.style.transition = 'none';
+    thumb.style.width = active.offsetWidth + 'px';
+    thumb.style.transform = 'translateX(' + (active.offsetLeft - bar.clientLeft) + 'px)';
+    if (animate === false) {
+      void thumb.offsetWidth;          /* flush, then hand control back to CSS */
+      thumb.style.transition = '';
+    }
+  }
+
+  var thumbRaf = null;
+  window.addEventListener('resize', function () {
+    cancelAnimationFrame(thumbRaf);
+    thumbRaf = requestAnimationFrame(function () { positionThumb(false); });
+  });
+
   function go(view) {
-    if (!global.Auth.isSignedIn()) return showAuth('login');
     currentView = view;
     VIEWS.forEach(function (v) {
       var el = document.getElementById('view-' + v);
@@ -688,6 +694,10 @@
     });
     document.body.className = document.body.className
       .replace(/\bview-\w+\b/g, '').trim() + ' view-' + view;
+
+    /* move the indicator before booting the mode: a slow or failing mode
+       start should never leave the switcher pointing at the wrong tab */
+    positionThumb();
 
     if (view === 'portal') global.Portal.render();
     if (view === 'learn') global.LearnMode.start();
@@ -699,9 +709,7 @@
   }
 
   function showApp(view) {
-    if (!global.Auth.isSignedIn()) return showAuth('login');
     document.getElementById('landing').classList.add('hidden');
-    document.getElementById('auth').classList.add('hidden');
     document.getElementById('app').classList.add('is-open');
     document.body.classList.remove('no-scroll');
     W.touchDaily();
@@ -712,19 +720,8 @@
   function showLanding() {
     closeMenu();
     document.getElementById('app').classList.remove('is-open');
-    document.getElementById('auth').classList.add('hidden');
     document.getElementById('landing').classList.remove('hidden');
     document.body.className = '';
-    window.scrollTo(0, 0);
-  }
-
-  function showAuth(mode) {
-    closeMenu();
-    document.getElementById('app').classList.remove('is-open');
-    document.getElementById('landing').classList.add('hidden');
-    document.getElementById('auth').classList.remove('hidden');
-    document.body.className = '';
-    if (global.AuthUI) global.AuthUI.setMode(mode || 'signup');
     window.scrollTo(0, 0);
   }
 
@@ -733,6 +730,6 @@
     refreshHud: refreshHud, toggleMenu: toggleMenu, closeMenu: closeMenu,
     openSettings: openSettings, openCustomization: openCustomization, openAchievements: openAchievements,
     profileCard: profileCard, runEffect: runEffect,
-    go: go, showApp: showApp, showLanding: showLanding, showAuth: showAuth
+    go: go, showApp: showApp, showLanding: showLanding, positionThumb: positionThumb
   };
 })(window);
