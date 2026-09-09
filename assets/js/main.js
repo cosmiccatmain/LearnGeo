@@ -43,6 +43,8 @@
       cont.addEventListener('click', function () { global.UI.showApp('portal'); });
     }
 
+    global.UI.watchTabs();
+
     var av = document.getElementById('avatar-btn');
     if (av) av.addEventListener('click', function (e) { e.stopPropagation(); global.UI.toggleMenu(); });
 

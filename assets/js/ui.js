@@ -662,27 +662,56 @@
   var VIEWS = ['portal', 'learn', 'test', 'quiz', 'cards'];
 
   /* Slide the pill under whichever tab is active. Measured rather than
-     hard-coded, so it stays correct when labels collapse on narrow screens. */
+     hard-coded, so it stays correct when labels collapse on narrow screens.
+
+     Booting a mode can reflow the top bar (map pins, HUD chips), which
+     occasionally landed the transform before the final layout and left the
+     pill a tab behind. So the position is re-asserted after layout settles
+     and again whenever the bar's geometry actually changes. */
   function positionThumb(animate) {
     var bar = document.getElementById('mode-tabs');
     var thumb = document.getElementById('tabs-thumb');
     if (!bar || !thumb) return;
     var active = bar.querySelector('.tab.is-active');
-    if (!active) return;
+    if (!active || !active.offsetWidth) return;
+
+    var x = active.offsetLeft - bar.clientLeft;
+    var w = active.offsetWidth;
     if (animate === false) thumb.style.transition = 'none';
-    thumb.style.width = active.offsetWidth + 'px';
-    thumb.style.transform = 'translateX(' + (active.offsetLeft - bar.clientLeft) + 'px)';
+    thumb.style.width = w + 'px';
+    thumb.style.transform = 'translateX(' + x + 'px)';
     if (animate === false) {
       void thumb.offsetWidth;          /* flush, then hand control back to CSS */
       thumb.style.transition = '';
     }
   }
 
+  /* Re-measure once the browser has finished laying the frame out. */
+  function settleThumb() {
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () { positionThumb(); });
+    });
+  }
+
   var thumbRaf = null;
-  window.addEventListener('resize', function () {
+  function repositionSoon() {
     cancelAnimationFrame(thumbRaf);
     thumbRaf = requestAnimationFrame(function () { positionThumb(false); });
-  });
+  }
+  window.addEventListener('resize', repositionSoon);
+
+  /* Watch the bar itself: any change in tab geometry (fonts arriving, labels
+     collapsing, a mode reflowing the header) re-seats the pill. */
+  function watchTabs() {
+    var bar = document.getElementById('mode-tabs');
+    if (!bar || typeof ResizeObserver === 'undefined') return;
+    var ro = new ResizeObserver(repositionSoon);
+    ro.observe(bar);
+    W.$$('.tab', bar).forEach(function (t) { ro.observe(t); });
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(function () { positionThumb(false); });
+    }
+  }
 
   function go(view) {
     currentView = view;
@@ -704,6 +733,7 @@
     if (view === 'test') global.TestMode.start();
     if (view === 'quiz') global.QuizMode.start();
     if (view === 'cards') global.CardsMode.start();
+    settleThumb();                     /* correct for any reflow the mode caused */
     global.GeoMap.invalidate();
     refreshHud();
   }
@@ -730,6 +760,7 @@
     refreshHud: refreshHud, toggleMenu: toggleMenu, closeMenu: closeMenu,
     openSettings: openSettings, openCustomization: openCustomization, openAchievements: openAchievements,
     profileCard: profileCard, runEffect: runEffect,
-    go: go, showApp: showApp, showLanding: showLanding, positionThumb: positionThumb
+    go: go, showApp: showApp, showLanding: showLanding,
+    positionThumb: positionThumb, watchTabs: watchTabs
   };
 })(window);
