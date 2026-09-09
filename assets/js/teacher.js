@@ -456,7 +456,9 @@
           'Export the gradebook if you need it somewhere else.</p>' +
         '<button class="btn btn--ghost btn--block" id="tm-export">Export gradebook CSV</button>' +
         '<button class="btn btn--ghost btn--block" id="tm-leave" style="margin-top:8px">' +
-          'Switch back to student view</button>' +
+          'Switch to a student account</button>' +
+        '<div class="field__hint" style="margin-top:8px">Your class, assignments and results stay ' +
+          'saved. To come back, open the For teachers page from the home site.</div>' +
       '</div>' +
     '</div>';
   }

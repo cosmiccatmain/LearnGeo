@@ -121,8 +121,6 @@
     if (addBtn) addBtn.addEventListener('click', global.Classroom.openAdd);
     var openBtn = document.getElementById('portal-openclass');
     if (openBtn) openBtn.addEventListener('click', function () { global.UI.go('classroom'); });
-    var tBtn = document.getElementById('portal-teacher');
-    if (tBtn) tBtn.addEventListener('click', global.Teacher.becomeTeacher);
 
     W.$$('.portal-mode', host).forEach(function (b) {
       b.addEventListener('click', function () { global.UI.go(b.dataset.view); });
@@ -170,7 +168,7 @@
         '<div class="row" style="gap:8px">' +
           (box.length
             ? '<button class="btn btn--ghost btn--sm" id="portal-openclass">Open Classroom</button>'
-            : '<button class="btn btn--ghost btn--sm" id="portal-teacher">' + I.users + ' Teacher mode</button>') +
+            : '') +
           '<button class="btn btn--primary btn--sm" id="portal-add">' + I.plus + ' Add assignment</button>' +
         '</div>' +
       '</div>' +

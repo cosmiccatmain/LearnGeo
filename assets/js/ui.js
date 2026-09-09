@@ -19,7 +19,8 @@
       ? '<div class="modal__head">' +
           (opts.icon ? '<span style="color:var(--muted)">' + opts.icon + '</span>' : '') +
           '<h3>' + W.escapeHtml(opts.title) + '</h3>' +
-          '<button class="icon-btn" data-close>' + I.close + '</button>' +
+          /* a non-dismissible dialog gets no escape hatch, or it is not one */
+          (opts.dismissible === false ? '' : '<button class="icon-btn" data-close>' + I.close + '</button>') +
         '</div>'
       : '';
 
@@ -32,6 +33,7 @@
       '<div class="modal__body">' + opts.body + '</div>' +
       (actionsHtml ? '<div class="modal__foot">' + (opts.footLeft || '<div class="grow"></div>') + actionsHtml + '</div>' : '');
 
+    if (opts.dismissible === false) ov.dataset.locked = '1';
     ov.appendChild(m);
     document.body.appendChild(ov);
     document.body.classList.add('no-scroll');
@@ -62,6 +64,7 @@
   function escClose(e) {
     if (e.key === 'Escape' && openModals.length) {
       var top = openModals[openModals.length - 1];
+      if (top.dataset.locked === '1') return;
       var btn = top.querySelector('[data-close]');
       if (btn) btn.click(); else { top.remove(); openModals.pop(); document.body.classList.remove('no-scroll'); }
     }
@@ -135,7 +138,6 @@
       item('settings', I.gear, 'Settings') +
       item('custom', I.palette, 'Customization') +
       item('achievements', I.trophy, 'Achievements') +
-      item('teacher', I.users, 'Teacher mode') +
       '<div class="menu__sep"></div>' +
       '<div class="menu__note">' + I.shield +
         '<span>Saved in this browser<br><i>' + s.stats.answered.toLocaleString() +
@@ -151,7 +153,6 @@
         if (go === 'settings') openSettings();
         else if (go === 'custom') openCustomization();
         else if (go === 'achievements') openAchievements();
-        else if (go === 'teacher') global.Teacher.becomeTeacher();
       });
     });
 
@@ -748,6 +749,12 @@
   }
 
   function go(view) {
+    /* The tab strip already hides the wrong one, but guard the route too so
+       a student cannot reach the teacher's class by any other path. */
+    var isTeacher = W.state.role === 'teacher';
+    if (view === 'teacher' && !isTeacher) view = 'classroom';
+    if (view === 'classroom' && isTeacher) view = 'teacher';
+
     currentView = view;
     VIEWS.forEach(function (v) {
       var el = document.getElementById('view-' + v);
@@ -774,13 +781,52 @@
     refreshHud();
   }
 
+  /* Asked once, the first time someone opens the app. Students never see
+     teacher mode after this, and teachers land straight in their class. */
+  function askRole(then) {
+    modal({
+      title: 'Who is using LearnGeo?',
+      icon: I.users,
+      dismissible: false,
+      body: '<p class="t-muted" style="margin-bottom:16px">This just decides which screens you get. ' +
+              'You can change it later from the For teachers page.</p>' +
+            '<div class="role-pick">' +
+              '<button class="role-opt" data-role="student">' +
+                '<span class="role-opt__i">' + I.book + '</span>' +
+                '<b>I am a student</b>' +
+                '<span>Study, and pick up assignments your teacher sets.</span>' +
+              '</button>' +
+              '<button class="role-opt" data-role="teacher">' +
+                '<span class="role-opt__i">' + I.users + '</span>' +
+                '<b>I am a teacher</b>' +
+                '<span>Set work for a class, collect it back and see how they did.</span>' +
+              '</button>' +
+            '</div>',
+      onMount: function (root, close) {
+        W.$$('[data-role]', root).forEach(function (b) {
+          b.addEventListener('click', function () {
+            W.state.role = b.dataset.role;
+            W.state.roleChosen = true;
+            W.saveNow();
+            close();
+            refreshTabs();
+            if (b.dataset.role === 'teacher') global.Teacher.becomeTeacher();
+            else if (then) then();
+          });
+        });
+      }
+    });
+  }
+
   function showApp(view) {
     document.getElementById('landing').classList.add('hidden');
     document.getElementById('app').classList.add('is-open');
     document.body.classList.remove('no-scroll');
     W.touchDaily();
     W.saveNow();
+    refreshTabs();
     go(view || currentView || 'portal');
+    if (!W.state.roleChosen) askRole();
   }
 
   function showLanding() {
@@ -797,6 +843,7 @@
     openSettings: openSettings, openCustomization: openCustomization, openAchievements: openAchievements,
     profileCard: profileCard, runEffect: runEffect,
     go: go, showApp: showApp, showLanding: showLanding,
-    positionThumb: positionThumb, watchTabs: watchTabs, refreshTabs: refreshTabs
+    positionThumb: positionThumb, watchTabs: watchTabs, refreshTabs: refreshTabs,
+    askRole: askRole
   };
 })(window);

@@ -80,6 +80,7 @@
       mastery: {},          /* countryName -> { c: correctCount, w: wrongCount, box: 0..5 } */
       achievements: [],
       role: 'student',            /* 'student' | 'teacher' */
+      roleChosen: false,          /* asked once, on first entry */
       classroom: {
         name: '', code: '',       /* teacher's own class */
         roster: [],               /* names the teacher tracks locally */

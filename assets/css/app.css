@@ -1738,3 +1738,24 @@ textarea.input:focus { outline: none; border-color: var(--accent); box-shadow: 0
 }
 .empty-cta b { display: block; font-size: 15.5px; }
 .empty-cta p { font-size: 13.5px; color: var(--muted); margin-top: 5px; }
+
+/* ---- first-run role choice ---- */
+.role-pick { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 560px) { .role-pick { grid-template-columns: 1fr; } }
+.role-opt {
+  border: 1px solid var(--line); border-radius: 14px; padding: 20px 18px;
+  background: var(--white); text-align: left;
+  transition: border-color .16s, box-shadow .18s var(--ease), transform .16s var(--ease);
+}
+.role-opt:hover {
+  border-color: var(--accent); box-shadow: 0 0 0 3px rgba(27,77,255,.08);
+  transform: translateY(-2px);
+}
+.role-opt__i {
+  width: 42px; height: 42px; border-radius: 12px; margin-bottom: 14px;
+  display: grid; place-items: center; background: var(--accent-soft); color: var(--accent);
+}
+.role-opt b { display: block; font-size: 15.5px; font-weight: 620; letter-spacing: -.015em; }
+.role-opt > span:last-child {
+  display: block; font-size: 13px; color: var(--muted); margin-top: 5px; line-height: 1.45;
+}
