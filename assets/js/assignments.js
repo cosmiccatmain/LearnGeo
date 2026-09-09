@@ -185,8 +185,11 @@
      Same idea as the assignment code, running the other direction. */
   function encodeResult(r) {
     try {
+      /* 'm' carries the countries that were missed, which is what makes the
+         class analytics worth reading: you can see what the room found hard. */
       var payload = { k: 'r', a: r.assignmentId, t: r.title, n: r.name,
-                      p: r.pct, c: r.correct, q: r.total, d: Date.now() };
+                      p: r.pct, c: r.correct, q: r.total, d: Date.now(),
+                      m: (r.missed || []).slice(0, 40) };
       var bytes = new TextEncoder().encode(JSON.stringify(payload));
       var bin = '';
       bytes.forEach(function (b) { bin += String.fromCharCode(b); });
@@ -205,8 +208,20 @@
       var o = JSON.parse(new TextDecoder().decode(bytes));
       if (!o || o.k !== 'r') throw new Error('not a result');
       return { assignmentId: o.a, title: o.t, name: o.n, pct: o.p,
-               correct: o.c, total: o.q, at: o.d };
+               correct: o.c, total: o.q, at: o.d, missed: o.m || [] };
     } catch (e) { return null; }
+  }
+
+  /* A class is twenty codes, not one. Pull every LGR- token out of whatever
+     was pasted, in any order, separated by anything. */
+  function decodeResultBatch(text) {
+    var tokens = String(text || '').match(/LGR-[A-Za-z0-9_-]+/g) || [];
+    var out = { ok: [], bad: 0 };
+    tokens.forEach(function (t) {
+      var r = decodeResult(t);
+      if (r) out.ok.push(r); else out.bad += 1;
+    });
+    return out;
   }
 
   function classCode() {
@@ -356,6 +371,7 @@
     recommend: recommend, run: run,
     encode: encode, decode: decode, classCode: classCode,
     encodeResult: encodeResult, decodeResult: decodeResult,
+    decodeResultBatch: decodeResultBatch,
     picker: picker, resolve: resolve,
     regionStats: regionStats, unseen: unseen, shaky: shaky, almost: almost
   };

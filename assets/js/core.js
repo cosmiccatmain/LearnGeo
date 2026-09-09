@@ -478,7 +478,7 @@
     confetti({ x: cx, y: cy, count: gains && gains.combo >= 5 ? 56 : 34, power: 170 });
     if (gains) {
       floatGain(cx - 46, cy - 12, '+' + gains.xp + ' XP', '#1B4DFF');
-      floatGain(cx + 22, cy - 12, '+' + gains.gems + ' 💎', '#0369A1');
+      floatGain(cx + 22, cy - 12, '+' + gains.gems + ' \u25C6', '#0369A1');
     }
   }
 
@@ -505,6 +505,11 @@
   }
 
   /* ============================= HELPERS ============================ */
+  /* '+8 <gem>' with the emoji sized to sit level with the digits. */
+  function gem(n, sign) {
+    return (sign === false ? '' : '+') + n + ' <span class="gem">💎</span>';
+  }
+
   function escapeHtml(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
@@ -604,7 +609,7 @@
     Sound: Sound,
     confetti: confetti, floatGain: floatGain, burstFrom: burstFrom, toast: toast,
     diamondRain: diamondRain, celebrateGoal: celebrateGoal,
-    escapeHtml: escapeHtml, normalise: normalise, matches: matches, tight: tight,
+    gem: gem, escapeHtml: escapeHtml, normalise: normalise, matches: matches, tight: tight,
     shuffle: shuffle, sample: sample, pick: pick,
     el: el, $: $, $$: $$, fmtTime: fmtTime, avatarHtml: avatarHtml
   };

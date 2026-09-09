@@ -346,7 +346,7 @@
         '<div><span class="eyebrow">Live preview</span>' +
           '<div id="cz-preview" style="margin-top:10px"></div>' +
           '<div class="row" style="margin-top:14px;gap:6px;justify-content:center">' +
-            '<span class="chip chip--gem mono" id="cz-balance">' + W.state.economy.diamonds.toLocaleString() + ' 💎</span>' +
+            '<span class="chip chip--gem mono" id="cz-balance">' + W.gem(W.state.economy.diamonds.toLocaleString(), false) + '</span>' +
           '</div>' +
           '<div class="t-sm t-muted t-center" style="margin-top:10px">Earn diamonds by answering questions, ' +
             'finishing tests and unlocking achievements.</div>' +
@@ -646,7 +646,7 @@
     var have = W.state.achievements;
     var body = '<div class="row row--between" style="margin-bottom:8px">' +
       '<span class="eyebrow">' + have.length + ' of ' + Cos.achievements.length + ' unlocked</span>' +
-      '<span class="chip chip--gem mono">' + W.state.economy.diamonds.toLocaleString() + ' 💎</span></div>' +
+      '<span class="chip chip--gem mono">' + W.gem(W.state.economy.diamonds.toLocaleString(), false) + '</span></div>' +
       Cos.achievements.map(function (a) {
         var done = have.indexOf(a.id) !== -1;
         return '<div class="ach-row ' + (done ? 'is-done' : '') + '">' +
@@ -661,7 +661,39 @@
   }
 
   /* ============================ NAVIGATION ========================== */
-  var VIEWS = ['portal', 'teacher', 'learn', 'test', 'quiz', 'cards'];
+  var VIEWS = ['portal', 'classroom', 'teacher', 'learn', 'test', 'quiz', 'cards'];
+
+  /* The switcher shows Classroom to students and Teacher to teachers, so
+     teacher mode is a place you can leave and come back to rather than a
+     one-way trip out of the menu. */
+  var TAB_DEFS = [
+    { view: 'portal',    icon: 'grid',   label: 'Home' },
+    { view: 'classroom', icon: 'users',  label: 'Classroom', role: 'student' },
+    { view: 'teacher',   icon: 'users',  label: 'Teacher',   role: 'teacher' },
+    { view: 'learn',     icon: 'book',   label: 'Learn' },
+    { view: 'test',      icon: 'clip',   label: 'Practice test' },
+    { view: 'quiz',      icon: 'target', label: 'Class quiz' },
+    { view: 'cards',     icon: 'cards',  label: 'Flashcards' }
+  ];
+
+  function refreshTabs() {
+    var bar = document.getElementById('mode-tabs');
+    if (!bar) return;
+    var role = W.state.role === 'teacher' ? 'teacher' : 'student';
+    var thumb = document.getElementById('tabs-thumb');
+
+    W.$$('.tab', bar).forEach(function (t) { t.remove(); });
+    TAB_DEFS.forEach(function (d) {
+      if (d.role && d.role !== role) return;
+      var b = W.el('button', 'tab' + (d.view === currentView ? ' is-active' : ''));
+      b.dataset.view = d.view;
+      b.innerHTML = I[d.icon] + '<span>' + d.label + '</span>';
+      b.addEventListener('click', function () { go(d.view); });
+      bar.appendChild(b);
+    });
+    if (thumb) bar.insertBefore(thumb, bar.firstChild);
+    positionThumb(false);
+  }
 
   /* Slide the pill under whichever tab is active. Measured rather than
      hard-coded, so it stays correct when labels collapse on narrow screens.
@@ -732,6 +764,7 @@
 
     if (view === 'portal') global.Portal.render();
     if (view === 'teacher') global.Teacher.render();
+    if (view === 'classroom') global.Classroom.render();
     if (view === 'learn') global.LearnMode.start();
     if (view === 'test') global.TestMode.start();
     if (view === 'quiz') global.QuizMode.start();
@@ -764,6 +797,6 @@
     openSettings: openSettings, openCustomization: openCustomization, openAchievements: openAchievements,
     profileCard: profileCard, runEffect: runEffect,
     go: go, showApp: showApp, showLanding: showLanding,
-    positionThumb: positionThumb, watchTabs: watchTabs
+    positionThumb: positionThumb, watchTabs: watchTabs, refreshTabs: refreshTabs
   };
 })(window);

@@ -237,7 +237,7 @@
     var gainChips = correct
       ? '<div class="feedback__gain">' +
           '<span class="chip chip--xp mono">+' + gains.xp + ' XP</span>' +
-          '<span class="chip chip--gem mono">+' + gains.gems + ' 💎</span>' +
+          '<span class="chip chip--gem mono">' + W.gem(gains.gems) + '</span>' +
           (gains.mult > 1 ? '<span class="chip chip--fire mono">×' + gains.mult + ' streak</span>' : '') +
         '</div>'
       : '';

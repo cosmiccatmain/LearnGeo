@@ -9,22 +9,9 @@
   'use strict';
   var W = global.WW, I = W.Icons;
 
-  var TABS = [
-    { view: 'portal', icon: I.grid,   label: 'Home' },
-    { view: 'learn',  icon: I.book,   label: 'Learn' },
-    { view: 'test',   icon: I.clip,   label: 'Practice test' },
-    { view: 'quiz',   icon: I.target, label: 'Class quiz' },
-    { view: 'cards',  icon: I.cards,  label: 'Flashcards' }
-  ];
-
   function init() {
-    /* ---- mode switcher ---- */
-    TABS.forEach(function (t) {
-      var btn = document.querySelector('.tab[data-view="' + t.view + '"]');
-      if (!btn) return;
-      btn.innerHTML = t.icon + '<span>' + t.label + '</span>';
-      btn.addEventListener('click', function () { global.UI.go(t.view); });
-    });
+    /* ---- mode switcher, built for the current role ---- */
+    global.UI.refreshTabs();
 
     /* ---- every landing CTA opens the app directly ---- */
     W.$$('[data-launch]').forEach(function (b) {

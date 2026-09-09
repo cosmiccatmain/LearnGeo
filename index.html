@@ -419,11 +419,6 @@
 
     <nav class="tabs" id="mode-tabs">
       <span class="tabs__thumb" id="tabs-thumb"></span>
-      <button class="tab is-active" data-view="portal"></button>
-      <button class="tab" data-view="learn"></button>
-      <button class="tab" data-view="test"></button>
-      <button class="tab" data-view="quiz"></button>
-      <button class="tab" data-view="cards"></button>
     </nav>
 
     <div class="grow"></div>
@@ -443,6 +438,9 @@
 
   <!-- PORTAL -->
   <div id="view-portal" class="portal"></div>
+
+  <!-- CLASSROOM (student) -->
+  <div id="view-classroom" class="portal hidden"></div>
 
   <!-- TEACHER -->
   <div id="view-teacher" class="portal hidden"></div>
@@ -517,6 +515,7 @@
 <script src="assets/js/ui.js"></script>
 <script src="assets/js/portal.js"></script>
 <script src="assets/js/teacher.js"></script>
+<script src="assets/js/classroom.js"></script>
 <script src="assets/js/mode-learn.js"></script>
 <script src="assets/js/mode-test.js"></script>
 <script src="assets/js/mode-quiz.js"></script>

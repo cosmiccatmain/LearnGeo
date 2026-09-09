@@ -651,7 +651,7 @@
             '</p>' +
             '<div class="score-lead__chips">' +
               '<span class="chip chip--xp mono">+' + T.xp + ' XP</span>' +
-              '<span class="chip chip--gem mono">+' + (T.gems + T.bonus) + ' 💎</span>' +
+              '<span class="chip chip--gem mono">' + W.gem(T.gems + T.bonus) + '</span>' +
               (pct === 100 ? '<span class="chip chip--fire mono">Perfect · +100 💎</span>' : '') +
             '</div>' +
           '</div>' +
@@ -712,7 +712,9 @@
 
     var send = document.getElementById('rp-send');
     if (send) send.addEventListener('click', function () {
-      global.Teacher.shareResult(T.assignment, pct, correct, T.qs.length);
+      var missed = T.qs.filter(function (q, i) { return !T.right[i]; })
+                       .map(function (q) { return q.country.name; });
+      global.Teacher.shareResult(T.assignment, pct, correct, T.qs.length, missed);
     });
     document.getElementById('rp-again').addEventListener('click', newTest);
     document.getElementById('rp-again2').addEventListener('click', newTest);

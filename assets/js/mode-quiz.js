@@ -388,7 +388,7 @@
             W.fmtTime(Q.elapsed) + ' · two marks each</p>' +
           '<div class="row" style="justify-content:center;gap:8px;margin-top:16px">' +
             '<span class="chip chip--xp mono">+' + Q.xp + ' XP</span>' +
-            '<span class="chip chip--gem mono">+' + (Q.gems + Q.bonus) + ' 💎</span>' +
+            '<span class="chip chip--gem mono">' + W.gem(Q.gems + Q.bonus) + '</span>' +
           '</div>' +
         '</div>' +
 

@@ -118,7 +118,9 @@
       b.addEventListener('click', function () { global.Assignments.run(box[+b.dataset.inbox]); });
     });
     var addBtn = document.getElementById('portal-add');
-    if (addBtn) addBtn.addEventListener('click', global.Teacher.openAddAssignment);
+    if (addBtn) addBtn.addEventListener('click', global.Classroom.openAdd);
+    var openBtn = document.getElementById('portal-openclass');
+    if (openBtn) openBtn.addEventListener('click', function () { global.UI.go('classroom'); });
     var tBtn = document.getElementById('portal-teacher');
     if (tBtn) tBtn.addEventListener('click', global.Teacher.becomeTeacher);
 
@@ -166,12 +168,14 @@
                         : 'Got a code from your teacher? Add it here.') +
           '</div></div>' +
         '<div class="row" style="gap:8px">' +
-          '<button class="btn btn--ghost btn--sm" id="portal-teacher">' + I.users + ' Teacher mode</button>' +
+          (box.length
+            ? '<button class="btn btn--ghost btn--sm" id="portal-openclass">Open Classroom</button>'
+            : '<button class="btn btn--ghost btn--sm" id="portal-teacher">' + I.users + ' Teacher mode</button>') +
           '<button class="btn btn--primary btn--sm" id="portal-add">' + I.plus + ' Add assignment</button>' +
         '</div>' +
       '</div>' +
       (box.length
-        ? '<div class="panel">' + box.map(function (a, i) {
+        ? '<div class="panel">' + box.slice(0, 3).map(function (a, i) {
             var pct = a.last ? a.last.pct : null;
             return '<div class="assign-row">' +
               '<div class="assign-row__i ' + (a.done ? 'assign-row__i--done' : '') + '">' +
