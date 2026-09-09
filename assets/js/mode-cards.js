@@ -9,7 +9,7 @@
   'use strict';
   var W = global.WW, I = W.Icons;
 
-  var cfg = { scope: 'un', regions: [], face: 'country', size: 25 };
+  var cfg = { scope: 'un', regions: [], countries: null, face: 'country', size: 25 };
   var deck = [], pos = 0, flipped = false, built = false;
   var tally = { again: 0, hard: 0, good: 0, easy: 0, done: 0 };
 
@@ -26,7 +26,7 @@
   }
 
   function build() {
-    var list = global.Quiz.pool({ scope: cfg.scope, regions: cfg.regions, weakFirst: true });
+    var list = global.Quiz.pool({ scope: cfg.scope, regions: cfg.regions, countries: cfg.countries, weakFirst: true });
     if (!list.length) list = global.Quiz.pool({ scope: 'all' });
     deck = list.slice(0, Math.min(cfg.size, list.length));
     pos = 0; flipped = false; built = true;
@@ -51,7 +51,7 @@
     host.innerHTML =
       '<div class="fc-wrap">' +
         '<div class="fc-card' + (flipped ? ' is-flipped' : '') + '" id="fc-card" tabindex="0" ' +
-          'role="button" aria-label="Flashcard — press space to flip">' +
+          'role="button" aria-label="Flashcard, press space to flip">' +
           '<div class="fc-inner">' +
 
             '<div class="fc-face">' +
@@ -157,7 +157,7 @@
     W.save();
     global.UI.refreshHud(true);
     W.checkAchievements().forEach(function (a, i) {
-      setTimeout(function () { W.toast('Achievement — ' + a.name, '+' + a.reward + ' 💎', I.trophy, 4000); }, 480 + i * 440);
+      setTimeout(function () { W.toast('Achievement: ' + a.name, '+' + a.reward + ' 💎', I.trophy, 4000); }, 480 + i * 440);
     });
 
     flipped = false;
@@ -282,6 +282,7 @@
       cfg.size = parseInt(v('#fcs-size') || '25', 10);
       var regs = W.$$('#fcs-regions .check.is-on', m).map(function (n) { return n.dataset.v; });
       cfg.regions = regs.length === global.GeoData.regions.length ? [] : regs;
+      cfg.countries = null;   /* choosing filters by hand replaces an assignment */
       build(); renderCard();
       W.toast('Deck rebuilt', deck.length + ' cards · ' + deckLabel(), I.cards);
     }
@@ -298,5 +299,17 @@
     }
   });
 
-  global.CardsMode = { start: start, rebuild: function () { build(); renderCard(); } };
+  /* Entry point for recommendations and teacher assignments. */
+  function applyAssignment(a) {
+    cfg.countries = (a.countries && a.countries.length) ? a.countries : null;
+    if (a.regions) cfg.regions = a.regions;
+    if (a.scope) cfg.scope = a.scope;
+    if (a.face) cfg.face = a.face;
+    if (a.countries && a.countries.length) cfg.size = Math.max(10, a.countries.length);
+    build();
+    renderCard();
+  }
+
+  global.CardsMode = { start: start, applyAssignment: applyAssignment,
+    rebuild: function () { build(); renderCard(); } };
 })(window);

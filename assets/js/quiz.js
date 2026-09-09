@@ -22,6 +22,17 @@
   function pool(opts) {
     opts = opts || {};
     var list = global.GeoData.countries.slice();
+
+    /* An explicit list wins over every other filter. This is what custom
+       tests and teacher assignments hand us. */
+    if (opts.countries && opts.countries.length) {
+      var want = {};
+      opts.countries.forEach(function (n) { want[n] = 1; });
+      list = list.filter(function (c) { return want[c.name]; });
+      if (opts.weakFirst) list.sort(function (a, b) { return score(a) - score(b); });
+      return list;
+    }
+
     if (opts.regions && opts.regions.length) {
       list = list.filter(function (c) { return opts.regions.indexOf(c.region) !== -1; });
     }
@@ -112,11 +123,11 @@
 
   /* Build a full sequence of questions for a session. */
   function generate(config) {
-    var all = pool({ regions: config.regions, scope: config.scope });
+    var all = pool({ regions: config.regions, scope: config.scope, countries: config.countries });
     if (all.length < 5) all = pool({ scope: config.scope });
 
     var ordered = config.weakFirst
-      ? pool({ regions: config.regions, scope: config.scope, weakFirst: true })
+      ? pool({ regions: config.regions, scope: config.scope, countries: config.countries, weakFirst: true })
       : W.shuffle(all);
 
     var types = config.types && config.types.length ? config.types : ['capital'];

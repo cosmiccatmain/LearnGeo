@@ -7,7 +7,7 @@
   var W = global.WW, I = W.Icons;
 
   var cfg = {
-    regions: [], scope: 'all',
+    regions: [], scope: 'all', countries: null,
     types: ['capital', 'country', 'locate', 'identify'],
     weakFirst: true, typed: false
   };
@@ -25,7 +25,7 @@
   function next() {
     answered = false;
     pinRefs = [];
-    var list = global.Quiz.pool({ regions: cfg.regions, scope: cfg.scope, weakFirst: cfg.weakFirst });
+    var list = global.Quiz.pool({ regions: cfg.regions, scope: cfg.scope, countries: cfg.countries, weakFirst: cfg.weakFirst });
     if (!list.length) list = global.Quiz.pool({ scope: 'all' });
 
     /* weakFirst sorts shakiest first — take from the front third, at random */
@@ -153,7 +153,7 @@
     unlocked.forEach(function (a, i) {
       setTimeout(function () {
         W.Sound.gem();
-        W.toast('Achievement — ' + a.name, a.desc + '  ·  +' + a.reward + ' 💎', I.trophy, 4200);
+        W.toast('Achievement: ' + a.name, a.desc + '  ·  +' + a.reward + ' 💎', I.trophy, 4200);
       }, 600 + i * 500);
     });
   }
@@ -359,7 +359,18 @@
     }
   }
 
+  function applyAssignment(a) {
+    cfg.countries = a.countries || null;
+    if (a.regions) cfg.regions = a.regions;
+    if (a.scope) cfg.scope = a.scope;
+    if (a.types && a.types.length) cfg.types = a.types;
+    if (a.typed !== undefined) cfg.typed = a.typed;
+    q = null;
+    next();
+  }
+
   function applyConfig(modalEl) {
+    cfg.countries = null;             /* hand-picked filters replace an assignment */
     var scope = W.$('#cfg-scope .is-active', modalEl);
     cfg.scope = scope ? scope.dataset.v : 'all';
 
@@ -375,7 +386,7 @@
     var order = W.$('#cfg-order .is-active', modalEl);
     cfg.weakFirst = !order || order.dataset.v === 'weak';
 
-    var n = global.Quiz.pool({ regions: cfg.regions, scope: cfg.scope }).length;
+    var n = global.Quiz.pool({ regions: cfg.regions, scope: cfg.scope, countries: cfg.countries }).length;
     W.toast('Filters applied', n + ' places in your study set', I.check);
     next();
   }
@@ -395,7 +406,7 @@
   });
 
   global.LearnMode = {
-    start: start, next: next, render: render,
+    start: start, next: next, render: render, applyAssignment: applyAssignment,
     get config() { return cfg; }
   };
 })(window);

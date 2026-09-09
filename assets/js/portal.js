@@ -8,18 +8,20 @@
 
   var MODES = [
     { view: 'learn', icon: I.book, title: 'Learn',
-      blurb: 'Endless practice with instant feedback. Answer in the sidebar and the map flies to the capital as soon as you commit.',
+      blurb: 'Answer, find out straight away, keep going. The map jumps to the capital as soon as you commit.',
       meta: 'Weakest-first · 4 question types' },
     { view: 'test', icon: I.clip, title: 'Practice test',
-      blurb: 'Sit a scored section end to end, with a question navigator, flags and a full score report at the finish.',
+      blurb: 'Sit a whole section and get it marked. Flag anything you want to come back to.',
       meta: '10 – 75 questions · timed' },
     { view: 'quiz', icon: I.target, title: 'Class quiz',
-      blurb: 'The paper map quiz. A country is shaded on the map \u2014 click it, then write its name and its capital from memory.',
+      blurb: 'The paper map quiz. A country lights up, you click it and write its name and capital from memory.',
       meta: 'Two marks each \u00b7 no multiple choice' },
     { view: 'cards', icon: I.cards, title: 'Flashcards',
-      blurb: 'Two-sided cards with a spaced-repetition queue. Rate each card and the shaky ones return before you finish.',
+      blurb: 'Two-sided cards that keep score of themselves. Shaky ones come round again before you finish.',
       meta: 'Both directions · 10 – 100 cards' }
   ];
+
+  var recsCache = [];
 
   function greeting() {
     var h = new Date().getHours();
@@ -72,6 +74,9 @@
           metric(mastered + '<span style="color:var(--faint);font-size:16px">/' + total + '</span>', 'mastered') +
         '</div>' +
 
+        recommendedSection() +
+        inboxSection() +
+
         '<div class="portal__section">' +
           '<span class="eyebrow">Choose a mode</span>' +
           '<div class="portal-modes">' +
@@ -105,6 +110,18 @@
 
       '</div>';
 
+    W.$$('[data-rec]', host).forEach(function (b) {
+      b.addEventListener('click', function () { global.Assignments.run(recsCache[+b.dataset.rec]); });
+    });
+    var box = W.state.inbox || [];
+    W.$$('[data-inbox]', host).forEach(function (b) {
+      b.addEventListener('click', function () { global.Assignments.run(box[+b.dataset.inbox]); });
+    });
+    var addBtn = document.getElementById('portal-add');
+    if (addBtn) addBtn.addEventListener('click', global.Teacher.openAddAssignment);
+    var tBtn = document.getElementById('portal-teacher');
+    if (tBtn) tBtn.addEventListener('click', global.Teacher.becomeTeacher);
+
     W.$$('.portal-mode', host).forEach(function (b) {
       b.addEventListener('click', function () { global.UI.go(b.dataset.view); });
     });
@@ -112,8 +129,69 @@
     document.getElementById('portal-ach').addEventListener('click', global.UI.openAchievements);
   }
 
+  /* Suggestions built from the mastery record: unseen places first, then
+     whatever is being missed most often. */
+  function recommendedSection() {
+    recsCache = global.Assignments.recommend(3);
+    var recs = recsCache;
+    if (!recs.length) return '';
+    return '<div class="portal__section">' +
+      '<div class="row row--between" style="margin-bottom:14px">' +
+        '<div><span class="eyebrow">Suggested for you</span>' +
+        '<div class="t-sm t-muted" style="margin-top:4px">' +
+          'Based on what you keep missing, and what you have never been asked about.' +
+        '</div></div>' +
+      '</div>' +
+      '<div class="rec-list">' +
+        recs.map(function (r, i) {
+          return '<button class="rec" data-rec="' + i + '">' +
+            '<span class="rec__icon rec__icon--' + (r.tone || 'cool') + '">' + r.icon + '</span>' +
+            '<span class="rec__t"><b>' + W.escapeHtml(r.title) + '</b>' +
+              '<span>' + W.escapeHtml(r.blurb) + '</span>' +
+              '<span class="rec__why">' + W.escapeHtml(r.why) + '</span></span>' +
+            '<span class="rec__go">' + I.arrowR + '</span>' +
+          '</button>';
+        }).join('') +
+      '</div></div>';
+  }
+
+  function inboxSection() {
+    var box = W.state.inbox || [];
+    var open = box.filter(function (a) { return !a.done; });
+    return '<div class="portal__section">' +
+      '<div class="row row--between" style="margin-bottom:14px">' +
+        '<div><span class="eyebrow">Assignments</span>' +
+          '<div class="t-sm t-muted" style="margin-top:4px">' +
+            (box.length ? open.length + ' still to do of ' + box.length
+                        : 'Got a code from your teacher? Add it here.') +
+          '</div></div>' +
+        '<div class="row" style="gap:8px">' +
+          '<button class="btn btn--ghost btn--sm" id="portal-teacher">' + I.users + ' Teacher mode</button>' +
+          '<button class="btn btn--primary btn--sm" id="portal-add">' + I.plus + ' Add assignment</button>' +
+        '</div>' +
+      '</div>' +
+      (box.length
+        ? '<div class="panel">' + box.map(function (a, i) {
+            var pct = a.last ? a.last.pct : null;
+            return '<div class="assign-row">' +
+              '<div class="assign-row__i ' + (a.done ? 'assign-row__i--done' : '') + '">' +
+                (a.done ? I.check : I.clip) + '</div>' +
+              '<div class="assign-row__t">' +
+                '<b>' + W.escapeHtml(a.title) + '</b>' +
+                '<span>' + W.escapeHtml(a.from || 'Assignment') +
+                  (pct !== null ? ' · best ' + a.best + '%' : ' · not started yet') + '</span>' +
+              '</div>' +
+              '<button class="btn btn--ghost btn--sm" data-inbox="' + i + '">' +
+                (a.done ? 'Retry' : 'Start') + '</button>' +
+            '</div>';
+          }).join('') + '</div>'
+        : '<div class="panel"><div class="empty" style="padding:22px 0">' +
+          'No assignments yet.</div></div>') +
+    '</div>';
+  }
+
   function subtitle(st, mastered, total) {
-    if (!st.answered) return 'Your study centre. Pick a mode below to begin — everything you do feeds one shared mastery record.';
+    if (!st.answered) return 'Pick a mode below to start. Whatever you answer, it all counts towards the same record.';
     var acc = Math.round((st.correct / st.answered) * 100);
     return st.answered.toLocaleString() + ' questions answered · ' + acc + '% accuracy · ' +
       mastered + ' of ' + total + ' places mastered.';

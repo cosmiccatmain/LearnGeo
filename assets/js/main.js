@@ -43,6 +43,12 @@
       cont.addEventListener('click', function () { global.UI.showApp('portal'); });
     }
 
+    var tcta = document.getElementById('teacher-cta');
+    if (tcta) tcta.addEventListener('click', function () {
+      global.UI.showApp('portal');
+      global.Teacher.becomeTeacher();
+    });
+
     global.UI.watchTabs();
 
     var av = document.getElementById('avatar-btn');

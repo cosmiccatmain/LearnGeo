@@ -10,11 +10,16 @@
   var W = global.WW, I = W.Icons;
 
   var setup = {
+    mode: 'auto',                 /* 'auto' filters | 'custom' hand-picked list */
+    custom: [],                   /* country names typed in by the learner */
+    fill: true,                   /* top the section up with related places */
     scope: 'un', regions: [], types: ['capital', 'country', 'identify'],
     count: 20, timed: true, secondsPer: 20, instant: true, typed: false
   };
 
   var T = null;          /* live test */
+  var pickerApi = null;
+  var pendingAssignment = null;
   var tick = null;
 
   function reset() { T = null; clearInterval(tick); tick = null; renderNav('off'); }
@@ -108,11 +113,11 @@
       '<div class="divider"></div>' +
       '<span class="eyebrow">What to expect</span>' +
       '<ul class="feature-list" style="margin-top:10px">' +
-        li(I.grid, 'Question navigator', 'Jump between questions and flag any you want to revisit.') +
+        li(I.grid, 'Question navigator', 'Skip around, and flag anything you want to come back to.') +
         li(I.clock, 'Timed sections', 'The clock covers the whole section, not each question.') +
-        li(I.chart, 'Score report', 'Accuracy by region and question type, plus a full answer review.') +
+        li(I.chart, 'Score report', 'How you did by region and question type, plus every answer.') +
       '</ul>';
-    foot().innerHTML = '<div class="t-sm t-muted t-center">Your answers still feed the same mastery record.</div>';
+    foot().innerHTML = '<div class="t-sm t-muted t-center">These answers count towards your record like any others.</div>';
 
     var regions = global.GeoData.regions;
     document.getElementById('test-setup').innerHTML =
@@ -120,9 +125,12 @@
         '<div class="t-center" style="margin-bottom:26px">' +
           '<span class="eyebrow">New section</span>' +
           '<h2 style="margin-top:10px;font-size:26px">Build your practice test</h2>' +
-          '<p class="t-muted" style="margin-top:8px;font-size:14.5px">Everything here is optional — the defaults make a solid 20-question section.</p>' +
+          '<p class="t-muted" style="margin-top:8px;font-size:14.5px">Leave it all alone and you get a 20-question section. Change whatever you want.</p>' +
         '</div>' +
         '<div class="setup-grid">' +
+          fld('How to choose', '<div class="seg" id="ts-mode">' +
+            sg('auto', 'By region', setup.mode) + sg('custom', 'Pick countries', setup.mode) +
+            '</div>') +
           fld('Question set', '<div class="seg" id="ts-scope">' +
             sg('un', 'UN 193', setup.scope) + sg('un-plus', '+ Observers', setup.scope) + sg('all', 'All 213', setup.scope) + '</div>') +
           fld('Length', '<div class="seg" id="ts-count">' +
@@ -132,7 +140,7 @@
             '</div><div class="field__hint">' + setup.secondsPer + ' seconds per question, pooled across the section.</div>') +
           fld('Feedback', '<div class="seg" id="ts-instant">' +
             sg('instant', 'After each', setup.instant ? 'instant' : 'end') + sg('end', 'Exam mode', setup.instant ? 'instant' : 'end') +
-            '</div><div class="field__hint">Exam mode holds every result back until you submit.</div>') +
+            '</div><div class="field__hint">Exam mode hides every result until you submit.</div>') +
           fld('Answer style', '<div class="seg" id="ts-typed">' +
             sg('choice', 'Multiple choice', setup.typed ? 'typed' : 'choice') + sg('typed', 'Type it', setup.typed ? 'typed' : 'choice') + '</div>') +
           fld('Question types', '<div class="check-grid" id="ts-types">' +
@@ -140,10 +148,25 @@
               return ck(t, global.Quiz.types[t].label, setup.types.indexOf(t) !== -1);
             }).join('') + '</div>') +
         '</div>' +
-        fld('Regions', '<div class="check-grid check-grid--3" id="ts-regions">' +
-          regions.map(function (r) {
-            return ck(r, r, !setup.regions.length || setup.regions.indexOf(r) !== -1);
-          }).join('') + '</div>') +
+        '<div id="ts-auto">' +
+          fld('Regions', '<div class="check-grid check-grid--3" id="ts-regions">' +
+            regions.map(function (r) {
+              return ck(r, r, !setup.regions.length || setup.regions.indexOf(r) !== -1);
+            }).join('') + '</div>') +
+        '</div>' +
+
+        '<div id="ts-customwrap" class="hidden">' +
+          fld('Your countries',
+            '<div id="ts-picker"></div>' +
+            '<div class="field__hint">Type a country or a capital and press Enter. ' +
+            'The region buttons add a whole continent at once.</div>') +
+          fld('Fill out the rest', '<div class="seg" id="ts-fill">' +
+            sg('yes', 'Top up to length', setup.fill ? 'yes' : 'no') +
+            sg('no', 'Only my list', setup.fill ? 'yes' : 'no') +
+            '</div><div class="field__hint">Topping up adds neighbours from the same regions ' +
+            'so a short list still makes a full section.</div>') +
+        '</div>' +
+
         '<button class="btn btn--accent btn--lg btn--block" id="ts-go" style="margin-top:26px">' +
           'Start test ' + I.arrowR + '</button>' +
       '</div>';
@@ -151,6 +174,30 @@
     var root = document.getElementById('test-setup');
     global.UI.wireSeg(root); global.UI.wireCheck(root);
     document.getElementById('ts-go').addEventListener('click', begin);
+
+    pickerApi = global.Assignments.picker(document.getElementById('ts-picker'), {
+      initial: setup.custom,
+      onChange: function (list) { setup.custom = list; refreshCount(); }
+    });
+
+    W.$$('#ts-mode button', root).forEach(function (b) {
+      b.addEventListener('click', function () {
+        setup.mode = b.dataset.v;
+        document.getElementById('ts-auto').classList.toggle('hidden', setup.mode === 'custom');
+        document.getElementById('ts-customwrap').classList.toggle('hidden', setup.mode !== 'custom');
+        refreshCount();
+        if (setup.mode === 'custom') pickerApi.focus();
+      });
+    });
+    document.getElementById('ts-auto').classList.toggle('hidden', setup.mode === 'custom');
+    document.getElementById('ts-customwrap').classList.toggle('hidden', setup.mode !== 'custom');
+    W.$$('#ts-regions .check', root).forEach(function (b) {
+      b.addEventListener('click', function () { setTimeout(refreshCount, 0); });
+    });
+    W.$$('#ts-scope button', root).forEach(function (b) {
+      b.addEventListener('click', function () { setTimeout(refreshCount, 0); });
+    });
+    refreshCount();
 
     function fld(label, inner) {
       return '<div class="field"><label class="field__label">' + label + '</label>' + inner + '</div>';
@@ -165,6 +212,50 @@
     }
   }
 
+  /* Keep the sidebar count honest as filters and the picker change. */
+  function refreshCount() {
+    var n = currentPool().length;
+    var el = document.querySelector('#test-body .deck-summary__n');
+    var lb = document.querySelector('#test-body .deck-summary__l');
+    if (el) el.textContent = n;
+    if (lb) lb.textContent = setup.mode === 'custom'
+      ? 'countries you picked' : 'places in this question set';
+    var go = document.getElementById('ts-go');
+    if (go) go.disabled = n < 1;
+  }
+
+  function currentPool() {
+    if (setup.mode === 'custom') return global.Assignments.resolve(setup.custom);
+    var s2 = domValue('#ts-scope') || setup.scope;
+    var regions = W.$$('#ts-regions .check.is-on').map(function (n) { return n.dataset.v; });
+    if (regions.length === global.GeoData.regions.length) regions = [];
+    return global.Quiz.pool({ scope: s2, regions: regions });
+  }
+
+  function domValue(sel) {
+    var n = document.querySelector(sel + ' .is-active');
+    return n ? n.dataset.v : null;
+  }
+
+  /* A hand-picked list shorter than the section length gets topped up with
+     other countries from the same regions, so the extra questions still
+     feel related to what was asked for. */
+  function fillOut(picked, want) {
+    if (picked.length >= want) return picked.slice(0, want);
+    var regions = {};
+    picked.forEach(function (c) { regions[c.region] = 1; });
+    var have = {};
+    picked.forEach(function (c) { have[c.name] = 1; });
+
+    var neighbours = global.GeoData.countries.filter(function (c) {
+      return !have[c.name] && regions[c.region] && c.status === 0;
+    });
+    var rest = global.GeoData.countries.filter(function (c) {
+      return !have[c.name] && !regions[c.region] && c.status === 0;
+    });
+    return picked.concat(W.shuffle(neighbours), W.shuffle(rest)).slice(0, want);
+  }
+
   function readSetup() {
     var s = document.getElementById('test-setup');
     var v = function (sel) { var n = W.$(sel + ' .is-active', s); return n ? n.dataset.v : null; };
@@ -177,15 +268,34 @@
     setup.timed = v('#ts-timed') === 'timed';
     setup.instant = v('#ts-instant') === 'instant';
     setup.typed = v('#ts-typed') === 'typed';
+    setup.mode = v('#ts-mode') || 'auto';
+    setup.fill = v('#ts-fill') !== 'no';
+    if (pickerApi) setup.custom = pickerApi.value;
   }
 
   function begin() {
     readSetup();
     global.GeoMap.loadShapes();
-    var qs = global.Quiz.generate({
+
+    var gen = {
       scope: setup.scope, regions: setup.regions, types: setup.types,
       count: setup.count, typed: setup.typed, weakFirst: false
-    });
+    };
+
+    if (setup.mode === 'custom') {
+      var picked = global.Assignments.resolve(setup.custom);
+      if (!picked.length) {
+        W.toast('Nothing picked yet', 'Add at least one country to your list', I.info);
+        return;
+      }
+      var want = setup.fill ? Math.max(setup.count, picked.length) : picked.length;
+      var finalList = setup.fill ? fillOut(picked, want) : picked;
+      gen.countries = finalList.map(function (c) { return c.name; });
+      gen.count = finalList.length;
+      gen.regions = [];
+    }
+
+    var qs = global.Quiz.generate(gen);
     if (!qs.length) { W.toast('Nothing to test', 'Widen the regions or scope', I.info); return; }
 
     T = {
@@ -197,8 +307,57 @@
       startedAt: Date.now(),
       remaining: setup.timed ? qs.length * setup.secondsPer : null,
       instant: setup.instant,
-      gems: 0, xp: 0
+      gems: 0, xp: 0,
+      assignment: pendingAssignment
     };
+    pendingAssignment = null;
+    if (setup.timed) startTimer();
+    renderRunner();
+  }
+
+  /* Entry point used by recommendations and teacher assignments: skip the
+     setup screen and go straight into a section built from a config. */
+  function startAssignment(cfg, meta) {
+    reset();
+    setup.mode = cfg.countries && cfg.countries.length ? 'custom' : 'auto';
+    setup.custom = cfg.countries || [];
+    setup.fill = cfg.fill !== false;
+    if (cfg.regions) setup.regions = cfg.regions;
+    if (cfg.scope) setup.scope = cfg.scope;
+    if (cfg.types && cfg.types.length) setup.types = cfg.types;
+    if (cfg.count) setup.count = cfg.count;
+    setup.timed = !!cfg.timed;
+    setup.instant = cfg.instant !== false;
+    setup.typed = !!cfg.typed;
+    pendingAssignment = meta || null;
+
+    global.GeoMap.loadShapes();
+    var gen = {
+      scope: setup.scope, regions: setup.regions, types: setup.types,
+      count: setup.count, typed: setup.typed, weakFirst: false
+    };
+    if (setup.mode === 'custom') {
+      var picked = global.Assignments.resolve(setup.custom);
+      var list = setup.fill && cfg.count ? fillOut(picked, cfg.count) : picked;
+      gen.countries = list.map(function (c) { return c.name; });
+      gen.count = list.length;
+      gen.regions = [];
+    }
+    var qs = global.Quiz.generate(gen);
+    if (!qs.length) { W.toast('Nothing to test', 'That assignment has no questions', I.info); return; }
+
+    T = {
+      phase: 'running', qs: qs, i: 0,
+      given: new Array(qs.length).fill(null),
+      right: new Array(qs.length).fill(null),
+      flags: new Array(qs.length).fill(false),
+      revealed: new Array(qs.length).fill(false),
+      startedAt: Date.now(),
+      remaining: setup.timed ? qs.length * setup.secondsPer : null,
+      instant: setup.instant, gems: 0, xp: 0,
+      assignment: meta || null
+    };
+    pendingAssignment = null;
     if (setup.timed) startTimer();
     renderRunner();
   }
@@ -367,7 +526,7 @@
       if (gains.level) levelUp(gains.level);
       global.UI.refreshHud(true);
       W.checkAchievements().forEach(function (a, i) {
-        setTimeout(function () { W.toast('Achievement — ' + a.name, '+' + a.reward + ' 💎', I.trophy, 4000); }, 500 + i * 450);
+        setTimeout(function () { W.toast('Achievement: ' + a.name, '+' + a.reward + ' 💎', I.trophy, 4000); }, 500 + i * 450);
       });
       renderRunner();
     } else {
@@ -435,6 +594,9 @@
     var correct = T.right.filter(Boolean).length;
     var pct = Math.round((correct / T.qs.length) * 100);
     W.state.stats.tests += 1;
+    if (T.assignment && T.assignment.id) {
+      global.Assignments.complete(T.assignment.id, pct, correct, T.qs.length);
+    }
     if (pct === 100) W.state.stats.perfectTests += 1;
 
     /* completion bonus scales with accuracy */
@@ -447,7 +609,7 @@
     if (pct >= 70) W.confetti({ count: 120, power: 340, y: window.innerHeight * 0.35 });
     global.UI.refreshHud(true);
     W.checkAchievements().forEach(function (a, i) {
-      setTimeout(function () { W.toast('Achievement — ' + a.name, '+' + a.reward + ' 💎', I.trophy, 4200); }, 700 + i * 500);
+      setTimeout(function () { W.toast('Achievement: ' + a.name, '+' + a.reward + ' 💎', I.trophy, 4200); }, 700 + i * 500);
     });
     renderReport();
   }
@@ -527,6 +689,8 @@
         '</div>' +
 
         '<div class="row" style="gap:10px;margin-top:30px">' +
+          (T.assignment ? '<button class="btn btn--primary btn--lg" id="rp-send">' + I.key +
+            ' Send score to teacher</button>' : '') +
           '<button class="btn btn--accent btn--lg" id="rp-again">' + I.refresh + ' New test</button>' +
           (correct < total ? '<button class="btn btn--ghost btn--lg" id="rp-missed">Drill the ' + (total - correct) + ' missed</button>' : '') +
           '<div class="grow"></div>' +
@@ -546,6 +710,10 @@
     renderNav('review');
     foot().innerHTML = '<button class="btn btn--primary btn--block" id="rp-again2">' + I.refresh + ' Build another test</button>';
 
+    var send = document.getElementById('rp-send');
+    if (send) send.addEventListener('click', function () {
+      global.Teacher.shareResult(T.assignment, pct, correct, T.qs.length);
+    });
     document.getElementById('rp-again').addEventListener('click', newTest);
     document.getElementById('rp-again2').addEventListener('click', newTest);
     document.getElementById('rp-learn').addEventListener('click', function () { global.UI.go('learn'); });
@@ -624,5 +792,5 @@
     else if (e.key.toLowerCase() === 'f') { e.preventDefault(); toggleFlag(); }
   });
 
-  global.TestMode = { start: start, reset: reset };
+  global.TestMode = { start: start, reset: reset, startAssignment: startAssignment };
 })(window);

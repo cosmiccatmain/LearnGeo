@@ -576,20 +576,42 @@ a { color: inherit; text-decoration: none; }
 .seg button.is-active { background: var(--white); color: var(--ink); box-shadow: var(--shadow-sm); font-weight: 580; }
 .check-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
 .check {
-  display: flex; align-items: center; gap: 9px; padding: 9px 11px;
-  border: 1px solid var(--line); border-radius: 9px; font-size: 13.5px;
-  transition: border-color .14s, background .14s;
+  display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+  border: 1px solid var(--line); border-radius: 10px; font-size: 13.5px;
+  background: var(--white); text-align: left; line-height: 1.3;
+  transition: border-color .16s, background .16s, box-shadow .16s, transform .12s var(--ease);
 }
-.check:hover { border-color: #C9CFD9; }
-.check.is-on { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-ink); font-weight: 550; }
+.check:hover { border-color: #C9CFD9; background: var(--paper); }
+.check:active { transform: scale(.985); }
+.check.is-on {
+  border-color: var(--accent); background: var(--accent-soft);
+  color: var(--accent-ink); font-weight: 550;
+  box-shadow: 0 0 0 3px rgba(27,77,255,.08);
+}
+/* The tick is drawn on, not faded in, and the box springs slightly as it
+   fills. Sized so the glyph sits inside the box instead of overflowing it. */
 .check__box {
-  width: 16px; height: 16px; border-radius: 5px; border: 1.5px solid var(--line);
-  flex: none; display: grid; place-items: center; transition: all .14s;
+  width: 19px; height: 19px; border-radius: 6px;
+  border: 1.75px solid #D4D9E2; background: var(--white);
+  flex: none; position: relative; display: grid; place-items: center;
+  transition: background .18s var(--ease), border-color .18s var(--ease),
+              transform .28s var(--spring);
 }
-.check.is-on .check__box { background: var(--accent); border-color: var(--accent); }
-.check.is-on .check__box svg { color: #fff; }
-.check__box svg { opacity: 0; }
-.check.is-on .check__box svg { opacity: 1; }
+.check:hover .check__box { border-color: #AFB7C5; }
+.check.is-on .check__box {
+  background: var(--accent); border-color: var(--accent);
+  transform: scale(1.06);
+}
+.check__box svg {
+  width: 12px; height: 12px; color: #fff;
+  stroke-width: 3; stroke-linecap: round; stroke-linejoin: round;
+  stroke-dasharray: 20; stroke-dashoffset: 20;
+  transition: stroke-dashoffset .24s var(--ease) .04s;
+}
+.check.is-on .check__box svg { stroke-dashoffset: 0; }
+
+/* Same treatment for the round variant used by single-select rows. */
+.check__box--round { border-radius: 50%; }
 
 select.input, input.input {
   width: 100%; height: 40px; padding: 0 12px;
@@ -1377,3 +1399,165 @@ textarea.input:focus { outline: none; border-color: var(--accent); box-shadow: 0
 
 /* country outlines respond to hover without a pointer-cursor lie */
 .leaflet-interactive { cursor: pointer; }
+
+/* ==================================================================
+   Daily-goal payout, teacher mode, custom sets, recommendations
+   ================================================================== */
+
+/* ---- diamonds falling from the top of the window ---- */
+.rain-gem {
+  position: absolute; top: -40px; left: 0;
+  will-change: transform, opacity; pointer-events: none;
+  font-family: var(--emoji); line-height: 1;
+  filter: drop-shadow(0 2px 4px rgba(10,10,11,.18));
+}
+
+.goal-banner {
+  position: fixed; inset: 0; display: grid; place-items: center;
+  pointer-events: none; z-index: 340;
+}
+.goal-banner__card {
+  background: var(--white); border: 1px solid var(--line);
+  border-radius: 20px; padding: 26px 34px; text-align: center;
+  box-shadow: var(--shadow-xl);
+  animation: goalPop .5s var(--spring);
+}
+.goal-banner.is-out .goal-banner__card { animation: goalOut .4s var(--ease) forwards; }
+@keyframes goalPop {
+  0%   { opacity: 0; transform: scale(.8) translateY(14px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+@keyframes goalOut { to { opacity: 0; transform: scale(.94) translateY(-10px); } }
+.goal-banner__ring {
+  width: 56px; height: 56px; margin: 0 auto 14px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--success), #34D399);
+  display: grid; place-items: center; color: #fff;
+}
+.goal-banner__ring svg { width: 28px; height: 28px; stroke-width: 2.5; }
+.goal-banner__card b { display: block; font-size: 20px; letter-spacing: -.026em; }
+.goal-banner__card span { display: block; font-size: 13.5px; color: var(--muted); margin-top: 4px; }
+.goal-banner__gem {
+  display: inline-block; margin-top: 14px; padding: 6px 14px;
+  background: #F0F9FF; color: #0369A1; border-radius: 999px;
+  font-size: 14px; font-weight: 620;
+}
+
+/* ---- recommended assignments on the portal ---- */
+.rec-list { display: grid; gap: 10px; }
+.rec {
+  display: flex; align-items: center; gap: 14px; width: 100%;
+  padding: 14px 16px; border: 1px solid var(--line); border-radius: 13px;
+  background: var(--white); text-align: left;
+  transition: transform .18s var(--ease), box-shadow .18s var(--ease), border-color .16s;
+}
+.rec:hover { transform: translateY(-2px); box-shadow: var(--shadow); border-color: #D3D8E0; }
+.rec__icon {
+  width: 40px; height: 40px; border-radius: 11px; flex: none;
+  display: grid; place-items: center; background: var(--accent-soft); color: var(--accent);
+}
+.rec__icon--warm { background: #FFF7ED; color: #C2410C; }
+.rec__icon--cool { background: #ECFDF5; color: #047857; }
+.rec__t { flex: 1; min-width: 0; }
+.rec__t b { display: block; font-size: 14.5px; font-weight: 600; letter-spacing: -.012em; }
+.rec__t > span { display: block; font-size: 13px; color: var(--muted); margin-top: 2px; }
+.rec__why {
+  margin-top: 6px !important; font-size: 11.5px !important;
+  font-family: var(--mono); color: var(--faint) !important;
+}
+.rec__go { flex: none; color: var(--faint); }
+.rec:hover .rec__go { color: var(--ink); }
+
+/* ---- country picker for custom tests ---- */
+.picker { border: 1px solid var(--line); border-radius: 12px; background: var(--white); }
+.picker__field {
+  display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+  padding: 9px 10px; min-height: 46px;
+}
+.picker__field input {
+  flex: 1; min-width: 140px; border: none; outline: none;
+  font-size: 14px; padding: 4px 2px; background: transparent;
+}
+.token {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 28px; padding: 0 8px 0 10px; border-radius: 8px;
+  background: var(--accent-soft); color: var(--accent-ink);
+  font-size: 13px; font-weight: 550; animation: tokenIn .2s var(--spring);
+}
+@keyframes tokenIn { from { opacity: 0; transform: scale(.85); } }
+.token button {
+  display: grid; place-items: center; width: 16px; height: 16px;
+  border-radius: 4px; color: var(--accent); opacity: .65;
+}
+.token button:hover { opacity: 1; background: rgba(27,77,255,.12); }
+.token svg { width: 11px; height: 11px; stroke-width: 2.5; }
+
+.picker__hits { border-top: 1px solid var(--line-soft); max-height: 190px; overflow-y: auto; }
+.picker__hit {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  padding: 9px 13px; font-size: 13.5px; text-align: left;
+  transition: background .12s;
+}
+.picker__hit:hover, .picker__hit.is-cursor { background: var(--accent-soft); }
+.picker__hit small { color: var(--faint); font-size: 12px; margin-left: auto; }
+.picker__hit b { font-weight: 550; }
+
+.picker__bulk {
+  display: flex; gap: 6px; flex-wrap: wrap;
+  padding: 9px 10px; border-top: 1px solid var(--line-soft); background: var(--paper);
+}
+.mini-btn {
+  height: 26px; padding: 0 10px; border-radius: 7px; border: 1px solid var(--line);
+  background: var(--white); font-size: 12px; font-weight: 540; color: var(--ink-2);
+  transition: border-color .14s, color .14s, background .14s;
+}
+.mini-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ---- teacher mode ---- */
+.teacher-hero {
+  border-bottom: 1px solid var(--line);
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 0%, #F3F6FF 0%, transparent 70%),
+    var(--white);
+}
+.tcard {
+  border: 1px solid var(--line); border-radius: 14px; background: var(--white);
+  padding: 18px; transition: box-shadow .18s var(--ease), border-color .16s;
+}
+.tcard:hover { box-shadow: var(--shadow); }
+.tcard__head { display: flex; align-items: center; gap: 11px; margin-bottom: 12px; }
+.tcard__head h4 { font-size: 15px; }
+.tcard__icon {
+  width: 34px; height: 34px; border-radius: 10px; flex: none;
+  display: grid; place-items: center; background: var(--accent-soft); color: var(--accent);
+}
+
+.code-chip {
+  display: inline-flex; align-items: center; gap: 10px;
+  font-family: var(--mono); font-size: 19px; font-weight: 620; letter-spacing: .16em;
+  background: var(--ink); color: #fff; padding: 10px 8px 10px 18px; border-radius: 11px;
+}
+.code-chip button {
+  color: rgba(255,255,255,.7); padding: 6px; border-radius: 7px;
+  display: grid; place-items: center;
+}
+.code-chip button:hover { color: #fff; background: rgba(255,255,255,.14); }
+
+.assign-row {
+  display: flex; align-items: center; gap: 13px;
+  padding: 13px 0; border-bottom: 1px solid var(--line-soft);
+}
+.assign-row:last-child { border-bottom: none; }
+.assign-row__i {
+  width: 34px; height: 34px; border-radius: 10px; flex: none;
+  display: grid; place-items: center; background: var(--line-soft); color: var(--muted);
+}
+.assign-row__i--done { background: var(--success-soft); color: var(--success); }
+.assign-row__t { flex: 1; min-width: 0; }
+.assign-row__t b { display: block; font-size: 14px; font-weight: 570; }
+.assign-row__t span { font-size: 12.5px; color: var(--muted); }
+
+.share-box {
+  border: 1px dashed var(--line); border-radius: 11px; padding: 12px;
+  background: var(--paper); font-family: var(--mono); font-size: 11.5px;
+  word-break: break-all; color: var(--ink-2); max-height: 110px; overflow-y: auto;
+}

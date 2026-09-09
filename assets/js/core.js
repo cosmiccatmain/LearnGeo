@@ -42,7 +42,10 @@
     volume: svg('<path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a9 9 0 0 1 0 14"/>'),
     key:    svg('<circle cx="7.5" cy="15.5" r="4.5"/><path d="m10.5 12.5 8-8 3 3-2 2-2-2-2 2-2-2"/>'),
     info:   svg('<circle cx="12" cy="12" r="9"/><path d="M12 16v-5M12 8h.01"/>'),
-    close:  svg('<path d="M18 6 6 18M6 6l12 12"/>')
+    close:  svg('<path d="M18 6 6 18M6 6l12 12"/>'),
+    users:  svg('<circle cx="9" cy="8" r="3.2"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 5.2a3.2 3.2 0 0 1 0 5.9"/><path d="M18 14.4a6.2 6.2 0 0 1 3.5 5.6"/>'),
+    plus:   svg('<path d="M12 5v14M5 12h14"/>'),
+    inbox:  svg('<path d="M3 12h5l2 3h4l2-3h5"/><path d="M5 5h14l2 7v7H3v-7z"/>')
   };
 
   /* ============================= STORAGE ============================ */
@@ -72,10 +75,19 @@
       },
       economy: { diamonds: 150, xp: 0, level: 1 },
       streak: { current: 0, best: 0 },
-      daily: { date: '', answered: 0, goal: 20, dayStreak: 0, lastDay: '' },
+      daily: { date: '', answered: 0, goal: 20, dayStreak: 0, lastDay: '', hit: false },
       stats: { answered: 0, correct: 0, tests: 0, cards: 0, perfectTests: 0 },
       mastery: {},          /* countryName -> { c: correctCount, w: wrongCount, box: 0..5 } */
       achievements: [],
+      role: 'student',            /* 'student' | 'teacher' */
+      classroom: {
+        name: '', code: '',       /* teacher's own class */
+        roster: [],               /* names the teacher tracks locally */
+        results: [],              /* result codes pasted back in */
+        assignments: []           /* assignments the teacher has written */
+      },
+      inbox: [],                  /* assignments a student has loaded by code */
+      customSets: [],             /* saved lists of hand-picked countries */
       settings: {
         sound: true,
         effects: true,
@@ -147,6 +159,7 @@
       else if (state.daily.lastDay !== t) state.daily.dayStreak = 1;
       state.daily.date = t;
       state.daily.answered = 0;
+      state.daily.hit = false;
       state.daily.lastDay = t;
       save();
     }
@@ -189,6 +202,17 @@
       if (correct) { m.c += 1; m.box = Math.min(5, m.box + 1); }
       else { m.w += 1; m.box = Math.max(0, m.box - 1); }
       state.mastery[opts.country] = m;
+    }
+
+    /* crossing the daily goal is the one moment worth a full-screen payout */
+    if (!state.daily.hit && state.daily.answered >= state.daily.goal) {
+      state.daily.hit = true;
+      gains.goalHit = true;
+      gains.goalBonus = 60 + state.daily.dayStreak * 10;
+      state.economy.diamonds += gains.goalBonus;
+      /* fired here so every mode gets it without wiring the call four times */
+      var b = gains.goalBonus, ds = state.daily.dayStreak;
+      setTimeout(function () { celebrateGoal(b, ds); }, 520);
     }
 
     save(); emit();
@@ -307,6 +331,13 @@
       if (!state.settings.sound) return;
       tone(420, 0, 0.06, 'sine', 0.05);
     },
+    goal: function () {
+      if (!state.settings.sound) return;
+      [523, 659, 784, 1046, 1318, 1568].forEach(function (f, i) {
+        tone(f, i * 0.09, 0.5, 'sine', 0.1);
+      });
+      [392, 523].forEach(function (f, i) { tone(f, 0.5 + i * 0.12, 0.6, 'triangle', 0.07); });
+    },
     finish: function () {
       if (!state.settings.sound) return;
       [523, 659, 784, 1046, 1318].forEach(function (f, i) { tone(f, i * 0.1, 0.42, 'triangle', 0.09); });
@@ -359,6 +390,72 @@
         setTimeout(function () { if (node.parentNode) node.remove(); }, dur + 300);
       })(bit);
     }
+  }
+
+  /* Diamonds falling the full height of the window. Used when the daily
+     goal lands, which should feel bigger than any single right answer. */
+  function diamondRain(opts) {
+    if (!state.settings.effects) return;
+    opts = opts || {};
+    var layer = fxLayer();
+    var n = opts.count || 60;
+    var w = window.innerWidth;
+
+    for (var i = 0; i < n; i++) {
+      (function (i) {
+        var gem = document.createElement('div');
+        gem.className = 'rain-gem';
+        gem.textContent = '💎';
+        var size = 15 + Math.random() * 20;
+        gem.style.left = (Math.random() * w) + 'px';
+        gem.style.fontSize = size + 'px';
+        gem.style.top = '-40px';
+        layer.appendChild(gem);
+
+        var delay = Math.random() * 900;
+        var dur = 1500 + Math.random() * 1400;
+        var drift = (Math.random() - 0.5) * 160;
+        var spin = (Math.random() - 0.5) * 540;
+
+        var anim = gem.animate([
+          { transform: 'translate(0,0) rotate(0deg)', opacity: 0 },
+          { opacity: 1, offset: 0.08 },
+          { opacity: 1, offset: 0.82 },
+          { transform: 'translate(' + drift + 'px,' + (window.innerHeight + 90) + 'px) rotate(' + spin + 'deg)', opacity: 0 }
+        ], { duration: dur, delay: delay, easing: 'cubic-bezier(.32,.16,.62,1)' });
+        anim.onfinish = function () { gem.remove(); };
+        setTimeout(function () { if (gem.parentNode) gem.remove(); }, dur + delay + 400);
+      })(i);
+    }
+  }
+
+  /* The full daily-goal payout: banner, confetti volleys, diamond rain. */
+  function celebrateGoal(bonus, dayStreak) {
+    Sound.goal();
+    confetti({ count: 120, power: 360, y: window.innerHeight * 0.34 });
+    setTimeout(function () {
+      confetti({ count: 80, power: 300, x: window.innerWidth * 0.25, y: window.innerHeight * 0.4 });
+    }, 220);
+    setTimeout(function () {
+      confetti({ count: 80, power: 300, x: window.innerWidth * 0.75, y: window.innerHeight * 0.4 });
+    }, 380);
+    diamondRain({ count: 70 });
+
+    var banner = document.createElement('div');
+    banner.className = 'goal-banner';
+    banner.innerHTML =
+      '<div class="goal-banner__card">' +
+        '<div class="goal-banner__ring">' + Icons.check + '</div>' +
+        '<b>Daily goal done</b>' +
+        '<span>' + state.daily.goal + ' questions' +
+          (dayStreak > 1 ? ' · ' + dayStreak + ' days running' : '') + '</span>' +
+        '<div class="goal-banner__gem mono">+' + bonus + ' 💎</div>' +
+      '</div>';
+    fxLayer().appendChild(banner);
+    setTimeout(function () {
+      banner.classList.add('is-out');
+      setTimeout(function () { banner.remove(); }, 420);
+    }, 2900);
   }
 
   /* Floating "+12 XP" text at a screen point. */
@@ -506,6 +603,7 @@
     touchDaily: touchDaily,
     Sound: Sound,
     confetti: confetti, floatGain: floatGain, burstFrom: burstFrom, toast: toast,
+    diamondRain: diamondRain, celebrateGoal: celebrateGoal,
     escapeHtml: escapeHtml, normalise: normalise, matches: matches, tight: tight,
     shuffle: shuffle, sample: sample, pick: pick,
     el: el, $: $, $$: $$, fmtTime: fmtTime, avatarHtml: avatarHtml

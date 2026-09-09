@@ -50,7 +50,7 @@
         '<li><b>Name it.</b> Type the country. No options to pick from.</li>' +
         '<li><b>Capital.</b> Type its capital city.</li>' +
       '</ol>' +
-      '<div class="t-sm t-muted" style="margin-top:12px">Two marks per question — one for the country, one for the capital.</div>';
+      '<div class="t-sm t-muted" style="margin-top:12px">Two marks a question: one for the country, one for the capital.</div>';
     foot().innerHTML = '<div class="t-sm t-muted t-center">Spelling is forgiving: accents, case and punctuation are ignored.</div>';
 
     var regions = global.GeoData.regions;
@@ -202,7 +202,7 @@
       html += '<div class="qcard">' +
         '<div class="qprompt">Question ' + (Q.i + 1) + '</div>' +
         '<div class="qsubject">Write it in' +
-          '<small>Spelling is forgiving — accents and punctuation are ignored.</small></div>' +
+          '<small>Spelling is forgiving. Accents and punctuation are ignored.</small></div>' +
 
         '<label class="field__label" style="margin-top:18px;display:block">1 · Country</label>' +
         '<input class="answer-input" id="qz-name" style="margin-top:6px" autocomplete="off" spellcheck="false" ' +
@@ -331,7 +331,7 @@
     }
     global.UI.refreshHud(true);
     W.checkAchievements().forEach(function (a, i) {
-      setTimeout(function () { W.toast('Achievement — ' + a.name, '+' + a.reward + ' 💎', I.trophy, 4000); }, 480 + i * 440);
+      setTimeout(function () { W.toast('Achievement: ' + a.name, '+' + a.reward + ' 💎', I.trophy, 4000); }, 480 + i * 440);
     });
   }
 

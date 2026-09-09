@@ -135,6 +135,7 @@
       item('settings', I.gear, 'Settings') +
       item('custom', I.palette, 'Customization') +
       item('achievements', I.trophy, 'Achievements') +
+      item('teacher', I.users, 'Teacher mode') +
       '<div class="menu__sep"></div>' +
       '<div class="menu__note">' + I.shield +
         '<span>Saved in this browser<br><i>' + s.stats.answered.toLocaleString() +
@@ -150,6 +151,7 @@
         if (go === 'settings') openSettings();
         else if (go === 'custom') openCustomization();
         else if (go === 'achievements') openAchievements();
+        else if (go === 'teacher') global.Teacher.becomeTeacher();
       });
     });
 
@@ -659,7 +661,7 @@
   }
 
   /* ============================ NAVIGATION ========================== */
-  var VIEWS = ['portal', 'learn', 'test', 'quiz', 'cards'];
+  var VIEWS = ['portal', 'teacher', 'learn', 'test', 'quiz', 'cards'];
 
   /* Slide the pill under whichever tab is active. Measured rather than
      hard-coded, so it stays correct when labels collapse on narrow screens.
@@ -729,6 +731,7 @@
     positionThumb();
 
     if (view === 'portal') global.Portal.render();
+    if (view === 'teacher') global.Teacher.render();
     if (view === 'learn') global.LearnMode.start();
     if (view === 'test') global.TestMode.start();
     if (view === 'quiz') global.QuizMode.start();
