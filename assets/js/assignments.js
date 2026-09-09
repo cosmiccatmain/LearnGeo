@@ -224,6 +224,52 @@
     return out;
   }
 
+  /* ------------------------- the class pack -------------------------
+     One code carrying the class and every assignment in it. A teacher
+     hands this out once instead of a code per piece of work, and the
+     class code is written into the front of it so a student can read it
+     off and check it against what they were told. */
+  function encodePack(c) {
+    try {
+      var payload = { k: 'c', c: c.code, n: c.name || 'Class',
+                      a: (c.assignments || []).map(function (a) {
+                        return { id: a.id, title: a.title, mode: a.mode, config: a.config };
+                      }) };
+      var bytes = new TextEncoder().encode(JSON.stringify(payload));
+      var bin = '';
+      bytes.forEach(function (b) { bin += String.fromCharCode(b); });
+      var body = btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+      return 'LGC-' + c.code + '-' + body;
+    } catch (e) { return null; }
+  }
+
+  function decodePack(code) {
+    try {
+      var raw = String(code || '').trim();
+      var m = raw.match(/LGC-([A-Z0-9]{4,10})-([A-Za-z0-9_-]+)/);
+      if (!m) throw new Error('not a pack');
+      var body = m[2].replace(/-/g, '+').replace(/_/g, '/');
+      while (body.length % 4) body += '=';
+      var bin = atob(body);
+      var bytes = new Uint8Array(bin.length);
+      for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      var o = JSON.parse(new TextDecoder().decode(bytes));
+      if (!o || o.k !== 'c') throw new Error('bad payload');
+      /* the code in the wrapper must match the one inside */
+      if (String(o.c).toUpperCase() !== m[1].toUpperCase()) throw new Error('code mismatch');
+      return { code: String(o.c).toUpperCase(), name: o.n,
+               assignments: (o.a || []).map(function (a) {
+                 a.from = o.n; a.classCode = String(o.c).toUpperCase(); return a;
+               }) };
+    } catch (e) { return null; }
+  }
+
+  /* Read just the class code out of a pack, without trusting the payload. */
+  function peekPackCode(code) {
+    var m = String(code || '').trim().match(/LGC-([A-Z0-9]{4,10})-/);
+    return m ? m[1].toUpperCase() : null;
+  }
+
   function classCode() {
     var abc = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';   /* no I/O/0/1 */
     var out = '';
@@ -370,6 +416,7 @@
     complete: complete,
     recommend: recommend, run: run,
     encode: encode, decode: decode, classCode: classCode,
+    encodePack: encodePack, decodePack: decodePack, peekPackCode: peekPackCode,
     encodeResult: encodeResult, decodeResult: decodeResult,
     decodeResultBatch: decodeResultBatch,
     picker: picker, resolve: resolve,

@@ -16,23 +16,9 @@
     return W.state.inbox;
   }
 
-  /* The class name comes off the assignments themselves, so a student
-     never has to be enrolled in anything. */
-  function className() {
-    var box = inbox();
-    for (var i = box.length - 1; i >= 0; i--) {
-      if (box[i].from) return box[i].from;
-    }
-    return '';
-  }
-
-  function classCode() {
-    var box = inbox();
-    for (var i = box.length - 1; i >= 0; i--) {
-      if (box[i].classCode) return box[i].classCode;
-    }
-    return '';
-  }
+  function enrolled() { return W.state.enrolled || null; }
+  function className() { return enrolled() ? enrolled().className : ''; }
+  function classCode() { return enrolled() ? enrolled().code : ''; }
 
   function avg(nums) {
     if (!nums.length) return null;
@@ -48,6 +34,7 @@
   function render() {
     var host = document.getElementById('view-classroom');
     if (!host) return;
+    if (!enrolled()) return renderJoin(host);
     var box = inbox();
     var todo = box.filter(function (a) { return !a.done; });
     var done = box.filter(function (a) { return a.done; });
@@ -85,6 +72,97 @@
       return '<button class="cr-tab' + (tab === id ? ' is-active' : '') + '" data-t="' + id + '">' +
         icon + label + (n ? '<span class="cr-tab__n">' + n + '</span>' : '') + '</button>';
     }
+  }
+
+  /* You cannot see any classwork until you have joined with the code your
+     teacher gave you. The join code carries the class and its assignments;
+     the class code is what proves you were meant to have it. */
+  function renderJoin(host) {
+    host.innerHTML =
+      '<div class="cr" style="max-width:620px">' +
+        '<div class="join-card">' +
+          '<div class="join-card__i">' + I.users + '</div>' +
+          '<h2>Join your class</h2>' +
+          '<p>Your teacher will give you a class code and a join code. ' +
+             'You only have to do this once.</p>' +
+
+          '<div class="field" style="margin-top:22px">' +
+            '<label class="field__label" for="j-code">Class code</label>' +
+            '<input class="input mono join-code" id="j-code" maxlength="10" ' +
+              'placeholder="ABC123" autocomplete="off" spellcheck="false">' +
+          '</div>' +
+
+          '<div class="field">' +
+            '<label class="field__label" for="j-name">Your name</label>' +
+            '<input class="input" id="j-name" maxlength="40" placeholder="First and last name" ' +
+              'value="' + W.escapeHtml(W.state.profile.displayName === 'Explorer' ? '' : W.state.profile.displayName) + '">' +
+            '<div class="field__hint">This is the name your teacher sees next to your scores.</div>' +
+          '</div>' +
+
+          '<div class="field">' +
+            '<label class="field__label" for="j-pack">Join code</label>' +
+            '<textarea class="input mono" id="j-pack" style="min-height:92px" ' +
+              'placeholder="LGC-…"></textarea>' +
+            '<div class="field__hint">Paste the long code your teacher sent.</div>' +
+          '</div>' +
+
+          '<div id="j-err"></div>' +
+          '<button class="btn btn--accent btn--lg btn--block" id="j-go" style="margin-top:8px">' +
+            'Join class</button>' +
+        '</div>' +
+      '</div>';
+
+    var codeEl = W.$('#j-code', host);
+    codeEl.addEventListener('input', function () {
+      codeEl.value = codeEl.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    });
+    W.$('#j-go', host).addEventListener('click', function () { join(host); });
+    W.$$('#j-code, #j-name', host).forEach(function (el) {
+      el.addEventListener('keydown', function (e) { if (e.key === 'Enter') join(host); });
+    });
+    setTimeout(function () { codeEl.focus(); }, 60);
+  }
+
+  function joinError(host, title, body) {
+    W.$('#j-err', host).innerHTML =
+      '<div class="feedback feedback--wrong" style="margin:0 0 12px">' + I.info +
+      '<div><b>' + title + '</b><p>' + body + '</p></div></div>';
+  }
+
+  function join(host) {
+    var code = W.$('#j-code', host).value.trim().toUpperCase();
+    var name = W.$('#j-name', host).value.trim();
+    var pack = W.$('#j-pack', host).value;
+
+    if (!code) return joinError(host, 'Class code needed', 'Ask your teacher for the class code.');
+    if (!name) return joinError(host, 'Name needed', 'Your teacher needs to know whose work this is.');
+
+    var parsed = A.decodePack(pack);
+    if (!parsed) {
+      return joinError(host, 'That join code did not read',
+        'It should start with LGC-. Check the whole thing copied across.');
+    }
+    if (parsed.code !== code) {
+      return joinError(host, 'Class code does not match',
+        'That join code belongs to class ' + W.escapeHtml(parsed.code) +
+        '. Check the code your teacher gave you.');
+    }
+
+    W.state.enrolled = { code: parsed.code, className: parsed.name, name: name };
+    W.state.profile.displayName = name;
+    if (!W.state.inbox) W.state.inbox = [];
+    var have = {};
+    W.state.inbox.forEach(function (a) { have[a.id] = 1; });
+    parsed.assignments.forEach(function (a) {
+      if (!have[a.id]) { a.added = Date.now(); W.state.inbox.push(a); }
+    });
+    W.saveNow();
+    W.confetti({ count: 70, power: 240 });
+    W.toast('Joined ' + parsed.name, parsed.assignments.length + ' assignment' +
+      (parsed.assignments.length === 1 ? '' : 's') + ' added', I.check);
+    global.UI.refreshHud();
+    tab = 'classwork';
+    render();
   }
 
   function wire(host) {
@@ -225,50 +303,79 @@
   }
 
   /* ============================= actions ============================ */
+  /* One button, two jobs: paste a fresh join code to pull in everything new,
+     or paste a single assignment code. Either way it has to be your class. */
   function openAdd() {
     global.UI.modal({
-      title: 'Add an assignment', icon: I.key,
-      body: '<div class="field"><label class="field__label">Paste the code from your teacher</label>' +
+      title: 'Get new work', icon: I.inbox,
+      body: '<p class="t-muted" style="margin-bottom:14px">Paste whatever your teacher sent. ' +
+              'A new join code brings in every assignment at once; a single assignment code ' +
+              'brings in just that one.</p>' +
+            '<div class="field">' +
               '<textarea class="input mono" id="ad-code" style="min-height:120px" ' +
-                'placeholder="LG1-…"></textarea>' +
-              '<div class="field__hint">You can paste several at once.</div>' +
+                'placeholder="LGC-…  or  LG1-…"></textarea>' +
+              '<div class="field__hint">Joined as <b>' + W.escapeHtml(className()) +
+                '</b> (' + W.escapeHtml(classCode()) + ').</div>' +
               '<div id="ad-err"></div></div>',
       actions: [
         { label: 'Cancel', cls: 'btn--ghost', close: true },
-        { label: 'Add it', cls: 'btn--accent', onClick: function (root, close) {
+        { label: 'Add', cls: 'btn--accent', onClick: function (root, close) {
             var raw = W.$('#ad-code', root).value;
-            var tokens = raw.match(/LG1-[A-Za-z0-9_-]+/g) || [];
-            var added = 0, dupes = 0;
-            tokens.forEach(function (t) {
-              var a = A.decode(t);
-              if (!a) return;
-              if (inbox().some(function (x) { return x.id === a.id; })) { dupes += 1; return; }
-              a.added = Date.now();
-              inbox().push(a);
-              added += 1;
-            });
-            if (!added && !dupes) {
-              W.$('#ad-err', root).innerHTML =
-                '<div class="feedback feedback--wrong" style="margin-top:10px">' + I.info +
-                '<div><b>That code did not read</b><p>Assignment codes start with LG1-. ' +
-                'Check it copied in full.</p></div></div>';
-              return false;
+            var mine = classCode();
+            var added = 0, dupes = 0, wrongClass = 0;
+
+            /* a whole class pack */
+            var pack = A.decodePack(raw);
+            if (pack) {
+              if (pack.code !== mine) {
+                return err(root, 'Different class',
+                  'That join code is for class ' + W.escapeHtml(pack.code) +
+                  ', but you are in ' + W.escapeHtml(mine) + '.');
+              }
+              pack.assignments.forEach(function (a) {
+                if (inbox().some(function (x) { return x.id === a.id; })) { dupes += 1; return; }
+                a.added = Date.now(); inbox().push(a); added += 1;
+              });
+              if (pack.name) W.state.enrolled.className = pack.name;
+            } else {
+              /* or one assignment at a time */
+              var tokens = raw.match(/LG1-[A-Za-z0-9_-]+/g) || [];
+              tokens.forEach(function (t) {
+                var a = A.decode(t);
+                if (!a) return;
+                if (a.classCode && a.classCode !== mine) { wrongClass += 1; return; }
+                if (inbox().some(function (x) { return x.id === a.id; })) { dupes += 1; return; }
+                a.added = Date.now(); inbox().push(a); added += 1;
+              });
+              if (!tokens.length) {
+                return err(root, 'That code did not read',
+                  'Codes start with LGC- or LG1-. Check it copied in full.');
+              }
+              if (wrongClass && !added) {
+                return err(root, 'Different class',
+                  'That assignment belongs to another class.');
+              }
             }
+
             W.saveNow();
             if (added) {
               W.confetti({ count: 50, power: 200 });
-              W.toast(added + ' assignment' + (added === 1 ? '' : 's') + ' added',
-                      dupes ? dupes + ' already had' : '', I.check);
+              W.toast(added + ' added', dupes ? dupes + ' you already had' : '', I.check);
             } else {
-              W.toast('Already added', 'That one is already in your list', I.info);
+              W.toast('Nothing new', 'You already have everything in that code', I.info);
             }
-            close();
-            tab = 'classwork';
-            render();
+            close(); tab = 'classwork'; render();
           } }
       ],
       onMount: function (root) { setTimeout(function () { W.$('#ad-code', root).focus(); }, 60); }
     });
+
+    function err(root, title, body) {
+      W.$('#ad-err', root).innerHTML =
+        '<div class="feedback feedback--wrong" style="margin-top:10px">' + I.info +
+        '<div><b>' + title + '</b><p>' + body + '</p></div></div>';
+      return false;
+    }
   }
 
   function drop(i) {

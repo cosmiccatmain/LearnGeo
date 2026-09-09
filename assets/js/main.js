@@ -13,6 +13,9 @@
     /* ---- mode switcher, built for the current role ---- */
     global.UI.refreshTabs();
 
+    var pex = document.getElementById('preview-exit');
+    if (pex) pex.addEventListener('click', global.UI.endPreview);
+
     /* ---- every landing CTA opens the app directly ---- */
     W.$$('[data-launch]').forEach(function (b) {
       b.addEventListener('click', function () { global.UI.showApp(b.dataset.launch); });

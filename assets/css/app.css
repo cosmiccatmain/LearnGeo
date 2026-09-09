@@ -1759,3 +1759,35 @@ textarea.input:focus { outline: none; border-color: var(--accent); box-shadow: 0
 .role-opt > span:last-child {
   display: block; font-size: 13px; color: var(--muted); margin-top: 5px; line-height: 1.45;
 }
+
+/* ---- teacher preview bar ---- */
+.preview-bar {
+  flex: none; display: flex; align-items: center; gap: 10px;
+  padding: 9px 18px; background: #0A0A0B; color: #fff;
+  font-size: 13.5px; font-weight: 500; position: relative; z-index: 30;
+}
+.preview-bar__dot {
+  width: 7px; height: 7px; border-radius: 50%; background: var(--gold);
+  animation: pulseDot 1.6s ease-in-out infinite;
+}
+@keyframes pulseDot { 0%,100% { opacity: 1; } 50% { opacity: .3; } }
+.preview-bar .btn {
+  margin-left: auto; background: rgba(255,255,255,.14); color: #fff;
+}
+.preview-bar .btn:hover { background: rgba(255,255,255,.24); }
+
+/* ---- student join card ---- */
+.join-card {
+  border: 1px solid var(--line); border-radius: 18px; background: var(--white);
+  padding: 34px 32px; box-shadow: var(--shadow); margin-top: 24px;
+}
+.join-card__i {
+  width: 52px; height: 52px; border-radius: 15px; margin-bottom: 18px;
+  display: grid; place-items: center; background: var(--accent-soft); color: var(--accent);
+}
+.join-card h2 { font-size: 24px; letter-spacing: -.028em; }
+.join-card p { margin-top: 8px; font-size: 14.5px; color: var(--muted); }
+.join-code {
+  font-size: 20px; letter-spacing: .22em; text-transform: uppercase;
+  height: 52px; font-weight: 620; text-align: center;
+}

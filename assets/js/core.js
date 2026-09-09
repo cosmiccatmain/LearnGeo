@@ -88,6 +88,7 @@
         assignments: []           /* assignments the teacher has written */
       },
       inbox: [],                  /* assignments a student has loaded by code */
+      enrolled: null,             /* { code, className, name } once joined */
       customSets: [],             /* saved lists of hand-picked countries */
       settings: {
         sound: true,

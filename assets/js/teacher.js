@@ -131,6 +131,7 @@
 
     bind('#tm-new', function () { openBuilder(); });
     bind('#tm-collect', openCollect);
+    bind('#tm-invite', shareInvite);
     bind('#tm-addperson', openAddPerson);
     bind('#tm-export', exportCsv);
 
@@ -141,7 +142,11 @@
       b.addEventListener('click', function () { openBuilder(cls().assignments[+b.dataset.edit], +b.dataset.edit); });
     });
     W.$$('[data-try]', host).forEach(function (b) {
-      b.addEventListener('click', function () { A.run(cls().assignments[+b.dataset.try]); });
+      b.addEventListener('click', function () {
+        var a = cls().assignments[+b.dataset.try];
+        global.UI.startPreview('Previewing "' + a.title + '"');
+        A.run(a);
+      });
     });
     W.$$('[data-del]', host).forEach(function (b) {
       b.addEventListener('click', function () { removeAssignment(+b.dataset.del); });
@@ -175,6 +180,8 @@
         '<div class="cr-card" style="margin-bottom:14px">' +
           '<div class="cr-card__head"><h3>Hand out work</h3></div>' +
           '<button class="btn btn--accent btn--block" id="tm-new">' + I.plus + ' New assignment</button>' +
+          '<button class="btn btn--primary btn--block" id="tm-invite" style="margin-top:8px">' +
+            I.key + ' Get the join code</button>' +
           '<button class="btn btn--ghost btn--block" id="tm-collect" style="margin-top:8px">' +
             I.inbox + ' Collect results</button>' +
         '</div>' +
@@ -719,6 +726,37 @@
   }
 
   /* ============================== sharing =========================== */
+  /* One code for the whole class: the class code, the name, and every
+     assignment. Students paste it once when they join, and again later to
+     pick up anything new. */
+  function shareInvite() {
+    var c = cls();
+    var code = A.encodePack(c);
+    if (!code) { W.toast('Could not build the code', 'Try again', I.info); return; }
+    global.UI.modal({
+      title: 'Join code for ' + (c.name || 'your class'),
+      icon: I.key, wide: true,
+      body: '<p class="t-muted" style="margin-bottom:16px">Give your class ' +
+              '<b>both</b> of these. The short code is what they type; the long one carries ' +
+              'the work.</p>' +
+            '<div class="field"><label class="field__label">1. Class code, they type this</label>' +
+              '<div class="code-chip">' + c.code + '</div></div>' +
+            '<div class="field"><label class="field__label">2. Join code, they paste this</label>' +
+              '<div class="share-box">' + W.escapeHtml(code) + '</div></div>' +
+            '<div class="feedback" style="background:var(--accent-soft);margin:4px 0 0">' + I.info +
+              '<div><b style="color:var(--accent-ink)">It carries all ' + c.assignments.length +
+              ' assignment' + (c.assignments.length === 1 ? '' : 's') + '</b>' +
+              '<p>Add more work later and send the same join code again. Students only ' +
+              'pick up what they do not already have.</p></div></div>',
+      actions: [
+        { label: 'Close', cls: 'btn--ghost', close: true },
+        { label: 'Copy join code', cls: 'btn--accent', onClick: function () {
+            copy(code, 'Join code copied'); return false;
+          } }
+      ]
+    });
+  }
+
   function shareAssignment(a) {
     var code = A.encode(a);
     if (!code) { W.toast('Could not build a code', 'Try again', I.info); return; }

@@ -7,6 +7,27 @@
   var W = global.WW, I = W.Icons, Cos = global.Cosmetics;
 
   var currentView = 'learn';
+  var previewing = false;
+
+  /* A teacher opening an assignment to check it. Study views are otherwise
+     closed to them, so this opens a door and puts a way back on screen. */
+  function startPreview(label) {
+    previewing = true;
+    var bar = document.getElementById('preview-bar');
+    if (bar) {
+      bar.classList.remove('hidden');
+      bar.querySelector('[data-label]').textContent = label || 'Previewing an assignment';
+    }
+    document.body.classList.add('is-previewing');
+  }
+
+  function endPreview() {
+    previewing = false;
+    var bar = document.getElementById('preview-bar');
+    if (bar) bar.classList.add('hidden');
+    document.body.classList.remove('is-previewing');
+    go('teacher');
+  }
 
   /* ============================== MODALS ============================ */
   var openModals = [];
@@ -667,14 +688,17 @@
   /* The switcher shows Classroom to students and Teacher to teachers, so
      teacher mode is a place you can leave and come back to rather than a
      one-way trip out of the menu. */
+  /* Teachers get their class and nothing else. XP, diamonds and streaks are
+     for the people being taught; a teacher previewing an assignment goes
+     through Classwork, which opens the mode in preview and comes back. */
   var TAB_DEFS = [
-    { view: 'portal',    icon: 'grid',   label: 'Home' },
-    { view: 'classroom', icon: 'users',  label: 'Classroom', role: 'student' },
-    { view: 'teacher',   icon: 'users',  label: 'Teacher',   role: 'teacher' },
-    { view: 'learn',     icon: 'book',   label: 'Learn' },
-    { view: 'test',      icon: 'clip',   label: 'Practice test' },
-    { view: 'quiz',      icon: 'target', label: 'Class quiz' },
-    { view: 'cards',     icon: 'cards',  label: 'Flashcards' }
+    { view: 'portal',    icon: 'grid',   label: 'Home',          role: 'student' },
+    { view: 'classroom', icon: 'users',  label: 'Classroom',     role: 'student' },
+    { view: 'teacher',   icon: 'users',  label: 'My class',      role: 'teacher' },
+    { view: 'learn',     icon: 'book',   label: 'Learn',         role: 'student' },
+    { view: 'test',      icon: 'clip',   label: 'Practice test', role: 'student' },
+    { view: 'quiz',      icon: 'target', label: 'Class quiz',    role: 'student' },
+    { view: 'cards',     icon: 'cards',  label: 'Flashcards',    role: 'student' }
   ];
 
   function refreshTabs() {
@@ -754,6 +778,9 @@
     var isTeacher = W.state.role === 'teacher';
     if (view === 'teacher' && !isTeacher) view = 'classroom';
     if (view === 'classroom' && isTeacher) view = 'teacher';
+    if (isTeacher && !previewing && ['portal', 'learn', 'test', 'quiz', 'cards'].indexOf(view) !== -1) {
+      view = 'teacher';
+    }
 
     currentView = view;
     VIEWS.forEach(function (v) {
@@ -844,6 +871,7 @@
     profileCard: profileCard, runEffect: runEffect,
     go: go, showApp: showApp, showLanding: showLanding,
     positionThumb: positionThumb, watchTabs: watchTabs, refreshTabs: refreshTabs,
-    askRole: askRole
+    askRole: askRole, startPreview: startPreview, endPreview: endPreview,
+    get previewing() { return previewing; }
   };
 })(window);
