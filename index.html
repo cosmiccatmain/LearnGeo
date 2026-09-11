@@ -8,7 +8,7 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <link rel="stylesheet" href="assets/css/app.css">
 <link rel="stylesheet" href="assets/css/motion.css">
@@ -40,9 +40,11 @@
   </nav>
 
   <header class="hero" id="top">
+    <div class="hero__wash" aria-hidden="true"></div>
     <div class="hero__grid"></div>
-    <div class="hero__sky" id="hero-sky" aria-hidden="true"></div>
-    <h1>Finally learn where every country <em>actually is</em>.</h1>
+    <div class="hero__globe" aria-hidden="true"><canvas id="hero-globe"></canvas></div>
+    <div class="hero__scrim" aria-hidden="true"></div>
+    <h1>Learn geography like a <em>superstar</em>.</h1>
     <p class="hero__sub">
       Staring at a list of capitals doesn't really work. Here you answer a question and the map
       shows you where the place is, so the name sticks to an actual spot. It has all 193 UN members,
@@ -501,7 +503,7 @@
 <script src="assets/js/core.js"></script>
 <script src="assets/js/map.js"></script>
 <script src="assets/js/worldmap.js"></script>
-<script src="assets/js/hero.js"></script>
+<script src="assets/js/globe.js"></script>
 <script src="assets/js/quiz.js"></script>
 <script src="assets/js/assignments.js"></script>
 <script src="assets/js/cloud.js"></script>

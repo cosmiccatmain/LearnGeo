@@ -8,7 +8,7 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/css/app.css">
 <link rel="stylesheet" href="assets/css/motion.css">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌍</text></svg>">
@@ -34,8 +34,10 @@
   </nav>
 
   <header class="hero" id="top">
+    <div class="hero__wash" aria-hidden="true"></div>
     <div class="hero__grid"></div>
-    <div class="hero__sky" id="hero-sky" aria-hidden="true"></div>
+    <div class="hero__globe" aria-hidden="true"><canvas id="hero-globe"></canvas></div>
+    <div class="hero__scrim" aria-hidden="true"></div>
     <h1>Set the work. Hand out <em>one code</em>. Get every score back.</h1>
     <p class="hero__sub">
       Build a class, write assignments on exactly the countries you covered, and give out one
@@ -242,7 +244,6 @@
   </footer>
 </div>
 
-<script src="assets/js/data.js"></script>
-<script src="assets/js/hero.js"></script>
+<script src="assets/js/globe.js"></script>
 </body>
 </html>

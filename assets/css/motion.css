@@ -314,9 +314,9 @@
 .brand:hover .brand__mark { transform: rotate(-14deg) scale(1.08); }
 
 /* slow drifting colour behind the headline */
-.hero::before {
+.hero__wash::before {
   content: ''; position: absolute; z-index: 0; pointer-events: none;
-  left: 50%; top: -18%; width: 124%; height: 108%;
+  left: 50%; top: -18%; width: 116%; height: 120%;
   background:
     radial-gradient(40% 48% at 28% 38%, rgba(27,77,255,.20), transparent 68%),
     radial-gradient(36% 44% at 72% 32%, rgba(34,211,238,.18), transparent 70%),
@@ -325,9 +325,9 @@
   transform: translateX(-50%);
   animation: lgAurora 19s ease-in-out infinite alternate;
 }
-.hero::after {
+.hero__wash::after {
   content: ''; position: absolute; z-index: 0; pointer-events: none;
-  left: 50%; top: -24%; width: 96%; height: 96%;
+  left: 50%; top: -22%; width: 94%; height: 104%;
   background: radial-gradient(34% 40% at 60% 44%, rgba(14,159,110,.13), transparent 70%);
   filter: blur(40px);
   transform: translateX(-50%);
@@ -356,8 +356,8 @@
 /* app.css shortens every animation under reduced motion; the looping
    ones here would then flicker, so switch them off outright. */
 @media (prefers-reduced-motion: reduce) {
-  .hero::before, .hero::after, .hero h1 em, .pbar__fill::after, .cr-banner::before { animation: none !important; }
+  .hero__wash::before, .hero__wash::after, .hero h1 em, .pbar__fill::after, .cr-banner::before { animation: none !important; }
   /* the dot field still draws, it just stops pulsing */
-  .hero-dot { animation: none !important; opacity: .16 !important; }
+  /* the globe still draws and still follows the pointer, it just stops drifting */
   .lg-pre { opacity: 1; }
 }
