@@ -169,6 +169,24 @@ a { color: inherit; text-decoration: none; }
     rgba(255,255,255,.92), rgba(255,255,255,.66) 46%, rgba(255,255,255,0) 78%);
 }
 .hero__globe canvas { display: block; width: 100%; height: 100%; }
+
+/* The relief (relief.js), which stands in for the globe on the teacher
+   page. Where the globe is a ball rising into the page, this is a
+   landscape lying across it: far wider than it is tall, and sat low, so
+   the headline reads as sky above the terrain rather than text on top
+   of a picture. */
+.hero__relief {
+  position: absolute; left: 50%; top: 50%;
+  width: min(178vh, 148vw, 1720px);
+  height: min(92vh, 82vw, 900px);
+  transform: translate(-50%, -46%);
+  z-index: 0; pointer-events: none;
+  opacity: 0; transition: opacity 1.2s var(--ease);
+  -webkit-mask-image: radial-gradient(ellipse 60% 66% at 50% 54%, #000 42%, rgba(0,0,0,.5) 76%, transparent 97%);
+          mask-image: radial-gradient(ellipse 60% 66% at 50% 54%, #000 42%, rgba(0,0,0,.5) 76%, transparent 97%);
+}
+.hero__relief.is-live { opacity: .95; }
+.hero__relief canvas { display: block; width: 100%; height: 100%; }
 .hero__grid {
   position: absolute; inset: 0; z-index: 0; pointer-events: none;
   background-image:
@@ -185,7 +203,7 @@ a { color: inherit; text-decoration: none; }
   position: absolute; inset: 0; z-index: 0;
   overflow: hidden; pointer-events: none;
 }
-.hero > *:not(.hero__grid):not(.hero__globe):not(.hero__scrim):not(.hero__wash) { position: relative; z-index: 1; }
+.hero > *:not(.hero__grid):not(.hero__globe):not(.hero__relief):not(.hero__scrim):not(.hero__wash) { position: relative; z-index: 1; }
 
 .hero h1 {
   margin: 0 auto; max-width: 16ch;

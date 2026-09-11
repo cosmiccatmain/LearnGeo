@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>LearnGeo for teachers — set the work, hand out one code, get every score back</title>
-<meta name="description" content="Build a geography class, set assignments on the world's 213 countries and capitals, hand out one class code and collect every score back. Free, and it works with or without accounts.">
+<title>Geo Classroom — LearnGeo for teachers</title>
+<meta name="description" content="Geo Classroom is the teacher side of LearnGeo. Build a class, set work on the countries you have covered, and collect the scores in one gradebook. Free, and it runs in the browser.">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -30,23 +30,22 @@
       <a href="index.html">For students</a>
     </div>
     <div class="nav__spacer"></div>
-    <a class="btn btn--primary btn--sm" href="index.html?role=teacher">Open teacher mode</a>
+    <a class="btn btn--primary btn--sm" href="index.html?role=teacher">Open Geo Classroom</a>
   </nav>
 
   <header class="hero" id="top">
     <div class="hero__wash" aria-hidden="true"></div>
     <div class="hero__grid"></div>
-    <div class="hero__globe" aria-hidden="true"><canvas id="hero-globe"></canvas></div>
+    <div class="hero__relief" aria-hidden="true"><canvas id="hero-relief"></canvas></div>
     <div class="hero__scrim" aria-hidden="true"></div>
-    <h1>Set the work. Hand out <em>one code</em>. Get every score back.</h1>
+    <h1>Geo <em>Classroom</em></h1>
     <p class="hero__sub">
-      Build a class, write assignments on exactly the countries you covered, and give out one
-      short class code. Students type it once and the work lands on their home screen, and their
-      scores come back into your gradebook. There is nothing to install and no class list to
-      upload, and you can run the whole thing without anyone making an account.
+      Set work on the countries you have actually covered, not on a fixed syllabus. Students join
+      with a six-character code you write on the board, and their scores come back to you without
+      anyone pasting anything.
     </p>
     <div class="hero__cta">
-      <a class="btn btn--accent btn--lg" href="index.html?role=teacher">Open teacher mode</a>
+      <a class="btn btn--accent btn--lg" href="index.html?role=teacher">Open Geo Classroom</a>
       <a class="btn btn--ghost btn--lg" href="index.html">See what students get</a>
     </div>
     <p class="hero__note">Free · works in the browser · no account needed, though signing in makes the class live</p>
@@ -134,9 +133,9 @@
               <div class="pv-q">Assignment</div>
               <div class="pv-a" style="font-size:21px">South America capitals</div>
               <div class="t-sm t-muted" style="margin-top:6px">Practice test · 12 countries · typed answers · timed</div>
-              <div class="share-box" style="margin-top:16px">LGC-eyJjIjoiOFJMSlFVIiwibiI6 Illr…</div>
+              <div class="code-chip" style="margin-top:16px">8RLJQU</div>
               <div class="pv-rewards" style="margin-top:14px">
-                <span class="chip chip--gem mono">One code · whole class</span>
+                <span class="chip chip--gem mono">Sent to the class on save</span>
               </div>
             </div>
           </div>
@@ -225,7 +224,7 @@
              way, export the CSV at the end of a unit if the marks need to outlive any of it.</p>
         </div>
         <div class="band__cta">
-          <a class="btn btn--accent btn--lg" href="index.html?role=teacher">Open teacher mode</a>
+          <a class="btn btn--accent btn--lg" href="index.html?role=teacher">Open Geo Classroom</a>
           <p class="t-sm t-muted" style="margin-top:10px">Free either way. You can start signed out and make an account later.</p>
         </div>
       </div>
@@ -244,6 +243,6 @@
   </footer>
 </div>
 
-<script src="assets/js/globe.js"></script>
+<script src="assets/js/relief.js"></script>
 </body>
 </html>
