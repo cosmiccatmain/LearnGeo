@@ -142,54 +142,217 @@
       '% accuracy. ' + (total - mastered) + ' places still to go.';
   }
 
-  /* =============================== rail ============================= */
-  function railSection(s, st) {
+  /* ============================== rings =============================
+     Five concentric rings, Activity-style. Each one is a fraction of a
+     target, so they can all be read at a glance without numbers. The
+     numbers are there anyway: hover a ring and the middle switches to
+     that stat while a card explains what it is counting.
+  ------------------------------------------------------------------ */
+
+  /* Ring geometry, outermost first. */
+  /* Thinner strokes pulled outward, so the hole in the middle is wide
+     enough for the label to sit in without touching the inner ring. */
+  var RING_R = [104, 89, 74, 59, 44];
+  var RING_W = 11;
+
+  function ringData(s, st) {
     var d = s.daily;
     var lp = W.levelProgress();
-    var goalPct = Math.min(1, d.answered / Math.max(1, d.goal));
     var acc = st.answered ? Math.round((st.correct / st.answered) * 100) : null;
-    var hit = d.answered >= d.goal;
-    var r = 13, circ = 2 * Math.PI * r;
 
-    /* In progress: a ring showing how far along. Done: a filled tick, which
-       also stops an over-target day (40/20) reading as a plain empty circle. */
-    var goalIcon = hit
-      ? '<span class="rail__ring rail__ring--done">' + I.check + '</span>'
-      : '<span class="rail__ring">' +
-          '<svg width="30" height="30">' +
-            '<circle cx="15" cy="15" r="' + r + '" fill="none" stroke="var(--line)" stroke-width="3.5"/>' +
-            '<circle cx="15" cy="15" r="' + r + '" fill="none" stroke="var(--success)" stroke-width="3.5" ' +
-              'stroke-linecap="round" stroke-dasharray="' + circ + '" ' +
-              'stroke-dashoffset="' + (circ * (1 - goalPct)) + '"/>' +
-          '</svg></span>';
+    /* Diamonds have no natural ceiling, so the ring counts down to the
+       cheapest thing still locked in Customization. */
+    var target = cheapestLocked();
 
-    return '<div class="rail">' +
-      '<div class="rail__i rail__i--goal">' + goalIcon +
-        '<div><b>' + d.answered + '/' + d.goal + '</b>' +
-          '<span>' + (hit ? 'goal met today' : 'today\u2019s goal') + '</span></div>' +
+    return [
+      { key: 'goal', label: 'Daily goal', colour: '#0E9F6E',
+        value: d.answered + ' / ' + d.goal,
+        pct: d.answered / Math.max(1, d.goal),
+        detail: d.answered >= d.goal
+          ? 'Done for today. You answered ' + d.answered + ' with a target of ' + d.goal + '.'
+          : (d.goal - d.answered) + ' more question' + (d.goal - d.answered === 1 ? '' : 's') +
+            ' to hit today’s target of ' + d.goal + '.' },
+
+      { key: 'streak', label: 'Daily streak', colour: '#F59E0B',
+        value: (d.dayStreak || 0) + (d.dayStreak === 1 ? ' day' : ' days'),
+        pct: (d.dayStreak || 0) / 7,
+        detail: !d.dayStreak
+          ? 'Answer one question today to start a streak.'
+          : d.dayStreak >= 7
+            ? d.dayStreak + ' days running. The ring fills at seven.'
+            : d.dayStreak + ' day' + (d.dayStreak === 1 ? '' : 's') + ' running. ' +
+              (7 - d.dayStreak) + ' more fills the ring.' },
+
+      { key: 'xp', label: 'Level ' + s.economy.level, colour: '#1B4DFF',
+        value: 'Lv ' + s.economy.level,
+        pct: lp.have / Math.max(1, lp.need),
+        detail: (lp.need - lp.have) + ' XP to level ' + (s.economy.level + 1) +
+                '. You have ' + lp.have + ' of ' + lp.need + '.' },
+
+      { key: 'gem', label: 'Diamonds', colour: '#0284C7',
+        value: s.economy.diamonds.toLocaleString(),
+        pct: target ? s.economy.diamonds / target.price : 1,
+        detail: !target
+          ? 'You own everything in Customization.'
+          : s.economy.diamonds >= target.price
+            ? 'Enough for ' + target.name + ' (' + target.price + '). Spend it in Customization.'
+            : (target.price - s.economy.diamonds) + ' more for ' + target.name +
+              ', the cheapest thing still locked.' },
+
+      { key: 'acc', label: 'Accuracy', colour: '#7C3AED',
+        value: acc === null ? '—' : acc + '%',
+        pct: acc === null ? 0 : acc / 100,
+        detail: acc === null
+          ? 'Answer a few questions and your accuracy shows up here.'
+          : st.correct.toLocaleString() + ' right out of ' + st.answered.toLocaleString() +
+            ' answered, across every mode.' }
+    ];
+  }
+
+  /* The cheapest item the learner has not unlocked yet, across every
+     kind of cosmetic. Gives the diamonds ring something to aim at. */
+  function cheapestLocked() {
+    var Cos = global.Cosmetics, owned = W.state.owned || {};
+    /* Avatars are listed by id and glyph with no display name, so each kind
+       carries a noun to fall back on rather than printing "undefined". */
+    var kinds = {
+      avatars: 'avatar', decorations: 'decoration', effects: 'effect',
+      nameplates: 'nameplate', banners: 'banner', themes: 'theme'
+    };
+    var best = null;
+    Object.keys(kinds).forEach(function (k) {
+      (Cos[k] || []).forEach(function (it) {
+        if (!it.price) return;
+        if ((owned[k] || []).indexOf(it.id) !== -1) return;
+        if (best && it.price >= best.price) return;
+        var label = it.name || (String(it.id).charAt(0).toUpperCase() +
+                    String(it.id).slice(1).replace(/-/g, ' ') + ' ' + kinds[k]);
+        best = { name: label, price: it.price };
+      });
+    });
+    return best;
+  }
+
+  function railSection(s, st) {
+    var rings = ringData(s, st);
+
+    var arcs = rings.map(function (g, i) {
+      var r = RING_R[i], circ = 2 * Math.PI * r;
+      var pct = Math.max(0, Math.min(1, g.pct || 0));
+      return '<circle class="ring__track" cx="120" cy="120" r="' + r + '" stroke-width="' + RING_W + '"/>' +
+        '<circle class="ring__arc" data-i="' + i + '" cx="120" cy="120" r="' + r + '" ' +
+          'stroke="' + g.colour + '" stroke-width="' + RING_W + '" stroke-linecap="round" ' +
+          'stroke-dasharray="' + circ + '" stroke-dashoffset="' + circ + '" ' +
+          'style="--to:' + (circ * (1 - pct)) + '"/>' +
+        /* a fatter invisible copy so the ring is easy to point at */
+        '<circle class="ring__hit" data-i="' + i + '" cx="120" cy="120" r="' + r + '" ' +
+          'stroke-width="' + (RING_W + 6) + '" tabindex="0" role="button" ' +
+          'aria-label="' + W.escapeHtml(g.label + ': ' + g.value) + '"/>';
+    }).join('');
+
+    return '<div class="rings" id="stat-rings">' +
+      '<div class="rings__viz">' +
+        '<svg viewBox="0 0 240 240" class="rings__svg">' + arcs + '</svg>' +
+        '<div class="rings__mid" id="rings-mid">' + midHtml(rings, -1, s) + '</div>' +
       '</div>' +
-
-      railItem(I.fire, (d.dayStreak || 0) + (d.dayStreak === 1 ? ' day' : ' days'),
-               'daily streak', d.dayStreak ? 'is-live' : '', 'fire') +
-
-      '<div class="rail__i">' +
-        '<span class="rail__icon rail__icon--xp">' + I.bolt + '</span>' +
-        '<div><b>Level ' + s.economy.level + '</b>' +
-          '<span>' + lp.have + ' / ' + lp.need + ' XP</span>' +
-          '<span class="rail__bar"><i style="width:' +
-            Math.min(100, (lp.have / lp.need) * 100) + '%"></i></span>' +
-        '</div>' +
+      '<div class="rings__legend">' +
+        rings.map(function (g, i) {
+          return '<button class="rleg" data-i="' + i + '">' +
+            '<span class="rleg__dot" style="background:' + g.colour + '"></span>' +
+            '<span class="rleg__t"><b>' + W.escapeHtml(g.value) + '</b>' +
+              '<span>' + W.escapeHtml(g.label) + '</span></span>' +
+            '<span class="rleg__pct mono">' + Math.round(Math.min(1, g.pct || 0) * 100) + '%</span>' +
+          '</button>';
+        }).join('') +
       '</div>' +
-
-      railItem(I.gem, s.economy.diamonds.toLocaleString(), 'diamonds', '', 'gem') +
-      railItem(I.target, acc === null ? '\u2014' : acc + '%', 'accuracy', '', 'acc') +
+      '<div class="rings__tip" id="rings-tip" hidden></div>' +
     '</div>';
   }
 
-  function railItem(icon, n, l, cls, tone) {
-    return '<div class="rail__i ' + (cls || '') + '">' +
-      '<span class="rail__icon' + (tone ? ' rail__icon--' + tone : '') + '">' + icon + '</span>' +
-      '<div><b>' + n + '</b><span>' + l + '</span></div></div>';
+  /* Middle of the rings: a summary at rest, the hovered stat otherwise. */
+  function midHtml(rings, i, s) {
+    if (i < 0 || !rings[i]) {
+      var done = rings.filter(function (g) { return (g.pct || 0) >= 1; }).length;
+      return '<b class="rings__mid-n">' + done + '<span>/5</span></b>' +
+        '<span class="rings__mid-l">rings closed</span>';
+    }
+    var g = rings[i];
+    return '<b class="rings__mid-n" style="color:' + g.colour + '">' + W.escapeHtml(g.value) + '</b>' +
+      '<span class="rings__mid-l">' + W.escapeHtml(g.label) + '</span>';
+  }
+
+  /* Hover, focus and touch all drive the same highlight. */
+  function wireRings(host) {
+    var box = W.$('#stat-rings', host);
+    if (!box) return;
+    var s = W.state, st = s.stats;
+    var rings = ringData(s, st);
+    var mid = W.$('#rings-mid', box);
+    var tip = W.$('#rings-tip', box);
+
+    /* let the arcs grow from zero once laid out */
+    requestAnimationFrame(function () {
+      W.$$('.ring__arc', box).forEach(function (a) {
+        a.style.strokeDashoffset = a.style.getPropertyValue('--to');
+      });
+    });
+
+    function show(i, ev) {
+      box.classList.add('is-focused');
+      W.$$('[data-i]', box).forEach(function (n) {
+        n.classList.toggle('is-on', +n.dataset.i === i);
+      });
+      mid.innerHTML = midHtml(rings, i, s);
+      var g = rings[i];
+      tip.innerHTML = '<b style="color:' + g.colour + '">' + W.escapeHtml(g.label) + '</b>' +
+        '<span>' + W.escapeHtml(g.detail) + '</span>';
+      tip.hidden = false;
+      if (ev) place(ev);
+    }
+
+    /* Follows the cursor vertically but never slides over the rings, so the
+       arc being pointed at stays visible while its card is open. */
+    function place(ev) {
+      var r = box.getBoundingClientRect();
+      var viz = W.$('.rings__viz', box).getBoundingClientRect();
+      var clear = viz.right - r.left + 14;
+      var x = Math.max(ev.clientX - r.left + 18, clear);
+      var y = ev.clientY - r.top + 14;
+      x = Math.max(8, Math.min(x, r.width - tip.offsetWidth - 8));
+      y = Math.max(8, Math.min(y, r.height - tip.offsetHeight - 8));
+      tip.style.left = x + 'px';
+      tip.style.top = y + 'px';
+    }
+
+    function clear() {
+      box.classList.remove('is-focused');
+      W.$$('[data-i]', box).forEach(function (n) { n.classList.remove('is-on'); });
+      mid.innerHTML = midHtml(rings, -1, s);
+      tip.hidden = true;
+    }
+
+    W.$$('.ring__hit', box).forEach(function (h) {
+      h.addEventListener('mouseenter', function (e) { show(+h.dataset.i, e); });
+      h.addEventListener('mousemove', place);
+      h.addEventListener('mouseleave', clear);
+      h.addEventListener('focus', function () { show(+h.dataset.i); centreTip(); });
+      h.addEventListener('blur', clear);
+    });
+    W.$$('.rleg', box).forEach(function (b) {
+      b.addEventListener('mouseenter', function (e) { show(+b.dataset.i, e); });
+      b.addEventListener('mousemove', place);
+      b.addEventListener('mouseleave', clear);
+      b.addEventListener('focus', function () { show(+b.dataset.i); centreTip(); });
+      b.addEventListener('blur', clear);
+    });
+
+    /* keyboard has no pointer, so park the card under the rings */
+    function centreTip() {
+      var viz = W.$('.rings__viz', box).getBoundingClientRect();
+      var r = box.getBoundingClientRect();
+      tip.style.left = Math.max(8, viz.left - r.left) + 'px';
+      tip.style.top = (viz.bottom - r.top + 8) + 'px';
+    }
   }
 
   /* =========================== assignments ========================== */
@@ -274,6 +437,7 @@
 
   /* =============================== wiring =========================== */
   function wire(host) {
+    wireRings(host);
     W.$$('[data-rec]', host).forEach(function (b) {
       b.addEventListener('click', function () { global.Assignments.run(recsCache[+b.dataset.rec]); });
     });
@@ -285,10 +449,7 @@
       b.addEventListener('click', function () { global.UI.go(b.dataset.view); });
     });
 
-    bind('portal-add', function () {
-      if (W.state.enrolled) global.Classroom.openAdd();
-      else global.UI.go('classroom');
-    });
+    bind('portal-add', function () { global.UI.go('classroom'); });
     bind('portal-openclass', function () { global.UI.go('classroom'); });
     bind('portal-join', function () { global.UI.go('classroom'); });
     bind('portal-ach', global.UI.openAchievements);
