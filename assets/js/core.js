@@ -48,8 +48,18 @@
     inbox:  svg('<path d="M3 12h5l2 3h4l2-3h5"/><path d="M5 5h14l2 7v7H3v-7z"/>')
   };
 
-  /* ============================= STORAGE ============================ */
-  var KEY = 'learngeo.save.v1';
+  /* ============================= STORAGE ============================
+     Guests save under one key. A signed-in account keeps a local copy under
+     its own key (so a shared computer never mixes two people's progress) and
+     Cloud mirrors every save to Supabase. The active account is remembered
+     so the right copy loads before the network has answered. */
+  var GUEST_KEY = 'learngeo.save.v1';
+  var ACTIVE_KEY = 'learngeo.activeUser';
+  function userKey(uid) { return GUEST_KEY + '.u.' + uid; }
+  var activeUid = (function () {
+    try { return localStorage.getItem(ACTIVE_KEY) || null; } catch (e) { return null; }
+  })();
+  var KEY = activeUid ? userKey(activeUid) : GUEST_KEY;
 
   function defaultState() {
     return {
@@ -75,7 +85,7 @@
       },
       economy: { diamonds: 150, xp: 0, level: 1 },
       streak: { current: 0, best: 0 },
-      daily: { date: '', answered: 0, goal: 20, dayStreak: 0, lastDay: '', hit: false },
+      daily: { date: '', answered: 0, goal: 20, dayStreak: 0, lastDay: '', lastHit: '', hit: false },
       stats: { answered: 0, correct: 0, tests: 0, cards: 0, perfectTests: 0 },
       mastery: {},          /* countryName -> { c: correctCount, w: wrongCount, box: 0..5 } */
       achievements: [],
@@ -88,7 +98,7 @@
         assignments: []           /* assignments the teacher has written */
       },
       inbox: [],                  /* assignments a student has loaded by code */
-      enrolled: null,             /* { code, className, name } once joined */
+      enrolled: null,             /* { code, className, name, classId? } once joined */
       customSets: [],             /* saved lists of hand-picked countries */
       settings: {
         sound: true,
@@ -97,43 +107,81 @@
         tileProvider: 'osm',
         apiKey: '',
         showCapitalPins: true
-      }
+      },
+      meta: { savedAt: 0 }        /* newest copy wins when device and account disagree */
     };
   }
 
-  var state = load();
+  var state = merge(defaultState(), readSaved(KEY));
 
-  function load() {
+  function readSaved(key) {
     try {
-      var raw = localStorage.getItem(KEY);
-      if (!raw) return defaultState();
-      var parsed = JSON.parse(raw);
-      return merge(defaultState(), parsed);
-    } catch (e) { return defaultState(); }
+      var raw = localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) { return null; }
   }
 
+  /* Lay a saved object over the defaults. Open-ended maps (mastery) and
+     slots that start empty (enrolled) take whatever was saved wholesale;
+     everything else merges key by key so new settings pick up defaults. */
   function merge(base, over) {
-    if (!over || typeof over !== 'object') return base;
+    if (!over || typeof over !== 'object' || Array.isArray(over)) return base;
     Object.keys(base).forEach(function (k) {
-      if (over[k] === undefined || over[k] === null) return;
-      if (Array.isArray(base[k])) { base[k] = Array.isArray(over[k]) ? over[k] : base[k]; }
-      else if (typeof base[k] === 'object') { base[k] = merge(base[k], over[k]); }
-      else { base[k] = over[k]; }
+      var b = base[k], o = over[k];
+      if (o === undefined || o === null) return;
+      if (Array.isArray(b)) {
+        if (Array.isArray(o)) base[k] = o;
+      } else if (b === null || (typeof b === 'object' && !Object.keys(b).length)) {
+        if (typeof o === 'object' && !Array.isArray(o)) base[k] = o;
+      } else if (typeof b === 'object') {
+        base[k] = merge(b, o);
+      } else if (typeof o === typeof b) {
+        base[k] = o;
+      }
     });
     return base;
+  }
+
+  /* Swap the contents in place. Every module holds this same object as
+     WW.state, so replacing the reference would strand them on a stale copy. */
+  function replaceState(obj) {
+    var fresh = merge(defaultState(), obj);
+    Object.keys(state).forEach(function (k) { delete state[k]; });
+    Object.keys(fresh).forEach(function (k) { state[k] = fresh[k]; });
+  }
+
+  var saveHooks = [];
+  function onSave(fn) { saveHooks.push(fn); }
+
+  function write() {
+    state.meta.savedAt = Date.now();
+    try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
+    saveHooks.forEach(function (f) { try { f(state); } catch (e) {} });
   }
 
   var saveTimer = null;
   function save() {
     clearTimeout(saveTimer);
-    saveTimer = setTimeout(function () {
-      try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
-    }, 120);
+    saveTimer = setTimeout(write, 120);
   }
-  function saveNow() {
+  function saveNow() { clearTimeout(saveTimer); write(); }
+  function reset() { replaceState(null); saveNow(); emit(); }
+
+  /* Write this device's copy only: no timestamp, no upload. */
+  function saveLocal() {
     try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
   }
-  function reset() { state = defaultState(); saveNow(); }
+
+  /* Point storage at a signed-in account (uid) or back at the guest save. */
+  function useAccount(uid) {
+    clearTimeout(saveTimer);
+    activeUid = uid || null;
+    KEY = uid ? userKey(uid) : GUEST_KEY;
+    try {
+      if (uid) localStorage.setItem(ACTIVE_KEY, uid);
+      else localStorage.removeItem(ACTIVE_KEY);
+    } catch (e) {}
+  }
 
   /* ============================= ECONOMY ============================ */
   function xpToNext(level) { return 80 + 40 * level; }
@@ -146,25 +194,33 @@
   function onChange(fn) { listeners.push(fn); }
   function emit() { listeners.forEach(function (f) { f(state); }); }
 
-  function todayKey() {
+  function dayKey(d) { return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); }
+  function todayKey() { return dayKey(new Date()); }
+  function yesterdayKey() {
     var d = new Date();
-    return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
+    d.setDate(d.getDate() - 1);
+    return dayKey(d);
   }
 
+  /* The day streak counts days the goal was actually hit, not days the app
+     happened to be opened. Miss a day and it drops back to zero. */
   function touchDaily() {
     var t = todayKey();
     if (state.daily.date !== t) {
-      /* day rolled over — extend or reset the day streak */
-      var y = new Date(Date.now() - 86400000);
-      var yKey = y.getFullYear() + '-' + (y.getMonth() + 1) + '-' + y.getDate();
-      if (state.daily.lastDay === yKey) state.daily.dayStreak += 1;
-      else if (state.daily.lastDay !== t) state.daily.dayStreak = 1;
       state.daily.date = t;
       state.daily.answered = 0;
       state.daily.hit = false;
       state.daily.lastDay = t;
+      if (state.daily.lastHit !== t && state.daily.lastHit !== yesterdayKey()) state.daily.dayStreak = 0;
       save();
     }
+  }
+
+  function markGoalHit() {
+    var t = todayKey();
+    if (state.daily.lastHit === yesterdayKey()) state.daily.dayStreak += 1;
+    else if (state.daily.lastHit !== t) state.daily.dayStreak = 1;
+    state.daily.lastHit = t;
   }
 
   /* Award for one answered question. Returns the gains for display. */
@@ -209,6 +265,7 @@
     /* crossing the daily goal is the one moment worth a full-screen payout */
     if (!state.daily.hit && state.daily.answered >= state.daily.goal) {
       state.daily.hit = true;
+      markGoalHit();
       gains.goalHit = true;
       gains.goalBonus = 60 + state.daily.dayStreak * 10;
       state.economy.diamonds += gains.goalBonus;
@@ -450,7 +507,7 @@
         '<div class="goal-banner__ring">' + Icons.check + '</div>' +
         '<b>Daily goal done</b>' +
         '<span>' + state.daily.goal + ' questions' +
-          (dayStreak > 1 ? ' · ' + dayStreak + ' days running' : '') + '</span>' +
+          (dayStreak > 1 ? ' · ' + dayStreak + ' days in a row' : '') + '</span>' +
         '<div class="goal-banner__gem mono">+' + bonus + ' 💎</div>' +
       '</div>';
     fxLayer().appendChild(banner);
@@ -601,6 +658,9 @@
     Icons: Icons,
     state: state,
     save: save, saveNow: saveNow, reset: reset,
+    defaultState: defaultState, replaceState: replaceState, readSaved: readSaved,
+    onSave: onSave, useAccount: useAccount, userKey: userKey, GUEST_KEY: GUEST_KEY,
+    saveLocal: saveLocal, accountId: function () { return activeUid; },
     onChange: onChange, emit: emit,
     award: award, addDiamonds: addDiamonds, spend: spend,
     xpToNext: xpToNext, levelProgress: levelProgress,

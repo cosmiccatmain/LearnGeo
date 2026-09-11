@@ -1,9 +1,9 @@
 /* ------------------------------------------------------------------
    LearnGeo — bootstrap: landing wiring and routing.
 
-   There are no accounts. Everything — progress, diamonds, purchases,
-   settings — lives in this browser's localStorage under one key, so the
-   app opens straight into study with nothing to sign into.
+   Accounts are optional. A guest's progress lives in this browser's
+   localStorage, so the app opens straight into study with nothing to sign
+   into; signing in (cloud.js) mirrors the same save to Supabase.
 -------------------------------------------------------------------*/
 (function (global) {
   'use strict';
@@ -23,19 +23,24 @@
 
     /* ---- "continue" only means anything once there is progress ---- */
     var cont = document.getElementById('nav-continue');
-    if (cont) {
-      var s = W.state;
-      var resumable = s.stats.answered > 0 || s.economy.level > 1;
-      cont.classList.toggle('hidden', !resumable);
-      cont.textContent = resumable
-        ? 'Continue · Lv ' + s.economy.level
-        : 'Continue';
-      cont.addEventListener('click', function () { global.UI.showApp('portal'); });
-    }
+    if (cont) cont.addEventListener('click', function () { global.UI.showApp('portal'); });
+
+    /* ---- accounts are optional: guests carry on exactly as before ---- */
+    var signin = document.getElementById('nav-signin');
+    if (signin) signin.addEventListener('click', function () {
+      if (global.Cloud && global.Cloud.signedIn) global.UI.showApp('portal');
+      else global.UI.openAuth('signin');
+    });
+    global.UI.refreshLanding();
+    if (global.Cloud) global.Cloud.init();
 
     var tcta = document.getElementById('teacher-cta');
     if (tcta) tcta.addEventListener('click', function () {
-      global.UI.showApp('portal');
+      /* settle the role first, or "who is using LearnGeo" pops up over the class */
+      W.state.role = 'teacher';
+      W.state.roleChosen = true;
+      W.saveNow();
+      global.UI.showApp('teacher');
       global.Teacher.becomeTeacher();
     });
 

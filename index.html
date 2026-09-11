@@ -3,14 +3,16 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>LearnGeo — Study every country, capital and location</title>
-<meta name="description" content="A focused study tool for the world's 213 countries and territories: their capitals and where they sit on the map. Learn, practice test and flashcard modes over OpenStreetMap.">
+<title>LearnGeo: learn every country and capital</title>
+<meta name="description" content="Learn all 213 countries and territories, their capitals, and where they are on the map. Free, with four study modes and a class mode for teachers.">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <link rel="stylesheet" href="assets/css/app.css">
+<link rel="stylesheet" href="assets/css/motion.css">
+<link rel="stylesheet" href="assets/css/demo.css">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌍</text></svg>">
 </head>
 <body>
@@ -24,83 +26,120 @@
       <span class="brand__text">LearnGeo</span>
     </a>
     <div class="nav__links">
+      <a href="#try">Try it</a>
       <a href="#modes">Modes</a>
-      <a href="#coverage">Coverage</a>
-      <a href="#screens">The app</a>
-      <a href="#how">How it works</a>
-      <a href="#rewards">Progress</a>
+      <a href="#coverage">What's in it</a>
+      <a href="#screens">Screenshots</a>
+      <a href="#rewards">Rewards</a>
       <a href="#teachers">For teachers</a>
     </div>
     <div class="nav__spacer"></div>
     <button class="btn btn--ghost btn--sm hidden" id="nav-continue">Continue where you left off</button>
-    <button class="btn btn--primary btn--sm" data-launch="portal">Start studying</button>
+    <button class="btn btn--ghost btn--sm" id="nav-signin">Sign in</button>
+    <button class="btn btn--primary btn--sm" data-launch="portal">Open the app</button>
   </nav>
 
   <header class="hero" id="top">
     <div class="hero__grid"></div>
-    <span class="pill"><span class="pill__dot"></span> <b>213</b> countries &amp; territories · <b>every</b> capital</span>
-    <h1>Know every country, capital and <em>where it is</em>.</h1>
+    <span class="pill"><span class="pill__dot"></span> <b>213</b> countries and territories, <b>every</b> capital</span>
+    <h1>Finally learn where every country <em>actually is</em>.</h1>
     <p class="hero__sub">
-      Every country, its capital, and where the two sit on a real map. There are 213 places in here:
-      all 193 UN members, both observer states, and 18 territories that keep turning up in class.
-      Work through them until you stop having to think about it.
+      Staring at a list of capitals doesn't really work. Here you answer a question and the map
+      shows you where the place is, so the name sticks to an actual spot. It has all 193 UN members,
+      both observer states, and 18 territories that tend to come up in class.
     </p>
     <div class="hero__cta">
-      <button class="btn btn--accent btn--lg" data-launch="learn">Start learning free</button>
-      <button class="btn btn--ghost btn--lg" data-launch="test">Take a practice test</button>
+      <button class="btn btn--accent btn--lg" data-launch="learn">Start learning</button>
+      <a class="btn btn--ghost btn--lg" href="#try">Try 3 questions first</a>
     </div>
-    <p class="hero__note">Runs entirely in your browser · no account, no sign-in · progress saves on this device</p>
+    <p class="hero__note">You can start as a guest without signing up. Make a free account if you want your progress on every device.</p>
   </header>
 
   <section class="stats">
-    <div class="stat"><div class="stat__n" id="s-total">213</div><div class="stat__l">Countries &amp; territories</div></div>
+    <div class="stat"><div class="stat__n" id="s-total">213</div><div class="stat__l">Countries and territories</div></div>
     <div class="stat"><div class="stat__n" id="s-members">193</div><div class="stat__l">UN member states</div></div>
-    <div class="stat"><div class="stat__n">3</div><div class="stat__l">Study modes</div></div>
-    <div class="stat"><div class="stat__n">4</div><div class="stat__l">Question types</div></div>
+    <div class="stat"><div class="stat__n">4</div><div class="stat__l">Ways to study</div></div>
+    <div class="stat"><div class="stat__n">4</div><div class="stat__l">Kinds of questions</div></div>
+  </section>
+
+  <!-- try it: the three-question demo (assets/js/demo.js) -->
+  <section class="section" id="try">
+    <div class="try__grid">
+      <div class="try__copy">
+        <span class="eyebrow">Try it</span>
+        <h2>How many of these can you get?</h2>
+        <p>Three questions, each one a different type from the app. You don't have to sign up and
+           nothing gets saved. It's just so you can see what it's like.</p>
+        <ul class="try__list">
+          <li><span>1</span>Name the capital of a country</li>
+          <li><span>2</span>Name the country that goes with a capital</li>
+          <li><span>3</span>Recognize a country from its outline</li>
+        </ul>
+      </div>
+      <div class="preview-card demo" aria-live="polite">
+        <div class="preview-card__bar">
+          <span class="demo__lights"><span class="preview-card__dot"></span><span class="preview-card__dot"></span><span class="preview-card__dot"></span></span>
+          <span class="demo__bar-label" id="demo-bar-label">Question 1 of 3</span>
+        </div>
+        <div class="demo__body" id="demo-body"></div>
+      </div>
+    </div>
   </section>
 
   <!-- modes -->
   <section class="section" id="modes">
     <div class="section__head">
-      <span class="eyebrow">Three ways to study</span>
-      <h2>Three ways in, one record of what you know.</h2>
-      <p>Switch between them whenever you like. They all write to the same record, so the app keeps
-         track of which countries you keep missing no matter where you answer.</p>
+      <span class="eyebrow">Four ways to study</span>
+      <h2>Use whichever mode you feel like.</h2>
+      <p>They all save to the same progress. So if you keep missing Burkina Faso in flashcards,
+         Learn mode knows about it too and will bring it up more often.</p>
     </div>
-    <div class="modes">
+    <div class="modes modes--4">
       <div class="mode-card">
         <div class="mode-card__icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></div>
         <h3>Learn</h3>
-        <p>Answer, find out straight away, keep going. The map jumps to the capital as soon as you
-           commit, so you see where it was even when you get it wrong.</p>
+        <p>Answer a question and find out right away if you got it. The map zooms to the country
+           either way, so you still see where it is when you get it wrong.</p>
         <ul>
-          <li>Weakest-first ordering</li>
-          <li>Multiple choice or free typing</li>
-          <li>Streak multipliers up to ×3</li>
-          <li>Context notes on tricky capitals</li>
+          <li>Your weakest countries come up first</li>
+          <li>Multiple choice or type it in</li>
+          <li>Streak bonus, up to ×3</li>
+          <li>Notes on the confusing capitals</li>
         </ul>
       </div>
       <div class="mode-card">
         <div class="mode-card__icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2h6a1 1 0 0 1 1 1v1H8V3a1 1 0 0 1 1-1z"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 12l2 2 4-4"/></svg></div>
         <h3>Practice test</h3>
-        <p>Set the length, the regions and the clock, then sit the whole thing. You can flag questions
-           to come back to, and you get a marked report at the end.</p>
+        <p>Choose how many questions, which regions, and whether there's a timer. Flag anything you
+           want to come back to. You get a full report when you're done.</p>
         <ul>
-          <li>10 / 20 / 40 / 75 question sections</li>
-          <li>Timed sections and exam mode</li>
-          <li>Flag questions to revisit</li>
-          <li>Score report by region and type</li>
+          <li>10, 20, 40 or 75 questions</li>
+          <li>Optional timer and exam mode</li>
+          <li>Flag questions for later</li>
+          <li>Results by region and question type</li>
+        </ul>
+      </div>
+      <div class="mode-card">
+        <div class="mode-card__icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1" fill="currentColor"/></svg></div>
+        <h3>Class quiz</h3>
+        <p>Like the paper map quizzes from school. A country gets shaded, you click it, and then
+           write its name and capital from memory.</p>
+        <ul>
+          <li>Two marks per question</li>
+          <li>No multiple choice</li>
+          <li>Small spelling mistakes are OK</li>
+          <li>You get a marked paper at the end</li>
         </ul>
       </div>
       <div class="mode-card">
         <div class="mode-card__icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="14" height="14" rx="2"/><path d="M7 3h11a3 3 0 0 1 3 3v11"/></svg></div>
         <h3>Flashcards</h3>
-        <p>Two-sided cards that keep score of themselves. Rate how well you knew each one and the
-           shaky ones come round again before you finish.</p>
+        <p>Country on one side, capital on the other. Rate how well you knew each card, and the ones
+           you struggled with come back before the deck is over.</p>
         <ul>
-          <li>Country → capital, or the reverse</li>
-          <li>Again / Hard / Good / Easy grading</li>
-          <li>Location revealed on the flip</li>
+          <li>Country to capital, or the other way</li>
+          <li>Again, Hard, Good or Easy</li>
+          <li>The back shows where it is</li>
           <li>Decks of 10 to 100 cards</li>
         </ul>
       </div>
@@ -112,29 +151,29 @@
     <div class="section__inner">
       <div class="split">
         <div>
-          <span class="eyebrow">The dataset</span>
-          <h2 style="margin-top:12px;font-size:clamp(28px,3.4vw,40px)">Everything in the UN, plus the places people actually get asked about.</h2>
+          <span class="eyebrow">What's in it</span>
+          <h2 style="margin-top:12px;font-size:clamp(28px,3.4vw,40px)">Every UN country, plus the places that keep showing up on quizzes.</h2>
           <p style="margin-top:16px;color:var(--muted);font-size:17px">
-            The United Nations has 193 member states and 2 permanent observer states. LearnGeo covers all
-            195, plus 18 territories that come up a lot, which makes 213 in total. You can narrow the set
-            to UN members only whenever you want a strict list.
+            The UN has 193 member states and 2 observer states, and all of them are in here. We also
+            added 18 territories people get asked about a lot, like Greenland and Hong Kong, which
+            brings it to 213. If you only want the official UN list, you can switch to that.
           </p>
           <ul class="feature-list" style="margin-top:24px">
             <li>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m20 6-11 11-5-5"/></svg>
-              <div><b>193 UN member states</b><span>Every one, with its official capital.</span></div>
+              <div><b>193 UN member states</b><span>Each one with its official capital.</span></div>
             </li>
             <li>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m20 6-11 11-5-5"/></svg>
-              <div><b>2 permanent observers</b><span>Vatican City and Palestine.</span></div>
+              <div><b>2 observer states</b><span>Vatican City and Palestine.</span></div>
             </li>
             <li>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m20 6-11 11-5-5"/></svg>
-              <div><b>18 territories and dependencies</b><span>Taiwan, Kosovo, Greenland, Puerto Rico, Hong Kong and more.</span></div>
+              <div><b>18 territories</b><span>Taiwan, Kosovo, Greenland, Puerto Rico, Hong Kong and a few others.</span></div>
             </li>
             <li>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m20 6-11 11-5-5"/></svg>
-              <div><b>Contested capitals explained</b><span>Bolivia, South Africa and the Netherlands come with a note saying why the answer is messy.</span></div>
+              <div><b>Notes on the tricky ones</b><span>Some capitals aren't simple. Bolivia has two and South Africa has three, so those come with a short note and any of the right answers counts.</span></div>
             </li>
           </ul>
         </div>
@@ -172,9 +211,9 @@
     <div class="section__inner">
       <div class="section__head" style="max-width:62ch;margin-left:auto;margin-right:auto;text-align:center">
         <span class="eyebrow">Inside the app</span>
-        <h2>What it looks like to use.</h2>
-        <p>A question sidebar next to a live OpenStreetMap, a scored report after every section,
-           and a flashcard deck that puts the location on the back.</p>
+        <h2>Here's what it looks like.</h2>
+        <p>Questions on the left and a real map on the right. You get a report after every test,
+           and the flashcards show you where each place is when you flip them.</p>
       </div>
       <div class="shots">
         <div class="shot">
@@ -199,7 +238,7 @@
               </div>
             </div>
           </div>
-          <div class="shot__caption">Answer on the left. The map flies to the capital and drops the pin.</div>
+          <div class="shot__caption">Answer on the left and the map shades the country so you can see where it is.</div>
         </div>
 
         <div class="shot">
@@ -235,7 +274,7 @@
               </div>
             </div>
           </div>
-          <div class="shot__caption">Accuracy broken down by region and question type.</div>
+          <div class="shot__caption">See how you did in each region and on each type of question.</div>
         </div>
 
         <div class="shot">
@@ -253,13 +292,13 @@
               <span>Again</span><span>Hard</span><span>Good</span><span>Easy</span>
             </div>
           </div>
-          <div class="shot__caption">Rate each card. The shaky ones come back before you finish.</div>
+          <div class="shot__caption">Rate each card. The ones you didn't know come back around.</div>
         </div>
 
         <div class="shot">
           <div class="shot__bar">
             <span class="shot__dot"></span><span class="shot__dot"></span><span class="shot__dot"></span>
-            <span class="shot__label">Study centre</span>
+            <span class="shot__label">Home</span>
           </div>
           <div class="shot__body mini" style="padding:16px">
             <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:7px">
@@ -273,7 +312,7 @@
               <div class="mini__opt" style="text-align:center;margin:0">Cards</div>
             </div>
           </div>
-          <div class="shot__caption">Your home screen. Suggested work, assignments and every mode in one place.</div>
+          <div class="shot__caption">Your home screen, with suggested practice, anything your teacher assigned, and all the modes.</div>
         </div>
       </div>
     </div>
@@ -283,13 +322,13 @@
   <section class="section" id="how">
     <div class="section__head">
       <span class="eyebrow">How it works</span>
-      <h2>Four steps, then just keep turning up.</h2>
+      <h2>The basic idea</h2>
     </div>
     <div class="steps">
-      <div class="step"><div class="step__n">01</div><h4>Pick your set</h4><p>One continent, UN members only, or all 213. You can also type in your own list.</p></div>
-      <div class="step"><div class="step__n">02</div><h4>Answer in the sidebar</h4><p>Four question types: country→capital, capital→country, find it on the map, and identify a pin.</p></div>
-      <div class="step"><div class="step__n">03</div><h4>See it placed</h4><p>Every answer drops a pin and the map flies to it, so the name gets stuck to a place.</p></div>
-      <div class="step"><div class="step__n">04</div><h4>Sit a test</h4><p>Once it feels solid, sit a scored test and read the report to see what is still weak.</p></div>
+      <div class="step"><div class="step__n">01</div><h4>Choose what to study</h4><p>One continent, only the UN members, or all 213. You can also pick out your own list of countries.</p></div>
+      <div class="step"><div class="step__n">02</div><h4>Answer questions</h4><p>Name the capital, name the country, find it on the map, or say which country is shaded.</p></div>
+      <div class="step"><div class="step__n">03</div><h4>Watch the map</h4><p>After every answer the country gets shaded and the map moves to it. It helps more than you'd expect.</p></div>
+      <div class="step"><div class="step__n">04</div><h4>Test yourself</h4><p>When you feel ready, take a practice test. The report tells you what you still need to work on.</p></div>
     </div>
   </section>
 
@@ -298,24 +337,24 @@
     <div class="section__inner">
       <div class="prose-block">
         <div>
-          <span class="eyebrow">Progress</span>
-          <h2 style="margin-top:12px;font-size:clamp(28px,3.4vw,40px)">Every correct answer pays out.</h2>
+          <span class="eyebrow">Rewards</span>
+          <h2 style="margin-top:12px;font-size:clamp(28px,3.4vw,40px)">You earn stuff for getting answers right.</h2>
           <p style="margin-top:16px;color:var(--muted);font-size:17px">
-            Correct answers earn XP and diamonds, and a streak multiplies both, up to triple at
-            25 in a row. Diamonds buy profile add-ons: avatars, avatar decorations, animated profile effects,
-            nameplates, banners and colour themes.
+            Every correct answer gives you XP and diamonds. Keep a streak going and you get more, up to
+            3x once you're at 25 in a row. You can spend diamonds on avatars, avatar decorations, profile
+            effects, nameplates, banners and color themes.
           </p>
           <ul class="feature-list" style="margin-top:24px">
             <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9z"/></svg>
-              <div><b>XP and levels</b><span>Levels come up mid-session, and you will notice when they do.</span></div></li>
+              <div><b>XP and levels</b><span>You level up as you play, sometimes right in the middle of a session.</span></div></li>
             <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12l4 6-10 12L2 9z"/></svg>
-              <div><b>Diamonds</b><span>Earned per answer, per test and per achievement. Spent in Customization.</span></div></li>
+              <div><b>Diamonds</b><span>You get them for answers, finished tests and achievements, and spend them in Customization.</span></div></li>
             <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2s4 4 4 8a4 4 0 0 1-8 0c0-1 .5-2 1-3-3 2-5 4.5-5 8a8 8 0 0 0 16 0c0-6-8-13-8-13z"/></svg>
-              <div><b>Streaks and daily goals</b><span>Hit your daily target and the screen pays you in diamonds.</span></div></li>
+              <div><b>Streaks and daily goals</b><span>Hit your daily goal and you get bonus diamonds.</span></div></li>
             <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M6 2h12v7a6 6 0 0 1-12 0z"/><path d="M9 21h6M12 15v6"/></svg>
-              <div><b>10 achievements</b><span>Each pays a diamond bounty when it unlocks.</span></div></li>
+              <div><b>10 achievements</b><span>Each one pays out diamonds when you unlock it.</span></div></li>
           </ul>
-          <button class="btn btn--accent btn--lg" style="margin-top:26px" data-launch="learn">Start earning</button>
+          <button class="btn btn--accent btn--lg" style="margin-top:26px" data-launch="learn">Start learning</button>
         </div>
       </div>
     </div>
@@ -325,27 +364,28 @@
   <section class="section" id="teachers">
     <div class="section__head">
       <span class="eyebrow">For teachers</span>
-      <h2>Set the work. Get a code. Hand it out.</h2>
-      <p>Build an assignment and LearnGeo turns it into a short code. Paste it in your class chat or
-         write it on the board. Students enter it once and the work appears on their home screen.</p>
+      <h2>You can run your whole class on it.</h2>
+      <p>Your class gets one short code. Students sign in and type it once, and after that every
+         assignment you set shows up on their home screen. Their scores go straight into your
+         gradebook.</p>
     </div>
 
     <div class="steps">
       <div class="step">
         <div class="step__n">01</div><h4>Pick the countries</h4>
-        <p>Type them in one at a time, or drop in a whole continent with one button.</p>
+        <p>Type them in one by one, or add a whole continent with one click.</p>
       </div>
       <div class="step">
-        <div class="step__n">02</div><h4>Set the conditions</h4>
-        <p>Length, question types, timed or not, and whether answers are revealed as they go.</p>
+        <div class="step__n">02</div><h4>Set the rules</h4>
+        <p>How many questions, which types, timed or not, and whether they see the answers as they go.</p>
       </div>
       <div class="step">
-        <div class="step__n">03</div><h4>Copy the code</h4>
-        <p>Each assignment gets its own code. It carries the whole thing, so nobody needs an account.</p>
+        <div class="step__n">03</div><h4>Share the class code</h4>
+        <p>Signed-in students just need that. Anyone without an account can join with a copy-and-paste code instead.</p>
       </div>
       <div class="step">
-        <div class="step__n">04</div><h4>They paste it in</h4>
-        <p>The assignment lands in their list with your class name on it.</p>
+        <div class="step__n">04</div><h4>Get the scores back</h4>
+        <p>Finished work shows up in your gradebook with the student's name on it.</p>
       </div>
     </div>
 
@@ -355,24 +395,24 @@
         <ul class="feature-list" style="margin-top:18px">
           <li>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m20 6-11 11-5-5"/></svg>
-            <div><b>A named list of countries</b><span>Exactly the ones you covered in class, nothing else.</span></div>
+            <div><b>Your own country list</b><span>Only the countries you actually covered in class.</span></div>
           </li>
           <li>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m20 6-11 11-5-5"/></svg>
-            <div><b>Exam conditions</b><span>Hold every result back until they submit, and put the section on a clock.</span></div>
+            <div><b>Test conditions</b><span>Hide the answers until they submit, and put a timer on it.</span></div>
           </li>
           <li>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m20 6-11 11-5-5"/></svg>
-            <div><b>Typed answers</b><span>Turn off multiple choice so they have to spell it themselves.</span></div>
+            <div><b>Typed answers</b><span>Turn off multiple choice so they have to spell it out.</span></div>
           </li>
           <li>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m20 6-11 11-5-5"/></svg>
-            <div><b>Any of the four modes</b><span>A scored test, open practice, flashcards, or the map quiz.</span></div>
+            <div><b>Any of the four modes</b><span>Practice test, Learn, flashcards or the class quiz.</span></div>
           </li>
         </ul>
-        <button class="btn btn--primary btn--lg" style="margin-top:26px" id="teacher-cta">Open teacher mode</button>
-        <p class="t-sm t-muted" style="margin-top:12px">Free, and it stays on your machine.
-           Nothing is uploaded and no student data is collected.</p>
+        <button class="btn btn--primary btn--lg" style="margin-top:26px" id="teacher-cta">Set up a class</button>
+        <p class="t-sm t-muted" style="margin-top:12px">It's free. Without an account everything stays on your computer.
+           If you sign in, your class is saved to your account so students can join online.</p>
       </div>
 
       <div>
@@ -383,10 +423,10 @@
           <div class="preview-card__body">
             <div class="pv-q">Assignment</div>
             <div class="pv-a" style="font-size:21px">South America capitals</div>
-            <div class="t-sm t-muted" style="margin-top:6px">Practice test · 12 countries · timed</div>
-            <div class="share-box" style="margin-top:16px">LG1-eyJpZCI6ImExbHo0ayIsInRpdGxlIjoiU291dGgg…</div>
+            <div class="t-sm t-muted" style="margin-top:6px">Practice test, 12 countries, timed</div>
+            <div class="share-box" style="margin-top:16px">Class code: K7QM4P</div>
             <div class="pv-rewards" style="margin-top:14px">
-              <span class="chip chip--gem mono">Ready to hand out</span>
+              <span class="chip chip--gem mono">Ready to share</span>
             </div>
           </div>
         </div>
@@ -403,7 +443,7 @@
     <span class="nav__spacer"></span>
     <span>Map data © OpenStreetMap contributors</span>
     <span>·</span>
-    <span>Progress stored locally in your browser</span>
+    <span>Progress saved in your browser, or to your account when signed in</span>
   </footer>
 </div>
 
@@ -412,7 +452,7 @@
 <div id="app" class="app">
 
   <header class="topbar">
-    <button class="brand" id="home-btn" title="Back to landing page">
+    <button class="brand" id="home-btn" title="Home">
       <span class="brand__mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18a15 15 0 0 1 0-18"/></svg></span>
       <span class="brand__text">LearnGeo</span>
     </button>
@@ -456,7 +496,7 @@
     <aside class="sidebar">
       <div class="sidebar__head" id="learn-head">
         <div class="sidebar__title">Learn</div>
-        <div class="t-sm t-muted" style="margin-top:2px">Answer, see it placed, repeat.</div>
+        <div class="t-sm t-muted" style="margin-top:2px">Answer, then see where it is on the map.</div>
       </div>
       <div class="sidebar__body" id="learn-body"></div>
       <div class="sidebar__foot" id="learn-foot"></div>
@@ -502,7 +542,7 @@
       <div class="fc-stage" id="cards-stage"></div>
       <div class="fc-map map-strip">
         <div id="cards-map" style="position:absolute;inset:0"></div>
-        <div class="fc-map__veil" id="cards-veil">Flip the card to see where it is</div>
+        <div class="fc-map__veil" id="cards-veil">Flip the card to see it on the map</div>
       </div>
     </div>
   </div>
@@ -511,6 +551,7 @@
 <div id="fx-layer"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
 <script src="assets/js/data.js"></script>
 <script src="assets/js/cosmetics.js"></script>
 <script src="assets/js/avatars.js"></script>
@@ -518,6 +559,7 @@
 <script src="assets/js/map.js"></script>
 <script src="assets/js/quiz.js"></script>
 <script src="assets/js/assignments.js"></script>
+<script src="assets/js/cloud.js"></script>
 <script src="assets/js/ui.js"></script>
 <script src="assets/js/portal.js"></script>
 <script src="assets/js/teacher.js"></script>
@@ -527,5 +569,8 @@
 <script src="assets/js/mode-quiz.js"></script>
 <script src="assets/js/mode-cards.js"></script>
 <script src="assets/js/main.js"></script>
+<script src="assets/js/demo-shapes.js"></script>
+<script src="assets/js/demo.js"></script>
+<script src="assets/js/motion.js"></script>
 </body>
 </html>

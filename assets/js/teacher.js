@@ -14,6 +14,43 @@
 
   var tab = 'stream';
   var draftPicker = null;
+  var lastSync = 0;
+
+  /* ============================ going online ======================== */
+  function online() { return !!(global.Cloud && global.Cloud.ready); }
+
+  function cloudErr(e) {
+    W.toast('Not saved online', global.Cloud ? global.Cloud.friendly(e) : 'Try again', I.info, 4200);
+  }
+
+  /* Pull the class down from the account: who joined, what is set, what
+     came back. Throttled, since every tab switch redraws. */
+  function syncSoon(force) {
+    if (!online()) return;
+    if (!force && Date.now() - lastSync < 15000) return;
+    lastSync = Date.now();
+    global.Cloud.teacherSync().then(function (changed) {
+      var v = document.getElementById('view-teacher');
+      if (changed && v && !v.classList.contains('hidden') && !document.querySelector('.overlay')) render(true);
+    }, cloudErr);
+  }
+
+  function syncLine() {
+    var C = global.Cloud;
+    if (!C || !C.signedIn) return '';
+    var label = { synced: 'Online. Students can join with the class code', syncing: 'Syncing…',
+                  offline: 'Offline. Changes are saved on this device', off: '' }[C.status] || '';
+    return '<div class="cr-banner__sync"><span class="sync-dot sync-dot--' + C.status + '" data-sync-dot></span>' +
+      label + '</div>';
+  }
+
+  function signinHint() {
+    if (global.Cloud && global.Cloud.signedIn) return '';
+    return '<div class="signin-hint">' + I.info +
+      '<span>Sign in to put your class online. Students can join with just the class code, ' +
+      'and their scores come in automatically.</span>' +
+      '<button class="btn btn--accent btn--sm" id="tm-signin">Sign in</button></div>';
+  }
 
   function cls() {
     var c = W.state.classroom;
@@ -65,9 +102,10 @@
   }
 
   /* ============================== shell ============================= */
-  function render() {
+  function render(fromSync) {
     var host = document.getElementById('view-teacher');
     if (!host) return;
+    if (fromSync !== true) syncSoon(false);
     var c = cls();
     var roster = people();
 
@@ -86,6 +124,7 @@
             '<p>' + c.assignments.length + ' assignment' + (c.assignments.length === 1 ? '' : 's') +
               ' · ' + roster.length + ' student' + (roster.length === 1 ? '' : 's') +
               ' · ' + c.results.length + ' result' + (c.results.length === 1 ? '' : 's') + ' in</p>' +
+            syncLine() +
           '</div>' +
           '<button class="cr-banner__code" id="tm-copycode" title="Copy class code">' +
             '<span>Class code</span><b>' + ensureCode() + '</b>' +
@@ -162,9 +201,11 @@
     });
 
     bind('#tm-leave', leaveTeacher);
+    bind('#tm-signin', function () { global.UI.openAuth('signin'); });
     var nameEl = W.$('#tm-name', host);
     if (nameEl) nameEl.addEventListener('change', function () {
       cls().name = nameEl.value.trim().slice(0, 40); W.saveNow(); render();
+      if (online()) global.Cloud.renameClass(cls().name).catch(cloudErr);
     });
 
     function bind(sel, fn) { var el = W.$(sel, host); if (el) el.addEventListener('click', fn); }
@@ -175,7 +216,8 @@
     var c = cls();
     var recent = c.results.slice().sort(function (a, b) { return b.at - a.at; }).slice(0, 8);
 
-    return '<div class="cr-grid">' +
+    return signinHint() +
+      '<div class="cr-grid">' +
       '<div>' +
         '<div class="cr-card" style="margin-bottom:14px">' +
           '<div class="cr-card__head"><h3>Hand out work</h3></div>' +
@@ -186,7 +228,7 @@
             I.inbox + ' Collect results</button>' +
         '</div>' +
         '<div class="cr-card">' +
-          '<div class="cr-card__head"><h3>At a glance</h3></div>' +
+          '<div class="cr-card__head"><h3>Class stats</h3></div>' +
           miniStat('Assignments', c.assignments.length) +
           miniStat('Students', people().length) +
           miniStat('Results in', c.results.length) +
@@ -197,7 +239,7 @@
       '<div>' +
         (c.assignments.length ? '' :
           '<div class="cr-card" style="margin-bottom:14px">' + emptyCta(I.clip, 'No classwork yet',
-            'Write your first assignment and LearnGeo turns it into a code you can hand out.') + '</div>') +
+            'Make your first assignment and you’ll get a code to give your class.') + '</div>') +
         '<div class="cr-card">' +
           '<div class="cr-card__head"><h3>Recent activity</h3>' +
             '<span class="eyebrow">' + c.results.length + ' total</span></div>' +
@@ -232,7 +274,7 @@
     var list = cls().assignments;
     return '<div class="row row--between" style="margin-bottom:16px">' +
         '<div><h3 style="font-size:18px">Classwork</h3>' +
-        '<div class="t-sm t-muted">Each one carries its own code.</div></div>' +
+        '<div class="t-sm t-muted">Each assignment has its own code.</div></div>' +
         '<button class="btn btn--accent" id="tm-new">' + I.plus + ' New assignment</button>' +
       '</div>' +
       (list.length
@@ -257,7 +299,7 @@
               '</div></div>';
           }).join('')
         : '<div class="cr-card">' + emptyCta(I.clip, 'No assignments yet',
-            'Pick the countries, set the conditions, and hand out the code.') + '</div>');
+            'Choose the countries and settings, then give your class the code.') + '</div>');
   }
 
   /* ============================== people ============================ */
@@ -266,7 +308,7 @@
     var list = cls().assignments;
     return '<div class="row row--between" style="margin-bottom:16px">' +
         '<div><h3 style="font-size:18px">People</h3>' +
-        '<div class="t-sm t-muted">Anyone who hands work in is added automatically.</div></div>' +
+        '<div class="t-sm t-muted">Students get added here automatically when they hand in work.</div></div>' +
         '<div class="row" style="gap:8px">' +
           '<button class="btn btn--ghost" id="tm-collect">' + I.inbox + ' Collect results</button>' +
           '<button class="btn btn--accent" id="tm-addperson">' + I.plus + ' Add student</button>' +
@@ -288,8 +330,8 @@
                 '<button class="icon-btn" data-rmperson="' + W.escapeHtml(n) + '" title="Remove">' + I.close + '</button>' +
               '</div>';
             }).join('')
-          : emptyCta(I.users, 'Nobody yet',
-              'Add students by name, or let them appear as their results come in.')) +
+          : emptyCta(I.users, 'No students yet',
+              'Add students by name, or they’ll show up here once they send in results.')) +
       '</div>';
   }
 
@@ -305,8 +347,8 @@
 
     if (!c.results.length) {
       return '<div class="cr-card">' + emptyCta(I.chart, 'No data yet',
-        'Once students hand work in, this fills with class averages, who is struggling, ' +
-        'and which countries the room keeps missing.') +
+        'Once students start handing in work, you’ll see the class average here, plus who ' +
+        'needs help and which countries the class gets wrong most.') +
         '<div class="t-center"><button class="btn btn--accent" id="tm-collect">' +
         I.inbox + ' Collect results</button></div></div>';
     }
@@ -335,13 +377,19 @@
     }).filter(function (s) { return s.mean !== null; })
       .sort(function (a, b) { return a.mean - b.mean; });
 
+    /* only work that is still set, from people still in the class, or a
+       deleted assignment could push this past 100% */
+    var live = {};
+    list.forEach(function (a) { live[a.id] = 1; });
     var handedIn = {};
-    c.results.forEach(function (r) { handedIn[r.name + '|' + r.assignmentId] = 1; });
+    c.results.forEach(function (r) {
+      if (live[r.assignmentId] && roster.indexOf(r.name) !== -1) handedIn[r.name + '|' + r.assignmentId] = 1;
+    });
     var expected = roster.length * list.length;
     var completion = expected ? Math.round((Object.keys(handedIn).length / expected) * 100) : 0;
 
     return '<h3 style="font-size:18px;margin-bottom:4px">Analytics</h3>' +
-      '<div class="t-sm t-muted" style="margin-bottom:16px">Across ' + c.results.length +
+      '<div class="t-sm t-muted" style="margin-bottom:16px">Based on ' + c.results.length +
         ' submission' + (c.results.length === 1 ? '' : 's') + '.</div>' +
 
       '<div class="an-grid" style="margin-bottom:20px">' +
@@ -361,7 +409,7 @@
             var m = avg(mine.map(function (r) { return r.pct; }));
             return bar(a.title, m === null ? 0 : m, m === null ? 'no results' : m + '%',
                        m === null ? 'var(--line)' : barColour(m));
-          }).join('') : '<div class="empty">No assignments.</div>') +
+          }).join('') : '<div class="empty">No assignments yet.</div>') +
         '</div>' +
 
         '<div class="cr-card">' +
@@ -380,9 +428,9 @@
         '<div class="cr-card__head"><h3>Score spread</h3>' +
           '<span class="eyebrow">' + c.results.length + ' submissions</span></div>' +
         '<div class="hist">' +
-          bands.map(function (v) {
+          bands.map(function (v, i) {
             return '<div class="hist__col"><div class="hist__bar" style="height:' +
-              Math.round((v / peak) * 100) + '%;background:' + barColour((bands.indexOf(v) + 0.5) * 10) + '"></div></div>';
+              Math.round((v / peak) * 100) + '%;background:' + barColour((i + 0.5) * 10) + '"></div></div>';
           }).join('') +
         '</div>' +
         '<div class="row" style="gap:6px">' +
@@ -413,7 +461,7 @@
 
   function bandLabel(p) {
     if (p === null) return '';
-    return p >= 80 ? 'the class has this' : p >= 60 ? 'getting there' : 'needs another pass';
+    return p >= 80 ? 'looking good' : p >= 60 ? 'getting there' : 'needs more practice';
   }
   function barColour(p) {
     return p >= 80 ? 'var(--success)' : p >= 50 ? 'var(--gold)' : 'var(--danger)';
@@ -455,17 +503,17 @@
             'value="' + W.escapeHtml(c.name) + '"></div>' +
         '<div class="field"><label class="field__label">Class code</label>' +
           '<div class="code-chip">' + ensureCode() + '</div>' +
-          '<div class="field__hint">Students type this in once so their work carries your class name.</div></div>' +
+          '<div class="field__hint">Students only type this in once, so their work shows up under your class name.</div></div>' +
       '</div>' +
       '<div class="cr-card">' +
         '<div class="cr-card__head"><h3>Data</h3></div>' +
-        '<p class="t-sm t-muted" style="margin-bottom:14px">Everything lives in this browser. ' +
-          'Export the gradebook if you need it somewhere else.</p>' +
+        '<p class="t-sm t-muted" style="margin-bottom:14px">Everything is saved in this browser. ' +
+          'Export the gradebook if you want a copy somewhere else.</p>' +
         '<button class="btn btn--ghost btn--block" id="tm-export">Export gradebook CSV</button>' +
         '<button class="btn btn--ghost btn--block" id="tm-leave" style="margin-top:8px">' +
           'Switch to a student account</button>' +
-        '<div class="field__hint" style="margin-top:8px">Your class, assignments and results stay ' +
-          'saved. To come back, open the For teachers page from the home site.</div>' +
+        '<div class="field__hint" style="margin-top:8px">Your class, assignments and results will still be ' +
+          'saved. To come back, go to the For teachers page on the home site.</div>' +
       '</div>' +
     '</div>';
   }
@@ -477,7 +525,7 @@
       body: '<div class="field"><label class="field__label">One name per line</label>' +
         '<textarea class="input" id="ap-names" style="min-height:150px" ' +
         'placeholder="Ada Lovelace&#10;Sam Okafor&#10;Yuki Tanaka"></textarea>' +
-        '<div class="field__hint">Names only. This is just so you can see who has not handed in yet.</div></div>',
+        '<div class="field__hint">Just names. This is only so you can see who hasn’t handed in yet.</div></div>',
       actions: [
         { label: 'Cancel', cls: 'btn--ghost', close: true },
         { label: 'Add', cls: 'btn--accent', close: true, onClick: function (root) {
@@ -487,24 +535,42 @@
               if (cls().roster.indexOf(n) === -1) cls().roster.push(n);
             });
             W.saveNow(); render();
-            W.toast(names.length + ' added', 'They show up in People and the gradebook', I.check);
+            W.toast(names.length + ' added', 'They’ll show up in People and the gradebook', I.check);
           } }
       ]
     });
   }
 
+  /* Taking someone off the class takes their results with them; otherwise
+     they would reappear the moment the gradebook redrew. */
   function removePerson(name) {
-    cls().roster = cls().roster.filter(function (n) { return n !== name; });
-    W.saveNow(); render();
+    var theirs = cls().results.filter(function (r) { return r.name === name; }).length;
+    global.UI.modal({
+      title: 'Remove ' + name, icon: I.users,
+      body: '<p class="t-muted">Remove <b>' + W.escapeHtml(name) + '</b> from the class?' +
+        (theirs ? ' Their ' + theirs + ' result' + (theirs === 1 ? '' : 's') + ' will be deleted too.' : '') +
+        (online() ? ' If they joined online, they’ll be taken out of the online class too.' : '') + '</p>',
+      actions: [
+        { label: 'Cancel', cls: 'btn--ghost', close: true },
+        { label: 'Remove', cls: 'btn--primary', close: true, onClick: function () {
+            var c = cls();
+            c.roster = c.roster.filter(function (n) { return n !== name; });
+            c.results = c.results.filter(function (r) { return r.name !== name; });
+            if (c.members) c.members = c.members.filter(function (m) { return m.name !== name; });
+            W.saveNow(); render();
+            if (online()) global.Cloud.removePerson(name).catch(cloudErr);
+          } }
+      ]
+    });
   }
 
   /* Paste the whole class at once. */
   function openCollect() {
     global.UI.modal({
       title: 'Collect results', icon: I.inbox, wide: true,
-      body: '<p class="t-muted" style="margin-bottom:14px">Paste every code your students sent. ' +
-              'They can be on separate lines, in one blob, or mixed in with other text. ' +
-              'LearnGeo picks out the codes and ignores the rest.</p>' +
+      body: '<p class="t-muted" style="margin-bottom:14px">Paste all the codes your students sent you. ' +
+              'It’s fine if they’re on separate lines, all in one chunk or mixed in with other text. ' +
+              'LearnGeo finds the codes and skips everything else.</p>' +
             '<textarea class="input mono" id="cl-codes" style="min-height:190px" ' +
               'placeholder="LGR-…&#10;LGR-…&#10;LGR-…"></textarea>' +
             '<div id="cl-out"></div>',
@@ -516,26 +582,28 @@
               W.$('#cl-out', root).innerHTML =
                 '<div class="feedback feedback--wrong" style="margin-top:12px">' + I.info +
                 '<div><b>No codes found</b><p>Result codes start with LGR-. ' +
-                'Check the paste came through in full.</p></div></div>';
+                'Make sure the whole code got pasted.</p></div></div>';
               return false;
             }
-            var added = 0, dupes = 0;
+            var added = 0, dupes = 0, fresh = [];
             res.ok.forEach(function (r) {
               var exists = cls().results.some(function (x) {
                 return x.name === r.name && x.assignmentId === r.assignmentId && x.at === r.at;
               });
               if (exists) { dupes += 1; return; }
               cls().results.push(r);
+              fresh.push(r);
               if (cls().roster.indexOf(r.name) === -1) cls().roster.push(r.name);
               added += 1;
             });
             W.saveNow();
+            if (online() && fresh.length) global.Cloud.recordResults(fresh).catch(cloudErr);
             W.$('#cl-out', root).innerHTML =
               '<div class="feedback feedback--right" style="margin-top:12px">' + I.check +
               '<div><b>' + added + ' recorded</b><p>' +
-              (dupes ? dupes + ' were already in. ' : '') +
-              (res.bad ? res.bad + ' could not be read. ' : '') +
-              'Names not on the roster were added.</p></div></div>';
+              (dupes ? dupes + ' were already added. ' : '') +
+              (res.bad ? res.bad + ' couldn’t be read. ' : '') +
+              'Anyone who wasn’t on the roster has been added.</p></div></div>';
             W.$('#cl-codes', root).value = '';
             render();
             return false;
@@ -550,18 +618,19 @@
     var a = cls().assignments.filter(function (x) { return x.id === assignmentId; })[0];
     var existing = resultFor(name, assignmentId);
     global.UI.modal({
-      title: W.escapeHtml(name),
+      title: name,
       icon: I.chart,
       body: '<p class="t-muted" style="margin-bottom:14px">' + W.escapeHtml(a ? a.title : 'Assignment') + '</p>' +
         '<div class="field"><label class="field__label">Score, as a percentage</label>' +
         '<input class="input mono" id="se-pct" type="number" min="0" max="100" ' +
-          'value="' + (existing ? existing.pct : '') + '" placeholder="0 – 100"></div>',
+          'value="' + (existing ? existing.pct : '') + '" placeholder="0 to 100"></div>',
       actions: [
         (existing ? { label: 'Clear', cls: 'btn--ghost', close: true, onClick: function () {
             cls().results = cls().results.filter(function (r) {
               return !(r.name === name && r.assignmentId === assignmentId);
             });
             W.saveNow(); render();
+            if (online()) global.Cloud.clearResult(name, assignmentId).catch(cloudErr);
           } } : { label: 'Cancel', cls: 'btn--ghost', close: true }),
         { label: 'Save', cls: 'btn--accent', close: true, onClick: function (root) {
             var v = parseInt(W.$('#se-pct', root).value, 10);
@@ -570,11 +639,12 @@
             cls().results = cls().results.filter(function (r) {
               return !(r.name === name && r.assignmentId === assignmentId);
             });
-            cls().results.push({ assignmentId: assignmentId, title: a ? a.title : '', name: name,
-                                 pct: v, correct: null, total: null, at: Date.now(), missed: [],
-                                 manual: true });
+            var entry = { assignmentId: assignmentId, title: a ? a.title : '', name: name,
+                          pct: v, correct: null, total: null, at: Date.now(), missed: [], manual: true };
+            cls().results.push(entry);
             if (cls().roster.indexOf(name) === -1) cls().roster.push(name);
             W.saveNow(); render();
+            if (online()) global.Cloud.setManualScore(entry).catch(cloudErr);
           } }
       ],
       onMount: function (root) { setTimeout(function () { W.$('#se-pct', root).focus(); }, 60); }
@@ -615,19 +685,20 @@
   }
 
   function modeLabel(m) {
-    return { learn: 'Learn', test: 'Practice test', cards: 'Flashcards', quiz: 'Class quiz' }[m] || m;
+    return { learn: 'Learn', test: 'Practice test', cards: 'Flashcards', quiz: 'Class quiz' }[m] || W.escapeHtml(m);
   }
 
   function removeAssignment(i) {
     var a = cls().assignments[i];
     global.UI.modal({
       title: 'Delete assignment', icon: I.close,
-      body: '<p class="t-muted">Remove <b>' + W.escapeHtml(a.title) + '</b>? ' +
-        'Results already collected stay in the gradebook.</p>',
+      body: '<p class="t-muted">Delete <b>' + W.escapeHtml(a.title) + '</b>? ' +
+        'Any results you’ve already collected will stay in the gradebook.</p>',
       actions: [
         { label: 'Cancel', cls: 'btn--ghost', close: true },
         { label: 'Delete', cls: 'btn--primary', close: true, onClick: function () {
             cls().assignments.splice(i, 1); W.saveNow(); render();
+            if (online()) global.Cloud.deleteAssignment(a.id).catch(cloudErr);
           } }
       ]
     });
@@ -654,7 +725,7 @@
         '</div></div>' +
       '<div class="field"><label class="field__label">Countries</label>' +
         '<div id="ab-picker"></div>' +
-        '<div class="field__hint">Leave empty to cover every UN member state.</div></div>' +
+        '<div class="field__hint">Leave this empty to include every UN member state.</div></div>' +
       '<div class="field"><label class="field__label">Length</label>' +
         '<div class="seg" id="ab-count">' +
           ['10', '20', '30', '50'].map(function (n) { return seg(n, n, String(cfg.count || 20)); }).join('') +
@@ -714,6 +785,9 @@
       typed: v('#ab-typed') === 'typed',
       fill: !picked.length
     };
+    /* no countries picked means every UN member, spelled out so a student's
+       own study filters can never narrow it */
+    if (!picked.length) { a.config.scope = 'un'; a.config.regions = []; }
     a.from = cls().name || 'Your teacher';
     a.classCode = ensureCode();
 
@@ -723,6 +797,7 @@
     tab = 'classwork';
     render();
     W.toast('Assignment saved', a.title, I.check);
+    if (online()) global.Cloud.saveAssignment(a).catch(cloudErr);
   }
 
   /* ============================== sharing =========================== */
@@ -732,22 +807,27 @@
   function shareInvite() {
     var c = cls();
     var code = A.encodePack(c);
-    if (!code) { W.toast('Could not build the code', 'Try again', I.info); return; }
+    if (!code) { W.toast('Couldn’t make the code', 'Try again', I.info); return; }
     global.UI.modal({
       title: 'Join code for ' + (c.name || 'your class'),
       icon: I.key, wide: true,
-      body: '<p class="t-muted" style="margin-bottom:16px">Give your class ' +
-              '<b>both</b> of these. The short code is what they type; the long one carries ' +
-              'the work.</p>' +
-            '<div class="field"><label class="field__label">1. Class code, they type this</label>' +
+      body: (online()
+              ? '<div class="feedback feedback--right" style="margin:0 0 16px">' + I.check +
+                  '<div><b>Your class is online</b><p>Students who sign in only need the class code. ' +
+                  'The join code is for anyone using LearnGeo without an account.</p></div></div>'
+              : '') +
+            '<p class="t-muted" style="margin-bottom:16px">Give your class ' +
+              '<b>both</b> of these. They type in the short one, and the long one has ' +
+              'all the work in it.</p>' +
+            '<div class="field"><label class="field__label">1. Class code (they type this)</label>' +
               '<div class="code-chip">' + c.code + '</div></div>' +
-            '<div class="field"><label class="field__label">2. Join code, they paste this</label>' +
+            '<div class="field"><label class="field__label">2. Join code (they paste this)</label>' +
               '<div class="share-box">' + W.escapeHtml(code) + '</div></div>' +
             '<div class="feedback" style="background:var(--accent-soft);margin:4px 0 0">' + I.info +
-              '<div><b style="color:var(--accent-ink)">It carries all ' + c.assignments.length +
+              '<div><b style="color:var(--accent-ink)">It includes all ' + c.assignments.length +
               ' assignment' + (c.assignments.length === 1 ? '' : 's') + '</b>' +
-              '<p>Add more work later and send the same join code again. Students only ' +
-              'pick up what they do not already have.</p></div></div>',
+              '<p>If you add more work later, just send them the join code again. Students ' +
+              'only get the assignments they don’t have yet.</p></div></div>',
       actions: [
         { label: 'Close', cls: 'btn--ghost', close: true },
         { label: 'Copy join code', cls: 'btn--accent', onClick: function () {
@@ -759,15 +839,15 @@
 
   function shareAssignment(a) {
     var code = A.encode(a);
-    if (!code) { W.toast('Could not build a code', 'Try again', I.info); return; }
+    if (!code) { W.toast('Couldn’t make a code', 'Try again', I.info); return; }
     global.UI.modal({
       title: 'Hand out "' + a.title + '"',
       icon: I.key, wide: true,
-      body: '<p class="t-muted" style="margin-bottom:14px">Send this to your class. They open ' +
-              '<b>Classroom</b>, hit <b>Add assignment</b> and paste it in.</p>' +
+      body: '<p class="t-muted" style="margin-bottom:14px">Send this to your class. They go to ' +
+              '<b>Classroom</b>, click <b>Add assignment</b> and paste it in.</p>' +
             '<div class="share-box">' + W.escapeHtml(code) + '</div>' +
-            '<div class="field__hint" style="margin-top:10px">The code carries the whole assignment, ' +
-              'so it works even for a student opening LearnGeo for the first time.</div>',
+            '<div class="field__hint" style="margin-top:10px">The whole assignment is inside the code, ' +
+              'so it works even if a student has never used LearnGeo before.</div>',
       actions: [
         { label: 'Close', cls: 'btn--ghost', close: true },
         { label: 'Copy code', cls: 'btn--accent', onClick: function () { copy(code, 'Code copied'); return false; } }
@@ -776,16 +856,17 @@
   }
 
   function shareResult(assignment, pct, correct, total, missed) {
-    var name = W.state.profile.displayName || 'Student';
+    /* the name the student joined under, so the gradebook keeps one row per person */
+    var name = (W.state.enrolled && W.state.enrolled.name) || W.state.profile.displayName || 'Student';
     var code = A.encodeResult({
       assignmentId: assignment.id, title: assignment.title,
       name: name, pct: pct, correct: correct, total: total, missed: missed || []
     });
-    if (!code) { W.toast('Could not build a code', 'Try again', I.info); return; }
+    if (!code) { W.toast('Couldn’t make a code', 'Try again', I.info); return; }
     global.UI.modal({
       title: 'Send your score', icon: I.key, wide: true,
-      body: '<p class="t-muted" style="margin-bottom:14px">This says who you are, which assignment ' +
-              'it was, what you scored and which ones you missed. Send it to your teacher.</p>' +
+      body: '<p class="t-muted" style="margin-bottom:14px">This code has your name, the assignment, ' +
+              'your score and the ones you missed. Send it to your teacher.</p>' +
             '<div class="share-box">' + W.escapeHtml(code) + '</div>' +
             '<div class="row" style="gap:8px;margin-top:14px">' +
               '<span class="chip chip--xp mono">' + W.escapeHtml(name) + '</span>' +
@@ -808,13 +889,14 @@
       ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
       document.body.appendChild(ta); ta.select();
       try { document.execCommand('copy'); done(); }
-      catch (e) { W.toast('Copy it by hand', 'The browser blocked the clipboard', I.info); }
+      catch (e) { W.toast('Couldn’t copy', 'Your browser blocked it, so copy it by hand', I.info); }
       ta.remove();
     }
   }
 
   function becomeTeacher() {
     W.state.role = 'teacher';
+    W.state.roleChosen = true;
     ensureCode();
     W.saveNow();
     global.UI.refreshTabs();
@@ -832,6 +914,7 @@
     render: render, openBuilder: openBuilder, becomeTeacher: becomeTeacher,
     leaveTeacher: leaveTeacher, shareAssignment: shareAssignment, shareResult: shareResult,
     openCollect: openCollect, ensureCode: ensureCode, copy: copy,
+    forget: function () { lastSync = 0; },
     get tab() { return tab; }, set tab(v) { tab = v; }
   };
 })(window);

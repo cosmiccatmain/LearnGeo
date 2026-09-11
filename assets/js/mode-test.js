@@ -102,7 +102,7 @@
     showPane('setup');
     renderNav('off');
     head().innerHTML = '<div class="sidebar__title">Practice test</div>' +
-      '<div class="t-sm t-muted" style="margin-top:2px">Build a section, then sit it end to end.</div>';
+      '<div class="t-sm t-muted" style="margin-top:2px">Set up a test, then do it start to finish.</div>';
 
     var pool = global.Quiz.pool({ scope: setup.scope, regions: setup.regions });
     side().innerHTML =
@@ -113,19 +113,19 @@
       '<div class="divider"></div>' +
       '<span class="eyebrow">What to expect</span>' +
       '<ul class="feature-list" style="margin-top:10px">' +
-        li(I.grid, 'Question navigator', 'Skip around, and flag anything you want to come back to.') +
-        li(I.clock, 'Timed sections', 'The clock covers the whole section, not each question.') +
-        li(I.chart, 'Score report', 'How you did by region and question type, plus every answer.') +
+        li(I.grid, 'Question navigator', 'Jump between questions and flag the ones you want to come back to.') +
+        li(I.clock, 'Timed tests', 'There’s one timer for the whole test instead of one per question.') +
+        li(I.chart, 'Score report', 'See how you did by region and question type, and go over every answer.') +
       '</ul>';
-    foot().innerHTML = '<div class="t-sm t-muted t-center">These answers count towards your record like any others.</div>';
+    foot().innerHTML = '<div class="t-sm t-muted t-center">Answers here count toward your progress like anywhere else.</div>';
 
     var regions = global.GeoData.regions;
     document.getElementById('test-setup').innerHTML =
       '<div class="setup-panel">' +
         '<div class="t-center" style="margin-bottom:26px">' +
-          '<span class="eyebrow">New section</span>' +
-          '<h2 style="margin-top:10px;font-size:26px">Build your practice test</h2>' +
-          '<p class="t-muted" style="margin-top:8px;font-size:14.5px">Leave it all alone and you get a 20-question section. Change whatever you want.</p>' +
+          '<span class="eyebrow">New test</span>' +
+          '<h2 style="margin-top:10px;font-size:26px">Set up your practice test</h2>' +
+          '<p class="t-muted" style="margin-top:8px;font-size:14.5px">The defaults give you a 20-question test, but you can change anything below.</p>' +
         '</div>' +
         '<div class="setup-grid">' +
           fld('How to choose', '<div class="seg" id="ts-mode">' +
@@ -137,10 +137,10 @@
             ['10', '20', '40', '75'].map(function (n) { return sg(n, n, String(setup.count)); }).join('') + '</div>') +
           fld('Timing', '<div class="seg" id="ts-timed">' +
             sg('timed', 'Timed', setup.timed ? 'timed' : 'untimed') + sg('untimed', 'Untimed', setup.timed ? 'timed' : 'untimed') +
-            '</div><div class="field__hint">' + setup.secondsPer + ' seconds per question, pooled across the section.</div>') +
+            '</div><div class="field__hint">' + setup.secondsPer + ' seconds per question, added up into one timer for the whole test.</div>') +
           fld('Feedback', '<div class="seg" id="ts-instant">' +
             sg('instant', 'After each', setup.instant ? 'instant' : 'end') + sg('end', 'Exam mode', setup.instant ? 'instant' : 'end') +
-            '</div><div class="field__hint">Exam mode hides every result until you submit.</div>') +
+            '</div><div class="field__hint">In exam mode you won’t see if you’re right until you submit.</div>') +
           fld('Answer style', '<div class="seg" id="ts-typed">' +
             sg('choice', 'Multiple choice', setup.typed ? 'typed' : 'choice') + sg('typed', 'Type it', setup.typed ? 'typed' : 'choice') + '</div>') +
           fld('Question types', '<div class="check-grid" id="ts-types">' +
@@ -161,10 +161,10 @@
             '<div class="field__hint">Type a country or a capital and press Enter. ' +
             'The region buttons add a whole continent at once.</div>') +
           fld('Fill out the rest', '<div class="seg" id="ts-fill">' +
-            sg('yes', 'Top up to length', setup.fill ? 'yes' : 'no') +
+            sg('yes', 'Fill to length', setup.fill ? 'yes' : 'no') +
             sg('no', 'Only my list', setup.fill ? 'yes' : 'no') +
-            '</div><div class="field__hint">Topping up adds neighbours from the same regions ' +
-            'so a short list still makes a full section.</div>') +
+            '</div><div class="field__hint">This adds other countries from the same regions ' +
+            'so a short list still makes a full-length test.</div>') +
         '</div>' +
 
         '<button class="btn btn--accent btn--lg btn--block" id="ts-go" style="margin-top:26px">' +
@@ -296,7 +296,7 @@
     }
 
     var qs = global.Quiz.generate(gen);
-    if (!qs.length) { W.toast('Nothing to test', 'Widen the regions or scope', I.info); return; }
+    if (!qs.length) { W.toast('Nothing to test', 'Pick more regions or a bigger set', I.info); return; }
 
     T = {
       phase: 'running', qs: qs, i: 0,
@@ -322,8 +322,8 @@
     setup.mode = cfg.countries && cfg.countries.length ? 'custom' : 'auto';
     setup.custom = cfg.countries || [];
     setup.fill = cfg.fill !== false;
-    if (cfg.regions) setup.regions = cfg.regions;
-    if (cfg.scope) setup.scope = cfg.scope;
+    setup.regions = cfg.regions || [];
+    setup.scope = cfg.scope || 'un';
     if (cfg.types && cfg.types.length) setup.types = cfg.types;
     if (cfg.count) setup.count = cfg.count;
     setup.timed = !!cfg.timed;
@@ -372,7 +372,7 @@
         el.textContent = W.fmtTime(Math.max(0, T.remaining));
         el.classList.toggle('is-low', T.remaining <= 30);
       }
-      if (T.remaining <= 0) { clearInterval(tick); W.toast('Time', 'Section auto-submitted', I.clock); submit(); }
+      if (T.remaining <= 0) { clearInterval(tick); W.toast('Time’s up', 'Your test was submitted automatically', I.clock); submit(); }
     }, 1000);
   }
 
@@ -396,11 +396,16 @@
       '<div class="qsubject">' + W.escapeHtml(q.subject) +
         '<small>' + W.escapeHtml(q.sub || '') + '</small></div>';
 
+    var locked = answered && T.instant;
     if (q.typed) {
       html += '<input class="answer-input" id="ts-typed" autocomplete="off" spellcheck="false" ' +
         'placeholder="Type your answer…" value="' + W.escapeHtml(T.given[T.i] || '') + '"' +
-        (answered && T.instant ? ' disabled' : '') + '>';
-      if (!answered) html += '<button class="btn btn--accent btn--block" id="ts-check" style="margin-top:10px">Submit answer</button>';
+        (locked ? ' disabled' : '') + '>';
+      /* in exam mode a typed answer can be changed until the section is submitted */
+      if (!locked) {
+        html += '<button class="btn btn--accent btn--block" id="ts-check" style="margin-top:10px">' +
+          (answered ? 'Update answer' : 'Submit answer') + '</button>';
+      }
     } else if (q.choices) {
       html += '<div class="options">';
       q.choices.forEach(function (c, i) {
@@ -415,7 +420,7 @@
       });
       html += '</div>';
     } else {
-      html += '<div class="empty" style="padding:22px 0">Choose a pin on the map →</div>';
+      html += '<div class="empty" style="padding:22px 0">Click the right country on the map →</div>';
     }
     html += '</div><div id="ts-fb"></div>';
 
@@ -431,7 +436,7 @@
       if (v.trim()) answer(v, document.getElementById('ts-typed'));
     });
     var ti = document.getElementById('ts-typed');
-    if (ti && !answered) {
+    if (ti && !locked) {
       ti.focus();
       ti.addEventListener('keydown', function (e) {
         if (e.key === 'Enter' && ti.value.trim()) answer(ti.value, ti);
@@ -488,10 +493,17 @@
       if (reveal) {
         global.GeoMap.drawCountry(q.country, 'right', null, q.country.name);
         global.GeoMap.frame(q.country, 80);
+      } else if (q.type === 'capital') {
+        /* the question names the country, so shade and label it */
+        global.GeoMap.drawCountry(q.country, 'target');
+        global.GeoMap.label(q.country, q.country.name);
+        global.GeoMap.frame(q.country, 90);
       } else {
         global.GeoMap.reset();
       }
     }
+    /* until the answer is shown, zooming in blurs the printed names away */
+    global.GeoMap.setGuard(!reveal);
     setBadge(reveal
       ? '<b>' + W.escapeHtml(q.country.capital) + '</b><span>' + W.escapeHtml(q.country.name) + '</span>'
       : '<b>Question ' + (T.i + 1) + ' of ' + T.qs.length + '</b><span>' +
@@ -512,6 +524,7 @@
   }
 
   function answer(value, anchor) {
+    if (!T || T.phase !== 'running') return;
     if (T.given[T.i] !== null && T.instant) return;
     var q = T.qs[T.i];
     var correct = global.Quiz.grade(q, value);
@@ -541,8 +554,8 @@
     var q = T.qs[i], ok = T.right[i], c = q.country;
     slot.innerHTML = '<div class="feedback feedback--' + (ok ? 'right' : 'wrong') + '">' +
       (ok ? I.check : I.x) + '<div><b>' + (ok ? 'Correct' : 'Incorrect') + '</b>' +
-      '<p>' + (ok ? '' : 'Answer: <b>' + W.escapeHtml(q.answerText) + '</b>. ') +
-      W.escapeHtml(c.capital) + ' · ' + W.escapeHtml(c.name) + ' · ' + W.escapeHtml(c.region) + '</p>' +
+      '<p>' + (ok ? '' : 'The answer is <b>' + W.escapeHtml(q.answerText) + '</b>. ') +
+      W.escapeHtml(c.capital) + ' is the capital of ' + W.escapeHtml(c.name) + ', in ' + W.escapeHtml(c.region) + '.</p>' +
       (c.note ? '<p style="color:var(--muted);margin-top:5px">' + W.escapeHtml(c.note) + '</p>' : '') +
       '</div></div>';
   }
@@ -556,7 +569,7 @@
   function levelUp(lvl) {
     W.Sound.levelUp();
     W.confetti({ count: 90, power: 300, y: window.innerHeight * 0.42 });
-    W.toast('Level ' + lvl, 'You levelled up mid-test', I.bolt, 3600);
+    W.toast('Level ' + lvl, 'You leveled up during the test', I.bolt, 3600);
   }
 
   function confirmSubmit() {
@@ -569,7 +582,7 @@
       body: '<p class="t-muted">' +
         (unanswered ? '<b>' + unanswered + '</b> question' + (unanswered > 1 ? 's are' : ' is') + ' still unanswered. ' : '') +
         (flagged ? '<b>' + flagged + '</b> flagged for review. ' : '') +
-        'Submitting scores the section and ends it.</p>',
+        'If you submit now, the test ends and gets marked.</p>',
       actions: [
         { label: 'Keep working', cls: 'btn--ghost', close: true },
         { label: 'Submit', cls: 'btn--accent', close: true, onClick: submit }
@@ -578,6 +591,8 @@
   }
 
   function submit() {
+    /* the clock and the confirm dialog can both land here; only the first counts */
+    if (!T || T.phase !== 'running') return;
     clearInterval(tick); tick = null;
     T.phase = 'report';
     T.elapsed = Math.round((Date.now() - T.startedAt) / 1000);
@@ -594,9 +609,10 @@
     var correct = T.right.filter(Boolean).length;
     var pct = Math.round((correct / T.qs.length) * 100);
     W.state.stats.tests += 1;
-    if (T.assignment && T.assignment.id) {
-      global.Assignments.complete(T.assignment.id, pct, correct, T.qs.length);
-    }
+    var missed = T.qs.filter(function (q, i) { return !T.right[i]; })
+                     .map(function (q) { return q.country.name; });
+    T.handIn = T.assignment
+      ? global.Assignments.complete(T.assignment, pct, correct, T.qs.length, missed) : null;
     if (pct === 100) W.state.stats.perfectTests += 1;
 
     /* completion bonus scales with accuracy */
@@ -642,7 +658,7 @@
           '</div>' +
 
           '<div class="score-lead">' +
-            '<span class="eyebrow">Score report</span>' +
+            '<span class="eyebrow">Your results</span>' +
             '<h2>' + verdict(pct) + '</h2>' +
             '<p class="score-lead__meta">' +
               '<b>' + correct + ' of ' + total + '</b> correct' +
@@ -667,7 +683,7 @@
         '<div class="breakdown">' +
           '<div class="row row--between" style="margin-bottom:6px">' +
             '<span class="eyebrow">Answer review</span>' +
-            '<span class="t-sm t-muted">' + (total - correct) + ' to revisit</span>' +
+            '<span class="t-sm t-muted">' + (total - correct) + ' missed</span>' +
           '</div>' +
           T.qs.map(function (q, i) {
             var ok = T.right[i];
@@ -689,10 +705,10 @@
         '</div>' +
 
         '<div class="row" style="gap:10px;margin-top:30px">' +
-          (T.assignment ? '<button class="btn btn--primary btn--lg" id="rp-send">' + I.key +
-            ' Send score to teacher</button>' : '') +
+          (T.handIn && !global.UI.previewing
+            ? '<button class="btn btn--primary btn--lg" id="rp-send"></button>' : '') +
           '<button class="btn btn--accent btn--lg" id="rp-again">' + I.refresh + ' New test</button>' +
-          (correct < total ? '<button class="btn btn--ghost btn--lg" id="rp-missed">Drill the ' + (total - correct) + ' missed</button>' : '') +
+          (correct < total ? '<button class="btn btn--ghost btn--lg" id="rp-missed">Practice the ' + (total - correct) + ' you missed</button>' : '') +
           '<div class="grow"></div>' +
           '<button class="btn btn--ghost btn--lg" id="rp-learn">Back to Learn</button>' +
         '</div>' +
@@ -710,12 +726,7 @@
     renderNav('review');
     foot().innerHTML = '<button class="btn btn--primary btn--block" id="rp-again2">' + I.refresh + ' Build another test</button>';
 
-    var send = document.getElementById('rp-send');
-    if (send) send.addEventListener('click', function () {
-      var missed = T.qs.filter(function (q, i) { return !T.right[i]; })
-                       .map(function (q) { return q.country.name; });
-      global.Teacher.shareResult(T.assignment, pct, correct, T.qs.length, missed);
-    });
+    global.Assignments.wireSend(document.getElementById('rp-send'), T.handIn);
     document.getElementById('rp-again').addEventListener('click', newTest);
     document.getElementById('rp-again2').addEventListener('click', newTest);
     document.getElementById('rp-learn').addEventListener('click', function () { global.UI.go('learn'); });
@@ -744,8 +755,8 @@
     }
     function weakest() {
       var miss = T.qs.filter(function (q, i) { return !T.right[i]; }).slice(0, 8);
-      if (!miss.length) return '<div class="t-sm t-muted">Nothing missed. Clean sheet.</div>';
-      return '<span class="eyebrow">Revisit these</span>' + miss.map(function (q) {
+      if (!miss.length) return '<div class="t-sm t-muted">You got everything right!</div>';
+      return '<span class="eyebrow">Review these</span>' + miss.map(function (q) {
         return '<div class="row" style="gap:8px;padding:7px 0;border-bottom:1px solid var(--line-soft)">' +
           '<span style="color:var(--faint)">' + I.pin + '</span>' +
           '<div class="grow"><div style="font-size:13.5px;font-weight:550">' + W.escapeHtml(q.country.name) + '</div>' +
@@ -756,12 +767,12 @@
 
   function ringColor(p) { return p >= 80 ? 'var(--success)' : p >= 60 ? 'var(--gold)' : 'var(--danger)'; }
   function verdict(p) {
-    if (p === 100) return 'Perfect section';
-    if (p >= 90) return 'Excellent';
-    if (p >= 75) return 'Strong showing';
-    if (p >= 60) return 'Solid, with gaps';
-    if (p >= 40) return 'Worth another pass';
-    return 'Early days — keep at it';
+    if (p === 100) return 'Perfect score!';
+    if (p >= 90) return 'Great job';
+    if (p >= 75) return 'Nice work';
+    if (p >= 60) return 'Not bad, a few to work on';
+    if (p >= 40) return 'Worth another try';
+    return 'Keep practicing, you’ll get there';
   }
 
   function newTest() { reset(); renderSetup(); }
@@ -770,7 +781,10 @@
     var missed = T.qs.filter(function (q, i) { return !T.right[i]; }).map(function (q) { return q.country; });
     var all = global.Quiz.pool({ scope: 'all' });
     var qs = missed.map(function (c) {
-      return global.Quiz.make(W.pick(setup.types), c, all, { typed: setup.typed });
+      var t = W.pick(setup.types);
+      /* only the two capital questions have a typed form: a typed locate
+         question would print its own answer in the prompt */
+      return global.Quiz.make(t, c, all, { typed: setup.typed && (t === 'capital' || t === 'country') });
     });
     T = {
       phase: 'running', qs: qs, i: 0,
@@ -785,6 +799,7 @@
   document.addEventListener('keydown', function (e) {
     if (!document.body.classList.contains('view-test') || !T || T.phase !== 'running') return;
     if (e.target && /INPUT|TEXTAREA/.test(e.target.tagName)) return;
+    if (document.querySelector('.overlay')) return;   /* keys belong to the open dialog */
     var q = T.qs[T.i];
     if (q.choices && /^[1-4]$/.test(e.key)) {
       var n = W.$$('.option', side())[+e.key - 1];

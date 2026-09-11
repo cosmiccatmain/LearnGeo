@@ -4,18 +4,18 @@
    Four question shapes, all built from the same pool:
      capital   country -> capital
      country   capital -> country
-     locate    click the right capital pin on the map
-     identify  a pin is highlighted -> whose capital is it?
+     locate    click the named country on the map
+     identify  a country is shaded -> which one is it?
 -------------------------------------------------------------------*/
 (function (global) {
   'use strict';
   var W = global.WW;
 
   var TYPES = {
-    capital:  { id: 'capital',  label: 'Country → Capital', icon: 'pin' },
-    country:  { id: 'country',  label: 'Capital → Country', icon: 'globe' },
-    locate:   { id: 'locate',   label: 'Locate on map',     icon: 'target' },
-    identify: { id: 'identify', label: 'Identify the pin',  icon: 'layers' }
+    capital:  { id: 'capital',  label: 'Country → Capital',    icon: 'pin' },
+    country:  { id: 'country',  label: 'Capital → Country',    icon: 'globe' },
+    locate:   { id: 'locate',   label: 'Locate on map',        icon: 'target' },
+    identify: { id: 'identify', label: 'Identify the country', icon: 'layers' }
   };
 
   /* Filter the dataset down to what the learner asked for. */
@@ -99,11 +99,11 @@
     } else if (type === 'locate') {
       q.prompt = 'Find this country on the map';
       q.subject = answer.name;
-      q.sub = 'Click the country itself, not a pin';
+      q.sub = 'Click the country itself';
       q.answerText = answer.name;      /* you click the country, so the answer is its name */
       q.mapChoices = W.shuffle([answer].concat(distractors(answer, all, 4, 'name')));
     } else if (type === 'identify') {
-      q.prompt = 'The highlighted pin is the capital of';
+      q.prompt = 'The shaded country on the map is';
       q.subject = 'Which country?';
       q.sub = 'Look at the map';
       q.answerText = answer.name;

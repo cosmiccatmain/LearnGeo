@@ -8,16 +8,16 @@
 
   var MODES = [
     { view: 'learn', icon: I.book, title: 'Learn',
-      blurb: 'Answer, find out straight away, keep going. The map jumps to the capital as soon as you commit.',
+      blurb: 'You find out right away if you got it, then move on to the next one. The map jumps to the capital as soon as you answer.',
       meta: 'Weakest-first · 4 question types' },
     { view: 'test', icon: I.clip, title: 'Practice test',
-      blurb: 'Sit a whole section and get it marked. Flag anything you want to come back to.',
+      blurb: 'Do a whole section and get a score at the end. You can flag questions to come back to later.',
       meta: '10 – 75 questions · timed' },
     { view: 'quiz', icon: I.target, title: 'Class quiz',
-      blurb: 'The paper map quiz. A country lights up, you click it and write its name and capital from memory.',
+      blurb: 'Works like the paper map quiz from class. A country lights up, you click it, then write its name and capital from memory.',
       meta: 'Two marks each \u00b7 no multiple choice' },
     { view: 'cards', icon: I.cards, title: 'Flashcards',
-      blurb: 'Two-sided cards that keep score of themselves. Shaky ones come round again before you finish.',
+      blurb: 'Flip cards that keep track of how you’re doing. The ones you’re unsure about come back again before you finish.',
       meta: 'Both directions · 10 – 100 cards' }
   ];
 
@@ -34,6 +34,7 @@
   function render() {
     var host = document.getElementById('view-portal');
     if (!host) return;
+    if (global.Classroom) global.Classroom.syncSoon();   /* new classwork, when signed in */
     var s = W.state, st = s.stats;
     var acc = st.answered ? Math.round((st.correct / st.answered) * 100) : 0;
     var mastered = W.masteredCount();
@@ -117,8 +118,12 @@
     W.$$('[data-inbox]', host).forEach(function (b) {
       b.addEventListener('click', function () { global.Assignments.run(box[+b.dataset.inbox]); });
     });
+    /* adding work needs a class to add it to; until then this is the way in */
     var addBtn = document.getElementById('portal-add');
-    if (addBtn) addBtn.addEventListener('click', global.Classroom.openAdd);
+    if (addBtn) addBtn.addEventListener('click', function () {
+      if (W.state.enrolled) global.Classroom.openAdd();
+      else global.UI.go('classroom');
+    });
     var openBtn = document.getElementById('portal-openclass');
     if (openBtn) openBtn.addEventListener('click', function () { global.UI.go('classroom'); });
 
@@ -139,7 +144,7 @@
       '<div class="row row--between" style="margin-bottom:14px">' +
         '<div><span class="eyebrow">Suggested for you</span>' +
         '<div class="t-sm t-muted" style="margin-top:4px">' +
-          'Based on what you keep missing, and what you have never been asked about.' +
+          'Based on what you keep getting wrong and what you haven’t been asked yet.' +
         '</div></div>' +
       '</div>' +
       '<div class="rec-list">' +
@@ -162,14 +167,15 @@
       '<div class="row row--between" style="margin-bottom:14px">' +
         '<div><span class="eyebrow">Assignments</span>' +
           '<div class="t-sm t-muted" style="margin-top:4px">' +
-            (box.length ? open.length + ' still to do of ' + box.length
+            (box.length ? open.length + ' of ' + box.length + ' still to do'
                         : 'Got a code from your teacher? Add it here.') +
           '</div></div>' +
         '<div class="row" style="gap:8px">' +
           (box.length
             ? '<button class="btn btn--ghost btn--sm" id="portal-openclass">Open Classroom</button>'
             : '') +
-          '<button class="btn btn--primary btn--sm" id="portal-add">' + I.plus + ' Add assignment</button>' +
+          '<button class="btn btn--primary btn--sm" id="portal-add">' + I.plus +
+            (W.state.enrolled ? ' Add assignment' : ' Join a class') + '</button>' +
         '</div>' +
       '</div>' +
       (box.length
@@ -193,10 +199,10 @@
   }
 
   function subtitle(st, mastered, total) {
-    if (!st.answered) return 'Pick a mode below to start. Whatever you answer, it all counts towards the same record.';
+    if (!st.answered) return 'Pick a mode below to get started. Your answers from every mode count toward the same progress.';
     var acc = Math.round((st.correct / st.answered) * 100);
-    return st.answered.toLocaleString() + ' questions answered · ' + acc + '% accuracy · ' +
-      mastered + ' of ' + total + ' places mastered.';
+    return 'You’ve answered ' + st.answered.toLocaleString() + ' questions with ' + acc + '% accuracy, and mastered ' +
+      mastered + ' of ' + total + ' places.';
   }
 
   function metric(n, l) {
