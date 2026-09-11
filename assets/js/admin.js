@@ -64,14 +64,28 @@
           if (typed.length === CODE.length) setTimeout(check, 120);
         }
 
+        /* The code above works with no internet. Anything else is checked
+           by Supabase, which answers yes or no without the page ever
+           holding the other codes (assets/js/admin-pin.js). */
         function check() {
-          if (typed === CODE) {
-            unlocked = true;
-            document.removeEventListener('keydown', onKey);
-            close();
-            panel();
-            return;
-          }
+          if (typed === CODE) return pass();
+          var asking = global.AdminPin && global.AdminPin.verify(typed);
+          if (!asking) return fail();
+          errEl.textContent = 'Checking…';
+          asking.then(function (ok) {
+            if (!document.body.contains(root)) return;
+            if (ok) pass(); else fail();
+          });
+        }
+
+        function pass() {
+          unlocked = true;
+          document.removeEventListener('keydown', onKey);
+          close();
+          panel();
+        }
+
+        function fail() {
           typed = '';
           dotsEl.innerHTML = dots('');
           dotsEl.classList.remove('is-wrong');
