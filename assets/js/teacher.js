@@ -4,9 +4,10 @@
    Laid out like a classroom app: a banner with the class code, then
    Stream, Classwork, People and Analytics.
 
-   There is no server. Assignments travel as codes, and results come
-   back the same way. Twenty results can be pasted in one go, and any
-   score can be typed straight into the gradebook instead.
+   The class lives on the server. Its code is issued when the class is
+   created, assignments go out the moment they are saved, and scores come
+   back on their own. Any score can still be typed straight into the
+   gradebook, for the student who did it on paper.
 -------------------------------------------------------------------*/
 (function (global) {
   'use strict';
@@ -60,9 +61,20 @@
     return c;
   }
 
-  function ensureCode() {
-    if (!cls().code) { cls().code = A.classCode(); W.saveNow(); }
-    return cls().code;
+  /* A class code is issued by the server when the class is created, and it
+     is the only kind that works: a student types it, the server looks it
+     up, and either the class is there or it is not. The old behaviour —
+     inventing six characters locally and printing them as if they meant
+     something — is what made every join fail. If there is no code yet,
+     there is no code, and the banner says so instead of making one up. */
+  function classCode() { return cls().code || ''; }
+
+  function joinLink() {
+    var c = classCode();
+    if (!c) return '';
+    var o = global.location;
+    var base = o.origin + o.pathname.replace(/[^/]*$/, '') + 'index.html';
+    return base + '?join=' + c;
   }
 
   /* ============================== helpers =========================== */
@@ -126,9 +138,14 @@
               ' · ' + c.results.length + ' result' + (c.results.length === 1 ? '' : 's') + ' in</p>' +
             syncLine() +
           '</div>' +
-          '<button class="cr-banner__code" id="tm-copycode" title="Copy class code">' +
-            '<span>Class code</span><b>' + ensureCode() + '</b>' +
-          '</button>' +
+          (classCode()
+            ? '<button class="cr-banner__code" id="tm-copycode" title="Copy class code">' +
+                '<span>Class code</span><b>' + classCode() + '</b>' +
+              '</button>'
+            : '<button class="cr-banner__code cr-banner__code--none" id="tm-getcode" ' +
+                'title="Set your class up online">' +
+                '<span>Class code</span><b>Get one</b>' +
+              '</button>') +
         '</div>' +
 
         '<div class="cr-tabs">' +
@@ -145,9 +162,12 @@
     W.$$('.cr-tab', host).forEach(function (b) {
       b.addEventListener('click', function () { tab = b.dataset.t; render(); });
     });
-    document.getElementById('tm-copycode').addEventListener('click', function () {
-      copy(ensureCode(), 'Class code copied');
+    var copyBtn = document.getElementById('tm-copycode');
+    if (copyBtn) copyBtn.addEventListener('click', function () {
+      copy(classCode(), 'Class code copied');
     });
+    var getBtn = document.getElementById('tm-getcode');
+    if (getBtn) getBtn.addEventListener('click', shareInvite);
     wirePanel();
 
     function crTab(id, icon, label, n) {
@@ -169,14 +189,10 @@
     if (!host) return;
 
     bind('#tm-new', function () { openBuilder(); });
-    bind('#tm-collect', openCollect);
     bind('#tm-invite', shareInvite);
     bind('#tm-addperson', openAddPerson);
     bind('#tm-export', exportCsv);
 
-    W.$$('[data-share]', host).forEach(function (b) {
-      b.addEventListener('click', function () { shareAssignment(cls().assignments[+b.dataset.share]); });
-    });
     W.$$('[data-edit]', host).forEach(function (b) {
       b.addEventListener('click', function () { openBuilder(cls().assignments[+b.dataset.edit], +b.dataset.edit); });
     });
@@ -223,9 +239,7 @@
           '<div class="cr-card__head"><h3>Hand out work</h3></div>' +
           '<button class="btn btn--accent btn--block" id="tm-new">' + I.plus + ' New assignment</button>' +
           '<button class="btn btn--primary btn--block" id="tm-invite" style="margin-top:8px">' +
-            I.key + ' Get the join code</button>' +
-          '<button class="btn btn--ghost btn--block" id="tm-collect" style="margin-top:8px">' +
-            I.inbox + ' Collect results</button>' +
+            I.key + ' Invite your class</button>' +
         '</div>' +
         '<div class="cr-card">' +
           '<div class="cr-card__head"><h3>Class stats</h3></div>' +
@@ -274,7 +288,7 @@
     var list = cls().assignments;
     return '<div class="row row--between" style="margin-bottom:16px">' +
         '<div><h3 style="font-size:18px">Classwork</h3>' +
-        '<div class="t-sm t-muted">Each assignment has its own code.</div></div>' +
+        '<div class="t-sm t-muted">Saved work goes to your class straight away.</div></div>' +
         '<button class="btn btn--accent" id="tm-new">' + I.plus + ' New assignment</button>' +
       '</div>' +
       (list.length
@@ -293,7 +307,6 @@
                 'handed in' + (mean !== null ? ' · avg ' + mean + '%' : '') + '</div>' +
               '<div class="row" style="gap:4px">' +
                 '<button class="icon-btn" data-try="' + i + '" title="Try it yourself">' + I.arrowR + '</button>' +
-                '<button class="icon-btn" data-share="' + i + '" title="Get the code">' + I.key + '</button>' +
                 '<button class="icon-btn" data-edit="' + i + '" title="Edit">' + I.gear + '</button>' +
                 '<button class="icon-btn" data-del="' + i + '" title="Delete">' + I.close + '</button>' +
               '</div></div>';
@@ -310,7 +323,6 @@
         '<div><h3 style="font-size:18px">People</h3>' +
         '<div class="t-sm t-muted">Students get added here automatically when they hand in work.</div></div>' +
         '<div class="row" style="gap:8px">' +
-          '<button class="btn btn--ghost" id="tm-collect">' + I.inbox + ' Collect results</button>' +
           '<button class="btn btn--accent" id="tm-addperson">' + I.plus + ' Add student</button>' +
         '</div>' +
       '</div>' +
@@ -349,8 +361,7 @@
       return '<div class="cr-card">' + emptyCta(I.chart, 'No data yet',
         'Once students start handing in work, you’ll see the class average here, plus who ' +
         'needs help and which countries the class gets wrong most.') +
-        '<div class="t-center"><button class="btn btn--accent" id="tm-collect">' +
-        I.inbox + ' Collect results</button></div></div>';
+'</div>';
     }
 
     /* which countries the class as a whole keeps missing */
@@ -502,8 +513,12 @@
           '<input class="input" id="tm-name" maxlength="40" placeholder="e.g. Period 3 Geography" ' +
             'value="' + W.escapeHtml(c.name) + '"></div>' +
         '<div class="field"><label class="field__label">Class code</label>' +
-          '<div class="code-chip">' + ensureCode() + '</div>' +
-          '<div class="field__hint">Students only type this in once, so their work shows up under your class name.</div></div>' +
+          (classCode()
+            ? '<div class="code-chip">' + classCode() + '</div>' +
+              '<div class="field__hint">Students type this once. It was issued when your class ' +
+                'was created and it never changes.</div>'
+            : '<div class="field__hint">You do not have one yet. Sign in and your class gets a ' +
+              'code that students can actually use.</div>') + '</div>' +
       '</div>' +
       '<div class="cr-card">' +
         '<div class="cr-card__head"><h3>Data</h3></div>' +
@@ -564,56 +579,6 @@
     });
   }
 
-  /* Paste the whole class at once. */
-  function openCollect() {
-    global.UI.modal({
-      title: 'Collect results', icon: I.inbox, wide: true,
-      body: '<p class="t-muted" style="margin-bottom:14px">Paste all the codes your students sent you. ' +
-              'It’s fine if they’re on separate lines, all in one chunk or mixed in with other text. ' +
-              'LearnGeo finds the codes and skips everything else.</p>' +
-            '<textarea class="input mono" id="cl-codes" style="min-height:190px" ' +
-              'placeholder="LGR-…&#10;LGR-…&#10;LGR-…"></textarea>' +
-            '<div id="cl-out"></div>',
-      actions: [
-        { label: 'Close', cls: 'btn--ghost', close: true },
-        { label: 'Add them', cls: 'btn--accent', onClick: function (root) {
-            var res = A.decodeResultBatch(W.$('#cl-codes', root).value);
-            if (!res.ok.length) {
-              W.$('#cl-out', root).innerHTML =
-                '<div class="feedback feedback--wrong" style="margin-top:12px">' + I.info +
-                '<div><b>No codes found</b><p>Result codes start with LGR-. ' +
-                'Make sure the whole code got pasted.</p></div></div>';
-              return false;
-            }
-            var added = 0, dupes = 0, fresh = [];
-            res.ok.forEach(function (r) {
-              var exists = cls().results.some(function (x) {
-                return x.name === r.name && x.assignmentId === r.assignmentId && x.at === r.at;
-              });
-              if (exists) { dupes += 1; return; }
-              cls().results.push(r);
-              fresh.push(r);
-              if (cls().roster.indexOf(r.name) === -1) cls().roster.push(r.name);
-              added += 1;
-            });
-            W.saveNow();
-            if (online() && fresh.length) global.Cloud.recordResults(fresh).catch(cloudErr);
-            W.$('#cl-out', root).innerHTML =
-              '<div class="feedback feedback--right" style="margin-top:12px">' + I.check +
-              '<div><b>' + added + ' recorded</b><p>' +
-              (dupes ? dupes + ' were already added. ' : '') +
-              (res.bad ? res.bad + ' couldn’t be read. ' : '') +
-              'Anyone who wasn’t on the roster has been added.</p></div></div>';
-            W.$('#cl-codes', root).value = '';
-            render();
-            return false;
-          } }
-      ],
-      onMount: function (root) { setTimeout(function () { W.$('#cl-codes', root).focus(); }, 60); }
-    });
-  }
-
-  /* Type a score straight into a gradebook cell. */
   function openScoreEntry(name, assignmentId) {
     var a = cls().assignments.filter(function (x) { return x.id === assignmentId; })[0];
     var existing = resultFor(name, assignmentId);
@@ -789,7 +754,7 @@
        own study filters can never narrow it */
     if (!picked.length) { a.config.scope = 'un'; a.config.regions = []; }
     a.from = cls().name || 'Your teacher';
-    a.classCode = ensureCode();
+    a.classCode = classCode();
 
     if (index === undefined || index === null) cls().assignments.push(a);
     else cls().assignments[index] = a;
@@ -801,84 +766,57 @@
   }
 
   /* ============================== sharing =========================== */
-  /* One code for the whole class: the class code, the name, and every
-     assignment. Students paste it once when they join, and again later to
-     pick up anything new. */
+  /* Two ways into the class and nothing to paste: six characters for the
+     board, or a link that fills them in. Both point at the same class row,
+     which is the only thing that makes either of them work. */
   function shareInvite() {
     var c = cls();
-    var code = A.encodePack(c);
-    if (!code) { W.toast('Couldn’t make the code', 'Try again', I.info); return; }
+    var code = classCode();
+
+    if (!code) {
+      global.UI.modal({
+        title: 'Your class needs a code', icon: I.key,
+        body: '<p class="t-muted">A class code has to exist somewhere both you and your students ' +
+              'can reach, or it is just six characters that do not work. Sign in and your class ' +
+              'gets a real one, along with a link you can paste into Google Classroom.</p>',
+        actions: [
+          { label: 'Not now', cls: 'btn--ghost', close: true },
+          { label: 'Sign in', cls: 'btn--accent', close: true,
+            onClick: function () { global.UI.openAuth('signup', function () { syncSoon(true); }); } }
+        ]
+      });
+      return;
+    }
+
+    var link = joinLink();
     global.UI.modal({
-      title: 'Join code for ' + (c.name || 'your class'),
-      icon: I.key, wide: true,
-      body: (online()
-              ? '<div class="feedback feedback--right" style="margin:0 0 16px">' + I.check +
-                  '<div><b>Your class is online</b><p>Students who sign in only need the class code. ' +
-                  'The join code is for anyone using LearnGeo without an account.</p></div></div>'
-              : '') +
-            '<p class="t-muted" style="margin-bottom:16px">Give your class ' +
-              '<b>both</b> of these. They type in the short one, and the long one has ' +
-              'all the work in it.</p>' +
-            '<div class="field"><label class="field__label">1. Class code (they type this)</label>' +
-              '<div class="code-chip">' + c.code + '</div></div>' +
-            '<div class="field"><label class="field__label">2. Join code (they paste this)</label>' +
-              '<div class="share-box">' + W.escapeHtml(code) + '</div></div>' +
+      title: 'Invite your class', icon: I.key, wide: true,
+      body: '<p class="t-muted" style="margin-bottom:18px">Two ways in, and they both do the same ' +
+              'thing. Write the code on the board, or send the link and nobody types anything.</p>' +
+
+            '<div class="field"><label class="field__label">Class code</label>' +
+              '<div class="code-chip">' + W.escapeHtml(code) + '</div>' +
+              '<div class="field__hint">Students enter this once, under Classroom.</div></div>' +
+
+            '<div class="field"><label class="field__label">Join link</label>' +
+              '<div class="share-box">' + W.escapeHtml(link) + '</div>' +
+              '<div class="field__hint">Opens LearnGeo with the code already filled in.</div></div>' +
+
             '<div class="feedback" style="background:var(--accent-soft);margin:4px 0 0">' + I.info +
-              '<div><b style="color:var(--accent-ink)">It includes all ' + c.assignments.length +
-              ' assignment' + (c.assignments.length === 1 ? '' : 's') + '</b>' +
-              '<p>If you add more work later, just send them the join code again. Students ' +
-              'only get the assignments they don’t have yet.</p></div></div>',
+              '<div><b style="color:var(--accent-ink)">Work goes out on its own</b>' +
+              '<p>Every assignment you save reaches the class straight away. There is nothing to ' +
+              'send afterwards and nothing for them to paste.</p></div></div>',
       actions: [
         { label: 'Close', cls: 'btn--ghost', close: true },
-        { label: 'Copy join code', cls: 'btn--accent', onClick: function () {
-            copy(code, 'Join code copied'); return false;
-          } }
+        { label: 'Copy code', cls: 'btn--ghost', onClick: function () {
+            copy(code, 'Class code copied'); return false; } },
+        { label: 'Copy link', cls: 'btn--accent', onClick: function () {
+            copy(link, 'Join link copied'); return false; } }
       ]
     });
   }
 
-  function shareAssignment(a) {
-    var code = A.encode(a);
-    if (!code) { W.toast('Couldn’t make a code', 'Try again', I.info); return; }
-    global.UI.modal({
-      title: 'Hand out "' + a.title + '"',
-      icon: I.key, wide: true,
-      body: '<p class="t-muted" style="margin-bottom:14px">Send this to your class. They go to ' +
-              '<b>Classroom</b>, click <b>Add assignment</b> and paste it in.</p>' +
-            '<div class="share-box">' + W.escapeHtml(code) + '</div>' +
-            '<div class="field__hint" style="margin-top:10px">The whole assignment is inside the code, ' +
-              'so it works even if a student has never used LearnGeo before.</div>',
-      actions: [
-        { label: 'Close', cls: 'btn--ghost', close: true },
-        { label: 'Copy code', cls: 'btn--accent', onClick: function () { copy(code, 'Code copied'); return false; } }
-      ]
-    });
-  }
-
-  function shareResult(assignment, pct, correct, total, missed) {
-    /* the name the student joined under, so the gradebook keeps one row per person */
-    var name = (W.state.enrolled && W.state.enrolled.name) || W.state.profile.displayName || 'Student';
-    var code = A.encodeResult({
-      assignmentId: assignment.id, title: assignment.title,
-      name: name, pct: pct, correct: correct, total: total, missed: missed || []
-    });
-    if (!code) { W.toast('Couldn’t make a code', 'Try again', I.info); return; }
-    global.UI.modal({
-      title: 'Send your score', icon: I.key, wide: true,
-      body: '<p class="t-muted" style="margin-bottom:14px">This code has your name, the assignment, ' +
-              'your score and the ones you missed. Send it to your teacher.</p>' +
-            '<div class="share-box">' + W.escapeHtml(code) + '</div>' +
-            '<div class="row" style="gap:8px;margin-top:14px">' +
-              '<span class="chip chip--xp mono">' + W.escapeHtml(name) + '</span>' +
-              '<span class="chip chip--gem mono">' + correct + '/' + total + ' · ' + pct + '%</span>' +
-            '</div>',
-      actions: [
-        { label: 'Close', cls: 'btn--ghost', close: true },
-        { label: 'Copy code', cls: 'btn--accent', onClick: function () { copy(code, 'Result code copied'); return false; } }
-      ]
-    });
-  }
-
+  
   function copy(text, msg) {
     var done = function () { W.toast(msg, '', I.check); };
     if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -897,7 +835,6 @@
   function becomeTeacher() {
     W.state.role = 'teacher';
     W.state.roleChosen = true;
-    ensureCode();
     W.saveNow();
     global.UI.refreshTabs();
     global.UI.go('teacher');
@@ -912,8 +849,7 @@
 
   global.Teacher = {
     render: render, openBuilder: openBuilder, becomeTeacher: becomeTeacher,
-    leaveTeacher: leaveTeacher, shareAssignment: shareAssignment, shareResult: shareResult,
-    openCollect: openCollect, ensureCode: ensureCode, copy: copy,
+    leaveTeacher: leaveTeacher, classCode: classCode, joinLink: joinLink, copy: copy,
     forget: function () { lastSync = 0; },
     get tab() { return tab; }, set tab(v) { tab = v; }
   };

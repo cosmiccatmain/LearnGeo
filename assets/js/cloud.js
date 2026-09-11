@@ -272,13 +272,26 @@
   function cls() { return W.state.classroom; }
   function teacherReady() { return ready() && W.state.role === 'teacher' && !!cls().cloudId; }
 
+  /* Six characters with no I, O, zero or one, so nothing in a code can be
+     misread off a whiteboard. This only ever proposes: the code is not
+     real until the insert below succeeds, and the unique constraint on
+     the table is what settles a clash. Nothing anywhere else in the app
+     invents a code, because a code the server has not issued is one that
+     cannot be joined. */
+  function proposeCode() {
+    var abc = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    var out = '';
+    for (var i = 0; i < 6; i++) out += abc[(Math.random() * abc.length) | 0];
+    return out;
+  }
+
   function createClass(code, name, tries) {
     return sb.from('classes').insert({ code: code, name: String(name).slice(0, 60), teacher_id: user.id })
       .select('id, code, name').single()
       .then(function (res) {
-        if (!res.error) return { row: res.data, created: true };
+        if (!res.error) return { row: res.data, created: true, wanted: code };
         if (res.error.code === '23505' && tries < 5) {
-          return createClass(global.Assignments.classCode(), name, tries + 1);
+          return createClass(proposeCode(), name, tries + 1);
         }
         throw res.error;
       });
@@ -291,7 +304,7 @@
       .then(function (res) {
         var rows = check(res);
         if (rows.length) return { row: rows[0], created: false };
-        return createClass(c.code || global.Assignments.classCode(), c.name || 'Your class', 0);
+        return createClass(c.code || proposeCode(), c.name || 'Your class', 0);
       });
   }
 
@@ -316,6 +329,16 @@
     teacherBusy = teacherClass()
       .then(function (got) {
         c.cloudId = got.row.id;
+        /* A teacher who built a class offline may already have written a
+           code on the board. We try to claim exactly that one, but if
+           another class got there first the server hands back a different
+           one — and saying nothing would leave a room full of students
+           typing a code that is now somebody else's. */
+        if (got.created && got.wanted && got.wanted !== got.row.code) {
+          W.toast('Your class code changed',
+                  got.wanted + ' was taken, so your class is ' + got.row.code +
+                  '. Give students the new one.', W.Icons.info, 7000);
+        }
         c.code = got.row.code;
         if (got.created) return uploadLocal(got.row.id).then(function () { return got.row; });
         c.name = got.row.name;

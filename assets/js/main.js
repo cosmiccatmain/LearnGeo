@@ -70,7 +70,11 @@
      left alone: the link can open a view but never change who you are. */
   function openFromUrl() {
     var role = param('role'), view = param('view');
-    if (!role && !view) return;
+    /* A join link is how a teacher hands the class over without anyone
+       copying six characters off a board. It carries the class code and
+       nothing else, and it lands on the join screen with it filled in. */
+    var join = param('join').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
+    if (!role && !view && !join) return;
 
     /* the query has done its job; a refresh should not replay it */
     if (global.history && global.history.replaceState) {
@@ -81,6 +85,17 @@
       W.state.role = role === 'teacher' ? 'teacher' : 'student';
       W.state.roleChosen = true;
       W.saveNow();
+    }
+
+    if (join && global.Classroom) {
+      /* a join link is a student's link, whatever this device was last */
+      if (!W.accountId() && W.state.role === 'teacher') {
+        W.state.role = 'student';
+        W.saveNow();
+      }
+      global.Classroom.prefill(join);
+      global.UI.showApp('classroom');
+      return;
     }
 
     if (W.state.role === 'teacher') {

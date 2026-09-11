@@ -94,7 +94,7 @@
       classroom: {
         name: '', code: '',       /* teacher's own class */
         roster: [],               /* names the teacher tracks locally */
-        results: [],              /* result codes pasted back in */
+        results: [],              /* scores handed in, newest last */
         assignments: []           /* assignments the teacher has written */
       },
       inbox: [],                  /* assignments a student has loaded by code */

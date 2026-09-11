@@ -379,9 +379,10 @@
                         : 'Nothing set yet. It shows up here when your teacher sends it.') +
           '</div></div>' +
         '<div class="row" style="gap:8px">' +
-          '<button class="btn btn--ghost btn--sm" id="portal-openclass">Open Classroom</button>' +
-          '<button class="btn btn--primary btn--sm" id="portal-add">' + I.plus +
-            (W.state.enrolled ? ' Add assignment' : ' Join a class') + '</button>' +
+          (W.state.enrolled
+            ? '<button class="btn btn--primary btn--sm" id="portal-openclass">Open Classroom</button>'
+            : '<button class="btn btn--primary btn--sm" id="portal-add">' + I.plus +
+                ' Join a class</button>') +
         '</div>' +
       '</div>' +
       (box.length

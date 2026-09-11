@@ -773,7 +773,10 @@
       '</div></div>';
   }
 
-  function openAuth(mode) {
+  /* `then` runs once the account is live and Cloud has finished reconciling,
+     so a caller can pick up whatever it was doing. Joining a class uses it:
+     signing in is a step on the way, not a dead end. */
+  function openAuth(mode, then) {
     var C = global.Cloud;
     if (!C || !C.available) {
       W.toast('Accounts aren’t working right now', 'Sign-in didn’t load. Check your internet and refresh the page.', I.info, 4600);
@@ -854,6 +857,19 @@
       dlg.close();
       W.toast(msg, '', I.check);
       if (!appOpen()) showApp('portal');
+      if (then) whenReady(then);
+    }
+
+    /* Signing in resolves before Cloud has compared this device against the
+       account, and nothing server-side works until it has. Wait for that
+       rather than firing into a client that is not ready yet. */
+    function whenReady(fn) {
+      if (C.ready) return fn();
+      var tries = 0;
+      var t = setInterval(function () {
+        if (C.ready) { clearInterval(t); fn(); }
+        else if (++tries > 50) { clearInterval(t); fn(); }
+      }, 200);
     }
 
     function submit(root) {

@@ -244,132 +244,6 @@
     };
   }
 
-  /* ====================== share codes ============================== */
-  /* An assignment is JSON, deflated to base64url so it can be pasted
-     into a chat or written on a board without a server in the middle. */
-  function encode(a) {
-    try {
-      var json = JSON.stringify(a);
-      var bytes = new TextEncoder().encode(json);
-      var bin = '';
-      bytes.forEach(function (b) { bin += String.fromCharCode(b); });
-      return 'LG1-' + btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-    } catch (e) { return null; }
-  }
-
-  function decode(code) {
-    try {
-      var raw = String(code || '').trim().replace(/^LG1-/, '');
-      raw = raw.replace(/-/g, '+').replace(/_/g, '/');
-      while (raw.length % 4) raw += '=';
-      var bin = atob(raw);
-      var bytes = new Uint8Array(bin.length);
-      for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-      return sanitize(JSON.parse(new TextDecoder().decode(bytes)));
-    } catch (e) { return null; }
-  }
-
-  /* The way back: a student turns a finished assignment into a short code
-     and sends it to the teacher, who pastes it in to record the score.
-     Same idea as the assignment code, running the other direction. */
-  function encodeResult(r) {
-    try {
-      /* 'm' carries the countries that were missed, which is what makes the
-         class analytics worth reading: you can see what the room found hard. */
-      var payload = { k: 'r', a: r.assignmentId, t: r.title, n: r.name,
-                      p: r.pct, c: r.correct, q: r.total, d: Date.now(),
-                      m: (r.missed || []).slice(0, 40) };
-      var bytes = new TextEncoder().encode(JSON.stringify(payload));
-      var bin = '';
-      bytes.forEach(function (b) { bin += String.fromCharCode(b); });
-      return 'LGR-' + btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-    } catch (e) { return null; }
-  }
-
-  function decodeResult(code) {
-    try {
-      var raw = String(code || '').trim().replace(/^LGR-/, '');
-      raw = raw.replace(/-/g, '+').replace(/_/g, '/');
-      while (raw.length % 4) raw += '=';
-      var bin = atob(raw);
-      var bytes = new Uint8Array(bin.length);
-      for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-      var o = JSON.parse(new TextDecoder().decode(bytes));
-      if (!o || o.k !== 'r') throw new Error('not a result');
-      return sanitizeResult({ assignmentId: o.a, title: o.t, name: o.n, pct: o.p,
-                              correct: o.c, total: o.q, at: o.d, missed: o.m });
-    } catch (e) { return null; }
-  }
-
-  /* A class is twenty codes, not one. Pull every LGR- token out of whatever
-     was pasted, in any order, separated by anything. */
-  function decodeResultBatch(text) {
-    var tokens = String(text || '').match(/LGR-[A-Za-z0-9_-]+/g) || [];
-    var out = { ok: [], bad: 0 };
-    tokens.forEach(function (t) {
-      var r = decodeResult(t);
-      if (r) out.ok.push(r); else out.bad += 1;
-    });
-    return out;
-  }
-
-  /* ------------------------- the class pack -------------------------
-     One code carrying the class and every assignment in it. A teacher
-     hands this out once instead of a code per piece of work, and the
-     class code is written into the front of it so a student can read it
-     off and check it against what they were told. */
-  function encodePack(c) {
-    try {
-      var payload = { k: 'c', c: c.code, n: c.name || 'Class',
-                      a: (c.assignments || []).map(function (a) {
-                        return { id: a.id, title: a.title, mode: a.mode, config: a.config };
-                      }) };
-      var bytes = new TextEncoder().encode(JSON.stringify(payload));
-      var bin = '';
-      bytes.forEach(function (b) { bin += String.fromCharCode(b); });
-      var body = btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-      return 'LGC-' + c.code + '-' + body;
-    } catch (e) { return null; }
-  }
-
-  function decodePack(code) {
-    try {
-      var raw = String(code || '').trim();
-      var m = raw.match(/LGC-([A-Z0-9]{4,10})-([A-Za-z0-9_-]+)/);
-      if (!m) throw new Error('not a pack');
-      var body = m[2].replace(/-/g, '+').replace(/_/g, '/');
-      while (body.length % 4) body += '=';
-      var bin = atob(body);
-      var bytes = new Uint8Array(bin.length);
-      for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-      var o = JSON.parse(new TextDecoder().decode(bytes));
-      if (!o || o.k !== 'c') throw new Error('bad payload');
-      /* the code in the wrapper must match the one inside */
-      var code = String(o.c).toUpperCase();
-      if (code !== m[1].toUpperCase() || !CODE_RE.test(code)) throw new Error('code mismatch');
-      var className = str(o.n, 60) || 'Class';
-      return { code: code, name: className,
-               assignments: (Array.isArray(o.a) ? o.a : []).map(function (a) {
-                 var s = sanitize(a);
-                 if (s) { s.from = className; s.classCode = code; }
-                 return s;
-               }).filter(Boolean) };
-    } catch (e) { return null; }
-  }
-
-  /* Read just the class code out of a pack, without trusting the payload. */
-  function peekPackCode(code) {
-    var m = String(code || '').trim().match(/LGC-([A-Z0-9]{4,10})-/);
-    return m ? m[1].toUpperCase() : null;
-  }
-
-  function classCode() {
-    var abc = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';   /* no I/O/0/1 */
-    var out = '';
-    for (var i = 0; i < 6; i++) out += abc[(Math.random() * abc.length) | 0];
-    return out;
-  }
-
   /* ======================= country picker ========================== */
   /* A typeahead over all 213 places. Returns the chosen names in order. */
   function picker(host, opts) {
@@ -522,27 +396,52 @@
         refreshClassroom();
       }, function (e) {
         delete pendingSends[item.id];
-        W.toast('Couldn’t send your score', 'Press Send to try again', I.info, 4200);
+        W.toast('Couldn’t send your score', 'It will try again on its own', I.info, 4200);
         throw e;
       });
     pendingSends[item.id] = p;
     return p;
   }
 
-  /* The Send button: straight to the teacher when online, else a code. */
+  /* The Send button. Scores go over the network or they wait: there is no
+     longer a code to read out, so a score that cannot go now is queued and
+     flushed the moment the connection comes back. */
   function send(item) {
     if (!item || !item.last) return;
     var L = item.last;
     if (L.sent) { W.toast('Already sent', (item.from || 'Your teacher') + ' has this score', I.check); return; }
     if (pendingSends[item.id]) return;
-    if (global.Cloud && global.Cloud.canSubmit(item)) {
-      submitOnline(item).catch(function () {
-        global.Teacher.shareResult(item, L.pct, L.correct, L.total, L.missed || []);
-      });
-      return;
-    }
-    global.Teacher.shareResult(item, L.pct, L.correct, L.total, L.missed || []);
+    if (global.Cloud && global.Cloud.canSubmit(item)) { submitOnline(item).catch(function () {}); return; }
+
+    W.toast('Saved, not sent yet',
+            global.Cloud && global.Cloud.signedIn
+              ? 'You are offline. It goes to your teacher as soon as you are back.'
+              : 'Sign in and it goes to your teacher on its own.',
+            I.info, 4200);
   }
+
+  /* Everything finished but unsent, tried again. Called whenever the
+     connection or the sign-in state turns good. */
+  function flushUnsent() {
+    var C = global.Cloud;
+    if (!C || !C.ready) return;
+    (W.state.inbox || []).forEach(function (item) {
+      if (!item.last || item.last.sent || pendingSends[item.id]) return;
+      if (!C.canSubmit(item)) return;
+      submitOnline(item).catch(function () {});
+    });
+  }
+
+  /* cloud.js is loaded after this file, so the hook goes on once the page
+     is together rather than while this one is still being parsed. */
+  function hookCloud() {
+    if (global.Cloud && global.Cloud.onChange) {
+      global.Cloud.onChange(function (st) { if (st === 'synced') flushUnsent(); });
+    }
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', hookCloud);
+  } else hookCloud();
 
   function sendLabel(item) {
     if (item && item.last && item.last.sent) return 'Sent to your teacher ✓';
@@ -569,10 +468,7 @@
     complete: complete, send: send, sendLabel: sendLabel, wireSend: wireSend,
     sanitize: sanitize, sanitizeResult: sanitizeResult, withDefaults: withDefaults,
     recommend: recommend, run: run,
-    encode: encode, decode: decode, classCode: classCode,
-    encodePack: encodePack, decodePack: decodePack, peekPackCode: peekPackCode,
-    encodeResult: encodeResult, decodeResult: decodeResult,
-    decodeResultBatch: decodeResultBatch,
+    flushUnsent: flushUnsent,
     picker: picker, resolve: resolve,
     regionStats: regionStats, unseen: unseen, shaky: shaky, almost: almost
   };
