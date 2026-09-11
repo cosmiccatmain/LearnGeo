@@ -494,8 +494,11 @@
     return '<span class="shop-item__vis"></span>';
   }
 
-  function wireShop(root) {
-    W.$$('.shop-item', root).forEach(function (btn) {
+  /* `root` is the whole dialog, which equip() needs to find the panel, the
+     preview and the balance. `scope` limits which buttons get a handler, so
+     a rebuilt panel can be wired without touching the others. */
+  function wireShop(root, scope) {
+    W.$$('.shop-item', scope || root).forEach(function (btn) {
       btn.addEventListener('click', function () {
         var kind = btn.dataset.kind, id = btn.dataset.id;
         var price = parseInt(btn.dataset.price, 10) || 0;
@@ -525,8 +528,11 @@
       actions: [
         { label: 'Cancel', cls: 'btn--ghost', close: true },
         { label: 'Unlock', cls: 'btn--accent', close: true, onClick: function () {
+            /* Already unlocked: equip it, but never charge for it twice. */
+            var have = W.state.owned[kind] || [];
+            if (have.indexOf(id) !== -1) return equip(kind, id, root);
             if (!W.spend(price)) return;
-            W.state.owned[kind] = (W.state.owned[kind] || []).concat([id]);
+            W.state.owned[kind] = have.concat([id]);
             W.saveNow();
             W.Sound.gem();
             W.confetti({ count: 46, power: 190 });
@@ -550,7 +556,10 @@
       var next = fresh.firstChild;
       if (wasHidden) next.classList.add('hidden'); else next.classList.remove('hidden');
       panel.replaceWith(next);
-      wireShop(root);
+      /* Only the panel that was just rebuilt. Wiring the whole dialog again
+         left every other panel's buttons holding one more click handler
+         each time, so one click later fired the handler many times over. */
+      wireShop(root, next);
     }
     drawPreview(root);
     refreshHud();
