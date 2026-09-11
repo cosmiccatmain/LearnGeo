@@ -239,11 +239,9 @@
   /* ============================= SETTINGS =========================== */
   function openSettings() {
     var s = W.state.settings;
-    var providers = global.GeoMap.providers;
 
     var tabs = '<div class="vtabs" id="set-tabs">' +
       '<button class="vtab is-active" data-t="general">' + I.gear + ' General</button>' +
-      '<button class="vtab" data-t="map">' + I.pin + ' Map &amp; API key</button>' +
       '<button class="vtab" data-t="data">' + I.layers + ' Study data</button>' +
       '</div>';
 
@@ -259,35 +257,6 @@
               return '<button data-v="' + n + '" class="' + (String(W.state.daily.goal) === n ? 'is-active' : '') + '">' + n + '</button>';
             }).join('') +
           '</div><div class="field__hint">How many questions you want to do each day. Hit it to add a day to your streak.</div></div>' +
-      '</div>';
-
-    var mapPanel =
-      '<div data-panel="map" class="hidden">' +
-        '<div class="feedback" style="background:var(--accent-soft);margin:0 0 18px">' + I.info +
-          '<div><b style="color:var(--accent-ink)">About the OpenStreetMap key</b>' +
-          '<p>OpenStreetMap’s own tile service is free and needs <b>no API key</b>. That’s the default, ' +
-          'and LearnGeo works fine without one. If you paste a key below, the same OpenStreetMap data loads through ' +
-          'a paid tile host (CARTO, MapTiler, Thunderforest or Stadia) instead, so you get higher rate limits and ' +
-          'tiles without watermarks. If you pick a provider that needs a key and don’t add one, it just uses plain OpenStreetMap.</p></div></div>' +
-
-        '<div class="field"><label class="field__label">Tile provider</label>' +
-          '<select class="input" id="set-provider">' +
-            Object.keys(providers).map(function (k) {
-              return '<option value="' + k + '"' + (s.tileProvider === k ? ' selected' : '') + '>' +
-                providers[k].label + '</option>';
-            }).join('') +
-          '</select></div>' +
-
-        '<div class="field"><label class="field__label">API key</label>' +
-          '<input class="input mono" id="set-key" type="text" spellcheck="false" placeholder="Paste your key, or leave it blank for plain OSM" ' +
-            'value="' + W.escapeHtml(s.apiKey) + '">' +
-          '<div class="field__hint">Your key is only saved in this browser. If you pick a provider that needs a key ' +
-          'and leave this blank, LearnGeo uses the free map instead.</div></div>' +
-
-        '<div class="field" id="set-label-warn"></div>' +
-
-        '<div class="field"><label class="field__label">Attribution</label>' +
-          '<div class="t-sm t-muted">Map data © OpenStreetMap contributors, available under the Open Database License.</div></div>' +
       '</div>';
 
     var m = W.state.mastery;
@@ -321,14 +290,11 @@
 
     modal({
       title: 'Settings', icon: I.gear, wide: true, tabs: tabs,
-      body: general + mapPanel + dataPanel,
+      body: general + dataPanel,
       actions: [{ label: 'Done', cls: 'btn--primary', close: true, onClick: saveSettings }],
       onMount: function (root, close) {
         wireSeg(root);
         wireTabs(root, '#set-tabs');
-        labelWarning(root);
-        W.$('#set-provider', root).addEventListener('change', function () { labelWarning(root); });
-        W.$('#set-key', root).addEventListener('input', function () { labelWarning(root); });
         W.$$('.switch', root).forEach(function (sw2) {
           sw2.addEventListener('click', function () { sw2.classList.toggle('is-on'); });
         });
@@ -359,35 +325,8 @@
       s2.showCapitalPins = W.$('#set-pins', root).classList.contains('is-on');
       var goal = W.$('#set-goal .is-active', root);
       if (goal) W.state.daily.goal = parseInt(goal.dataset.v, 10);
-
-      var prevProvider = s2.tileProvider, prevKey = s2.apiKey;
-      s2.tileProvider = W.$('#set-provider', root).value;
-      s2.apiKey = W.$('#set-key', root).value.trim();
       W.saveNow();
-
-      if (prevProvider !== s2.tileProvider || prevKey !== s2.apiKey) {
-        global.GeoMap.applyProvider();
-        var p = global.GeoMap.providers[s2.tileProvider];
-        if (p && p.needsKey && !s2.apiKey) {
-          W.toast('No key added', 'Using the free OpenStreetMap map instead', I.info, 4200);
-        } else {
-          W.toast('Map updated', p ? p.label : '', I.pin);
-        }
-      }
       refreshHud();
-    }
-
-    function labelWarning(root) {
-      var slot = W.$('#set-label-warn', root);
-      if (!slot) return;
-      var chosen = W.$('#set-provider', root).value;
-      var pv = global.GeoMap.providers[chosen];
-      var keyless = pv && pv.needsKey && !W.$('#set-key', root).value.trim();
-      slot.innerHTML = keyless
-        ? '<div class="feedback feedback--wrong" style="margin:0">' + I.info +
-          '<div><b>No key added</b><p>' + W.escapeHtml(pv.label) + ' needs a key. Until you add one, ' +
-          'LearnGeo will keep using the free OpenStreetMap map.</p></div></div>'
-        : '';
     }
 
     function row(t, sub, right) {
