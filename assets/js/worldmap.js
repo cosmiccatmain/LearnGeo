@@ -2,9 +2,9 @@
    LearnGeo — the whole world as one inline SVG.
 
    The same country outlines the study modes draw over Leaflet, but flat:
-   projected once into a fixed viewBox, snapped to a coarse grid and kept
-   as path strings at module level. No Leaflet, no tiles, and nothing over
-   the network after the outlines have been read once.
+   projected once into a fixed viewBox, simplified, and kept as path strings
+   at module level. No Leaflet, no tiles, and nothing over the network after
+   the outlines have been read once.
 
    Colour carries the only meaning here: what you have mastered, what you
    have merely met, and what you have never been asked about.
@@ -20,12 +20,14 @@
   var SCALE = VB_W / 360;
   var VB_H = Math.round((LAT_TOP - LAT_BOT) * SCALE);   /* 300 */
 
-  /* The picture is never drawn much wider than its viewBox, so anything
-     finer than a whole unit is detail nobody can see. Snapping to that grid
-     and dropping the points which land on top of each other takes the
-     outlines from around 900 KB of path data to around 190 KB. */
-  var SNAP = 1;
-  var MIN_SPAN = 1;   /* a ring smaller than this on both axes is dropped */
+  /* Simplification. Douglas–Peucker drops the points that do not change the
+     shape, which is the difference between a coastline and a staircase: an
+     earlier version snapped every point to a whole-unit grid instead, and
+     Alaska, the Canadian arctic and Greenland came out as blocks. EPS is in
+     viewBox units, so at the largest size this is ever drawn it is well
+     under a pixel. Roughly 900 KB of raw path data comes down to 155 KB. */
+  var EPS = 0.25;
+  var MIN_SPAN = 0.8;   /* a ring smaller than this on both axes is dropped */
 
   function px(lon) { return (lon + 180) * SCALE; }
   function py(lat) { return (LAT_TOP - lat) * SCALE; }
@@ -66,43 +68,98 @@
     return out;
   }
 
-  function ringPath(ring) {
-    var minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-    var xs = [], ys = [], i, x, y;
+  /* Three rings in the dataset walk off one side of the world and back on
+     the other: Russia's mainland, one small Russian island and Fiji. Read
+     literally that is a jump of nearly 360°, and joining it up draws a line
+     straight back across the map. Letting the longitude keep counting past
+     180 instead keeps the ring in one piece; the copy shifted a world's
+     width along puts the far side back where it belongs, and the viewBox
+     clips whatever hangs over the edge. */
+  function unwrap(ring) {
+    var out = [], prev = null, lon, i;
     for (i = 0; i < ring.length; i++) {
-      x = px(ring[i][0]); y = py(ring[i][1]);
+      lon = ring[i][0];
+      if (prev !== null) {
+        while (lon - prev > 180) lon -= 360;
+        while (lon - prev < -180) lon += 360;
+      }
+      out.push([lon, ring[i][1]]);
+      prev = lon;
+    }
+    return out;
+  }
+
+  /* Douglas–Peucker, run off a stack rather than recursively: the longest
+     ring in here is nearly five thousand points. */
+  function simplify(pts) {
+    var n = pts.length;
+    if (n < 3) return pts;
+    var keep = new Uint8Array(n);
+    keep[0] = 1; keep[n - 1] = 1;
+    var stack = [0, n - 1], e2 = EPS * EPS;
+
+    while (stack.length) {
+      var last = stack.pop(), first = stack.pop();
+      if (last - first < 2) continue;
+      var ax = pts[first][0], ay = pts[first][1];
+      var dx = pts[last][0] - ax, dy = pts[last][1] - ay;
+      var len2 = dx * dx + dy * dy;
+      var maxD = -1, idx = -1, i, x, y, t, ex, ey, d;
+
+      for (i = first + 1; i < last; i++) {
+        x = pts[i][0]; y = pts[i][1];
+        if (len2 === 0) {
+          ex = x - ax; ey = y - ay;
+        } else {
+          t = ((x - ax) * dx + (y - ay) * dy) / len2;
+          t = t < 0 ? 0 : t > 1 ? 1 : t;
+          ex = x - (ax + t * dx); ey = y - (ay + t * dy);
+        }
+        d = ex * ex + ey * ey;
+        if (d > maxD) { maxD = d; idx = i; }
+      }
+      if (maxD > e2) { keep[idx] = 1; stack.push(first, idx, idx, last); }
+    }
+
+    var out = [];
+    for (var j = 0; j < n; j++) if (keep[j]) out.push(pts[j]);
+    return out;
+  }
+
+  function ringPath(ring) {
+    var pts = unwrap(ring);
+    var minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    var i, x, y;
+    for (i = 0; i < pts.length; i++) {
+      x = px(pts[i][0]); y = py(pts[i][1]);
       if (x < minX) minX = x;
       if (x > maxX) maxX = x;
       if (y < minY) minY = y;
       if (y > maxY) maxY = y;
-      xs.push(x); ys.push(y);
+      pts[i] = [x, y];
     }
-    /* an island this small is one pixel of noise; the country still gets a
-       dot of its own if this was the only ring it had */
+    /* an island this small is a speck of noise; the country still gets a dot
+       of its own if this was the only ring it had */
     if (maxX - minX < MIN_SPAN && maxY - minY < MIN_SPAN) return '';
 
-    /* A ring that crosses the antimeridian arrives with a point near +180
-       followed by one near -180. Joined up as written that is a straight
-       line back across the whole map, which is why Russia and the Aleutians
-       painted a band over everything above them. A step of more than half
-       the world is that seam and nothing else, so the ring is cut there and
-       carries on as a separate subpath. */
-    var runs = [], run = [], lastX = null, lastY = null, sx, sy;
-    for (i = 0; i < xs.length; i++) {
-      sx = Math.round(xs[i] / SNAP) * SNAP;
-      sy = Math.round(ys[i] / SNAP) * SNAP;
-      if (sx === lastX && sy === lastY) continue;
-      if (lastX !== null && Math.abs(sx - lastX) > VB_W / 2) { runs.push(run); run = []; }
-      run.push(sx + ' ' + sy);
-      lastX = sx; lastY = sy;
-    }
-    runs.push(run);
-
-    var d = '';
-    for (i = 0; i < runs.length; i++) {
-      if (runs[i].length >= 3) d += 'M' + runs[i].join(' ') + 'Z';
-    }
+    var d = subpath(simplify(pts), 0);
+    if (!d) return '';
+    /* a ring that ran off an edge is drawn again a world along, so the part
+       that wrapped shows up on the other side instead of being lost */
+    if (maxX > VB_W) d += subpath(simplify(pts), -VB_W);
+    else if (minX < 0) d += subpath(simplify(pts), VB_W);
     return d;
+  }
+
+  function subpath(pts, shift) {
+    var s = '', lastX = null, lastY = null, n = 0, i, x, y;
+    for (i = 0; i < pts.length; i++) {
+      x = round(pts[i][0] + shift); y = round(pts[i][1]);
+      if (x === lastX && y === lastY) continue;
+      s += (n ? ' ' : 'M') + x + ' ' + y;
+      lastX = x; lastY = y; n += 1;
+    }
+    return n < 3 ? '' : s + 'Z';
   }
 
   /* ============================ colouring ===========================
