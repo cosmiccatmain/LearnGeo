@@ -148,26 +148,32 @@
     var lp = W.levelProgress();
     var goalPct = Math.min(1, d.answered / Math.max(1, d.goal));
     var acc = st.answered ? Math.round((st.correct / st.answered) * 100) : null;
-    var circ = 2 * Math.PI * 18;
+    var hit = d.answered >= d.goal;
+    var r = 13, circ = 2 * Math.PI * r;
 
-    return '<div class="rail">' +
-      '<div class="rail__i rail__i--goal">' +
-        '<div class="goal__ring" style="width:42px;height:42px;flex:none">' +
-          '<svg width="42" height="42">' +
-            '<circle cx="21" cy="21" r="18" fill="none" stroke="var(--line)" stroke-width="4"/>' +
-            '<circle cx="21" cy="21" r="18" fill="none" stroke="var(--success)" stroke-width="4" ' +
+    /* In progress: a ring showing how far along. Done: a filled tick, which
+       also stops an over-target day (40/20) reading as a plain empty circle. */
+    var goalIcon = hit
+      ? '<span class="rail__ring rail__ring--done">' + I.check + '</span>'
+      : '<span class="rail__ring">' +
+          '<svg width="30" height="30">' +
+            '<circle cx="15" cy="15" r="' + r + '" fill="none" stroke="var(--line)" stroke-width="3.5"/>' +
+            '<circle cx="15" cy="15" r="' + r + '" fill="none" stroke="var(--success)" stroke-width="3.5" ' +
               'stroke-linecap="round" stroke-dasharray="' + circ + '" ' +
               'stroke-dashoffset="' + (circ * (1 - goalPct)) + '"/>' +
-          '</svg>' +
-        '</div>' +
-        '<div><b>' + d.answered + '/' + d.goal + '</b><span>today’s goal</span></div>' +
+          '</svg></span>';
+
+    return '<div class="rail">' +
+      '<div class="rail__i rail__i--goal">' + goalIcon +
+        '<div><b>' + d.answered + '/' + d.goal + '</b>' +
+          '<span>' + (hit ? 'goal met today' : 'today\u2019s goal') + '</span></div>' +
       '</div>' +
 
       railItem(I.fire, (d.dayStreak || 0) + (d.dayStreak === 1 ? ' day' : ' days'),
-               'daily streak', d.dayStreak ? 'is-live' : '') +
+               'daily streak', d.dayStreak ? 'is-live' : '', 'fire') +
 
       '<div class="rail__i">' +
-        '<span class="rail__icon">' + I.bolt + '</span>' +
+        '<span class="rail__icon rail__icon--xp">' + I.bolt + '</span>' +
         '<div><b>Level ' + s.economy.level + '</b>' +
           '<span>' + lp.have + ' / ' + lp.need + ' XP</span>' +
           '<span class="rail__bar"><i style="width:' +
@@ -175,14 +181,14 @@
         '</div>' +
       '</div>' +
 
-      railItem(I.gem, s.economy.diamonds.toLocaleString(), 'diamonds') +
-      railItem(I.target, acc === null ? '—' : acc + '%', 'accuracy') +
+      railItem(I.gem, s.economy.diamonds.toLocaleString(), 'diamonds', '', 'gem') +
+      railItem(I.target, acc === null ? '\u2014' : acc + '%', 'accuracy', '', 'acc') +
     '</div>';
   }
 
-  function railItem(icon, n, l, cls) {
+  function railItem(icon, n, l, cls, tone) {
     return '<div class="rail__i ' + (cls || '') + '">' +
-      '<span class="rail__icon">' + icon + '</span>' +
+      '<span class="rail__icon' + (tone ? ' rail__icon--' + tone : '') + '">' + icon + '</span>' +
       '<div><b>' + n + '</b><span>' + l + '</span></div></div>';
   }
 

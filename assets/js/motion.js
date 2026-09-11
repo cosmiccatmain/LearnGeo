@@ -231,7 +231,7 @@
 
   function heroIntro() {
     if (!land || land.classList.contains('hidden')) return;
-    each(land.querySelectorAll('.hero .pill, .hero h1, .hero__sub, .hero__cta, .hero__note'), function (el, i) {
+    each(land.querySelectorAll('.hero h1, .hero__sub, .hero__cta, .hero__note'), function (el, i) {
       el.animate([{ opacity: 0, transform: 'translateY(16px)', filter: 'blur(8px)' },
                   { opacity: 1, transform: 'none', filter: 'none' }],
                  { duration: 900, delay: 60 + i * 90, easing: OUT, fill: 'backwards' });

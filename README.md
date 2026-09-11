@@ -153,8 +153,9 @@ Leaflet and supabase-js are loaded from CDNs in `index.html`, so there's nothing
 ## Two landing pages
 
 `index.html` is the student page and carries the app shell too, so every button on it opens
-the app. `teachers.html` is marketing only: no app shell, no JavaScript, and its buttons are
-plain links into `index.html?role=teacher`.
+the app. `teachers.html` is marketing only: no app shell, and its buttons are plain links into
+`index.html?role=teacher`. It loads two scripts and nothing else, `data.js` and `hero.js`, which
+is what the animated hero backdrop needs.
 
 `?role=` and `?view=` are read once on load and then wiped off the address bar. A role in the
 URL only settles things for a guest; if the save belongs to an account, the account's own role
@@ -164,7 +165,7 @@ wins, so the link can open a view but never change who you are.
 
 ```
 index.html                      student landing page and app shell
-teachers.html                   teacher landing page (marketing only, no scripts)
+teachers.html                   teacher landing page (marketing only, no app shell)
 assets/css/app.css              main styles
 assets/css/motion.css           button feedback and transitions
 assets/css/demo.css             landing page demo
@@ -174,6 +175,7 @@ assets/js/avatars.js            inline SVG artwork for avatars (no emoji fonts n
 assets/js/core.js               icons, state, storage, economy, sound, reward effects
 assets/js/map.js                Leaflet setup, country shapes, the map blur
 assets/js/worldmap.js           the outlines as one flat inline SVG, no Leaflet
+assets/js/hero.js               the capitals as a moving backdrop behind the hero headline
 assets/js/quiz.js               question generation
 assets/js/assignments.js        suggestions, share codes, handing in work
 assets/js/cloud.js              Supabase accounts, save sync, online classes
