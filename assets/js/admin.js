@@ -2,8 +2,8 @@
    LearnGeo — admin panel.
 
    Opened with ?admin on the URL, unlocked with a four-digit code on a
-   number pad, and then able to hand out the two things the app will not
-   award by itself: the verified seal and diamonds.
+   number pad, and then able to hand out — or take back — the two things
+   the app will not award by itself: the verified seal and diamonds.
 
    Read this before trusting it with anything: the code lives in the page
    source, which is a public repository and a public site, and everything
@@ -114,6 +114,16 @@
   /* ============================== panel ============================= */
   var GRANTS = [100, 500, 1000, 5000];
 
+  /* One row of amount buttons. Pass 1 for the row that gives and -1 for
+     the row that takes; both end up on the same click handler. */
+  function grantRow(sign) {
+    return GRANTS.map(function (n) {
+      return '<button class="mini-btn' + (sign < 0 ? ' mini-btn--take' : '') +
+        '" data-grant="' + (n * sign) + '">' +
+        (sign < 0 ? '\u2212' : '+') + n.toLocaleString() + '</button>';
+    }).join('');
+  }
+
   function panel() {
     var p = W.state.profile;
 
@@ -144,17 +154,17 @@
 
         '<div class="field">' +
           '<label class="field__label">Diamonds</label>' +
-          '<div class="adm-grants">' +
-            GRANTS.map(function (n) {
-              return '<button class="mini-btn" data-grant="' + n + '">+' + n.toLocaleString() + '</button>';
-            }).join('') +
-          '</div>' +
+          '<div class="adm-grants">' + grantRow(1) + '</div>' +
+          '<div class="adm-grants adm-grants--take">' + grantRow(-1) + '</div>' +
           '<div class="row" style="gap:8px;margin-top:10px">' +
-            '<input class="input mono" id="adm-amount" type="number" min="1" step="1" ' +
-              'placeholder="Any amount" style="flex:1">' +
+            '<input class="input mono" id="adm-amount" type="number" step="1" ' +
+              'placeholder="Any amount" style="flex:1;min-width:0">' +
             '<button class="btn btn--accent" id="adm-give">Give</button>' +
+            '<button class="btn btn--ghost" id="adm-take">Take</button>' +
           '</div>' +
-          '<div class="field__hint">Negative amounts take diamonds away. It will not go below zero.</div>' +
+          '<button class="mini-btn mini-btn--take adm-empty" id="adm-empty">Empty the balance</button>' +
+          '<div class="field__hint">Taking stops at zero. Give with a negative amount ' +
+            'does the same thing.</div>' +
         '</div>' +
 
         '<div id="adm-msg"></div>',
@@ -179,14 +189,44 @@
 
         var amt = W.$('#adm-amount', root);
         W.$('#adm-give', root).addEventListener('click', function () {
-          var n = parseInt(amt.value, 10);
-          if (!n) return say(root, 'Type an amount first.', true);
-          amt.value = '';
-          give(root, n);
+          withAmount(function (n) { give(root, n); });
+        });
+        /* Take reads the box as a size, so 200 and -200 both take 200. */
+        W.$('#adm-take', root).addEventListener('click', function () {
+          withAmount(function (n) { give(root, -Math.abs(n)); });
         });
         amt.addEventListener('keydown', function (e) {
           if (e.key === 'Enter') W.$('#adm-give', root).click();
         });
+
+        function withAmount(run) {
+          var n = parseInt(amt.value, 10);
+          if (!n) return say(root, 'Type an amount first.', true);
+          amt.value = '';
+          run(n);
+        }
+
+        /* Emptying the balance is the one thing here that cannot be typed
+           back in a hurry, so it asks for a second tap. */
+        var empty = W.$('#adm-empty', root), armed = 0;
+        empty.addEventListener('click', function () {
+          if (!W.state.economy.diamonds) return give(root, 0);
+          if (!armed) {
+            armed = setTimeout(disarm, 4000);
+            empty.textContent = 'Tap again to empty';
+            empty.classList.add('is-armed');
+            return;
+          }
+          disarm();
+          give(root, -W.state.economy.diamonds);
+        });
+
+        function disarm() {
+          clearTimeout(armed);
+          armed = 0;
+          empty.textContent = 'Empty the balance';
+          empty.classList.remove('is-armed');
+        }
       }
     });
   }
@@ -201,10 +241,13 @@
     refresh();
 
     W.$('#adm-gems', root).innerHTML = e.diamonds.toLocaleString() + ' 💎';
-    say(root, moved >= 0
-      ? 'Gave ' + moved.toLocaleString() + '. Balance ' + e.diamonds.toLocaleString() + '.'
-      : 'Took ' + Math.abs(moved).toLocaleString() + '. Balance ' + e.diamonds.toLocaleString() + '.');
+    say(root, moved === 0
+      ? 'Nothing to take — the balance is already 0.'
+      : moved > 0
+        ? 'Gave ' + moved.toLocaleString() + '. Balance ' + e.diamonds.toLocaleString() + '.'
+        : 'Took ' + Math.abs(moved).toLocaleString() + '. Balance ' + e.diamonds.toLocaleString() + '.');
     if (moved > 0) { W.Sound.gem(); W.confetti({ count: 26, power: 150 }); }
+    else if (moved < 0) W.Sound.flip();
   }
 
   function say(root, text, bad) {
