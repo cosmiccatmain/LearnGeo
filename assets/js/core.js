@@ -48,6 +48,24 @@
     inbox:  svg('<path d="M3 12h5l2 3h4l2-3h5"/><path d="M5 5h14l2 7v7H3v-7z"/>')
   };
 
+  /* The verified seal. Solid rather than line art, because it has to read as
+     a stamp next to a name at 14px rather than as another button. Granted
+     from the admin panel; nothing in the app awards it on its own. */
+  var VERIFIED_SEAL =
+    'M12 1L14.43 2.92L17.5 2.47L18.65 5.35L21.53 6.5L21.08 9.57L23 12L21.08 14.43' +
+    'L21.53 17.5L18.65 18.65L17.5 21.53L14.43 21.08L12 23L9.57 21.08L6.5 21.53' +
+    'L5.35 18.65L2.47 17.5L2.92 14.43L1 12L2.92 9.57L2.47 6.5L5.35 5.35L6.5 2.47L9.57 2.92Z';
+
+  function verifiedMark(profile, size) {
+    if (!profile || !profile.verified) return '';
+    var s = size || 14;
+    return '<svg class="verified" width="' + s + '" height="' + s + '" viewBox="0 0 24 24" ' +
+      'role="img" aria-label="Verified"><title>Verified</title>' +
+      '<path fill="currentColor" d="' + VERIFIED_SEAL + '"/>' +
+      '<path d="m8.2 12.4 2.5 2.5 5.1-5.4" fill="none" stroke="#fff" stroke-width="2.3" ' +
+      'stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  }
+
   /* ============================= STORAGE ============================
      Guests save under one key. A signed-in account keeps a local copy under
      its own key (so a shared computer never mixes two people's progress) and
@@ -73,7 +91,8 @@
         nameplate: 'none',
         banner: 'plain',
         theme: 'default',
-        status: 'online'
+        status: 'online',
+        verified: false        /* granted from the admin panel, never earned */
       },
       owned: {
         avatars: ['globe', 'map', 'compass', 'mountain'],
@@ -671,7 +690,8 @@
     Sound: Sound,
     confetti: confetti, floatGain: floatGain, burstFrom: burstFrom, toast: toast,
     diamondRain: diamondRain, celebrateGoal: celebrateGoal,
-    gem: gem, escapeHtml: escapeHtml, normalise: normalise, matches: matches, tight: tight,
+    gem: gem, verifiedMark: verifiedMark,
+    escapeHtml: escapeHtml, normalise: normalise, matches: matches, tight: tight,
     shuffle: shuffle, sample: sample, pick: pick,
     el: el, $: $, $$: $$, fmtTime: fmtTime, avatarHtml: avatarHtml
   };

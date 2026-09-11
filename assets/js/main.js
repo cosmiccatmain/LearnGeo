@@ -74,13 +74,30 @@
        copying six characters off a board. It carries the class code and
        nothing else, and it lands on the join screen with it filled in. */
     var join = param('join').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
-    if (!role && !view && !join) return;
+    /* ?admin takes no value, so presence is the whole flag */
+    var admin = /[?&]admin(=|&|$)/.test(global.location.search);
+    if (!role && !view && !join && !admin) return;
 
     /* the query has done its job; a refresh should not replay it */
     if (global.history && global.history.replaceState) {
       global.history.replaceState({}, '', global.location.pathname);
     }
 
+    route(role, view, join);
+    if (admin) openAdmin();
+  }
+
+  /* The panel edits this device's save, so the app has to be in front of it:
+     the balance it changes lives in the HUD and the name it stamps is on the
+     home screen. */
+  function openAdmin() {
+    if (!global.Admin) return;
+    var app = document.getElementById('app');
+    if (app && !app.classList.contains('is-open')) global.UI.showApp('portal');
+    setTimeout(global.Admin.open, 60);
+  }
+
+  function route(role, view, join) {
     if (role && !W.accountId()) {
       W.state.role = role === 'teacher' ? 'teacher' : 'student';
       W.state.roleChosen = true;

@@ -2176,3 +2176,63 @@ textarea.input:focus { outline: none; border-color: var(--accent); box-shadow: 0
 @media (prefers-reduced-motion: reduce) {
   .ring__arc { transition: opacity .2s, stroke-width .2s; }
 }
+
+/* ==================================================================
+   ADMIN — the number pad and the grant panel
+   ================================================================== */
+.pad-dots {
+  display: flex; justify-content: center; gap: 14px; margin-bottom: 22px;
+}
+.pad-dots i {
+  width: 13px; height: 13px; border-radius: 50%; display: block;
+  border: 1.5px solid var(--line); background: var(--white);
+  transition: background .12s, border-color .12s, transform .12s var(--spring);
+}
+.pad-dots i.is-on { background: var(--ink); border-color: var(--ink); transform: scale(1.12); }
+.pad-dots.is-wrong { animation: padShake .4s var(--ease); }
+.pad-dots.is-wrong i { border-color: var(--danger); background: var(--danger-soft); }
+@keyframes padShake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-7px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(3px); }
+}
+
+.pad {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+  max-width: 292px; margin: 0 auto;
+}
+.pad__key {
+  height: 58px; border: 1px solid var(--line); border-radius: 14px;
+  background: var(--white); font-family: var(--mono);
+  font-size: 21px; font-weight: 600; letter-spacing: -.02em; color: var(--ink);
+  display: grid; place-items: center;
+  transition: background .12s, border-color .12s, transform .08s;
+}
+.pad__key:hover { background: var(--paper); border-color: #C9CFD9; }
+.pad__key:active { transform: scale(.94); background: var(--line-soft); }
+.pad__key--soft { font-family: var(--sans); font-size: 13px; font-weight: 550; color: var(--muted); }
+.pad__key--soft svg { width: 18px; height: 18px; }
+.pad-err {
+  min-height: 20px; margin-top: 14px; text-align: center;
+  font-size: 13px; font-weight: 560; color: var(--danger);
+}
+
+.adm-who {
+  display: flex; align-items: center; gap: 13px;
+  padding: 14px 16px; border: 1px solid var(--line); border-radius: 14px;
+  background: var(--paper);
+}
+.adm-who b { display: flex; align-items: center; gap: 6px; font-size: 15px; font-weight: 600; }
+.adm-who span { display: block; font-size: 12.5px; color: var(--muted); }
+.adm-grants { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.adm-grants .mini-btn { height: 38px; font-size: 13.5px; font-family: var(--mono); }
+@media (max-width: 560px) { .adm-grants { grid-template-columns: 1fr 1fr; } }
+
+/* the verified seal, wherever a name is shown */
+.verified {
+  display: inline-block; vertical-align: -.12em; margin-left: .28em;
+  color: var(--accent); flex: none;
+}
+.home-hero__hello h1 .verified { vertical-align: -.06em; }

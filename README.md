@@ -180,6 +180,7 @@ assets/js/assignments.js        suggestions, share codes, handing in work
 assets/js/cloud.js              Supabase accounts, save sync, online classes
 assets/js/ui.js                 shell, profile menu, sign in, settings, customization, shop
 assets/js/portal.js             study center home screen, built around the map
+assets/js/admin.js              ?admin panel: grants the verified seal and diamonds
 assets/js/teacher.js            teacher view: stream, classwork, people, analytics
 assets/js/classroom.js          student Classroom tab
 assets/js/mode-learn.js         Learn

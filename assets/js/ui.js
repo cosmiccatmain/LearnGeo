@@ -183,7 +183,8 @@
       '<div class="menu__head">' +
         '<div style="width:40px;height:40px;flex:none">' + W.avatarHtml(s.profile) + '</div>' +
         '<div class="grow" style="min-width:0">' +
-          '<div class="menu__name">' + W.escapeHtml(s.profile.displayName || 'Explorer') + '</div>' +
+          '<div class="menu__name">' + W.escapeHtml(s.profile.displayName || 'Explorer') +
+            W.verifiedMark(s.profile, 13) + '</div>' +
           '<div class="menu__meta">Lv ' + s.economy.level + ' · ' + lp.have + '/' + lp.need + ' XP · ' +
             s.economy.diamonds.toLocaleString() + ' 💎</div>' +
         '</div>' +
@@ -680,7 +681,7 @@
       '<div class="profile-card__body">' +
         '<div class="profile-card__avatar">' + W.avatarHtml(p) + '</div>' +
         '<div class="profile-card__name" style="background:' + plate.css + ';color:' + plate.text + '">' +
-          W.escapeHtml(name) + '</div>' +
+          W.escapeHtml(name) + W.verifiedMark(p, 15) + '</div>' +
         '<div class="profile-card__tag">Level ' + s.economy.level + ' · ' + s.economy.diamonds.toLocaleString() + ' 💎</div>' +
         (pron ? '<div class="profile-card__pronouns">' + W.escapeHtml(pron) + '</div>' : '') +
         (about ? '<div class="profile-card__about">' + W.escapeHtml(about) + '</div>' : '') +
