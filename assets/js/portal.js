@@ -12,16 +12,16 @@
 
   var MODES = [
     { view: 'learn', icon: I.book, title: 'Learn',
-      blurb: 'Answer, find out straight away, keep going. The map shades the country as soon as you commit.',
+      blurb: 'You find out right away if you got it, then move on to the next one. The map shades the country as soon as you answer.',
       meta: 'Weakest-first · 4 question types' },
     { view: 'test', icon: I.clip, title: 'Practice test',
-      blurb: 'Sit a whole section and get it marked. Flag anything you want to come back to.',
+      blurb: 'Do a whole section and get a score at the end. You can flag questions to come back to later.',
       meta: '10 – 75 questions · timed' },
     { view: 'quiz', icon: I.target, title: 'Class quiz',
-      blurb: 'The paper map quiz. A country lights up, you click it and write its name and capital from memory.',
+      blurb: 'Works like the paper map quiz from class. A country lights up, you click it, then write its name and capital from memory.',
       meta: 'Two marks each · no multiple choice' },
     { view: 'cards', icon: I.cards, title: 'Flashcards',
-      blurb: 'Two-sided cards that keep score of themselves. Shaky ones come round again before you finish.',
+      blurb: 'Flip cards that keep track of how you’re doing. The ones you’re unsure about come back again before you finish.',
       meta: 'Both directions · 10 – 100 cards' }
   ];
 
@@ -39,6 +39,7 @@
   function render() {
     var host = document.getElementById('view-portal');
     if (!host) return;
+    if (global.Classroom) global.Classroom.syncSoon();   /* new classwork, when signed in */
     var s = W.state, st = s.stats;
     var mastered = W.masteredCount();
     var total = global.GeoData.counts.total;
@@ -137,8 +138,8 @@
       return 'Nothing on the map yet. Every country you learn fills in below.';
     }
     var acc = Math.round((st.correct / st.answered) * 100);
-    return st.answered.toLocaleString() + ' questions answered · ' + acc + '% accuracy · ' +
-      (total - mastered) + ' places still to go.';
+    return 'You’ve answered ' + st.answered.toLocaleString() + ' questions with ' + acc +
+      '% accuracy. ' + (total - mastered) + ' places still to go.';
   }
 
   /* =============================== rail ============================= */
@@ -205,12 +206,13 @@
       '<div class="row row--between" style="margin-bottom:14px">' +
         '<div><span class="eyebrow">Assignments</span>' +
           '<div class="t-sm t-muted" style="margin-top:4px">' +
-            (box.length ? open.length + ' still to do of ' + box.length
+            (box.length ? open.length + ' of ' + box.length + ' still to do'
                         : 'Nothing set yet. It shows up here when your teacher sends it.') +
           '</div></div>' +
         '<div class="row" style="gap:8px">' +
           '<button class="btn btn--ghost btn--sm" id="portal-openclass">Open Classroom</button>' +
-          '<button class="btn btn--primary btn--sm" id="portal-add">' + I.plus + ' Add assignment</button>' +
+          '<button class="btn btn--primary btn--sm" id="portal-add">' + I.plus +
+            (W.state.enrolled ? ' Add assignment' : ' Join a class') + '</button>' +
         '</div>' +
       '</div>' +
       (box.length
@@ -277,7 +279,10 @@
       b.addEventListener('click', function () { global.UI.go(b.dataset.view); });
     });
 
-    bind('portal-add', global.Classroom.openAdd);
+    bind('portal-add', function () {
+      if (W.state.enrolled) global.Classroom.openAdd();
+      else global.UI.go('classroom');
+    });
     bind('portal-openclass', function () { global.UI.go('classroom'); });
     bind('portal-join', function () { global.UI.go('classroom'); });
     bind('portal-ach', global.UI.openAchievements);

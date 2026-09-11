@@ -1,15 +1,15 @@
 /* ------------------------------------------------------------------
    LearnGeo — bootstrap: landing wiring and routing.
 
-   There are no accounts. Everything — progress, diamonds, purchases,
-   settings — lives in this browser's localStorage under one key, so the
-   app opens straight into study with nothing to sign into.
+   Accounts are optional. A guest's progress lives in this browser's
+   localStorage, so the app opens straight into study with nothing to sign
+   into; signing in (cloud.js) mirrors the same save to Supabase.
 
-   Which of the two landing pages someone came from is what decides
-   whether they get the student screens or teacher mode. index.html is
-   the student page, so every button on it says "student"; teachers.html
-   links in with ?role=teacher. The first-run question is only asked of
-   someone who reached the app without passing either.
+   There are two landing pages. index.html is the student one and carries
+   the app shell; teachers.html is marketing only and links in here with
+   ?role=teacher. A guest arriving that way has said which they are, so
+   the first-run question stays out of their way. A signed-in account
+   carries its own role and the URL is not allowed to override it.
 -------------------------------------------------------------------*/
 (function (global) {
   'use strict';
@@ -18,12 +18,6 @@
   function param(name) {
     var m = new RegExp('[?&]' + name + '=([^&]*)').exec(global.location.search);
     return m ? decodeURIComponent(m[1].replace(/\+/g, ' ')) : '';
-  }
-
-  function setRole(role) {
-    W.state.role = role === 'teacher' ? 'teacher' : 'student';
-    W.state.roleChosen = true;
-    W.saveNow();
   }
 
   function init() {
@@ -35,23 +29,21 @@
 
     /* ---- every landing CTA opens the app directly ---- */
     W.$$('[data-launch]').forEach(function (b) {
-      b.addEventListener('click', function () {
-        setRole('student');                    /* this is the student page */
-        global.UI.showApp(b.dataset.launch);
-      });
+      b.addEventListener('click', function () { global.UI.showApp(b.dataset.launch); });
     });
 
     /* ---- "continue" only means anything once there is progress ---- */
     var cont = document.getElementById('nav-continue');
-    if (cont) {
-      var s = W.state;
-      var resumable = s.stats.answered > 0 || s.economy.level > 1;
-      cont.classList.toggle('hidden', !resumable);
-      cont.textContent = resumable
-        ? 'Continue · Lv ' + s.economy.level
-        : 'Continue';
-      cont.addEventListener('click', function () { global.UI.showApp('portal'); });
-    }
+    if (cont) cont.addEventListener('click', function () { global.UI.showApp('portal'); });
+
+    /* ---- accounts are optional: guests carry on exactly as before ---- */
+    var signin = document.getElementById('nav-signin');
+    if (signin) signin.addEventListener('click', function () {
+      if (global.Cloud && global.Cloud.signedIn) global.UI.showApp('portal');
+      else global.UI.openAuth('signin');
+    });
+    global.UI.refreshLanding();
+    if (global.Cloud) global.Cloud.init();
 
     global.UI.watchTabs();
 
@@ -73,7 +65,9 @@
     window.addEventListener('resize', function () { global.GeoMap.invalidate(); });
   }
 
-  /* ---- teachers.html and the join links hand the role over in the URL ---- */
+  /* ---- teachers.html hands the role over in the URL ----
+     An account's role is its own business, so a save that belongs to one is
+     left alone: the link can open a view but never change who you are. */
   function openFromUrl() {
     var role = param('role'), view = param('view');
     if (!role && !view) return;
@@ -83,9 +77,14 @@
       global.history.replaceState({}, '', global.location.pathname);
     }
 
-    if (role) setRole(role);
-    if (role === 'teacher') {
-      global.UI.showApp('portal');
+    if (role && !W.accountId()) {
+      W.state.role = role === 'teacher' ? 'teacher' : 'student';
+      W.state.roleChosen = true;
+      W.saveNow();
+    }
+
+    if (W.state.role === 'teacher') {
+      global.UI.showApp('teacher');
       global.Teacher.becomeTeacher();
       return;
     }
@@ -93,9 +92,9 @@
   }
 
   /* ---- the two maps on the landing page ----
-     The outlines are 1.3 MB, which is not worth spending on a visitor who
-     never scrolls that far, so neither map is drawn until it is about to
-     come into view. */
+     The outlines are a megabyte, which is not worth spending on a visitor
+     who never scrolls that far, so neither map is drawn until it is about
+     to come into view. */
   function landingMaps() {
     draw('landing-map', { mode: 'sample', label: 'A world map with most of the Americas and Europe filled in' });
     draw('learn-shot-map', {

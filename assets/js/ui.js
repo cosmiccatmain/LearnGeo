@@ -188,13 +188,21 @@
             s.economy.diamonds.toLocaleString() + ' 💎</div>' +
         '</div>' +
       '</div>' +
+      acctBlock() +
       item('settings', I.gear, 'Settings') +
       item('custom', I.palette, 'Customization') +
       item('achievements', I.trophy, 'Achievements') +
       '<div class="menu__sep"></div>' +
+      (signedIn()
+        ? item('signout', I.logout, 'Sign out')
+        : item('signin', I.user, 'Sign in or create account')) +
       '<div class="menu__note">' + I.shield +
-        '<span>Saved in this browser<br><i>' + s.stats.answered.toLocaleString() +
-        ' answers · no account needed</i></span></div>';
+        (signedIn()
+          ? '<span>Saved to your account<br><i>' + s.stats.answered.toLocaleString() +
+            ' answers, on any device you sign in on</i></span>'
+          : '<span>Saved in this browser<br><i>' + s.stats.answered.toLocaleString() +
+            ' answers. Sign in to use them on other devices</i></span>') +
+      '</div>';
 
     document.querySelector('.topbar').appendChild(menuEl);
     setTimeout(function () { document.addEventListener('mousedown', outside); }, 0);
@@ -206,6 +214,8 @@
         if (go === 'settings') openSettings();
         else if (go === 'custom') openCustomization();
         else if (go === 'achievements') openAchievements();
+        else if (go === 'signin') openAuth('signin');
+        else if (go === 'signout') signOut();
       });
     });
 
@@ -238,26 +248,26 @@
 
     var general =
       '<div data-panel="general">' +
-        row('Sound effects', 'Short synthesised tones on every answer.', sw('set-sound', s.sound)) +
-        row('Reward animations', 'Confetti bursts, floating XP and profile effects.', sw('set-effects', s.effects)) +
-        row('Show capital pins in Learn', 'Drop the pin as soon as a question is answered.', sw('set-pins', s.showCapitalPins)) +
+        row('Sound effects', 'Plays a little sound when you answer.', sw('set-sound', s.sound)) +
+        row('Reward animations', 'Shows confetti, floating XP and profile effects.', sw('set-effects', s.effects)) +
+        row('Show capital pins in Learn', 'Puts a pin on the capital as soon as you answer.', sw('set-pins', s.showCapitalPins)) +
         '<div class="divider"></div>' +
         '<div class="field"><label class="field__label">Daily goal</label>' +
           '<div class="seg" id="set-goal">' +
             ['10', '20', '40', '75'].map(function (n) {
               return '<button data-v="' + n + '" class="' + (String(W.state.daily.goal) === n ? 'is-active' : '') + '">' + n + '</button>';
             }).join('') +
-          '</div><div class="field__hint">Questions per day. Hitting it extends your day streak.</div></div>' +
+          '</div><div class="field__hint">How many questions you want to do each day. Hit it to add a day to your streak.</div></div>' +
       '</div>';
 
     var mapPanel =
       '<div data-panel="map" class="hidden">' +
         '<div class="feedback" style="background:var(--accent-soft);margin:0 0 18px">' + I.info +
           '<div><b style="color:var(--accent-ink)">About the OpenStreetMap key</b>' +
-          '<p>OpenStreetMap’s own tile service is free and needs <b>no API key</b> — that is the default, ' +
-          'and LearnGeo works fully without one. Paste a key below to route the same OpenStreetMap data through ' +
-          'a commercial tile host (CARTO, MapTiler, Thunderforest or Stadia) for higher rate limits and ' +
-          'unwatermarked tiles. Choosing a keyed provider without a key falls back to plain OpenStreetMap.</p></div></div>' +
+          '<p>OpenStreetMap’s own tile service is free and needs <b>no API key</b>. That’s the default, ' +
+          'and LearnGeo works fine without one. If you paste a key below, the same OpenStreetMap data loads through ' +
+          'a paid tile host (CARTO, MapTiler, Thunderforest or Stadia) instead, so you get higher rate limits and ' +
+          'tiles without watermarks. If you pick a provider that needs a key and don’t add one, it just uses plain OpenStreetMap.</p></div></div>' +
 
         '<div class="field"><label class="field__label">Tile provider</label>' +
           '<select class="input" id="set-provider">' +
@@ -268,10 +278,10 @@
           '</select></div>' +
 
         '<div class="field"><label class="field__label">API key</label>' +
-          '<input class="input mono" id="set-key" type="text" spellcheck="false" placeholder="paste key — leave blank for keyless OSM" ' +
+          '<input class="input mono" id="set-key" type="text" spellcheck="false" placeholder="Paste your key, or leave it blank for plain OSM" ' +
             'value="' + W.escapeHtml(s.apiKey) + '">' +
-          '<div class="field__hint">Stored only in this browser’s local storage. If a key-based provider is ' +
-          'selected without a key, LearnGeo falls back to the keyless basemap.</div></div>' +
+          '<div class="field__hint">Your key is only saved in this browser. If you pick a provider that needs a key ' +
+          'and leave this blank, LearnGeo uses the free map instead.</div></div>' +
 
         '<div class="field" id="set-label-warn"></div>' +
 
@@ -285,18 +295,26 @@
     var st = W.state.stats;
     var acc = st.answered ? Math.round((st.correct / st.answered) * 100) : 0;
 
+    var acctRow = signedIn()
+      ? row('Account', 'Signed in as ' + W.escapeHtml(global.Cloud.user.email || '') + '. Your progress saves to your account.',
+            '<button class="btn btn--ghost btn--sm" id="set-signout">Sign out</button>')
+      : row('Account', 'You’re playing as a guest, so your progress only stays in this browser.',
+            '<button class="btn btn--accent btn--sm" id="set-signin">Sign in</button>');
+
     var dataPanel =
       '<div data-panel="data" class="hidden">' +
+        acctRow + '<div class="divider"></div>' +
         '<div class="stats" style="margin:0 0 20px;padding:0;grid-template-columns:repeat(4,1fr);border-top:none">' +
           st4('Answered', st.answered) + st4('Accuracy', acc + '%') +
           st4('Tests', st.tests) + st4('Cards', st.cards) +
         '</div>' +
-        row('Places encountered', seen + ' of ' + global.GeoData.counts.total + ' in the dataset', '') +
-        row('Mastered', strong + ' sitting at box 4 or 5', '') +
+        row('Places you’ve seen', seen + ' of ' + global.GeoData.counts.total + ' total', '') +
+        row('Mastered', strong + ' places at box 4 or 5', '') +
         row('Best answer streak', W.state.streak.best + ' in a row', '') +
         '<div class="divider"></div>' +
         '<div class="setting-row"><div class="setting-row__t">' +
-          '<b>Reset all progress</b><span>Wipes XP, diamonds, mastery, purchases and achievements. Cannot be undone.</span>' +
+          '<b>Reset all progress</b><span>This deletes your XP, diamonds, progress, purchases and achievements' +
+            (signedIn() ? ', here and in your account' : '') + '. You can’t undo it.</span>' +
           '</div><button class="btn btn--ghost btn--sm" id="set-reset" style="color:var(--danger);border-color:#F3C6C6">Reset</button></div>' +
       '</div>';
 
@@ -313,16 +331,19 @@
         W.$$('.switch', root).forEach(function (sw2) {
           sw2.addEventListener('click', function () { sw2.classList.toggle('is-on'); });
         });
+        var so = W.$('#set-signout', root), si = W.$('#set-signin', root);
+        if (so) so.addEventListener('click', function () { close(); signOut(); });
+        if (si) si.addEventListener('click', function () { close(); openAuth('signin'); });
         W.$('#set-reset', root).addEventListener('click', function () {
           modal({
             title: 'Reset everything?', icon: I.info,
-            body: '<p class="t-muted">This clears every diamond, level, purchase and mastery record on this device. ' +
-              'There is no undo.</p>',
+            body: '<p class="t-muted">This clears all your diamonds, levels, purchases and mastery on this device. ' +
+              'You can’t get any of it back.</p>',
             actions: [
               { label: 'Cancel', cls: 'btn--ghost', close: true },
               { label: 'Reset everything', cls: 'btn--primary', close: true, onClick: function () {
                   W.reset(); close(); refreshHud(); global.UI.showLanding();
-                  W.toast('Progress reset', 'Starting from a clean slate', I.refresh);
+                  W.toast('Progress reset', 'Everything’s back to the start', I.refresh);
                 } }
             ]
           });
@@ -347,9 +368,9 @@
         global.GeoMap.applyProvider();
         var p = global.GeoMap.providers[s2.tileProvider];
         if (p && p.needsKey && !s2.apiKey) {
-          W.toast('No key supplied', 'Falling back to the keyless OpenStreetMap basemap', I.info, 4200);
+          W.toast('No key added', 'Using the free OpenStreetMap map instead', I.info, 4200);
         } else {
-          W.toast('Basemap updated', p ? p.label : '', I.pin);
+          W.toast('Map updated', p ? p.label : '', I.pin);
         }
       }
       refreshHud();
@@ -363,8 +384,8 @@
       var keyless = pv && pv.needsKey && !W.$('#set-key', root).value.trim();
       slot.innerHTML = keyless
         ? '<div class="feedback feedback--wrong" style="margin:0">' + I.info +
-          '<div><b>No key supplied</b><p>' + W.escapeHtml(pv.label) + ' needs a key. Until you paste one, ' +
-          'LearnGeo keeps using the free OpenStreetMap basemap.</p></div></div>'
+          '<div><b>No key added</b><p>' + W.escapeHtml(pv.label) + ' needs a key. Until you add one, ' +
+          'LearnGeo will keep using the free OpenStreetMap map.</p></div></div>'
         : '';
     }
 
@@ -402,8 +423,8 @@
           '<div class="row" style="margin-top:14px;gap:6px;justify-content:center">' +
             '<span class="chip chip--gem mono" id="cz-balance">' + W.gem(W.state.economy.diamonds.toLocaleString(), false) + '</span>' +
           '</div>' +
-          '<div class="t-sm t-muted t-center" style="margin-top:10px">Earn diamonds by answering questions, ' +
-            'finishing tests and unlocking achievements.</div>' +
+          '<div class="t-sm t-muted t-center" style="margin-top:10px">You get diamonds for answering questions, ' +
+            'finishing tests and getting achievements.</div>' +
         '</div>' +
       '</div>';
 
@@ -438,7 +459,7 @@
         '<input class="input" id="cz-pronouns" maxlength="24" placeholder="e.g. they/them" value="' + W.escapeHtml(p.pronouns) + '">' +
         '<div class="field__hint">Shown under your name on your profile card.</div></div>' +
       '<div class="field"><label class="field__label">About me</label>' +
-        '<textarea class="input" id="cz-about" maxlength="190" placeholder="A short bio — 190 characters.">' +
+        '<textarea class="input" id="cz-about" maxlength="190" placeholder="A short bio, up to 190 characters">' +
         W.escapeHtml(p.about) + '</textarea>' +
         '<div class="field__hint"><span id="cz-count">' + p.about.length + '</span>/190</div></div>' +
       '<div class="field"><label class="field__label">Status</label>' +
@@ -714,6 +735,224 @@
     modal({ title: 'Achievements', icon: I.trophy, body: body, actions: [{ label: 'Close', cls: 'btn--ghost', close: true }] });
   }
 
+  /* ============================= ACCOUNTS =========================== */
+  function signedIn() { return !!(global.Cloud && global.Cloud.signedIn); }
+  function appOpen() { return document.getElementById('app').classList.contains('is-open'); }
+  var EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+
+  var SYNC_LABEL = { synced: 'Saved to your account', syncing: 'Saving…',
+                     offline: 'Offline, will sync when you’re back', off: 'Signed in' };
+
+  function acctBlock() {
+    if (!signedIn()) return '';
+    var C = global.Cloud;
+    return '<div class="menu__acct"><span class="sync-dot sync-dot--' + C.status + '" data-sync-dot></span>' +
+      '<div><b>' + W.escapeHtml(C.user.email || 'Signed in') + '</b>' +
+      '<span data-sync-label>' + SYNC_LABEL[C.status] + '</span></div></div>';
+  }
+
+  /* every sync dot on screen follows the account's save status */
+  function paintSync(status) {
+    W.$$('[data-sync-dot]').forEach(function (d) { d.className = 'sync-dot sync-dot--' + status; });
+    W.$$('[data-sync-label]').forEach(function (l) { l.textContent = SYNC_LABEL[status] || ''; });
+  }
+  if (global.Cloud) global.Cloud.onChange(paintSync);
+
+  function signOut() {
+    global.Cloud.signOut().then(function () {
+      W.toast('Signed out', 'You’re back on the guest profile for this device', I.logout);
+    });
+  }
+
+  function authMsg(root, kind, title, text) {
+    var slot = W.$('#au-msg', root);
+    if (!slot) return;
+    slot.innerHTML = '<div class="feedback feedback--' + kind + '" style="margin:0 0 14px">' +
+      (kind === 'right' ? I.check : I.info) +
+      '<div><b>' + W.escapeHtml(title) + '</b>' + (text ? '<p>' + W.escapeHtml(text) + '</p>' : '') +
+      '</div></div>';
+  }
+
+  function openAuth(mode) {
+    var C = global.Cloud;
+    if (!C || !C.available) {
+      W.toast('Accounts aren’t working right now', 'Sign-in didn’t load. Check your internet and refresh the page.', I.info, 4600);
+      return;
+    }
+    if (C.signedIn) { W.toast('Already signed in', C.user.email || '', I.check); return; }
+
+    var signup = mode === 'signup';
+    var p = W.state.profile;
+    var label = signup ? 'Create account' : 'Sign in';
+    var busy = false;
+
+    function perk(t) { return '<div>' + I.check + '<span>' + t + '</span></div>'; }
+
+    var body =
+      (signup
+        ? '<div class="auth-perks">' +
+            perk('Your progress saves to your account, so you can pick up on any device') +
+            perk('Join a class with the class code') +
+            perk('Your scores get sent to your teacher automatically') +
+          '</div>' +
+          '<div class="field"><label class="field__label" for="au-name">Your name</label>' +
+            '<input class="input" id="au-name" maxlength="40" autocomplete="name" placeholder="First and last name" ' +
+            'value="' + W.escapeHtml(p.displayName === 'Explorer' ? '' : p.displayName) + '">' +
+            '<div class="field__hint">Teachers see this next to your scores.</div></div>'
+        : '') +
+      '<div class="field"><label class="field__label" for="au-email">Email</label>' +
+        '<input class="input" id="au-email" type="email" autocomplete="email" spellcheck="false" ' +
+        'placeholder="you@example.com"></div>' +
+      '<div class="field"><label class="field__label" for="au-pass">Password</label>' +
+        '<input class="input" id="au-pass" type="password" autocomplete="' +
+        (signup ? 'new-password" placeholder="At least 6 characters"' : 'current-password"') + '></div>' +
+      (signup
+        ? '<div class="field"><label class="field__label">I’m a</label><div class="seg" id="au-role">' +
+            '<button data-v="student" class="' + (W.state.role !== 'teacher' ? 'is-active' : '') + '">Student</button>' +
+            '<button data-v="teacher" class="' + (W.state.role === 'teacher' ? 'is-active' : '') + '">Teacher</button>' +
+          '</div></div>'
+        : '') +
+      '<div id="au-msg"></div>' +
+      '<div class="auth-switch">' +
+        (signup
+          ? 'Already have an account? <button data-switch="signin">Sign in</button>'
+          : 'New here? <button data-switch="signup">Create an account</button> · ' +
+            '<button data-forgot>Forgot password?</button>') +
+      '</div>';
+
+    var dlg = modal({
+      title: signup ? 'Create your account' : 'Sign in', icon: I.user, body: body,
+      actions: [{ label: label, cls: 'btn--accent', onClick: function (root) { submit(root); return false; } }],
+      onMount: function (root, close) {
+        wireSeg(root);
+        W.$$('[data-switch]', root).forEach(function (b) {
+          b.addEventListener('click', function () { close(); openAuth(b.dataset.switch); });
+        });
+        var fg = W.$('[data-forgot]', root);
+        if (fg) fg.addEventListener('click', function () { forgot(root); });
+        W.$$('input', root).forEach(function (inp) {
+          inp.addEventListener('keydown', function (e) { if (e.key === 'Enter') submit(root); });
+        });
+        setTimeout(function () {
+          var f = W.$(signup ? '#au-name' : '#au-email', root);
+          if (f) f.focus();
+        }, 60);
+      },
+      onClose: function () {
+        /* backing out of sign-in on a first visit still needs a role */
+        setTimeout(function () { if (appOpen() && !W.state.roleChosen && !signedIn()) askRole(); }, 0);
+      }
+    });
+
+    function setBusy(root, on, text) {
+      busy = on;
+      var b = root.querySelector('.modal__foot .btn--accent');
+      if (b) { b.disabled = on; b.textContent = text; }
+    }
+
+    function done(msg) {
+      dlg.close();
+      W.toast(msg, '', I.check);
+      if (!appOpen()) showApp('portal');
+    }
+
+    function submit(root) {
+      if (busy) return;
+      var email = W.$('#au-email', root).value.trim();
+      var pass = W.$('#au-pass', root).value;
+      if (!EMAIL_RE.test(email)) return authMsg(root, 'wrong', 'Check your email address');
+      if (pass.length < 6) return authMsg(root, 'wrong', 'Password too short', 'Use at least 6 characters.');
+
+      if (!signup) {
+        setBusy(root, true, 'Signing in…');
+        C.signIn(email, pass).then(function () { done('Signed in as ' + email); }, function (e) {
+          setBusy(root, false, label);
+          authMsg(root, 'wrong', 'Couldn’t sign in', C.friendly(e));
+        });
+        return;
+      }
+
+      var name = W.$('#au-name', root).value.trim();
+      if (!name) return authMsg(root, 'wrong', 'Add your name', 'Teachers see it next to your scores.');
+      var roleBtn = W.$('#au-role .is-active', root);
+      setBusy(root, true, 'Creating account…');
+      C.signUp(email, pass, name, roleBtn ? roleBtn.dataset.v : 'student').then(function (res) {
+        if (!res.needsConfirm) return done('Account created. You’re signed in as ' + email);
+        /* the project asks for email confirmation before the first sign-in */
+        W.$('.modal__body', root).innerHTML =
+          '<div class="t-center" style="padding:14px 6px">' +
+            '<div class="levelup__ring" style="margin:0 auto 14px;background:linear-gradient(135deg,var(--success),#34D399)">' +
+              I.check + '</div>' +
+            '<h3 style="font-size:19px">Check your inbox</h3>' +
+            '<p class="t-muted" style="margin-top:8px">We sent a confirmation link to <b>' + W.escapeHtml(email) +
+              '</b>. Open it on this device and you’ll be signed in.</p>' +
+          '</div>';
+        var foot = root.querySelector('.modal__foot');
+        if (foot) {
+          foot.innerHTML = '<div class="grow"></div><button class="btn btn--primary">Done</button>';
+          foot.querySelector('button').addEventListener('click', dlg.close);
+        }
+      }, function (e) {
+        setBusy(root, false, label);
+        authMsg(root, 'wrong', 'Couldn’t create your account', C.friendly(e));
+      });
+    }
+
+    function forgot(root) {
+      var email = W.$('#au-email', root).value.trim();
+      if (!EMAIL_RE.test(email)) return authMsg(root, 'wrong', 'Type your email first', 'Then press Forgot password again.');
+      C.resetPassword(email).then(function () {
+        authMsg(root, 'right', 'Check your inbox',
+          'If there’s an account for ' + email + ', we’ve sent it a link to set a new password.');
+      }, function (e) { authMsg(root, 'wrong', 'Couldn’t send the link', C.friendly(e)); });
+    }
+  }
+
+  /* Arrived from a password-reset email. */
+  function openNewPassword() {
+    var C = global.Cloud;
+    modal({
+      title: 'Set a new password', icon: I.key,
+      body: '<div class="field"><label class="field__label" for="np-pass">New password</label>' +
+        '<input class="input" id="np-pass" type="password" autocomplete="new-password" ' +
+        'placeholder="At least 6 characters"></div><div id="au-msg"></div>',
+      actions: [{ label: 'Save password', cls: 'btn--accent', onClick: function (root, close) {
+        var v = W.$('#np-pass', root).value;
+        if (v.length < 6) { authMsg(root, 'wrong', 'Password too short', 'Use at least 6 characters.'); return false; }
+        C.updatePassword(v).then(function () { close(); W.toast('Password updated', '', I.check); },
+          function (e) { authMsg(root, 'wrong', 'Couldn’t save it', C.friendly(e)); });
+        return false;
+      } }]
+    });
+  }
+
+  function refreshLanding() {
+    var s = W.state;
+    var cont = document.getElementById('nav-continue');
+    if (cont) {
+      var resumable = s.stats.answered > 0 || s.economy.level > 1;
+      cont.classList.toggle('hidden', !resumable);
+      cont.textContent = resumable ? 'Continue · Lv ' + s.economy.level : 'Continue';
+    }
+    var si = document.getElementById('nav-signin');
+    if (si) si.textContent = signedIn() ? (s.profile.displayName || 'My account') : 'Sign in';
+  }
+
+  /* Someone signed in or out, or the account's copy replaced this one:
+     redraw everything that reads the save. */
+  function afterAccountChange() {
+    closeMenu();
+    refreshLanding();
+    refreshTabs();
+    refreshHud();
+    if (global.Teacher && global.Teacher.forget) global.Teacher.forget();
+    if (global.Classroom && global.Classroom.forget) global.Classroom.forget();
+    if (appOpen()) {
+      go(currentView);
+      if (!W.state.roleChosen) askRole();
+    }
+  }
+
   /* ============================ NAVIGATION ========================== */
   var VIEWS = ['portal', 'classroom', 'teacher', 'learn', 'test', 'quiz', 'cards'];
 
@@ -819,6 +1058,13 @@
     if (isTeacher && !previewing && ['portal', 'learn', 'test', 'quiz', 'cards'].indexOf(view) !== -1) {
       view = 'teacher';
     }
+    /* heading back to the class by any route ends a preview */
+    if (view === 'teacher' && previewing) {
+      previewing = false;
+      var bar = document.getElementById('preview-bar');
+      if (bar) bar.classList.add('hidden');
+      document.body.classList.remove('is-previewing');
+    }
 
     currentView = view;
     VIEWS.forEach(function (v) {
@@ -849,8 +1095,9 @@
   /* Asked once, the first time someone opens the app. Students never see
      teacher mode after this, and teachers land straight in their class. */
   function askRole(then) {
+    if (document.querySelector('.role-pick')) return;   /* already on screen */
     modal({
-      title: 'Who is using LearnGeo?',
+      title: 'Who’s using LearnGeo?',
       icon: I.users,
       dismissible: false,
       body: '<p class="t-muted" style="margin-bottom:16px">This just decides which screens you get. ' +
@@ -858,16 +1105,21 @@
             '<div class="role-pick">' +
               '<button class="role-opt" data-role="student">' +
                 '<span class="role-opt__i">' + I.book + '</span>' +
-                '<b>I am a student</b>' +
-                '<span>Study, and pick up assignments your teacher sets.</span>' +
+                '<b>I’m a student</b>' +
+                '<span>Study and do the assignments your teacher gives you.</span>' +
               '</button>' +
               '<button class="role-opt" data-role="teacher">' +
                 '<span class="role-opt__i">' + I.users + '</span>' +
-                '<b>I am a teacher</b>' +
-                '<span>Set work for a class, collect it back and see how they did.</span>' +
+                '<b>I’m a teacher</b>' +
+                '<span>Give your class assignments, get their results back and see how everyone did.</span>' +
               '</button>' +
-            '</div>',
+            '</div>' +
+            (global.Cloud && global.Cloud.available && !signedIn()
+              ? '<div class="auth-switch">Already have an account? <button data-signin>Sign in</button></div>'
+              : ''),
       onMount: function (root, close) {
+        var si = W.$('[data-signin]', root);
+        if (si) si.addEventListener('click', function () { close(); openAuth('signin'); });
         W.$$('[data-role]', root).forEach(function (b) {
           b.addEventListener('click', function () {
             W.state.role = b.dataset.role;
@@ -910,6 +1162,8 @@
     go: go, showApp: showApp, showLanding: showLanding,
     positionThumb: positionThumb, watchTabs: watchTabs, refreshTabs: refreshTabs,
     askRole: askRole, startPreview: startPreview, endPreview: endPreview,
+    openAuth: openAuth, openNewPassword: openNewPassword,
+    afterAccountChange: afterAccountChange, refreshLanding: refreshLanding,
     get previewing() { return previewing; }
   };
 })(window);

@@ -13,6 +13,8 @@
   };
   var q = null, answered = false, session = { asked: 0, right: 0 };
   var pinRefs = [];
+  var last = null;                 /* how the current question was answered, for redrawing it */
+  var job = null, jobDone = null;  /* classwork in progress, and its hand-in once finished */
 
   function root() { return document.getElementById('learn-body'); }
 
@@ -23,8 +25,7 @@
   }
 
   function next() {
-    answered = false;
-    pinRefs = [];
+    answered = false; last = null; jobDone = null;
     var list = global.Quiz.pool({ regions: cfg.regions, scope: cfg.scope, countries: cfg.countries, weakFirst: cfg.weakFirst });
     if (!list.length) list = global.Quiz.pool({ scope: 'all' });
 
@@ -33,7 +34,9 @@
     var target = W.pick(cfg.weakFirst ? head : list);
     var type = W.pick(cfg.types.length ? cfg.types : ['capital']);
 
-    q = global.Quiz.make(type, target, list, {
+    /* a short hand-picked list cannot supply three wrong answers on its own */
+    var choicesFrom = list.length >= 5 ? list : global.Quiz.pool({ scope: 'all' });
+    q = global.Quiz.make(type, target, choicesFrom, {
       typed: cfg.typed && (type === 'capital' || type === 'country')
     });
     render();
@@ -43,11 +46,11 @@
   /* ------------------------------- map ------------------------------ */
   function paintMap() {
     var host = document.getElementById('map');
-    if (!host || !global.GeoMap.ensure(host)) return;
+    if (!q || !host || !global.GeoMap.ensure(host)) return;
     global.GeoMap.clear();
+    pinRefs = [];
 
     if (q.type === 'locate') {
-      /* whole countries are the targets now, not pins */
       q.mapChoices.forEach(function (c) {
         var layer = global.GeoMap.drawCountry(c, 'choice', function (country) { pickCountry(country); });
         pinRefs.push({ country: c, layer: layer });
@@ -55,15 +58,28 @@
       global.GeoMap.fitAll(q.mapChoices, 80);
       setHint('Click the country you think it is');
     } else if (q.type === 'identify') {
-      var l = global.GeoMap.drawCountry(q.country, 'target');
-      pinRefs.push({ country: q.country, layer: l });
+      global.GeoMap.drawCountry(q.country, 'target');
       global.GeoMap.frame(q.country, 90);
       setHint('Which country is shaded?');
+    } else if (q.type === 'capital') {
+      /* the question already names the country, so shade and label it;
+         the blur keeps its capital from being read off the tiles */
+      global.GeoMap.drawCountry(q.country, 'target');
+      global.GeoMap.label(q.country, q.country.name);
+      global.GeoMap.frame(q.country, 90);
+      setHint('Answer in the sidebar');
     } else {
-      setHint('Answer in the sidebar — the map shows you where');
+      setHint('Answer in the sidebar. The map shows where it is once you answer');
       global.GeoMap.reset();
     }
     setBadge('');
+    global.GeoMap.setGuard(true);
+
+    /* coming back to a question already answered: put the answer back */
+    if (answered && last) {
+      if (q.type === 'locate') markChoices(last.picked);
+      revealOnMap();
+    }
   }
 
   function setHint(text) {
@@ -87,6 +103,7 @@
 
   function revealOnMap() {
     var c = q.country;
+    global.GeoMap.setGuard(false);     /* answered: the map is for learning now */
     if (q.type !== 'locate') {
       global.GeoMap.clear();
       global.GeoMap.drawCountry(c, 'right', null, c.name);
@@ -98,21 +115,15 @@
   }
 
   /* ---------------------------- answering --------------------------- */
-  function pickCountry(country) {
-    if (answered || q.type !== 'locate') return;
-    var correct = country.name === q.country.name;
+  function markChoices(picked) {
     pinRefs.forEach(function (p) {
       if (p.country.name === q.country.name) global.GeoMap.setCountryState(p.layer, 'right');
-      else if (p.country.name === country.name) global.GeoMap.setCountryState(p.layer, 'wrong');
+      else if (p.country.name === picked) global.GeoMap.setCountryState(p.layer, 'wrong');
       else global.GeoMap.setCountryState(p.layer, 'dim');
     });
-    resolve(correct, country.name, document.querySelector('#view-learn .map-pane'));
   }
 
-  function pickOption(idx, node) {
-    if (answered) return;
-    var choice = q.choices[idx];
-    resolve(choice.correct, choice.text, node);
+  function markOptions(idx) {
     W.$$('.option', root()).forEach(function (n, i) {
       n.classList.add('is-locked');
       if (q.choices[i].correct) n.classList.add('is-right');
@@ -120,22 +131,42 @@
     });
   }
 
+  function lockTyped(input, given, ok) {
+    input.value = given;
+    input.disabled = true;
+    input.style.borderColor = ok ? 'var(--success)' : 'var(--danger)';
+  }
+
+  function pickCountry(country) {
+    if (answered || q.type !== 'locate') return;
+    markChoices(country.name);
+    resolve(country.name === q.country.name, country.name,
+            document.querySelector('#view-learn .map-pane'), { picked: country.name });
+  }
+
+  function pickOption(idx, node) {
+    if (answered) return;
+    var choice = q.choices[idx];
+    resolve(choice.correct, choice.text, node, { idx: idx });
+    markOptions(idx);
+  }
+
   function submitTyped() {
     if (answered) return;
     var input = W.$('#typed-answer', root());
     if (!input || !input.value.trim()) return;
     var ok = global.Quiz.grade(q, input.value);
-    input.disabled = true;
-    input.style.borderColor = ok ? 'var(--success)' : 'var(--danger)';
-    resolve(ok, input.value, input);
+    lockTyped(input, input.value, ok);
+    resolve(ok, input.value, input, {});
   }
 
-  function resolve(correct, given, anchorNode) {
+  function resolve(correct, given, anchorNode, how) {
     answered = true;
     session.asked += 1;
     if (correct) session.right += 1;
 
     var gains = W.award(correct, { country: q.country.name });
+    last = { correct: correct, given: given, gains: gains, idx: how.idx, picked: how.picked };
 
     if (correct) {
       W.Sound.correct(gains.combo);
@@ -145,6 +176,7 @@
     }
 
     revealOnMap();
+    trackJob(correct);
     renderFeedback(correct, given, gains);
     updateHud();
 
@@ -166,7 +198,7 @@
       body: '<div class="levelup">' +
         '<div class="levelup__ring mono">' + lvl + '</div>' +
         '<h3>Level ' + lvl + '</h3>' +
-        '<p>Nice climb. Higher levels stack up faster when your streak is running.</p>' +
+        '<p>Nice one. Keep your streak going and you’ll earn XP faster.</p>' +
         '</div>',
       actions: [{ label: 'Keep going', cls: 'btn--accent', close: true }]
     });
@@ -179,7 +211,7 @@
     if (!q) { host.innerHTML = '<div class="empty">Loading…</div>'; return; }
 
     var streak = W.state.streak.current;
-    var html = '';
+    var html = jobCard();
 
     if (streak >= 3) {
       var mult = W.comboMultiplier(streak);
@@ -212,7 +244,7 @@
       });
       html += '</div>';
     } else {
-      html += '<div class="empty" style="padding:26px 0">Pick the right pin on the map →</div>';
+      html += '<div class="empty" style="padding:26px 0">Click the right country on the map →</div>';
     }
     html += '</div><div id="fb-slot"></div>';
     host.innerHTML = html;
@@ -223,9 +255,15 @@
     var sub = W.$('#typed-submit', host);
     if (sub) sub.addEventListener('click', submitTyped);
     var inp = W.$('#typed-answer', host);
-    if (inp) {
+    if (inp && !answered) {
       inp.focus();
       inp.addEventListener('keydown', function (e) { if (e.key === 'Enter') submitTyped(); });
+    }
+    /* reopening the tab after answering shows the answer, not a fresh question */
+    if (answered && last) {
+      if (q.typed && inp) { lockTyped(inp, last.given || '', last.correct); if (sub) sub.remove(); }
+      else if (q.choices && last.idx !== undefined) markOptions(last.idx);
+      renderFeedback(last.correct, last.given, last.gains);
     }
     renderFooter();
   }
@@ -245,7 +283,7 @@
     var detail = correct
       ? '<p>' + W.escapeHtml(c.capital) + ' is the capital of ' + W.escapeHtml(c.name) + '.</p>'
       : '<p>The answer is <b>' + W.escapeHtml(q.answerText) + '</b>' +
-        (given && q.typed ? ' — you wrote “' + W.escapeHtml(given) + '”.' : '.') + '</p>';
+        (given && q.typed ? '. You wrote “' + W.escapeHtml(given) + '”.' : '.') + '</p>';
 
     var note = c.note ? '<p style="margin-top:6px;color:var(--muted)">' + W.escapeHtml(c.note) + '</p>' : '';
 
@@ -254,8 +292,13 @@
         (correct ? I.check : I.x) +
         '<div><b>' + (correct ? praise() : 'Not quite') + '</b>' + detail + note + gainChips + '</div>' +
       '</div>' +
+      (jobDone ? handInHtml() : '') +
       '<button class="btn btn--primary btn--block" id="next-q" style="margin-top:14px">' +
         'Next question ' + I.arrowR + '</button>';
+
+    var jc = document.getElementById('learn-job');
+    if (jc) jc.outerHTML = jobCard();
+    if (jobDone) global.Assignments.wireSend(document.getElementById('learn-send'), jobDone.item);
 
     var btn = document.getElementById('next-q');
     btn.addEventListener('click', next);
@@ -263,11 +306,51 @@
     renderFooter();
   }
 
-  var PRAISE = ['Correct', 'Nailed it', 'Exactly', 'Spot on', 'That’s it', 'Sharp'];
+  /* ------------------------- classwork progress --------------------- */
+  function jobCard() {
+    if (!job) return '';
+    return '<div class="job" id="learn-job">' +
+      '<div class="job__top"><b>' + W.escapeHtml(job.meta.title) + '</b>' +
+        '<span>' + job.asked + ' / ' + job.target + '</span></div>' +
+      '<div class="pbar"><div class="pbar__fill pbar__fill--accent" style="width:' +
+        Math.round((job.asked / job.target) * 100) + '%"></div></div>' +
+    '</div>';
+  }
+
+  function trackJob(correct) {
+    if (!job) return;
+    job.asked += 1;
+    if (correct) job.right += 1; else job.missed[q.country.name] = 1;
+    if (job.asked < job.target) return;
+
+    var pct = Math.round((job.right / job.asked) * 100);
+    jobDone = {
+      title: job.meta.title, pct: pct, right: job.right, asked: job.asked,
+      item: global.Assignments.complete(job.meta, pct, job.right, job.asked, Object.keys(job.missed))
+    };
+    job = null;
+    setTimeout(function () {
+      W.Sound.finish();
+      W.confetti({ count: 110, power: 320, y: window.innerHeight * 0.4 });
+    }, 250);
+  }
+
+  function handInHtml() {
+    var d = jobDone;
+    return '<div class="handin">' +
+      '<div><span class="eyebrow">Assignment finished</span>' +
+        '<b>' + W.escapeHtml(d.title) + '</b>' +
+        '<span class="t-sm t-muted">' + d.right + ' of ' + d.asked + ' right (' + d.pct + '%)</span></div>' +
+      (d.item && !global.UI.previewing
+        ? '<button class="btn btn--primary btn--block" id="learn-send"></button>' : '') +
+    '</div>';
+  }
+
+  var PRAISE = ['Correct', 'Nailed it', 'Nice', 'Spot on', 'That’s it', 'Good one'];
   function praise() {
     var s = W.state.streak.current;
-    if (s >= 25) return 'Unstoppable — ' + s + ' in a row';
-    if (s >= 10) return 'On fire — ' + s + ' straight';
+    if (s >= 25) return 'Unstoppable! ' + s + ' in a row';
+    if (s >= 10) return 'On fire! ' + s + ' in a row';
     if (s >= 5)  return 'Streak ×' + s;
     return W.pick(PRAISE);
   }
@@ -307,7 +390,7 @@
           seg('un-plus', '+ Observers', cfg.scope) +
           seg('all', 'All 213', cfg.scope) +
         '</div>' +
-        '<div class="field__hint">193 UN member states · 2 permanent observers · 18 territories.</div>' +
+        '<div class="field__hint">193 UN members, 2 permanent observers and 18 territories.</div>' +
       '</div>' +
       '<div class="field"><label class="field__label">Regions</label>' +
         '<div class="check-grid" id="cfg-regions">' +
@@ -336,7 +419,7 @@
           seg('weak', 'Weakest first', cfg.weakFirst ? 'weak' : 'random') +
           seg('random', 'Random', cfg.weakFirst ? 'weak' : 'random') +
         '</div>' +
-        '<div class="field__hint">Weakest-first resurfaces the countries you keep missing.</div>' +
+        '<div class="field__hint">Weakest first brings back the countries you keep getting wrong.</div>' +
       '</div>';
 
     global.UI.modal({
@@ -359,18 +442,25 @@
     }
   }
 
-  function applyAssignment(a) {
-    cfg.countries = a.countries || null;
-    if (a.regions) cfg.regions = a.regions;
-    if (a.scope) cfg.scope = a.scope;
+  /* Entry point for suggestions and classwork. Classwork (meta) runs for a
+     set number of questions and is handed in at the end. */
+  function applyAssignment(a, meta) {
+    cfg.countries = a.countries && a.countries.length ? a.countries : null;
+    cfg.regions = a.regions || [];
+    cfg.scope = a.scope || 'all';
     if (a.types && a.types.length) cfg.types = a.types;
-    if (a.typed !== undefined) cfg.typed = a.typed;
+    cfg.typed = !!a.typed;
+    job = meta ? {
+      meta: meta, asked: 0, right: 0, missed: {},
+      target: Math.max(1, Math.min(100, a.count || (cfg.countries || []).length || 20))
+    } : null;
     q = null;
     next();
   }
 
   function applyConfig(modalEl) {
     cfg.countries = null;             /* hand-picked filters replace an assignment */
+    job = null;
     var scope = W.$('#cfg-scope .is-active', modalEl);
     cfg.scope = scope ? scope.dataset.v : 'all';
 
@@ -397,6 +487,7 @@
   document.addEventListener('keydown', function (e) {
     if (!document.body.classList.contains('view-learn')) return;
     if (e.target && /INPUT|TEXTAREA/.test(e.target.tagName)) return;
+    if (document.querySelector('.overlay')) return;   /* keys belong to the open dialog */
     if (!answered && q && q.choices && /^[1-4]$/.test(e.key)) {
       var node = W.$$('.option', root())[+e.key - 1];
       if (node) { e.preventDefault(); node.click(); }

@@ -10,8 +10,9 @@
   var W = global.WW, I = W.Icons;
 
   var cfg = { scope: 'un', regions: [], countries: null, face: 'country', size: 25 };
-  var deck = [], pos = 0, flipped = false, built = false;
+  var deck = [], pos = 0, flipped = false, built = false, celebrated = false;
   var tally = { again: 0, hard: 0, good: 0, easy: 0, done: 0 };
+  var job = null;   /* classwork: { meta, size, first: name -> first rating, item, pct } */
 
   function side()  { return document.getElementById('cards-body'); }
   function head()  { return document.getElementById('cards-head'); }
@@ -29,8 +30,9 @@
     var list = global.Quiz.pool({ scope: cfg.scope, regions: cfg.regions, countries: cfg.countries, weakFirst: true });
     if (!list.length) list = global.Quiz.pool({ scope: 'all' });
     deck = list.slice(0, Math.min(cfg.size, list.length));
-    pos = 0; flipped = false; built = true;
+    pos = 0; flipped = false; built = true; celebrated = false;
     tally = { again: 0, hard: 0, good: 0, easy: 0, done: 0 };
+    if (job) { job.size = deck.length; job.first = {}; job.item = null; }
   }
 
   function current() { return deck[pos]; }
@@ -61,7 +63,7 @@
               '</div>' +
               '<div class="fc-term">' + W.escapeHtml(frontTerm) + '</div>' +
               '<div class="fc-sub">' + (askCountry ? 'What is its capital?' : 'Which country?') + '</div>' +
-              '<div class="fc-flip-hint">Click the card, or press Space</div>' +
+              '<div class="fc-flip-hint">Click the card or press Space to flip</div>' +
             '</div>' +
 
             '<div class="fc-face fc-face--back">' +
@@ -82,8 +84,8 @@
             ? '<div class="fc-rate" id="fc-rate">' +
                 rate('again', 'Again', 'soon', 'r-again') +
                 rate('hard',  'Hard',  'later', 'r-hard') +
-                rate('good',  'Good',  'retire', 'r-good') +
-                rate('easy',  'Easy',  'retire', 'r-easy') +
+                rate('good',  'Good',  'done', 'r-good') +
+                rate('easy',  'Easy',  'done', 'r-easy') +
               '</div>'
             : '<button class="btn btn--primary btn--block btn--lg" id="fc-flip">Flip card</button>') +
         '</div>' +
@@ -125,7 +127,9 @@
 
   function grade(r, node) {
     var c = current();
+    if (!c) return;
     tally[r] += 1;
+    if (job && !(c.name in job.first)) job.first[c.name] = r;
     W.state.stats.cards += 1;
 
     var m = W.state.mastery[c.name] || { c: 0, w: 0, box: 0 };
@@ -142,7 +146,7 @@
       if (gains.level) {
         W.Sound.levelUp();
         W.confetti({ count: 90, power: 300, y: window.innerHeight * 0.4 });
-        W.toast('Level ' + gains.level, 'Flashcards count too', I.bolt);
+        W.toast('Level ' + gains.level, 'Flashcards count toward your level too', I.bolt);
       }
       tally.done += 1;
       deck.splice(pos, 1);
@@ -164,23 +168,45 @@
     renderCard();
   }
 
+  /* Classwork score: the share of cards known on first sight (Good or Easy). */
+  function handIn() {
+    var names = Object.keys(job.first);
+    var known = names.filter(function (n) { return job.first[n] === 'good' || job.first[n] === 'easy'; }).length;
+    var total = job.size || names.length || 1;
+    var missed = names.filter(function (n) { return job.first[n] === 'again' || job.first[n] === 'hard'; });
+    job.pct = Math.round((known / total) * 100);
+    job.item = global.Assignments.complete(job.meta, job.pct, known, total, missed);
+  }
+
   function renderComplete() {
-    W.Sound.finish();
-    W.confetti({ count: 130, power: 340, y: window.innerHeight * 0.36 });
+    /* celebrate once per deck, not every time the tab is reopened */
+    if (!celebrated) {
+      celebrated = true;
+      W.Sound.finish();
+      W.confetti({ count: 130, power: 340, y: window.innerHeight * 0.36 });
+      if (job && !job.item) handIn();
+    }
+    var showSend = !!(job && job.item && !global.UI.previewing);
     stage().innerHTML =
       '<div class="fc-wrap t-center">' +
         '<div class="levelup" style="border:1px solid var(--line);border-radius:20px;background:#fff;box-shadow:var(--shadow-lg)">' +
           '<div class="levelup__ring" style="background:linear-gradient(135deg,var(--success),#34D399)">' + I.check + '</div>' +
           '<h3>Deck cleared</h3>' +
-          '<p>' + tally.done + ' cards retired across ' + reviewed() + ' reviews.</p>' +
+          '<p>You finished ' + tally.done + ' cards in ' + reviewed() + ' reviews.</p>' +
           '<div class="row" style="justify-content:center;gap:8px;margin-top:18px;flex-wrap:wrap">' +
             '<span class="chip chip--xp mono">' + tally.good + ' good</span>' +
             '<span class="chip chip--gem mono">' + tally.easy + ' easy</span>' +
             '<span class="chip chip--fire mono">' + (tally.again + tally.hard) + ' repeated</span>' +
           '</div>' +
-          '<button class="btn btn--accent btn--lg" style="margin-top:20px" id="fc-new">Build a new deck</button>' +
+          (showSend
+            ? '<p class="t-sm t-muted" style="margin-top:16px">Assignment score: <b>' + job.pct +
+                '%</b> right on the first try</p>' +
+              '<div><button class="btn btn--primary btn--lg" style="margin-top:12px" id="fc-send"></button></div>'
+            : '') +
+          '<button class="btn btn--accent btn--lg" style="margin-top:20px" id="fc-new">Make a new deck</button>' +
         '</div>' +
       '</div>';
+    if (showSend) global.Assignments.wireSend(document.getElementById('fc-send'), job.item);
     document.getElementById('fc-new').addEventListener('click', function () { build(); renderCard(); });
     paintMap(false);
     renderSidebar();
@@ -193,6 +219,7 @@
     if (veil) veil.classList.toggle('is-gone', !!reveal);
     if (!host || !global.GeoMap.ensure(host)) return;
     global.GeoMap.clear();
+    global.GeoMap.setGuard(false);   /* the veil hides the map until the flip */
     var c = current();
     if (!c || !reveal) { global.GeoMap.reset(); return; }
     global.GeoMap.drawCountry(c, 'right', null, c.name);
@@ -204,12 +231,13 @@
     if (!head()) return;
     head().innerHTML =
       '<div class="sidebar__title">Flashcards</div>' +
-      '<div class="t-sm t-muted" style="margin-top:2px">' + deckLabel() + '</div>';
+      '<div class="t-sm t-muted" style="margin-top:2px">' +
+        (job ? 'Assignment: ' + W.escapeHtml(job.meta.title) : deckLabel()) + '</div>';
 
     side().innerHTML =
       '<div class="deck-summary">' +
         '<div class="deck-summary__n mono">' + deck.length + '</div>' +
-        '<div class="deck-summary__l">cards left in the queue</div>' +
+        '<div class="deck-summary__l">cards left</div>' +
         '<div class="pbar" style="margin-top:12px"><div class="pbar__fill pbar__fill--success" style="width:' +
           ((tally.done / Math.max(1, tally.done + deck.length)) * 100) + '%"></div></div>' +
       '</div>' +
@@ -252,7 +280,7 @@
       body:
         '<div class="field"><label class="field__label">Card front</label>' +
           '<div class="seg" id="fcs-face">' + sg('country', 'Country', cfg.face) + sg('capital', 'Capital', cfg.face) + '</div>' +
-          '<div class="field__hint">Flip the deck to drill the other direction.</div></div>' +
+          '<div class="field__hint">Switch this to practice the other way around.</div></div>' +
         '<div class="field"><label class="field__label">Set</label>' +
           '<div class="seg" id="fcs-scope">' + sg('un', 'UN 193', cfg.scope) + sg('un-plus', '+ Observers', cfg.scope) +
           sg('all', 'All 213', cfg.scope) + '</div></div>' +
@@ -283,6 +311,7 @@
       var regs = W.$$('#fcs-regions .check.is-on', m).map(function (n) { return n.dataset.v; });
       cfg.regions = regs.length === global.GeoData.regions.length ? [] : regs;
       cfg.countries = null;   /* choosing filters by hand replaces an assignment */
+      job = null;
       build(); renderCard();
       W.toast('Deck rebuilt', deck.length + ' cards · ' + deckLabel(), I.cards);
     }
@@ -300,12 +329,14 @@
   });
 
   /* Entry point for recommendations and teacher assignments. */
-  function applyAssignment(a) {
+  function applyAssignment(a, meta) {
     cfg.countries = (a.countries && a.countries.length) ? a.countries : null;
-    if (a.regions) cfg.regions = a.regions;
-    if (a.scope) cfg.scope = a.scope;
+    cfg.regions = a.regions || [];
+    cfg.scope = a.scope || 'un';
     if (a.face) cfg.face = a.face;
-    if (a.countries && a.countries.length) cfg.size = Math.max(10, a.countries.length);
+    cfg.size = cfg.countries ? Math.max(10, cfg.countries.length)
+                             : Math.max(10, Math.min(100, a.count || 25));
+    job = meta ? { meta: meta, size: 0, first: {}, item: null, pct: 0 } : null;
     build();
     renderCard();
   }

@@ -65,9 +65,9 @@
       out.push({
         id: 'new-' + worst,
         icon: I.globe, tone: 'cool',
-        title: 'Meet ' + Math.min(15, pool.length) + ' new places in ' + worst,
-        blurb: 'Countries you have not been asked about even once.',
-        why: never.length + ' unseen overall',
+        title: 'Learn ' + Math.min(15, pool.length) + ' new places in ' + worst,
+        blurb: 'Countries you haven’t been asked about yet.',
+        why: never.length + ' not seen yet',
         mode: 'learn',
         config: { countries: pool.slice(0, 15).map(name), types: ['capital', 'identify'], typed: false }
       });
@@ -78,8 +78,8 @@
       out.push({
         id: 'trouble',
         icon: I.target, tone: 'warm',
-        title: 'Drill your ' + Math.min(12, weak.length) + ' worst answers',
-        blurb: 'The places you have missed more often than you have got right.',
+        title: 'Practice your ' + Math.min(12, weak.length) + ' weakest places',
+        blurb: 'Places you’ve gotten wrong more often than right.',
         why: 'weakest by miss rate',
         mode: 'test',
         config: { countries: weak.slice(0, 12).map(name), count: Math.min(12, weak.length),
@@ -92,9 +92,9 @@
       out.push({
         id: 'almost',
         icon: I.trophy, tone: 'cool',
-        title: 'Finish off ' + Math.min(15, close.length) + ' near-mastered places',
-        blurb: 'One more clean answer each and these count as mastered.',
-        why: 'sitting at box 3 of 5',
+        title: 'Finish off ' + Math.min(15, close.length) + ' places you almost know',
+        blurb: 'Get each of these right one more time and they count as mastered.',
+        why: 'in box 3 of 5',
         mode: 'cards',
         config: { countries: close.slice(0, 15).map(name), face: 'country' }
       });
@@ -108,7 +108,7 @@
         id: 'region-' + judged.region,
         icon: I.layers, tone: 'warm',
         title: judged.region + ' needs work',
-        blurb: 'Your weakest region right now. A short section covering all of it.',
+        blurb: 'This is your weakest region right now. Here’s a short test that covers all of it.',
         why: judged.done + '/' + judged.total + ' mastered · ' + judged.pct + '%',
         mode: 'test',
         config: { regions: [judged.region], count: 20, scope: 'un',
@@ -122,35 +122,126 @@
         id: 'starter',
         icon: I.book, tone: 'cool',
         title: 'Start with Europe',
-        blurb: 'Forty-three countries packed close together. A good first region.',
-        why: 'suggested opener',
+        blurb: 'It has 43 countries close together, so it’s a good region to start with.',
+        why: 'good place to start',
         mode: 'learn',
         config: { regions: ['Europe'], scope: 'un', types: ['capital', 'country'] }
       });
     }
 
+    /* suggestions are practice, not classwork: nothing to hand in */
+    out.forEach(function (r) { r.rec = true; });
     return out.slice(0, limit || 3);
   }
 
   function name(c) { return c.name; }
 
   /* ========================== running one ========================== */
+  /* A config with no country list means "every UN member", not whatever
+     regions the student happened to filter to last. */
+  function withDefaults(cfg) {
+    var out = {};
+    Object.keys(cfg || {}).forEach(function (k) { out[k] = cfg[k]; });
+    if (!out.countries || !out.countries.length) {
+      out.countries = null;
+      if (!out.regions) out.regions = [];
+      if (!out.scope) out.scope = 'un';
+    }
+    return out;
+  }
+
   function run(a) {
-    var cfg = a.config || {};
-    if (a.mode === 'learn' && global.LearnMode.applyAssignment) {
-      global.LearnMode.applyAssignment(cfg);
+    var cfg = withDefaults(a.config);
+    var meta = a.rec ? null : a;
+    if (a.mode === 'learn') {
+      global.LearnMode.applyAssignment(cfg, meta);
       global.UI.go('learn');
-    } else if (a.mode === 'test' && global.TestMode.startAssignment) {
+    } else if (a.mode === 'test') {
       global.UI.go('test');
-      global.TestMode.startAssignment(cfg, a);
-    } else if (a.mode === 'cards' && global.CardsMode.applyAssignment) {
-      global.CardsMode.applyAssignment(cfg);
+      global.TestMode.startAssignment(cfg, meta);
+    } else if (a.mode === 'cards') {
+      global.CardsMode.applyAssignment(cfg, meta);
       global.UI.go('cards');
     } else if (a.mode === 'quiz') {
       global.UI.go('quiz');
+      global.QuizMode.startAssignment(cfg, meta);
     } else {
-      global.UI.go(a.mode || 'learn');
+      global.UI.go('learn');
     }
+  }
+
+  /* ===================== checking what came in ======================
+     Codes arrive from outside, pasted from a chat or typed off a board,
+     so every field is checked before any of it reaches the page. */
+  var MODES = ['learn', 'test', 'quiz', 'cards'];
+  var ID_RE = /^[A-Za-z0-9_-]{1,40}$/;
+  var CODE_RE = /^[A-Z0-9]{4,10}$/;
+  var knownNames = null;
+
+  function known() {
+    if (!knownNames) {
+      knownNames = {};
+      global.GeoData.countries.forEach(function (c) { knownNames[c.name] = 1; });
+    }
+    return knownNames;
+  }
+  function str(v, max) { return String(v == null ? '' : v).trim().slice(0, max); }
+  function int(v, lo, hi, dflt) {
+    var n = parseInt(v, 10);
+    return isNaN(n) ? dflt : Math.max(lo, Math.min(hi, n));
+  }
+  function countryList(v, max) {
+    return (Array.isArray(v) ? v : []).filter(function (n) {
+      return typeof n === 'string' && known()[n];
+    }).slice(0, max || 250);
+  }
+
+  function sanitizeConfig(c) {
+    c = c && typeof c === 'object' ? c : {};
+    var out = {
+      countries: countryList(c.countries),
+      count: int(c.count, 1, 250, 20),
+      types: (Array.isArray(c.types) ? c.types : []).filter(function (t) {
+        return typeof t === 'string' && Object.prototype.hasOwnProperty.call(global.Quiz.types, t);
+      }),
+      timed: !!c.timed,
+      instant: c.instant !== false,
+      typed: !!c.typed,
+      fill: c.fill !== false
+    };
+    if (!out.types.length) out.types = ['capital'];
+    if (Array.isArray(c.regions)) {
+      out.regions = c.regions.filter(function (r) { return global.GeoData.regions.indexOf(r) !== -1; });
+    }
+    if (['un', 'un-plus', 'all'].indexOf(c.scope) !== -1) out.scope = c.scope;
+    if (c.face === 'country' || c.face === 'capital') out.face = c.face;
+    return out;
+  }
+
+  function sanitize(a) {
+    if (!a || typeof a !== 'object' || MODES.indexOf(a.mode) === -1) return null;
+    var id = String(a.id || '');
+    if (!ID_RE.test(id)) return null;
+    var out = { id: id, title: str(a.title, 80) || 'Untitled assignment', mode: a.mode,
+                config: sanitizeConfig(a.config) };
+    if (typeof a.classCode === 'string' && CODE_RE.test(a.classCode)) out.classCode = a.classCode;
+    if (a.from) out.from = str(a.from, 60);
+    return out;
+  }
+
+  function sanitizeResult(o) {
+    if (!o || typeof o !== 'object') return null;
+    var id = String(o.assignmentId || '');
+    var nm = str(o.name, 40);
+    if (!ID_RE.test(id) || !nm) return null;
+    return {
+      assignmentId: id, title: str(o.title, 80), name: nm,
+      pct: int(o.pct, 0, 100, 0),
+      correct: int(o.correct, 0, 100000, null),
+      total: int(o.total, 0, 100000, null),
+      at: isFinite(o.at) && o.at > 0 ? Number(o.at) : Date.now(),
+      missed: countryList(o.missed, 60)
+    };
   }
 
   /* ====================== share codes ============================== */
@@ -174,9 +265,7 @@
       var bin = atob(raw);
       var bytes = new Uint8Array(bin.length);
       for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-      var obj = JSON.parse(new TextDecoder().decode(bytes));
-      if (!obj || !obj.mode) throw new Error('bad payload');
-      return obj;
+      return sanitize(JSON.parse(new TextDecoder().decode(bytes)));
     } catch (e) { return null; }
   }
 
@@ -207,8 +296,8 @@
       for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
       var o = JSON.parse(new TextDecoder().decode(bytes));
       if (!o || o.k !== 'r') throw new Error('not a result');
-      return { assignmentId: o.a, title: o.t, name: o.n, pct: o.p,
-               correct: o.c, total: o.q, at: o.d, missed: o.m || [] };
+      return sanitizeResult({ assignmentId: o.a, title: o.t, name: o.n, pct: o.p,
+                              correct: o.c, total: o.q, at: o.d, missed: o.m });
     } catch (e) { return null; }
   }
 
@@ -256,11 +345,15 @@
       var o = JSON.parse(new TextDecoder().decode(bytes));
       if (!o || o.k !== 'c') throw new Error('bad payload');
       /* the code in the wrapper must match the one inside */
-      if (String(o.c).toUpperCase() !== m[1].toUpperCase()) throw new Error('code mismatch');
-      return { code: String(o.c).toUpperCase(), name: o.n,
-               assignments: (o.a || []).map(function (a) {
-                 a.from = o.n; a.classCode = String(o.c).toUpperCase(); return a;
-               }) };
+      var code = String(o.c).toUpperCase();
+      if (code !== m[1].toUpperCase() || !CODE_RE.test(code)) throw new Error('code mismatch');
+      var className = str(o.n, 60) || 'Class';
+      return { code: code, name: className,
+               assignments: (Array.isArray(o.a) ? o.a : []).map(function (a) {
+                 var s = sanitize(a);
+                 if (s) { s.from = className; s.classCode = code; }
+                 return s;
+               }).filter(Boolean) };
     } catch (e) { return null; }
   }
 
@@ -394,26 +487,87 @@
     }).filter(Boolean);
   }
 
-  /* Record a finished assignment against the student's inbox. */
-  function complete(id, pct, correct, total) {
-    if (!id) return;
+  /* ============================ handing in ========================== */
+  /* Record a finished assignment against the student's inbox. Returns the
+     inbox entry, or null when it was not classwork (a suggestion, or a
+     teacher previewing their own assignment). Signed-in students in an
+     online class have the score sent to the teacher straight away. */
+  var pendingSends = {};
+
+  function complete(a, pct, correct, total, missed) {
+    if (!a || !a.id) return null;
     var box = W.state.inbox || [];
-    for (var i = 0; i < box.length; i++) {
-      if (box[i].id === id) {
-        var prev = box[i].best || 0;
-        box[i].done = true;
-        box[i].attempts = (box[i].attempts || 0) + 1;
-        box[i].best = Math.max(prev, pct);
-        box[i].last = { pct: pct, correct: correct, total: total, at: Date.now() };
-        W.saveNow();
-        return box[i];
-      }
+    var item = null;
+    for (var i = 0; i < box.length; i++) if (box[i].id === a.id) item = box[i];
+    if (!item) return null;
+
+    item.done = true;
+    item.attempts = (item.attempts || 0) + 1;
+    item.best = Math.max(item.best || 0, pct);
+    item.last = { pct: pct, correct: correct, total: total,
+                  missed: (missed || []).slice(0, 60), at: Date.now(), sent: false };
+    W.saveNow();
+    if (global.Cloud && global.Cloud.canSubmit(item)) submitOnline(item).catch(function () {});
+    return item;
+  }
+
+  function submitOnline(item) {
+    var L = item.last;
+    var p = global.Cloud.submitResult(item, L.pct, L.correct, L.total, L.missed || [])
+      .then(function () {
+        delete pendingSends[item.id];
+        L.sent = true;
+        W.save();
+        W.toast('Score sent', (item.from || 'Your teacher') + ' has it now', I.check);
+        refreshClassroom();
+      }, function (e) {
+        delete pendingSends[item.id];
+        W.toast('Couldn’t send your score', 'Press Send to try again', I.info, 4200);
+        throw e;
+      });
+    pendingSends[item.id] = p;
+    return p;
+  }
+
+  /* The Send button: straight to the teacher when online, else a code. */
+  function send(item) {
+    if (!item || !item.last) return;
+    var L = item.last;
+    if (L.sent) { W.toast('Already sent', (item.from || 'Your teacher') + ' has this score', I.check); return; }
+    if (pendingSends[item.id]) return;
+    if (global.Cloud && global.Cloud.canSubmit(item)) {
+      submitOnline(item).catch(function () {
+        global.Teacher.shareResult(item, L.pct, L.correct, L.total, L.missed || []);
+      });
+      return;
     }
-    return null;
+    global.Teacher.shareResult(item, L.pct, L.correct, L.total, L.missed || []);
+  }
+
+  function sendLabel(item) {
+    if (item && item.last && item.last.sent) return 'Sent to your teacher ✓';
+    if (item && pendingSends[item.id]) return 'Sending to your teacher…';
+    return 'Send score to teacher';
+  }
+
+  /* Fill a button with the right label and keep it honest while a send
+     is in flight. */
+  function wireSend(btn, item) {
+    if (!btn || !item) return;
+    function paint() { btn.innerHTML = I.key + ' ' + W.escapeHtml(sendLabel(item)); }
+    function follow() { var p = pendingSends[item.id]; if (p) p.then(paint, paint); }
+    paint(); follow();
+    btn.addEventListener('click', function () { send(item); paint(); follow(); });
+  }
+
+  function refreshClassroom() {
+    var v = document.getElementById('view-classroom');
+    if (v && !v.classList.contains('hidden') && global.Classroom) global.Classroom.render();
   }
 
   global.Assignments = {
-    complete: complete,
+    complete: complete, send: send, sendLabel: sendLabel, wireSend: wireSend,
+    sanitize: sanitize, sanitizeResult: sanitizeResult, withDefaults: withDefaults,
     recommend: recommend, run: run,
     encode: encode, decode: decode, classCode: classCode,
     encodePack: encodePack, decodePack: decodePack, peekPackCode: peekPackCode,

@@ -1911,6 +1911,77 @@ textarea.input:focus { outline: none; border-color: var(--accent); box-shadow: 0
 }
 
 /* ==================================================================
+   Map blur guard, accounts, assignment progress
+   ================================================================== */
+
+/* While a question is live the tiles blur once you zoom past the world
+   view, so printed country and capital names cannot be read off the map.
+   Country outlines are redrawn sharp on top (map.js). */
+.leaflet-tile-pane { transition: filter .22s var(--ease); }
+.leaflet-container.is-guarded .leaflet-tile-pane { filter: blur(3.5px) saturate(.8); }
+
+.leaflet-tooltip.map-label {
+  background: rgba(10,10,11,.84); color: #fff; border: none; box-shadow: var(--shadow);
+  border-radius: 999px; padding: 3px 11px;
+  font: 600 12.5px/1.4 var(--sans); letter-spacing: -.01em;
+}
+.leaflet-tooltip.map-label::before { display: none; }
+
+/* ---- account block in the profile menu ---- */
+.menu__acct {
+  display: flex; align-items: center; gap: 10px; margin: 2px 4px 6px; padding: 10px 12px;
+  border-radius: 10px; background: var(--paper); border: 1px solid var(--line-soft);
+}
+.menu__acct > div { min-width: 0; flex: 1; }
+.menu__acct b {
+  display: block; font-size: 13px; font-weight: 600;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.menu__acct span { display: block; color: var(--faint); font-size: 12px; }
+.sync-dot { width: 7px; height: 7px; border-radius: 50%; flex: none; background: var(--faint); }
+.sync-dot--synced  { background: var(--success); }
+.sync-dot--syncing { background: var(--gold); animation: pulseDot 1.2s ease-in-out infinite; }
+.sync-dot--offline { background: var(--danger); }
+
+/* ---- sign in / create account ---- */
+.auth-perks { display: grid; gap: 8px; margin: 2px 0 18px; }
+.auth-perks div { display: flex; gap: 10px; align-items: flex-start; font-size: 13.5px; color: var(--ink-2); }
+.auth-perks svg { color: var(--success); flex: none; margin-top: 2px; }
+.auth-switch { margin-top: 14px; font-size: 13px; color: var(--muted); text-align: center; }
+.auth-switch button { color: var(--accent); font-weight: 560; }
+.auth-switch button:hover { text-decoration: underline; }
+
+.signin-hint {
+  display: flex; gap: 12px; align-items: center; padding: 12px 14px; margin-bottom: 16px;
+  border-radius: 12px; background: var(--accent-soft); color: var(--accent-ink); font-size: 13.5px;
+}
+.signin-hint svg { flex: none; }
+.signin-hint .btn { margin-left: auto; flex: none; }
+
+.cr-banner__sync { display: flex; align-items: center; gap: 6px; margin-top: 8px; font-size: 12px; opacity: .85; }
+
+/* ---- assignment progress and hand-in ---- */
+.job {
+  border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px;
+  margin-bottom: 14px; background: var(--paper);
+}
+.job__top { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; }
+.job__top b { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.job__top span { color: var(--muted); font-family: var(--mono); flex: none; }
+.job .pbar { margin-top: 8px; }
+
+.handin {
+  margin-top: 14px; padding: 14px; border: 1px solid var(--line); border-radius: 12px;
+  background: var(--white); display: grid; gap: 12px;
+}
+.handin b { display: block; margin-top: 4px; font-size: 14.5px; }
+
+/* ---- landing: four study modes ---- */
+.modes--4 { grid-template-columns: repeat(4, 1fr); }
+@media (max-width: 1100px) { .modes--4 { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 640px)  { .modes--4 { grid-template-columns: 1fr; } }
+
+/* ==================================================================
    RESPONSIVE — the home screen and the two landing pages
 
    These have to sit at the end. Everything they override is defined

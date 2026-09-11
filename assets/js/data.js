@@ -301,31 +301,33 @@
     'Yemen': ['sanaa', 'sana'],
     'Tonga': ['nukualofa'],
     'Antigua and Barbuda': ['st johns'],
-    'Grenada': ['st georges']
+    'Grenada': ['st georges'],
+    'Ukraine': ['kiev'],
+    'Western Sahara': ['laayoune']
   };
 
   /* Notes surfaced in Learn mode where the "right" answer needs context. */
   var NOTES = {
-    'Bolivia': 'Sucre is the constitutional capital; La Paz is the seat of government.',
-    'South Africa': 'Three capitals: Pretoria (executive), Cape Town (legislative), Bloemfontein (judicial).',
-    'Netherlands': 'Amsterdam is the constitutional capital; the government sits in The Hague.',
-    'Benin': 'Porto-Novo is the official capital; Cotonou is the seat of government.',
-    "Côte d'Ivoire": 'Yamoussoukro is the official capital; Abidjan is the largest city and economic hub.',
-    'Eswatini': 'Mbabane is the administrative capital; Lobamba is the legislative and royal capital.',
-    'Sri Lanka': 'Sri Jayawardenepura Kotte is the legislative capital; Colombo is the commercial capital.',
-    'Tanzania': 'Dodoma is the official capital; Dar es Salaam remains the largest city.',
-    'Palestine': 'Ramallah is the administrative seat; East Jerusalem is the declared capital.',
-    'Israel': 'Jerusalem is the declared capital; most embassies sit in Tel Aviv.',
-    'Kazakhstan': 'Renamed Nur-Sultan in 2019, reverted to Astana in 2022.',
+    'Bolivia': 'Sucre is the constitutional capital, but the government sits in La Paz.',
+    'South Africa': 'South Africa has three capitals. Pretoria is the executive one, Cape Town is legislative and Bloemfontein is judicial.',
+    'Netherlands': 'Amsterdam is the capital in the constitution, but the government is based in The Hague.',
+    'Benin': 'Porto-Novo is the official capital, but Cotonou is the seat of government.',
+    "Côte d'Ivoire": 'Yamoussoukro is the official capital. Abidjan is the biggest city and the economic center.',
+    'Eswatini': 'Mbabane is the administrative capital. Lobamba is the legislative and royal capital.',
+    'Sri Lanka': 'Sri Jayawardenepura Kotte is the legislative capital. Colombo is the commercial capital.',
+    'Tanzania': 'Dodoma is the official capital, but Dar es Salaam is still the largest city.',
+    'Palestine': 'Ramallah is the administrative seat. East Jerusalem is the declared capital.',
+    'Israel': 'Jerusalem is the declared capital, but most embassies are in Tel Aviv.',
+    'Kazakhstan': 'The capital was renamed Nur-Sultan in 2019 and changed back to Astana in 2022.',
     'Myanmar': 'The capital moved from Yangon to Naypyidaw in 2006.',
     'Burundi': 'The political capital moved from Bujumbura to Gitega in 2019.',
-    'Nauru': 'Nauru has no official capital; Yaren is the de facto seat of government.',
-    'Kiribati': 'South Tarawa is the seat of government on Tarawa atoll.',
-    'Taiwan': 'Governed independently; not a UN member state.',
-    'Kosovo': 'Declared independence in 2008; recognised by roughly half of UN members.',
-    'Western Sahara': 'A disputed territory; El Aaiún is the largest city.',
-    'Hong Kong': 'A Special Administrative Region of China.',
-    'Macau': 'A Special Administrative Region of China.'
+    'Nauru': "Nauru doesn't have an official capital. Yaren is the de facto seat of government.",
+    'Kiribati': 'The government is based in South Tarawa, on Tarawa atoll.',
+    'Taiwan': "Taiwan governs itself but isn't a UN member state.",
+    'Kosovo': 'Kosovo declared independence in 2008. About half of UN members recognize it.',
+    'Western Sahara': 'This is a disputed territory. El Aaiún is its largest city.',
+    'Hong Kong': "It's a Special Administrative Region of China.",
+    'Macau': "It's a Special Administrative Region of China."
   };
 
   var REGIONS = ['Africa', 'Asia', 'Europe', 'North America', 'South America', 'Oceania'];
