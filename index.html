@@ -29,7 +29,8 @@
       <a href="#screens">The app</a>
       <a href="#how">How it works</a>
       <a href="#rewards">Progress</a>
-      <a href="#teachers">For teachers</a>
+      <a href="#classcode">Join a class</a>
+      <a href="teachers.html">For teachers</a>
     </div>
     <div class="nav__spacer"></div>
     <button class="btn btn--ghost btn--sm hidden" id="nav-continue">Continue where you left off</button>
@@ -55,15 +56,15 @@
   <section class="stats">
     <div class="stat"><div class="stat__n" id="s-total">213</div><div class="stat__l">Countries &amp; territories</div></div>
     <div class="stat"><div class="stat__n" id="s-members">193</div><div class="stat__l">UN member states</div></div>
-    <div class="stat"><div class="stat__n">3</div><div class="stat__l">Study modes</div></div>
-    <div class="stat"><div class="stat__n">4</div><div class="stat__l">Question types</div></div>
+    <div class="stat"><div class="stat__n">4</div><div class="stat__l">Study modes</div></div>
+    <div class="stat"><div class="stat__n">0</div><div class="stat__l">Accounts needed</div></div>
   </section>
 
   <!-- modes -->
   <section class="section" id="modes">
     <div class="section__head">
-      <span class="eyebrow">Three ways to study</span>
-      <h2>Three ways in, one record of what you know.</h2>
+      <span class="eyebrow">Four ways to study</span>
+      <h2>Four ways in, one record of what you know.</h2>
       <p>Switch between them whenever you like. They all write to the same record, so the app keeps
          track of which countries you keep missing no matter where you answer.</p>
     </div>
@@ -90,6 +91,18 @@
           <li>Timed sections and exam mode</li>
           <li>Flag questions to revisit</li>
           <li>Score report by region and type</li>
+        </ul>
+      </div>
+      <div class="mode-card">
+        <div class="mode-card__icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg></div>
+        <h3>Class quiz</h3>
+        <p>The paper map quiz, on screen. One country lights up gold. Click it, then write its name
+           and its capital from memory.</p>
+        <ul>
+          <li>Two marks a question</li>
+          <li>No multiple choice anywhere</li>
+          <li>Spelling has to be close</li>
+          <li>A marked paper at the end</li>
         </ul>
       </div>
       <div class="mode-card">
@@ -177,6 +190,30 @@
            and a flashcard deck that puts the location on the back.</p>
       </div>
       <div class="shots">
+        <div class="shot shot--wide">
+          <div class="shot__bar">
+            <span class="shot__dot"></span><span class="shot__dot"></span><span class="shot__dot"></span>
+            <span class="shot__label">Your home screen</span>
+          </div>
+          <div class="shot__body">
+            <div class="home-shot__head">
+              <div>
+                <b>Good evening, Explorer.</b>
+                <span>1,240 questions answered · 86% accuracy · 127 places still to go</span>
+              </div>
+              <div class="home-shot__score"><b>89</b><span>/ 213</span>
+                <em>mastered · 42% of the world</em></div>
+            </div>
+            <div class="home-shot__map" id="landing-map"></div>
+            <div class="home-legend" style="padding:10px 20px 18px">
+              <span><i class="wm-key"></i>Not seen yet</span>
+              <span><i class="wm-key wm-key--seen"></i>Learning</span>
+              <span><i class="wm-key wm-key--done"></i>Mastered</span>
+            </div>
+          </div>
+          <div class="shot__caption">Every country you master fills in. The rest of the world stays grey until you get there.</div>
+        </div>
+
         <div class="shot">
           <div class="shot__bar">
             <span class="shot__dot"></span><span class="shot__dot"></span><span class="shot__dot"></span>
@@ -192,14 +229,10 @@
                 <div class="mini__opt">Slovakia</div>
                 <div class="mini__opt">Austria</div>
               </div>
-              <div class="mini__map">
-                <span class="mini__pin" style="background:#0E9F6E;left:44%;top:38%"></span>
-                <span class="mini__pin" style="background:#9CA3AF;left:62%;top:56%"></span>
-                <span class="mini__pin" style="background:#9CA3AF;left:30%;top:62%"></span>
-              </div>
+              <div class="mini__map" id="learn-shot-map"></div>
             </div>
           </div>
-          <div class="shot__caption">Answer on the left. The map flies to the capital and drops the pin.</div>
+          <div class="shot__caption">Answer on the left. The country shades in and the map flies to its capital.</div>
         </div>
 
         <div class="shot">
@@ -256,25 +289,6 @@
           <div class="shot__caption">Rate each card. The shaky ones come back before you finish.</div>
         </div>
 
-        <div class="shot">
-          <div class="shot__bar">
-            <span class="shot__dot"></span><span class="shot__dot"></span><span class="shot__dot"></span>
-            <span class="shot__label">Study centre</span>
-          </div>
-          <div class="shot__body mini" style="padding:16px">
-            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:7px">
-              <div class="metric" style="padding:10px 6px"><div class="metric__n" style="font-size:17px">Lv 7</div><div class="metric__l" style="font-size:9px">level</div></div>
-              <div class="metric" style="padding:10px 6px"><div class="metric__n" style="font-size:17px">2,140</div><div class="metric__l" style="font-size:9px">diamonds</div></div>
-              <div class="metric" style="padding:10px 6px"><div class="metric__n" style="font-size:17px">86</div><div class="metric__l" style="font-size:9px">mastered</div></div>
-            </div>
-            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:8px">
-              <div class="mini__opt" style="text-align:center;margin:0">Learn</div>
-              <div class="mini__opt" style="text-align:center;margin:0">Test</div>
-              <div class="mini__opt" style="text-align:center;margin:0">Cards</div>
-            </div>
-          </div>
-          <div class="shot__caption">Your home screen. Suggested work, assignments and every mode in one place.</div>
-        </div>
       </div>
     </div>
   </section>
@@ -288,7 +302,7 @@
     <div class="steps">
       <div class="step"><div class="step__n">01</div><h4>Pick your set</h4><p>One continent, UN members only, or all 213. You can also type in your own list.</p></div>
       <div class="step"><div class="step__n">02</div><h4>Answer in the sidebar</h4><p>Four question types: country→capital, capital→country, find it on the map, and identify a pin.</p></div>
-      <div class="step"><div class="step__n">03</div><h4>See it placed</h4><p>Every answer drops a pin and the map flies to it, so the name gets stuck to a place.</p></div>
+      <div class="step"><div class="step__n">03</div><h4>See it placed</h4><p>The whole country shades in on a real map and the view flies to its capital, so the name sticks to a shape.</p></div>
       <div class="step"><div class="step__n">04</div><h4>Sit a test</h4><p>Once it feels solid, sit a scored test and read the report to see what is still weak.</p></div>
     </div>
   </section>
@@ -321,74 +335,34 @@
     </div>
   </section>
 
-  <!-- teachers -->
-  <section class="section" id="teachers">
-    <div class="section__head">
-      <span class="eyebrow">For teachers</span>
-      <h2>Set the work. Get a code. Hand it out.</h2>
-      <p>Build an assignment and LearnGeo turns it into a short code. Paste it in your class chat or
-         write it on the board. Students enter it once and the work appears on their home screen.</p>
-    </div>
-
-    <div class="steps">
-      <div class="step">
-        <div class="step__n">01</div><h4>Pick the countries</h4>
-        <p>Type them in one at a time, or drop in a whole continent with one button.</p>
+  <!-- join a class -->
+  <section class="section" id="classcode">
+    <div class="band">
+      <div class="band__t">
+        <span class="eyebrow">Got a code from your teacher?</span>
+        <h2>Join your class in about ten seconds.</h2>
+        <p>Your teacher gives you a short class code and one long join code. Paste them in once and
+           every assignment they have set turns up on your home screen, marked as you finish it.</p>
       </div>
-      <div class="step">
-        <div class="step__n">02</div><h4>Set the conditions</h4>
-        <p>Length, question types, timed or not, and whether answers are revealed as they go.</p>
-      </div>
-      <div class="step">
-        <div class="step__n">03</div><h4>Copy the code</h4>
-        <p>Each assignment gets its own code. It carries the whole thing, so nobody needs an account.</p>
-      </div>
-      <div class="step">
-        <div class="step__n">04</div><h4>They paste it in</h4>
-        <p>The assignment lands in their list with your class name on it.</p>
+      <div class="band__cta">
+        <button class="btn btn--accent btn--lg" data-launch="classroom">Join a class</button>
+        <p class="t-sm t-muted" style="margin-top:10px">No account, no email address. The code is the whole thing.</p>
       </div>
     </div>
+  </section>
 
-    <div class="split" style="margin-top:56px">
-      <div>
-        <h3 style="font-size:24px;letter-spacing:-.028em">What you can set</h3>
-        <ul class="feature-list" style="margin-top:18px">
-          <li>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m20 6-11 11-5-5"/></svg>
-            <div><b>A named list of countries</b><span>Exactly the ones you covered in class, nothing else.</span></div>
-          </li>
-          <li>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m20 6-11 11-5-5"/></svg>
-            <div><b>Exam conditions</b><span>Hold every result back until they submit, and put the section on a clock.</span></div>
-          </li>
-          <li>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m20 6-11 11-5-5"/></svg>
-            <div><b>Typed answers</b><span>Turn off multiple choice so they have to spell it themselves.</span></div>
-          </li>
-          <li>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m20 6-11 11-5-5"/></svg>
-            <div><b>Any of the four modes</b><span>A scored test, open practice, flashcards, or the map quiz.</span></div>
-          </li>
-        </ul>
-        <button class="btn btn--primary btn--lg" style="margin-top:26px" id="teacher-cta">Open teacher mode</button>
-        <p class="t-sm t-muted" style="margin-top:12px">Free, and it stays on your machine.
-           Nothing is uploaded and no student data is collected.</p>
-      </div>
-
-      <div>
-        <div class="preview-card">
-          <div class="preview-card__bar">
-            <span class="preview-card__dot"></span><span class="preview-card__dot"></span><span class="preview-card__dot"></span>
-          </div>
-          <div class="preview-card__body">
-            <div class="pv-q">Assignment</div>
-            <div class="pv-a" style="font-size:21px">South America capitals</div>
-            <div class="t-sm t-muted" style="margin-top:6px">Practice test · 12 countries · timed</div>
-            <div class="share-box" style="margin-top:16px">LG1-eyJpZCI6ImExbHo0ayIsInRpdGxlIjoiU291dGgg…</div>
-            <div class="pv-rewards" style="margin-top:14px">
-              <span class="chip chip--gem mono">Ready to hand out</span>
-            </div>
-          </div>
+  <!-- for teachers -->
+  <section class="section--paper section">
+    <div class="section__inner">
+      <div class="band">
+        <div class="band__t">
+          <span class="eyebrow">For teachers</span>
+          <h2>Running a class? There is a page for that.</h2>
+          <p>Build a class, write the assignments, hand out one code and collect every score back.
+             Free, with no accounts and no student data leaving the room.</p>
+        </div>
+        <div class="band__cta">
+          <a class="btn btn--primary btn--lg" href="teachers.html">See how it works for teachers</a>
         </div>
       </div>
     </div>
@@ -516,6 +490,7 @@
 <script src="assets/js/avatars.js"></script>
 <script src="assets/js/core.js"></script>
 <script src="assets/js/map.js"></script>
+<script src="assets/js/worldmap.js"></script>
 <script src="assets/js/quiz.js"></script>
 <script src="assets/js/assignments.js"></script>
 <script src="assets/js/ui.js"></script>

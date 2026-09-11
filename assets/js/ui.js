@@ -113,19 +113,33 @@
   /* =============================== HUD ============================== */
   function refreshHud(bump) {
     var s = W.state;
+    var teacher = s.role === 'teacher';
+
     set('hud-gems', s.economy.diamonds.toLocaleString());
     set('hud-level', 'Lv ' + s.economy.level);
     set('hud-streak', String(s.streak.current));
 
+    /* XP, diamonds and answer streaks are earned by answering questions,
+       which teachers never do here. Their half of the top bar says which
+       class they are in and what its code is instead. */
     var fireEl = document.getElementById('hud-fire');
-    if (fireEl) fireEl.classList.toggle('hidden', s.streak.current < 2);
+    if (fireEl) fireEl.classList.toggle('hidden', teacher || s.streak.current < 2);
+    ['hud-xp-chip', 'hud-gem-chip'].forEach(function (id) {
+      var n = document.getElementById(id);
+      if (n) n.classList.toggle('hidden', teacher);
+    });
+    classChip(teacher, s);
 
     var av = document.getElementById('avatar-slot');
     if (av) av.innerHTML = W.avatarHtml(s.profile);
 
     var lp = W.levelProgress();
     var bar = document.getElementById('hud-xpbar');
-    if (bar) bar.style.width = Math.min(100, (lp.have / lp.need) * 100) + '%';
+    if (bar) {
+      bar.style.width = Math.min(100, (lp.have / lp.need) * 100) + '%';
+      /* the hairline track under the bar is an XP meter too */
+      if (bar.parentNode) bar.parentNode.classList.toggle('hidden', teacher);
+    }
 
     if (bump) {
       ['hud-gem-chip', 'hud-xp-chip'].forEach(function (id) {
@@ -137,6 +151,24 @@
       });
     }
     function set(id, v) { var n = document.getElementById(id); if (n) n.textContent = v; }
+  }
+
+  /* Built here rather than sitting in the markup, because it only ever
+     exists for one of the two roles. */
+  function classChip(teacher, s) {
+    var hud = document.querySelector('.hud');
+    var chip = document.getElementById('hud-class');
+    if (!hud) return;
+    if (!teacher) { if (chip) chip.remove(); return; }
+    if (!chip) {
+      chip = W.el('span', 'hud__item hud__class');
+      chip.id = 'hud-class';
+      chip.title = 'Your class and the code students type to join it';
+      hud.appendChild(chip);
+    }
+    var c = s.classroom || {};
+    chip.innerHTML = '<b>' + W.escapeHtml(c.name || 'Your class') + '</b>' +
+      (c.code ? '<i class="mono">' + W.escapeHtml(c.code) + '</i>' : '');
   }
 
   /* =========================== PROFILE MENU ========================= */
@@ -708,6 +740,7 @@
     var thumb = document.getElementById('tabs-thumb');
 
     W.$$('.tab', bar).forEach(function (t) { t.remove(); });
+    var n = 0;
     TAB_DEFS.forEach(function (d) {
       if (d.role && d.role !== role) return;
       var b = W.el('button', 'tab' + (d.view === currentView ? ' is-active' : ''));
@@ -715,7 +748,12 @@
       b.innerHTML = I[d.icon] + '<span>' + d.label + '</span>';
       b.addEventListener('click', function () { go(d.view); });
       bar.appendChild(b);
+      n += 1;
     });
+    /* A switcher with one thing in it is not a switcher, it is a button
+       that does nothing. Teachers have only their class, so they get no
+       bar at all and the brand carries them home. */
+    bar.classList.toggle('hidden', n < 2);
     if (thumb) bar.insertBefore(thumb, bar.firstChild);
     positionThumb(false);
   }

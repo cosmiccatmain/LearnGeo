@@ -112,13 +112,29 @@
     } catch (e) { return defaultState(); }
   }
 
+  /* Walk the default's shape and lay the saved values over it, so a save
+     written by an older build picks up any field added since.
+
+     Two kinds of object need telling apart. A shaped one — profile,
+     economy, settings — has known keys, and is walked. A free-form map —
+     mastery, keyed by country name — has no keys in the default at all, so
+     there is nothing to walk and it has to be taken whole; walking it would
+     silently drop every country anyone had ever learnt. Defaults that are
+     null, such as `enrolled` before a class is joined, are likewise taken
+     whole rather than recursed into. */
   function merge(base, over) {
     if (!over || typeof over !== 'object') return base;
     Object.keys(base).forEach(function (k) {
       if (over[k] === undefined || over[k] === null) return;
-      if (Array.isArray(base[k])) { base[k] = Array.isArray(over[k]) ? over[k] : base[k]; }
-      else if (typeof base[k] === 'object') { base[k] = merge(base[k], over[k]); }
-      else { base[k] = over[k]; }
+      if (Array.isArray(base[k])) {
+        base[k] = Array.isArray(over[k]) ? over[k] : base[k];
+      } else if (base[k] && typeof base[k] === 'object') {
+        base[k] = Object.keys(base[k]).length && typeof over[k] === 'object'
+          ? merge(base[k], over[k])
+          : over[k];
+      } else {
+        base[k] = over[k];
+      }
     });
     return base;
   }

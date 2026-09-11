@@ -83,16 +83,10 @@
         '<div class="join-card">' +
           '<div class="join-card__i">' + I.users + '</div>' +
           '<h2>Join your class</h2>' +
-          '<p>Your teacher will give you a class code and a join code. ' +
-             'You only have to do this once.</p>' +
+          '<p>Your teacher gives you two codes, and they do different jobs. The short one says ' +
+             'which class you are in. The long one carries the actual work. You only do this once.</p>' +
 
           '<div class="field" style="margin-top:22px">' +
-            '<label class="field__label" for="j-code">Class code</label>' +
-            '<input class="input mono join-code" id="j-code" maxlength="10" ' +
-              'placeholder="ABC123" autocomplete="off" spellcheck="false">' +
-          '</div>' +
-
-          '<div class="field">' +
             '<label class="field__label" for="j-name">Your name</label>' +
             '<input class="input" id="j-name" maxlength="40" placeholder="First and last name" ' +
               'value="' + W.escapeHtml(W.state.profile.displayName === 'Explorer' ? '' : W.state.profile.displayName) + '">' +
@@ -100,10 +94,19 @@
           '</div>' +
 
           '<div class="field">' +
+            '<label class="field__label" for="j-code">Class code</label>' +
+            '<input class="input mono join-code" id="j-code" maxlength="10" ' +
+              'placeholder="ABC123" autocomplete="off" spellcheck="false">' +
+            '<div class="field__hint">Six characters, read out in class or written on the board. ' +
+              'It proves this work was meant for you.</div>' +
+          '</div>' +
+
+          '<div class="field">' +
             '<label class="field__label" for="j-pack">Join code</label>' +
             '<textarea class="input mono" id="j-pack" style="min-height:92px" ' +
               'placeholder="LGC-…"></textarea>' +
-            '<div class="field__hint">Paste the long code your teacher sent.</div>' +
+            '<div class="field__hint">The long one, starting <b>LGC-</b>. Paste the whole thing: ' +
+              'it carries every assignment your teacher has set.</div>' +
           '</div>' +
 
           '<div id="j-err"></div>' +
@@ -113,20 +116,44 @@
       '</div>';
 
     var codeEl = W.$('#j-code', host);
+    var packEl = W.$('#j-pack', host);
+
+    /* Both codes are text in a box, and the long one is the one that gets
+       pasted, so it lands up here often. Stripping it to letters and digits
+       would silently turn LGC-8RLJQU-eyJ… into gibberish, so it is moved to
+       the field it belongs in instead. The class code is deliberately not
+       read out of it: typing that is the whole check. */
     codeEl.addEventListener('input', function () {
-      codeEl.value = codeEl.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+      var raw = codeEl.value;
+      if (/LGC-/i.test(raw)) {
+        packEl.value = raw.trim();
+        codeEl.value = '';
+        joinNote(host, 'That is the join code',
+          'Moved to the box below, where it works. This one wants the short code your teacher gave you.');
+        packEl.focus();
+        return;
+      }
+      codeEl.value = raw.toUpperCase().replace(/[^A-Z0-9]/g, '');
     });
+
     W.$('#j-go', host).addEventListener('click', function () { join(host); });
     W.$$('#j-code, #j-name', host).forEach(function (el) {
       el.addEventListener('keydown', function (e) { if (e.key === 'Enter') join(host); });
     });
-    setTimeout(function () { codeEl.focus(); }, 60);
+    setTimeout(function () { W.$('#j-name', host).focus(); }, 60);
   }
 
   function joinError(host, title, body) {
     W.$('#j-err', host).innerHTML =
       '<div class="feedback feedback--wrong" style="margin:0 0 12px">' + I.info +
       '<div><b>' + title + '</b><p>' + body + '</p></div></div>';
+  }
+
+  /* Not a failure, just a correction: said in the same place, in a calmer colour. */
+  function joinNote(host, title, body) {
+    W.$('#j-err', host).innerHTML =
+      '<div class="feedback" style="background:var(--accent-soft);margin:0 0 12px">' + I.info +
+      '<div><b style="color:var(--accent-ink)">' + title + '</b><p>' + body + '</p></div></div>';
   }
 
   function join(host) {

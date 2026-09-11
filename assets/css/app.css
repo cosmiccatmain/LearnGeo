@@ -193,7 +193,7 @@ a { color: inherit; text-decoration: none; }
 .section__head h2 { margin-top: 12px; font-size: clamp(28px, 3.4vw, 40px); letter-spacing: -.032em; }
 .section__head p  { margin-top: 14px; font-size: 17px; color: var(--muted); }
 
-.modes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+.modes { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
 .mode-card {
   background: var(--white); border: 1px solid var(--line); border-radius: var(--r-lg);
   padding: 26px; text-align: left;
@@ -306,7 +306,7 @@ a { color: inherit; text-decoration: none; }
   z-index: 0; pointer-events: none;
 }
 .tab {
-  position: relative; z-index: 1;
+  position: relative; z-index: 1; flex: none; white-space: nowrap;
   height: 34px; padding: 0 14px; border-radius: 8px;
   font-size: 14px; font-weight: 520; color: var(--muted);
   display: inline-flex; align-items: center; gap: 7px;
@@ -335,6 +335,21 @@ a { color: inherit; text-decoration: none; }
 .hud__gem  { color: #0369A1; border-color: #BAE6FD; background: #F0F9FF; }
 .hud__xp   { color: var(--accent); border-color: #C7D2FE; background: var(--accent-soft); }
 .hud__fire { color: #B45309; border-color: #FDE68A; background: #FFFBEB; }
+
+/* the teacher's half of the top bar: which class, and the code for it */
+.hud__class {
+  gap: 9px; max-width: 300px; padding-right: 9px;
+  font-family: var(--sans); font-weight: 560;
+}
+.hud__class b {
+  font-weight: 560; font-size: 13.5px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.hud__class i {
+  font-style: normal; font-size: 12px; letter-spacing: .04em;
+  padding: 2px 7px; border-radius: 999px;
+  background: var(--accent-soft); color: var(--accent);
+}
 
 /* ------------------------------ avatar ---------------------------- */
 .avatar-btn { position: relative; width: 38px; height: 38px; border-radius: 50%; flex: none; }
@@ -1099,8 +1114,9 @@ textarea.input:focus { outline: none; border-color: var(--accent); box-shadow: 0
 @media (max-width: 1080px) {
   .split { grid-template-columns: 1fr; gap: 34px; }
   .steps { grid-template-columns: 1fr 1fr; row-gap: 26px; }
-  .modes { grid-template-columns: 1fr; }
+  .modes { grid-template-columns: 1fr 1fr; }
   .sidebar { width: 340px; }
+  .tabs .tab span { display: none; }
 }
 @media (max-width: 860px) {
   .nav__links { display: none; }
@@ -1113,19 +1129,21 @@ textarea.input:focus { outline: none; border-color: var(--accent); box-shadow: 0
   .navgrid { grid-template-columns: repeat(10, 1fr); }
   .section { padding: 56px 20px; }
   .hero { padding: 60px 20px 52px; }
+  .modes { grid-template-columns: 1fr; }
   .tabs .tab span { display: none; }
   .hud__item { padding: 0 9px; }
 }
 /* Narrow phones: the top bar has to shed weight so the avatar stays reachable. */
 @media (max-width: 560px) {
   .nav { padding: 0 14px; gap: 10px; }
-  #nav-resume { display: none; }
+  #nav-continue { display: none; }
   .hero__cta .btn { width: 100%; }
   .topbar { padding: 0 10px; gap: 6px; }
   .topbar .brand__text { display: none; }
   .tabs { margin-left: 4px; }
   .tab { padding: 0 9px; }
   .hud__xp { display: none; }
+  .hud__class { max-width: 128px; }
   .hud__item { padding: 0 8px; font-size: 12px; }
   .avatar-btn { width: 34px; height: 34px; }
   .sidebar__head, .sidebar__body, .sidebar__foot { padding-left: 16px; padding-right: 16px; }
@@ -1184,32 +1202,127 @@ textarea.input:focus { outline: none; border-color: var(--accent); box-shadow: 0
 }
 .portal__inner { max-width: 1080px; margin: 0 auto; padding: 38px 32px 60px; }
 
-.portal__head {
-  display: flex; align-items: center; gap: 20px; flex-wrap: wrap;
-  padding-bottom: 26px; border-bottom: 1px solid var(--line);
-}
-.portal__hello h1 { font-size: 30px; letter-spacing: -.032em; }
-.portal__hello p { margin-top: 6px; color: var(--muted); font-size: 15px; }
 .portal__avatar { width: 62px; height: 62px; flex: none; }
 
-.portal__metrics {
-  display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 26px;
+/* ---- the map panel: the whole point of the home screen ---- */
+.home-hero {
+  background: var(--white); border: 1px solid var(--line); border-radius: var(--r-xl);
+  box-shadow: var(--shadow); overflow: hidden;
 }
-.metric {
-  background: var(--white); border: 1px solid var(--line); border-radius: 14px;
-  padding: 16px 18px; text-align: center;
+.home-hero__top {
+  display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
+  padding: 24px 26px 20px;
 }
-.metric__n {
-  font-family: var(--mono); font-size: 26px; font-weight: 650;
-  letter-spacing: -.03em; line-height: 1.1;
+.home-hero__hello h1 { font-size: 27px; letter-spacing: -.032em; }
+.home-hero__hello p { margin-top: 5px; color: var(--muted); font-size: 14.5px; }
+.home-hero__score { text-align: right; flex: none; }
+.home-hero__score b {
+  font-family: var(--mono); font-size: 38px; font-weight: 650;
+  letter-spacing: -.04em; line-height: 1;
 }
-.metric__l { margin-top: 4px; font-size: 12.5px; color: var(--faint); }
-.metric--goal { display: flex; align-items: center; gap: 14px; text-align: left; }
+.home-hero__score span { font-family: var(--mono); font-size: 19px; color: var(--faint); margin-left: 3px; }
+.home-hero__score em { display: block; font-style: normal; margin-top: 5px; font-size: 12.5px; color: var(--faint); }
 
-.portal__section { margin-top: 36px; }
+.home-map {
+  position: relative; margin: 0 18px;
+  background: linear-gradient(180deg, #F7F9FC, #F2F5F9);
+  border: 1px solid var(--line-soft); border-radius: var(--r-lg);
+  min-height: 150px;
+}
+.home-map.is-loading::after {
+  content: 'Drawing the world…';
+  position: absolute; inset: 0; display: grid; place-items: center;
+  font-size: 12.5px; color: var(--faint);
+}
+.home-legend {
+  display: flex; gap: 18px; flex-wrap: wrap;
+  padding: 11px 26px 0; font-size: 12px; color: var(--faint);
+}
+.home-legend span { display: inline-flex; align-items: center; gap: 7px; }
+.wm-key {
+  width: 11px; height: 11px; border-radius: 3px; flex: none;
+  background: #DDE3EC; border: 1px solid #CBD3DF;
+}
+.wm-key--seen { background: #C7D6FF; border-color: #A9BEFA; }
+.wm-key--done { background: #6FD9B4; border-color: #2FB98B; }
+
+/* ---- one next step, directly under the map ---- */
+.home-next {
+  display: flex; align-items: center; gap: 15px; flex-wrap: wrap;
+  margin-top: 18px; padding: 18px 26px 22px;
+  border-top: 1px solid var(--line-soft); background: var(--paper);
+}
+.home-next__icon {
+  width: 42px; height: 42px; border-radius: 13px; flex: none;
+  display: grid; place-items: center;
+  background: var(--accent-soft); color: var(--accent);
+}
+.home-next__icon--warm { background: #FFF7ED; color: #C2410C; }
+.home-next__icon--cool { background: #ECFDF5; color: #047857; }
+.home-next__t { flex: 1; min-width: 190px; }
+.home-next__t b { display: block; margin-top: 3px; font-size: 16px; letter-spacing: -.018em; }
+.home-next__t > span { display: block; font-size: 13px; color: var(--muted); margin-top: 2px; }
+
+/* ---- the stat rail ---- */
+.rail {
+  display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-top: 16px;
+}
+.rail__i {
+  display: flex; align-items: center; gap: 11px;
+  background: var(--white); border: 1px solid var(--line); border-radius: 14px;
+  padding: 13px 15px; min-width: 0;
+}
+.rail__i b {
+  display: block; font-family: var(--mono); font-size: 17px; font-weight: 600;
+  letter-spacing: -.03em; line-height: 1.2;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.rail__i span { display: block; font-size: 11.5px; color: var(--faint); }
+.rail__i > div { min-width: 0; }
+.rail__icon {
+  width: 30px; height: 30px; border-radius: 9px; flex: none;
+  display: grid; place-items: center; background: var(--paper); color: var(--muted);
+}
+.rail__icon svg { width: 16px; height: 16px; }
+.rail__i.is-live .rail__icon { background: #FFF3E0; color: #B45309; }
+.rail__bar {
+  display: block; height: 3px; margin-top: 6px; border-radius: 2px;
+  background: var(--line); overflow: hidden;
+}
+.rail__bar i { display: block; height: 100%; background: var(--accent); border-radius: 2px; }
+
+/* ---- the one-line stand-in for an empty assignments panel ---- */
+.home-join {
+  display: flex; align-items: center; gap: 14px; width: 100%; margin-top: 16px;
+  background: var(--white); border: 1px solid var(--line); border-radius: 14px;
+  padding: 14px 18px; text-align: left;
+  transition: border-color .15s, box-shadow .15s;
+}
+.home-join:hover { border-color: #C9D2E2; box-shadow: var(--shadow); }
+.home-join__icon {
+  width: 34px; height: 34px; border-radius: 10px; flex: none;
+  display: grid; place-items: center; background: var(--accent-soft); color: var(--accent);
+}
+.home-join__t { flex: 1; min-width: 0; }
+.home-join__t b { display: block; font-size: 14px; font-weight: 570; }
+.home-join__t span { font-size: 12.5px; color: var(--muted); }
+.home-join__go {
+  flex: none; color: var(--accent); font-weight: 580; font-size: 13.5px;
+  display: inline-flex; align-items: center; gap: 5px;
+}
+
+/* ---- modes beside the two summary panels ---- */
+.home-grid {
+  display: grid; grid-template-columns: 1fr 320px; gap: 20px;
+  align-items: start; margin-top: 24px;
+}
+.home-modes { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.home-side { display: grid; gap: 20px; }
+
+
+.portal__section { margin-top: 28px; }
 .portal__section > .eyebrow { display: block; margin-bottom: 14px; }
 
-.portal-modes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
 .portal-mode {
   background: var(--white); border: 1px solid var(--line); border-radius: 16px;
   padding: 22px; text-align: left; display: flex; flex-direction: column;
@@ -1230,7 +1343,6 @@ textarea.input:focus { outline: none; border-color: var(--accent); box-shadow: 0
 }
 .portal-mode__go { color: var(--accent); font-weight: 580; display: inline-flex; align-items: center; gap: 5px; }
 
-.portal-split { display: grid; grid-template-columns: 1fr 320px; gap: 20px; align-items: start; }
 .panel {
   background: var(--white); border: 1px solid var(--line);
   border-radius: 16px; padding: 20px;
@@ -1248,7 +1360,36 @@ textarea.input:focus { outline: none; border-color: var(--accent); box-shadow: 0
 /* ================================================================
    LANDING — app screenshots
    ================================================================ */
-.shots { display: grid; grid-template-columns: 1.35fr 1fr; gap: 20px; align-items: start; }
+.shots { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; align-items: start; }
+.shot--wide { grid-column: 1 / -1; }
+
+/* the home-screen shot: the real map, at marketing size */
+.home-shot__head {
+  display: flex; align-items: flex-end; justify-content: space-between;
+  gap: 18px; flex-wrap: wrap; padding: 18px 20px 14px;
+}
+.home-shot__head b { font-size: 17px; letter-spacing: -.025em; }
+.home-shot__head > div > span { display: block; margin-top: 4px; font-size: 13px; color: var(--muted); }
+.home-shot__score { text-align: right; flex: none; }
+.home-shot__score b { font-family: var(--mono); font-size: 30px; letter-spacing: -.04em; }
+.home-shot__score span { font-family: var(--mono); font-size: 16px; color: var(--faint); margin-left: 3px; }
+.home-shot__score em { display: block; font-style: normal; margin-top: 3px; font-size: 12px; color: var(--faint); }
+.home-shot__map {
+  position: relative; margin: 0 20px;
+  background: linear-gradient(180deg, #F7F9FC, #F2F5F9);
+  border: 1px solid var(--line-soft); border-radius: var(--r-lg); min-height: 180px;
+}
+.home-shot__map.is-loading::after {
+  content: ''; position: absolute; inset: 0;
+}
+
+/* a heading beside its call to action */
+.band {
+  display: grid; grid-template-columns: 1fr auto; gap: 40px; align-items: center;
+}
+.band__t h2 { margin-top: 12px; font-size: clamp(26px, 3vw, 34px); letter-spacing: -.032em; }
+.band__t p { margin-top: 14px; font-size: 16px; color: var(--muted); max-width: 60ch; }
+.band__cta { text-align: right; }
 .shot {
   border: 1px solid var(--line); border-radius: 14px; overflow: hidden;
   background: var(--white); box-shadow: var(--shadow-lg);
@@ -1273,17 +1414,10 @@ textarea.input:focus { outline: none; border-color: var(--accent); box-shadow: 0
 .mini__app { display: grid; grid-template-columns: 150px 1fr; min-height: 210px; }
 .mini__side { border-right: 1px solid var(--line); padding: 12px; }
 .mini__map {
-  background:
-    radial-gradient(circle at 30% 40%, #DCE7DA 0 22%, transparent 22%),
-    radial-gradient(circle at 62% 62%, #DCE7DA 0 17%, transparent 17%),
-    radial-gradient(circle at 78% 30%, #DCE7DA 0 13%, transparent 13%),
-    #E8EEF3;
-  position: relative;
+  background: linear-gradient(180deg, #F7F9FC, #EDF1F6);
+  position: relative; display: grid; place-items: center; overflow: hidden;
 }
-.mini__pin {
-  position: absolute; width: 9px; height: 9px; border-radius: 50%;
-  border: 2px solid #fff; box-shadow: 0 1px 3px rgba(0,0,0,.3);
-}
+.mini__map .wm__svg { width: 100%; height: 100%; }
 .mini__eyebrow {
   font-family: var(--mono); font-size: 8.5px; letter-spacing: .12em;
   text-transform: uppercase; color: var(--faint);
@@ -1307,15 +1441,10 @@ textarea.input:focus { outline: none; border-color: var(--accent); box-shadow: 0
 }
 
 @media (max-width: 1080px) {
-  .portal__metrics { grid-template-columns: 1fr 1fr; }
-  .portal-modes { grid-template-columns: 1fr; }
-  .portal-split { grid-template-columns: 1fr; }
   .shots { grid-template-columns: 1fr; }
 }
 @media (max-width: 560px) {
   .portal__inner { padding: 24px 16px 44px; }
-  .portal__metrics { grid-template-columns: 1fr 1fr; }
-  .portal__hello h1 { font-size: 24px; }
   .auth-card { padding: 26px 20px 22px; }
   .mini__app { grid-template-columns: 120px 1fr; }
 }
@@ -1451,30 +1580,19 @@ textarea.input:focus { outline: none; border-color: var(--accent); box-shadow: 0
   font-size: 14px; font-weight: 620;
 }
 
-/* ---- recommended assignments on the portal ---- */
-.rec-list { display: grid; gap: 10px; }
-.rec {
-  display: flex; align-items: center; gap: 14px; width: 100%;
-  padding: 14px 16px; border: 1px solid var(--line); border-radius: 13px;
-  background: var(--white); text-align: left;
-  transition: transform .18s var(--ease), box-shadow .18s var(--ease), border-color .16s;
+/* ---- the flat world map, drawn from the country outlines ----
+   Paths are handed over already simplified, so the only work left here is
+   colour. Fills are classes rather than inline styles so a re-render can
+   swap them without touching the geometry. */
+.wm__svg { display: block; width: 100%; height: auto; }
+.wm__c {
+  fill: #DDE3EC; stroke: #F2F5F9; stroke-width: .6; vector-effect: non-scaling-stroke;
+  transition: fill .25s var(--ease);
 }
-.rec:hover { transform: translateY(-2px); box-shadow: var(--shadow); border-color: #D3D8E0; }
-.rec__icon {
-  width: 40px; height: 40px; border-radius: 11px; flex: none;
-  display: grid; place-items: center; background: var(--accent-soft); color: var(--accent);
-}
-.rec__icon--warm { background: #FFF7ED; color: #C2410C; }
-.rec__icon--cool { background: #ECFDF5; color: #047857; }
-.rec__t { flex: 1; min-width: 0; }
-.rec__t b { display: block; font-size: 14.5px; font-weight: 600; letter-spacing: -.012em; }
-.rec__t > span { display: block; font-size: 13px; color: var(--muted); margin-top: 2px; }
-.rec__why {
-  margin-top: 6px !important; font-size: 11.5px !important;
-  font-family: var(--mono); color: var(--faint) !important;
-}
-.rec__go { flex: none; color: var(--faint); }
-.rec:hover .rec__go { color: var(--ink); }
+.wm__c.is-seen    { fill: #C7D6FF; }
+.wm__c.is-mastered{ fill: #6FD9B4; }
+.wm__c.is-target  { fill: var(--gold); stroke: #B45309; stroke-width: 1.2; }
+.home-map .wm__c:hover { fill: var(--accent); }
 
 /* ---- country picker for custom tests ---- */
 .picker { border: 1px solid var(--line); border-radius: 12px; background: var(--white); }
@@ -1790,4 +1908,41 @@ textarea.input:focus { outline: none; border-color: var(--accent); box-shadow: 0
 .join-code {
   font-size: 20px; letter-spacing: .22em; text-transform: uppercase;
   height: 52px; font-weight: 620; text-align: center;
+}
+
+/* ==================================================================
+   RESPONSIVE — the home screen and the two landing pages
+
+   These have to sit at the end. Everything they override is defined
+   further down the file than the main responsive block, and a media
+   query adds no specificity, so stated up there they simply lost.
+   ================================================================== */
+@media (max-width: 1080px) {
+  .home-grid { grid-template-columns: 1fr; }
+  .home-side { grid-template-columns: 1fr 1fr; }
+  .rail { grid-template-columns: repeat(3, 1fr); }
+  .shots { grid-template-columns: 1fr 1fr; }
+  .shot--wide { grid-column: 1 / -1; }
+}
+@media (max-width: 860px) {
+  .portal__inner { padding: 22px 16px 48px; }
+  .home-hero__top, .home-next { padding-left: 18px; padding-right: 18px; }
+  .home-hero__score { text-align: left; }
+  .home-legend, .home-shot__head { padding-left: 18px; padding-right: 18px; }
+  .home-map, .home-shot__map { margin-left: 14px; margin-right: 14px; }
+  .home-modes, .home-side { grid-template-columns: 1fr; }
+  .rail { grid-template-columns: 1fr 1fr; }
+  .shots { grid-template-columns: 1fr; }
+  .band { grid-template-columns: 1fr; gap: 22px; }
+  .band__cta { text-align: left; }
+  .band__cta .btn { width: 100%; }
+}
+@media (max-width: 560px) {
+  .home-hero__top { gap: 12px; }
+  .home-hero__hello h1 { font-size: 22px; }
+  .home-next { gap: 12px; }
+  .home-next .btn { width: 100%; }
+  .home-join { flex-wrap: wrap; }
+  /* the assignments heading and its two buttons stop fitting on one line */
+  .portal__section .row--between { flex-wrap: wrap; gap: 12px; }
 }

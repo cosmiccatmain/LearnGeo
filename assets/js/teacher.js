@@ -85,7 +85,8 @@
             '<h1>' + W.escapeHtml(c.name || 'Your class') + '</h1>' +
             '<p>' + c.assignments.length + ' assignment' + (c.assignments.length === 1 ? '' : 's') +
               ' · ' + roster.length + ' student' + (roster.length === 1 ? '' : 's') +
-              ' · ' + c.results.length + ' result' + (c.results.length === 1 ? '' : 's') + ' in</p>' +
+              ' · ' + c.results.length + ' result' + (c.results.length === 1 ? '' : 's') + ' in' +
+              (classAverage() === null ? '' : ' · ' + classAverage() + '% class average') + '</p>' +
           '</div>' +
           '<button class="cr-banner__code" id="tm-copycode" title="Copy class code">' +
             '<span>Class code</span><b>' + ensureCode() + '</b>' +
@@ -185,13 +186,6 @@
           '<button class="btn btn--ghost btn--block" id="tm-collect" style="margin-top:8px">' +
             I.inbox + ' Collect results</button>' +
         '</div>' +
-        '<div class="cr-card">' +
-          '<div class="cr-card__head"><h3>At a glance</h3></div>' +
-          miniStat('Assignments', c.assignments.length) +
-          miniStat('Students', people().length) +
-          miniStat('Results in', c.results.length) +
-          miniStat('Class average', classAverage() === null ? '—' : classAverage() + '%') +
-        '</div>' +
       '</div>' +
 
       '<div>' +
@@ -214,12 +208,6 @@
         '</div>' +
       '</div>' +
     '</div>';
-
-    function miniStat(l, v) {
-      return '<div class="row row--between" style="padding:8px 0;border-bottom:1px solid var(--line-soft)">' +
-        '<span class="t-sm t-muted">' + l + '</span>' +
-        '<b class="mono" style="font-size:15px">' + v + '</b></div>';
-    }
   }
 
   function emptyCta(icon, title, body) {
