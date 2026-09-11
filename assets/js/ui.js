@@ -555,8 +555,15 @@
     return '<span class="shop-item__vis"></span>';
   }
 
-  function wireShop(root) {
-    W.$$('.shop-item', root).forEach(function (btn) {
+  /* `scope` is what gets wired, `root` is the modal the handlers work
+     against. They are the same on the way in and differ when equip()
+     swaps one panel: wiring the whole modal again there would leave every
+     other panel holding both its old handler and a new one, so a click on
+     a locked item would open one Unlock dialog per equip since the modal
+     opened — and charge for each one confirmed. */
+  function wireShop(scope, root) {
+    root = root || scope;
+    W.$$('.shop-item', scope).forEach(function (btn) {
       btn.addEventListener('click', function () {
         var kind = btn.dataset.kind, id = btn.dataset.id;
         var price = parseInt(btn.dataset.price, 10) || 0;
@@ -611,7 +618,7 @@
       var next = fresh.firstChild;
       if (wasHidden) next.classList.add('hidden'); else next.classList.remove('hidden');
       panel.replaceWith(next);
-      wireShop(root);
+      wireShop(next, root);
     }
     drawPreview(root);
     refreshHud();
