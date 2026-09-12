@@ -82,10 +82,15 @@
 
   /* ====================== sign in with a passkey ==================== */
   function problem(err) {
-    var code = (err && (err.code || err.name)) || '';
+    var name = (err && err.name) || '';
+    /* DOMException.code is a number, so only a string code means anything */
+    var code = err && typeof err.code === 'string' ? err.code : '';
     var msg = (err && err.message) || '';
-    /* the person closed the system prompt, which is not a failure */
-    if (code === 'NotAllowedError' || code === 'AbortError') return null;
+    var all = name + ' ' + code + ' ' + msg;
+    /* closing the system prompt is a choice, not a failure worth reporting */
+    if (name === 'NotAllowedError' || name === 'AbortError' ||
+        code === 'NotAllowedError' || code === 'AbortError' ||
+        /not allowed|cancell?ed|aborted|timed out/i.test(msg)) return null;
     if (code === 'passkey_disabled') return 'Passkeys are not switched on for this project yet.';
     if (code === 'webauthn_credential_not_found') {
       return 'That passkey is not on any LearnGeo account. Sign in with your password, then add one.';
@@ -94,10 +99,12 @@
       return 'That took too long. Try again.';
     }
     if (code === 'too_many_passkeys') return 'This account already has as many passkeys as it can hold.';
-    if (code === 'SecurityError' || code === 'ERROR_INVALID_RP_ID' ||
-        /relying party|rp id|origin/i.test(msg)) {
+    if (name === 'SecurityError' || code === 'ERROR_INVALID_RP_ID' ||
+        /relying party|rp id|origin/i.test(all)) {
       return 'Passkeys only work on the real site address, not on this one.';
     }
+    if (name === 'InvalidStateError') return 'This device already has a passkey for this account.';
+    if (name === 'NotSupportedError') return 'This device cannot make a passkey.';
     return msg || 'The passkey did not work. Use your password instead.';
   }
 
@@ -243,8 +250,13 @@
   }
 
   /* Offered once per account, right after a password sign-in. */
-  function offer() {
+  function offer(tries) {
     if (!supported() || !signedIn() || !global.UI) return;
+    if (document.querySelector('.overlay')) {
+      /* something else is on screen; wait for it rather than stack on it */
+      if ((tries || 0) < 10) setTimeout(function () { offer((tries || 0) + 1); }, 1500);
+      return;
+    }
     var key = 'learngeo.passkeyAsked.' + cloud().user.id;
     try { if (localStorage.getItem(key)) return; } catch (e) {}
     list().then(function (rows) {
@@ -268,6 +280,13 @@
     W.$$('input[type="password"]', modal).forEach(addEye);
 
     if (!supported()) return;
+    settingsButton(modal);
+
+    /* let the browser offer saved passkeys straight from the email box */
+    var email = modal.querySelector('#au-email');
+    if (email && !/webauthn/.test(email.getAttribute('autocomplete') || '')) {
+      email.setAttribute('autocomplete', 'username webauthn');
+    }
     /* the sign-in dialog, which has an email box but no name box */
     if (!modal.querySelector('#au-email') || modal.querySelector('#au-name')) return;
     var body = modal.querySelector('.modal__body');
@@ -285,10 +304,25 @@
     });
   }
 
+  /* Settings has an account row with a Sign out button. Passkeys belong
+     next to it, for anyone who goes looking there first. */
+  function settingsButton(modal) {
+    var out = modal.querySelector('#set-signout');
+    if (!out || !signedIn() || modal.querySelector('[data-pk-settings]')) return;
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'btn btn--ghost btn--sm';
+    b.setAttribute('data-pk-settings', '1');
+    b.style.marginRight = '8px';
+    b.textContent = 'Passkeys';
+    b.addEventListener('click', manage);
+    out.parentNode.insertBefore(b, out);
+  }
+
   function decorateMenu(menu) {
     if (!supported() || !signedIn()) return;
     if (menu.querySelector('[data-pk]')) return;
-    var out = menu.querySelector('[data-go="signout"]');
+    var out = menu.querySelector('[data-go="signout"]') || menu.querySelector('.menu__note');
     if (!out) return;
     var b = document.createElement('button');
     b.className = 'menu__item';
@@ -312,6 +346,19 @@
     if (menu) decorateMenu(menu);
   }
 
+  /* A passkey request can be refused by the browser outside any code of
+     ours, for instance when it offers a saved passkey from the email box
+     and the address does not match the passkey domain. That refusal
+     belongs to nobody and lands in the console as an uncaught error on a
+     page where nothing is wrong. Only that exact one is swallowed; every
+     refusal we asked for is reported in the dialog instead. */
+  function hushAutofillRefusal() {
+    global.addEventListener('unhandledrejection', function (e) {
+      var r = e.reason;
+      if (r && r.name === 'SecurityError' && /RP ID/i.test(r.message || '')) e.preventDefault();
+    });
+  }
+
   function boot() {
     new MutationObserver(function (records) {
       records.forEach(function (r) {
@@ -319,13 +366,24 @@
       });
     }).observe(document.body, { childList: true, subtree: true });
 
+    watchSignIn(0);
+  }
+
+  function watchSignIn(tries) {
     var a = auth();
     if (a && a.onAuthStateChange) {
       a.onAuthStateChange(function (event) {
         if (event === 'SIGNED_IN') setTimeout(offer, 1500);
       });
+      return;
     }
+    /* supabase-js may still be loading when the page is slow */
+    if (tries < 20) setTimeout(function () { watchSignIn(tries + 1); }, 500);
   }
+
+  /* installed while this file is being read, because the request it quiets
+     can start as soon as any script touches the Supabase client */
+  hushAutofillRefusal();
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
