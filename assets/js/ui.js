@@ -564,7 +564,9 @@
     drawPreview(root);
     refreshHud();
     var bal = W.$('#cz-balance', root);
-    if (bal) bal.textContent = W.state.economy.diamonds.toLocaleString() + ' 💎';
+    /* built with W.gem(), so put it back the same way rather than dropping
+       the sized diamond for a bare emoji */
+    if (bal) bal.innerHTML = W.gem(W.state.economy.diamonds.toLocaleString(), false);
   }
 
   function wireProfileFields(root) {

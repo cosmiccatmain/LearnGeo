@@ -269,16 +269,20 @@
     var input = host.querySelector('[data-input]');
     var hitBox = host.querySelector('[data-hits]');
 
+    /* What you typed the start of comes first. Listing both kinds of match
+       in one pass left them in dataset order, so typing "guinea" offered
+       Equatorial Guinea before Guinea. */
     function search(q) {
       var n = W.normalise(q);
       if (!n) return [];
-      return global.GeoData.countries.filter(function (c) {
-        if (chosen.indexOf(c.name) !== -1) return false;
-        return W.normalise(c.name).indexOf(n) === 0 ||
-               W.normalise(c.capital).indexOf(n) === 0 ||
-               W.normalise(c.name).indexOf(n) !== -1 ||
-               W.normalise(c.capital).indexOf(n) !== -1;
-      }).slice(0, 8);
+      var starts = [], contains = [];
+      global.GeoData.countries.forEach(function (c) {
+        if (chosen.indexOf(c.name) !== -1) return;
+        var name = W.normalise(c.name), cap = W.normalise(c.capital);
+        if (name.indexOf(n) === 0 || cap.indexOf(n) === 0) starts.push(c);
+        else if (name.indexOf(n) !== -1 || cap.indexOf(n) !== -1) contains.push(c);
+      });
+      return starts.concat(contains).slice(0, 8);
     }
 
     function drawTokens() {
