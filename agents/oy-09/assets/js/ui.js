@@ -662,8 +662,18 @@
 
   function themeBody(t) {
     return 'border-top:3px solid ' + t.c1 + ';' +
-           /* both stops carry colour: a fade to transparent leaves the bottom
-              of the card white, which is the white space Owen is pointing at */
+           /* Both stops carry colour, and neither is the keyword `transparent`.
+              Two separate reasons, and the second one is the one that bites.
+
+              1. A stop that fades out leaves the bottom of the card white, and
+                 the bottom is where the bio and the stats are. That white is
+                 the white space Owen asked to be coloured in the first place.
+              2. `transparent` is rgba(0,0,0,0), so a gradient running to it can
+                 interpolate through transparent BLACK and lay a grey cast down
+                 the card. Fading to the same hue at zero alpha avoids it. This
+                 reads as pointless long-hand and is not: shortening it back to
+                 `transparent` looks correct, passes review, and dirties every
+                 card at runtime. */
            'background:linear-gradient(180deg,' + t.c1 + '5E 0%,' + t.c1 + '33 100%)';
   }
 

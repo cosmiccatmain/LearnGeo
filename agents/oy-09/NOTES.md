@@ -580,3 +580,41 @@ plainly different cards, no second look needed.
 Status: Complete. `ui.js` passes `node --check`. Verified at runtime: all seven
 rendered together, three banners against three themes, and 35 contrast
 measurements.
+
+
+---
+
+# Correction: 0002 IS applied. I was wrong.
+
+I wrote, twice, that `0002_geolive.sql` was unapplied and that the leaderboard
+therefore had no levels to rank. **That was false.** I carried it forward from
+an earlier state instead of measuring it, which is the exact failure the
+re-measure rule exists to stop, and I am the session that argued for that rule
+after my own styling numbers went stale.
+
+Re-measured myself 2026-09-12 against the live database, via the schema reader
+rather than SQL, because my session's classifier refuses me raw reads:
+
+- `classes.geolive_enabled` boolean, default true. **Present.**
+- `classes.leaderboard_enabled` boolean, default false. **Present.**
+- `class_members.level` integer, nullable, check 1..1000. **Present.**
+- `class_members.xp` integer, nullable, check >= 0. **Present.**
+- `live_sessions`, `live_players`, `live_answers`. **All three present.**
+- `live_sessions.asked_at`, `live_players.answered`, `live_players.correct`.
+  **Present**, so the 0002 column additions all landed too.
+
+`class_members` holds 2 rows. `live_sessions` holds 0, which is consistent with
+GeoLive never having run.
+
+**What this changes.** The class leaderboard has real columns and real members
+today. The moment a teacher switches it on it ranks actual students. The round-4
+discoverability work ships into a working feature, not an empty one.
+
+**0003 is what is still unapplied**, and only that. It fixes the `live_players`
+policy recursing into itself, which is why GeoLive is dead. The leaderboard does
+not touch a `live_` table and is unaffected by 0003 entirely.
+
+**Still not mine to confirm:** the count of members with a level actually synced
+(Master measured 2), and the live value of `leaderboard_enabled` for the class.
+Those need row reads, which my session is refused. The schema above is mine; the
+row counts are Master's, measured 2026-09-12.

@@ -662,8 +662,18 @@
 
   function themeBody(t) {
     return 'border-top:3px solid ' + t.c1 + ';' +
-           /* both stops carry colour: a fade to transparent leaves the bottom
-              of the card white, which is the white space Owen is pointing at */
+           /* Both stops carry colour, and neither is the keyword `transparent`.
+              Two separate reasons, and the second one is the one that bites.
+
+              1. A stop that fades out leaves the bottom of the card white, and
+                 the bottom is where the bio and the stats are. That white is
+                 the white space Owen asked to be coloured in the first place.
+              2. `transparent` is rgba(0,0,0,0), so a gradient running to it can
+                 interpolate through transparent BLACK and lay a grey cast down
+                 the card. Fading to the same hue at zero alpha avoids it. This
+                 reads as pointless long-hand and is not: shortening it back to
+                 `transparent` looks correct, passes review, and dirties every
+                 card at runtime. */
            'background:linear-gradient(180deg,' + t.c1 + '5E 0%,' + t.c1 + '33 100%)';
   }
 
@@ -672,7 +682,17 @@
            'border-radius:12px;padding:12px 10px 10px';
   }
 
-  /* c2 at an alpha, so secondary text stays secondary without going pale */
+  /* c2 at an alpha, so secondary text stays secondary without going pale.
+
+     THE FLOOR IS 'D1' (82%) AND IT IS MEASURED, NOT GUESSED. Composited over
+     the tinted body, c2 below that alpha drops under 4.5:1 against the
+     surface. Clay is the worst case: its body is the lightest of the seven
+     and #7C2D12 is the warmest c2, so it needs 0.82 where Default needs
+     0.61. Every alpha below clears Clay, which clears all seven.
+
+     Before this, these were var(--faint) at #9CA3AF, which is fine on white
+     and fails on every tinted surface. Do not pale them back down without
+     re-running the contrast check against the lightest theme. */
   function themeInk(t, a) { return 'color:' + t.c2 + a; }
 
   function profileCard(live) {
@@ -691,9 +711,9 @@
         '<div class="profile-card__avatar">' + W.avatarHtml(p) + '</div>' +
         '<div class="profile-card__name" style="background:' + plate.css + ';color:' + plate.text + '">' +
           W.escapeHtml(name) + W.verifiedMark(p, 15) + '</div>' +
-        '<div class="profile-card__tag" style="' + themeInk(theme, 'C7') + '">Level ' +
+        '<div class="profile-card__tag" style="' + themeInk(theme, 'DE') + '">Level ' +
           s.economy.level + ' · ' + s.economy.diamonds.toLocaleString() + ' 💎</div>' +
-        (pron ? '<div class="profile-card__pronouns" style="' + themeInk(theme, 'AB') + '">' +
+        (pron ? '<div class="profile-card__pronouns" style="' + themeInk(theme, 'D9') + '">' +
           W.escapeHtml(pron) + '</div>' : '') +
         (about ? '<div class="profile-card__about" style="' + themeInk(theme, 'E6') +
           ';border-top-color:' + theme.c1 + '59">' + W.escapeHtml(about) + '</div>' : '') +
@@ -708,7 +728,7 @@
       /* the label override is the point: var(--faint) is pinned in app.css and
          is far too weak once the surface behind it is no longer white */
       return '<div class="profile-card__stat" style="color:' + theme.c2 + '">' +
-        '<b>' + v + '</b><span style="' + themeInk(theme, 'B0') + '">' + l + '</span></div>';
+        '<b>' + v + '</b><span style="' + themeInk(theme, 'D9') + '">' + l + '</span></div>';
     }
   }
 

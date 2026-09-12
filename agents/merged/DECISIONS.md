@@ -723,14 +723,24 @@ re-enters itself, and it is separately mutually recursive with `live_sessions`,
 whose policy reads `live_players`. Either cycle alone is fatal. Open, join, read
 and score are all dead.
 
-**The fix is written and it is NOT applied.**
-`supabase/deployed/0003_geolive_rls_recursion.sql` is in this commit as a file.
-Nobody has run it against the database, and nobody in this project should:
-that is Owen's to do. Until he does, everything in this round about GeoLive is
-code that has never been exercised against a working policy.
+**Owen has now applied 0003, and the recursion is genuinely gone.** Checked
+against the live database rather than inferred: both SELECT policies now call
+security definer helpers and neither contains a subquery over a `live_` table.
 
-**"0003 exists" is not "GeoLive works".** It works when a teacher opens a room
-and a student joins it. That has not happened yet.
+    live_players SELECT   student_id = auth.uid() OR is_session_teacher() OR is_in_session()
+    live_sessions SELECT  is_class_teacher(class_id) OR is_in_session(id)
+
+**But "0003 is applied" is still not "GeoLive works".** `live_sessions` holds
+zero rows. Nobody has opened a room since the fix landed, so what is known is
+that the thing which made it impossible is gone, not that it works. It works
+when a teacher opens a room and a student joins it, and that has not happened
+yet.
+
+**0002 is applied too, and the class leaderboard is not gated on any of this.**
+`class_members` holds 2 rows and both carry a synced level. The leaderboard
+never touches a `live_` table, so it ranks real students the moment it is
+switched on. It is the one part of this work that is demonstrable today with
+real data, and it defaults off, which is why nobody had seen it.
 
 ## The thing worth learning from this round
 
@@ -834,3 +844,72 @@ code.
 Both of those are now rules in `agents/README.md`, swept into this commit:
 timestamp every measured claim, and separate the number from what you think it
 means.
+
+## Addendum: the profile themes, measured rather than taken
+
+`ui.js` moved twice while this merge was running. The version merged is
+`4438dc80ada70f0af08b6f9c544b35118f79c5ae`, re-read at the moment of copy and
+re-checked afterwards to confirm it had settled. An earlier push in this round
+carried the previous version; this one supersedes it.
+
+oy-09 reported the readability work as 35 measurements, all clear of AA, worst
+4.81. I checked it rather than trusting it, because it is the only change in
+this round that can make the app worse for people who never asked for a theme.
+
+**Six of the seven themes clear AA comfortably. One element on one theme does
+not.**
+
+    theme      tag   pronouns  bio    stat label
+    default    8.76   9.07     11.21   7.99
+    moss       5.12   5.11      6.06   4.78
+    clay       4.58   4.67      5.58   4.25   <- below 4.5
+    plum       6.60   6.84      8.41   6.04
+    ice        4.89   4.91      5.83   4.56
+    rose       6.70   6.96      8.59   6.12
+    graphite   7.56   7.80      9.72   6.88
+
+The reason is precise and worth recording, because it is not a careless
+measurement. The stats panel paints `c1` at 25% **on top of** the body wash, so
+a stat label sits on a darker surface than the body. Measured against the body,
+Clay's label is 5.26 and passes; measured against the panel it is actually drawn
+on, it is 4.25. A body-only measurement gives the 4.81 that was reported.
+
+The fix is one value: the stat label alpha is `D9` (85%) and needs `E1` (88%)
+to reach 4.52 on Clay. Every other element already clears.
+
+**I did not make that change.** It is inside oy-09's own file, oy-09 derived
+that floor deliberately and wrote down why, and it is still working. A value
+changed underneath it without its knowledge is how the reasoning gets lost. It
+is one character and it is oy-09's to make.
+
+**This was merged anyway, and that is the right call rather than a compromise.**
+The version live before this round painted those same labels in
+`var(--faint)`, `#9CA3AF`, which on the Clay stats panel measures **1.53**.
+Holding the round to fix 4.25 would have kept 1.53 in production. The new file
+is a large improvement everywhere, with one element short of the standard by a
+quarter of a point.
+
+## Two decisions for Owen, recorded and not acted on
+
+Both come from oy-09 and both are his call, not a merge's:
+
+1. **The free Default theme now tints every card.** `default` carries
+   `c1: #1B4DFF`, so anyone who never bought a theme sees their profile change
+   to a soft brand-blue wash. Deliberate, so the paid themes read as different
+   rather than as "finally something", but it does change the look for every
+   user who made no purchase.
+2. **Price does not track impact.** `graphite` costs 800 and is a muted slate;
+   `plum` costs 500 and is louder. That is a palette and pricing question in
+   `cosmetics.js`, not something the renderer can fix, and oy-09 correctly left
+   the data alone.
+
+## One piece of reasoning that must survive a tidy-up
+
+The body gradient fades to `c1` at zero alpha, written long-hand, rather than to
+`transparent`. A gradient to `transparent` can interpolate through transparent
+black in some engines and leave a grey cast down the middle of the card. It
+looks like pointless long-hand and reads as something to simplify.
+
+That is the same class as the duplicate `onKey` and the recursive policy:
+valid, plausible, and wrong only at runtime, where reading it will never show
+you. The comment explaining it sits with the code.
