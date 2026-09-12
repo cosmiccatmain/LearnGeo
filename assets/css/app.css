@@ -800,6 +800,25 @@ textarea.input:focus { outline: none; border-color: var(--accent); box-shadow: 0
   .score-lead__meta { font-size: 13.5px; }
 }
 
+/* The class quiz leads with the ring instead of setting a dial beside a
+   verdict, so the same header stacks and centres. Declared after the
+   narrow-screen rule above, which would otherwise pull it back left. */
+.score-hero--center {
+  flex-direction: column; align-items: center; text-align: center;
+  gap: 0; padding-bottom: 34px;
+}
+.score-ring { position: relative; width: 168px; height: 168px; flex: none; }
+.score-ring svg { display: block; transform: rotate(-90deg); }
+.score-ring__n {
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 3px;
+  font-size: 34px; font-weight: 660; letter-spacing: -.04em; color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.score-ring__n small {
+  font-size: 12px; font-weight: 500; letter-spacing: 0; color: var(--faint);
+}
+
 .breakdown { margin-top: 34px; }
 .brow {
   display: grid; grid-template-columns: 150px 1fr 92px; gap: 16px; align-items: center;
@@ -1806,6 +1825,12 @@ textarea.input:focus { outline: none; border-color: var(--accent); box-shadow: 0
 }
 .cr-banner__code b {
   font-family: var(--mono); font-size: 22px; letter-spacing: .16em; font-weight: 620;
+}
+/* No code yet. Without its own rule the placeholder is set in the same mono
+   face as a real code, and "Get one" reads as if it were the code. */
+.cr-banner__code--none { border-style: dashed; background: rgba(255,255,255,.08); }
+.cr-banner__code--none b {
+  font-family: var(--sans); font-size: 15px; letter-spacing: -.01em; font-weight: 600;
 }
 
 /* ---- section tabs ---- */

@@ -402,7 +402,7 @@
 
     document.getElementById('quiz-report').innerHTML =
       '<div class="report">' +
-        '<div class="score-hero">' +
+        '<div class="score-hero score-hero--center">' +
           '<span class="eyebrow">Class quiz results</span>' +
           '<div class="score-ring" style="margin-top:18px">' +
             '<svg width="168" height="168">' +
