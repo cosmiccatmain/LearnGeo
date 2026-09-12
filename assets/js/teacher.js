@@ -16,6 +16,8 @@
   var tab = 'stream';
   var draftPicker = null;
   var lastSync = 0;
+  var cellMap = [];     /* gradebook cells, by the index rendered into the table */
+  var personMap = [];   /* student names, by the index rendered into a row or a header */
 
   /* ============================ going online ======================== */
   function online() { return !!(global.Cloud && global.Cloud.ready); }
@@ -58,6 +60,7 @@
     if (!c.roster) c.roster = [];
     if (!c.assignments) c.assignments = [];
     if (!c.results) c.results = [];
+    if (!c.posts) c.posts = [];
     return c;
   }
 
@@ -108,6 +111,28 @@
     return out.sort();
   }
 
+  /* Pinned first, then newest: the same order the server hands them back
+     in, so a local post and a synced one sit where you would expect. */
+  function sortedPosts() {
+    return cls().posts.slice().sort(function (a, b) {
+      if (!!a.pinned !== !!b.pinned) return a.pinned ? -1 : 1;
+      return (b.at || 0) - (a.at || 0);
+    });
+  }
+
+  function agoLabel(ms) {
+    if (!ms || !isFinite(ms)) return '';
+    var secs = Math.max(0, Math.round((Date.now() - ms) / 1000));
+    if (secs < 60) return 'just now';
+    var mins = Math.round(secs / 60);
+    if (mins < 60) return mins + 'm ago';
+    var hrs = Math.round(mins / 60);
+    if (hrs < 24) return hrs + 'h ago';
+    var days = Math.round(hrs / 24);
+    if (days < 7) return days + 'd ago';
+    return shortDate(ms);
+  }
+
   function avg(nums) {
     if (!nums.length) return null;
     return Math.round(nums.reduce(function (a, b) { return a + b; }, 0) / nums.length);
@@ -122,12 +147,13 @@
     var roster = people();
 
     var counts = {
-      stream: 0,
+      stream: c.posts.length,
       classwork: c.assignments.length,
       people: roster.length,
       analytics: c.results.length
     };
 
+    personMap = [];
     host.innerHTML =
       '<div class="cr">' +
         '<div class="cr-banner">' +
@@ -149,10 +175,10 @@
         '</div>' +
 
         '<div class="cr-tabs">' +
-          crTab('stream', I.layers, 'Stream') +
+          crTab('stream', I.layers, 'Stream', counts.stream) +
           crTab('classwork', I.clip, 'Classwork', counts.classwork) +
           crTab('people', I.users, 'People', counts.people) +
-          crTab('analytics', I.chart, 'Analytics') +
+          crTab('analytics', I.chart, 'Analytics', counts.analytics) +
           crTab('settings', I.gear, 'Settings') +
         '</div>' +
 
@@ -189,6 +215,18 @@
     if (!host) return;
 
     bind('#tm-new', function () { openBuilder(); });
+    bind('#tm-postgo', submitPost);
+    var ta = W.$('#tm-post', host);
+    if (ta) ta.addEventListener('keydown', function (e) {
+      /* the shortcut every message box has */
+      if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); submitPost(); }
+    });
+    W.$$('[data-pin]', host).forEach(function (b) {
+      b.addEventListener('click', function () { togglePin(b.dataset.pin); });
+    });
+    W.$$('[data-delpost]', host).forEach(function (b) {
+      b.addEventListener('click', function () { removePost(b.dataset.delpost); });
+    });
     bind('#tm-invite', shareInvite);
     bind('#tm-addperson', openAddPerson);
     bind('#tm-export', exportCsv);
@@ -208,12 +246,22 @@
     });
     W.$$('[data-cell]', host).forEach(function (b) {
       b.addEventListener('click', function () {
-        var p = b.dataset.cell.split('|');
-        openScoreEntry(p[0], p[1]);
+        var p = cellMap[+b.dataset.cell];
+        if (p) openScoreEntry(p.name, p.assignmentId);
       });
     });
     W.$$('[data-rmperson]', host).forEach(function (b) {
       b.addEventListener('click', function () { removePerson(b.dataset.rmperson); });
+    });
+    W.$$('[data-person]', host).forEach(function (b) {
+      b.addEventListener('click', function () {
+        var n = personMap[+b.dataset.person];
+        if (n) openStudent(n);
+      });
+    });
+
+    W.$$('[data-copycode]', host).forEach(function (b) {
+      b.addEventListener('click', function () { copy(classCode(), 'Class code copied'); });
     });
 
     bind('#tm-leave', leaveTeacher);
@@ -227,10 +275,43 @@
     function bind(sel, fn) { var el = W.$(sel, host); if (el) el.addEventListener('click', fn); }
   }
 
-  /* ============================== stream ============================ */
+  /* ============================== stream ============================
+     The Stream is the teacher talking to the class: notes about Friday's
+     quiz, a reminder, a well done. Posts go out the same way assignments
+     do and turn up in every student's Classroom. */
+  function postRow(p) {
+    return '<div class="st-post' + (p.pinned ? ' st-post--pinned' : '') + '">' +
+      '<div class="st-post__body">' +
+        W.escapeHtml(String(p.body || '')).replace(/\n/g, '<br>') + '</div>' +
+      '<div class="st-post__foot">' +
+        '<span class="st-post__when">' +
+          (p.pinned ? I.flag + 'Pinned · ' : '') + agoLabel(p.at) + '</span>' +
+        '<button class="icon-btn" data-pin="' + W.escapeHtml(String(p.id)) + '" title="' +
+          (p.pinned ? 'Unpin' : 'Pin to the top') + '">' + I.flag + '</button>' +
+        '<button class="icon-btn" data-delpost="' + W.escapeHtml(String(p.id)) + '" ' +
+          'title="Delete">' + I.close + '</button>' +
+      '</div>' +
+    '</div>';
+  }
+
+  function composer() {
+    return '<div class="cr-card" style="margin-bottom:14px">' +
+      '<div class="cr-card__head"><h3>Say something to the class</h3></div>' +
+      '<textarea class="input st-compose" id="tm-post" maxlength="2000" rows="3" ' +
+        'placeholder="Map quiz on Friday — learn the South American capitals."></textarea>' +
+      '<div class="row row--between" style="margin-top:10px;gap:12px">' +
+        '<span class="t-sm t-muted">' + (online()
+          ? 'Everyone in your class sees this in their Classroom.'
+          : 'Saved here for now. Sign in and your class sees these as you post them.') + '</span>' +
+        '<button class="btn btn--accent btn--sm" id="tm-postgo">Post</button>' +
+      '</div>' +
+    '</div>';
+  }
+
   function streamPanel() {
     var c = cls();
     var recent = c.results.slice().sort(function (a, b) { return b.at - a.at; }).slice(0, 8);
+    var list = sortedPosts();
 
     return signinHint() +
       '<div class="cr-grid">' +
@@ -251,9 +332,18 @@
       '</div>' +
 
       '<div>' +
+        composer() +
         (c.assignments.length ? '' :
           '<div class="cr-card" style="margin-bottom:14px">' + emptyCta(I.clip, 'No classwork yet',
             'Make your first assignment and you’ll get a code to give your class.') + '</div>') +
+        (list.length
+          ? '<div class="cr-card" style="margin-bottom:14px">' +
+              '<div class="cr-card__head"><h3>Announcements</h3>' +
+                '<span class="eyebrow">' + list.length +
+                  (list.length === 1 ? ' post' : ' posts') + '</span></div>' +
+              list.map(postRow).join('') +
+            '</div>'
+          : '') +
         '<div class="cr-card">' +
           '<div class="cr-card__head"><h3>Recent activity</h3>' +
             '<span class="eyebrow">' + c.results.length + ' total</span></div>' +
@@ -278,6 +368,62 @@
     }
   }
 
+  /* Shown straight away and sent in the background: a post the teacher can
+     see is a post they can stop worrying about. The id is swapped for the
+     real one once the insert lands, since pinning and deleting need it. */
+  function submitPost() {
+    var ta = W.$('#tm-post', document.getElementById('cr-body'));
+    if (!ta) return;
+    var body = ta.value.trim();
+    if (!body) { ta.focus(); return; }
+
+    var p = { id: 'p' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36),
+              body: body.slice(0, 2000), pinned: false, at: Date.now() };
+    cls().posts.unshift(p);
+    W.saveNow();
+    render();
+    W.toast('Posted to the class',
+            online() ? 'Your students can see it now' : 'Saved on this device', I.check);
+
+    if (!online()) return;
+    global.Cloud.postAnnouncement(p).then(function (saved) {
+      if (!saved) return;
+      cls().posts.forEach(function (x) {
+        if (x.id === p.id) { x.id = saved.id; x.at = saved.at; }
+      });
+      W.saveNow();
+    }, cloudErr);
+  }
+
+  function togglePin(id) {
+    var p = cls().posts.filter(function (x) { return String(x.id) === String(id); })[0];
+    if (!p) return;
+    p.pinned = !p.pinned;
+    W.saveNow();
+    render();
+    if (online()) global.Cloud.pinAnnouncement(p.id, p.pinned).catch(cloudErr);
+  }
+
+  function removePost(id) {
+    var p = cls().posts.filter(function (x) { return String(x.id) === String(id); })[0];
+    if (!p) return;
+    global.UI.modal({
+      title: 'Delete this post', icon: I.close,
+      body: '<p class="t-muted">Take it off the class stream?' +
+        (online() ? ' It disappears from your students’ Classroom too.' : '') + '</p>' +
+        '<div class="st-post" style="margin-top:12px"><div class="st-post__body">' +
+          W.escapeHtml(String(p.body || '')).replace(/\n/g, '<br>') + '</div></div>',
+      actions: [
+        { label: 'Keep it', cls: 'btn--ghost', close: true },
+        { label: 'Delete', cls: 'btn--primary', close: true, onClick: function () {
+            cls().posts = cls().posts.filter(function (x) { return String(x.id) !== String(id); });
+            W.saveNow(); render();
+            if (online()) global.Cloud.deleteAnnouncement(p.id).catch(cloudErr);
+          } }
+      ]
+    });
+  }
+
   function emptyCta(icon, title, body) {
     return '<div class="empty-cta"><div class="empty-cta__i">' + icon + '</div>' +
       '<b>' + title + '</b><p>' + body + '</p></div>';
@@ -286,6 +432,8 @@
   /* ============================ classwork =========================== */
   function classworkPanel() {
     var list = cls().assignments;
+    var classSize = people().length;
+    var all = cls().results;
     return '<div class="row row--between" style="margin-bottom:16px">' +
         '<div><h3 style="font-size:18px">Classwork</h3>' +
         '<div class="t-sm t-muted">Saved work goes to your class straight away.</div></div>' +
@@ -293,7 +441,7 @@
       '</div>' +
       (list.length
         ? list.map(function (a, i) {
-            var done = cls().results.filter(function (r) { return r.assignmentId === a.id; });
+            var done = all.filter(function (r) { return r.assignmentId === a.id; });
             var names = {}; done.forEach(function (r) { names[r.name] = 1; });
             var handedIn = Object.keys(names).length;
             var mean = avg(done.map(function (r) { return r.pct; }));
@@ -303,7 +451,7 @@
               '<div class="cw-row__t"><b>' + W.escapeHtml(a.title) + '</b>' +
                 '<span>' + modeLabel(a.mode) + ' · ' + n + ' items' +
                 (a.config.timed ? ' · timed' : '') + (a.config.instant === false ? ' · exam mode' : '') + '</span></div>' +
-              '<div class="cw-row__meta"><b>' + handedIn + '/' + Math.max(handedIn, people().length) + '</b>' +
+              '<div class="cw-row__meta"><b>' + handedIn + '/' + Math.max(handedIn, classSize) + '</b>' +
                 'handed in' + (mean !== null ? ' · avg ' + mean + '%' : '') + '</div>' +
               '<div class="row" style="gap:4px">' +
                 '<button class="icon-btn" data-try="' + i + '" title="Try it yourself">' + I.arrowR + '</button>' +
@@ -332,11 +480,15 @@
               var done = list.filter(function (a) { return !!resultFor(n, a.id); }).length;
               var mine = cls().results.filter(function (r) { return r.name === n; });
               var mean = avg(mine.map(function (r) { return r.pct; }));
+              personMap.push(n);
               return '<div class="person">' +
-                '<div class="person__av">' + initials(n) + '</div>' +
-                '<div class="person__t"><b>' + W.escapeHtml(n) + '</b>' +
-                  '<span>' + done + ' of ' + list.length + ' handed in' +
-                  (mean !== null ? ' · average ' + mean + '%' : '') + '</span></div>' +
+                '<button class="person__open" data-person="' + (personMap.length - 1) + '" ' +
+                  'title="See everything ' + W.escapeHtml(n) + ' has done">' +
+                  '<span class="person__av">' + initials(n) + '</span>' +
+                  '<span class="person__t"><b>' + W.escapeHtml(n) + '</b>' +
+                    '<span>' + done + ' of ' + list.length + ' handed in' +
+                    (mean !== null ? ' · average ' + mean + '%' : '') + '</span></span>' +
+                '</button>' +
                 '<span class="pill-tag ' + (list.length && done === list.length ? 'pill-tag--done' : '') + '">' +
                   (list.length ? Math.round((done / list.length) * 100) + '%' : '—') + '</span>' +
                 '<button class="icon-btn" data-rmperson="' + W.escapeHtml(n) + '" title="Remove">' + I.close + '</button>' +
@@ -372,7 +524,6 @@
     var hardest = Object.keys(missCount)
       .sort(function (a, b) { return missCount[b] - missCount[a]; })
       .slice(0, 8);
-    var worstCount = hardest.length ? missCount[hardest[0]] : 1;
 
     /* score distribution in ten-point bands */
     var bands = new Array(10).fill(0);
@@ -428,9 +579,11 @@
             '<span class="eyebrow">most missed</span></div>' +
           (hardest.length ? hardest.map(function (n) {
             var cty = global.GeoData.countries.filter(function (x) { return x.name === n; })[0];
+            /* out of every submission, not out of the worst country: scaling
+               to the worst made the top row a full bar even at one miss */
             return bar(n + (cty ? ' · ' + cty.capital : ''),
-                       Math.round((missCount[n] / worstCount) * 100),
-                       missCount[n] + '×', 'var(--danger)');
+                       Math.round((missCount[n] / c.results.length) * 100),
+                       missCount[n] + ' of ' + c.results.length, 'var(--danger)');
           }).join('') : '<div class="empty">Nothing missed yet.</div>') +
         '</div>' +
       '</div>' +
@@ -479,6 +632,7 @@
   }
 
   function gradebook(roster, list) {
+    cellMap = [];
     if (!roster.length || !list.length) {
       return '<div class="cr-card"><div class="empty" style="padding:20px 0">' +
         'Add students and assignments to see the gradebook.</div></div>';
@@ -492,12 +646,18 @@
         var cells = list.map(function (a) {
           var r = resultFor(n, a.id);
           if (r) scores.push(r.pct);
-          return '<td><button class="gb__cell-btn" data-cell="' + W.escapeHtml(n) + '|' + a.id + '" ' +
+          /* keyed by position: a name with a '|' in it used to split into
+             the wrong student and an assignment id that matched nothing */
+          cellMap.push({ name: n, assignmentId: a.id });
+          return '<td><button class="gb__cell-btn" data-cell="' + (cellMap.length - 1) + '" ' +
             'title="Click to set a score"><span class="gb__score ' + scoreClass(r ? r.pct : null) + '">' +
             (r ? r.pct + '%' : '–') + '</span></button></td>';
         }).join('');
         var m = avg(scores);
-        return '<tr><td class="gb__name">' + W.escapeHtml(n) + '</td>' + cells +
+        personMap.push(n);
+        return '<tr><td class="gb__name">' +
+            '<button class="gb__name-btn" data-person="' + (personMap.length - 1) + '" ' +
+              'title="Open this student">' + W.escapeHtml(n) + '</button></td>' + cells +
           '<td><span class="gb__score ' + scoreClass(m) + '">' + (m === null ? '–' : m + '%') + '</span></td></tr>';
       }).join('') +
       '</tbody></table></div>';
@@ -506,7 +666,7 @@
   /* ============================= settings =========================== */
   function settingsPanel() {
     var c = cls();
-    return '<div class="cr-grid">' +
+    return '<div class="cr-grid cr-grid--even">' +
       '<div class="cr-card">' +
         '<div class="cr-card__head"><h3>Class</h3></div>' +
         '<div class="field"><label class="field__label">Class name</label>' +
@@ -514,7 +674,8 @@
             'value="' + W.escapeHtml(c.name) + '"></div>' +
         '<div class="field"><label class="field__label">Class code</label>' +
           (classCode()
-            ? '<div class="code-chip">' + classCode() + '</div>' +
+            ? '<div class="code-chip">' + classCode() +
+                '<button data-copycode title="Copy class code">' + I.clip + '</button></div>' +
               '<div class="field__hint">Students type this once. It was issued when your class ' +
                 'was created and it never changes.</div>'
             : '<div class="field__hint">You do not have one yet. Sign in and your class gets a ' +
@@ -522,8 +683,11 @@
       '</div>' +
       '<div class="cr-card">' +
         '<div class="cr-card__head"><h3>Data</h3></div>' +
-        '<p class="t-sm t-muted" style="margin-bottom:14px">Everything is saved in this browser. ' +
-          'Export the gradebook if you want a copy somewhere else.</p>' +
+        '<p class="t-sm t-muted" style="margin-bottom:14px">' + (online()
+          ? 'Your class is on your account, so it follows you to any computer you sign in on. ' +
+            'Export the gradebook if you want a copy of the marks somewhere else.'
+          : 'Everything is saved in this browser only. Export the gradebook if you want a copy ' +
+            'somewhere else — or sign in, and your class follows you between computers.') + '</p>' +
         '<button class="btn btn--ghost btn--block" id="tm-export">Export gradebook CSV</button>' +
         '<button class="btn btn--ghost btn--block" id="tm-leave" style="margin-top:8px">' +
           'Switch to a student account</button>' +
@@ -579,7 +743,133 @@
     });
   }
 
-  function openScoreEntry(name, assignmentId) {
+  /* ========================== one student ===========================
+     Everything the class knows about one person, which until now was split
+     between a row in People and a line across the gradebook: what they have
+     handed in, what they scored, and what they personally keep missing. */
+  function shortDate(ms) {
+    if (!ms || !isFinite(ms)) return '';
+    try { return new Date(ms).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }); }
+    catch (e) { return ''; }
+  }
+
+  function openStudent(name) {
+    var list = cls().assignments;
+    var mine = cls().results.filter(function (r) { return r.name === name; });
+    var mean = avg(mine.map(function (r) { return r.pct; }));
+    var handedIn = list.filter(function (a) { return !!resultFor(name, a.id); }).length;
+    var classMean = classAverage();
+    var gap = (mean === null || classMean === null) ? null : mean - classMean;
+
+    /* the same sum as 'Hardest for the class', narrowed to one person */
+    var miss = {};
+    mine.forEach(function (r) {
+      (r.missed || []).forEach(function (x) { miss[x] = (miss[x] || 0) + 1; });
+    });
+    var hardest = Object.keys(miss).sort(function (a, b) { return miss[b] - miss[a]; }).slice(0, 8);
+
+    var body =
+      '<div class="st-head">' +
+        '<div class="person__av person__av--lg">' + initials(name) + '</div>' +
+        '<div class="st-head__t"><b>' + W.escapeHtml(name) + '</b>' +
+          '<span>' + (mine.length
+            ? mine.length + ' submission' + (mine.length === 1 ? '' : 's')
+            : 'Nothing handed in yet') + '</span></div>' +
+      '</div>' +
+
+      '<div class="an-grid an-grid--3" style="margin-bottom:18px">' +
+        stStat(mean === null ? '—' : mean + '%', 'their average', bandLabel(mean)) +
+        stStat(handedIn + '/' + list.length, 'handed in',
+               list.length ? Math.round((handedIn / list.length) * 100) + '% of the work'
+                           : 'nothing set yet') +
+        stStat(gap === null ? '—' : (gap > 0 ? '+' : '') + gap, 'against the class',
+               classMean === null ? '' : 'class average ' + classMean + '%') +
+      '</div>' +
+
+      '<div class="cr-card"' + (hardest.length ? ' style="margin-bottom:14px"' : '') + '>' +
+        '<div class="cr-card__head"><h3>Work</h3>' +
+          (list.length ? '<span class="eyebrow">click a row to set a score</span>' : '') + '</div>' +
+        (list.length
+          ? list.map(function (a, i) {
+              var r = resultFor(name, a.id);
+              var when = r ? shortDate(r.at) : '';
+              return '<button class="st-row" data-work="' + i + '">' +
+                '<span class="st-row__i' + (r ? ' st-row__i--done' : '') + '">' +
+                  (r ? I.check : I.clip) + '</span>' +
+                '<span class="st-row__t"><b>' + W.escapeHtml(a.title) + '</b>' +
+                  '<span>' + modeLabel(a.mode) +
+                    (r
+                      ? ' · ' + (r.manual ? 'entered by hand' : 'handed in') + (when ? ' ' + when : '') +
+                        (r.correct !== null && r.total ? ' · ' + r.correct + '/' + r.total : '')
+                      : ' · not handed in') +
+                  '</span></span>' +
+                '<span class="gb__score ' + scoreClass(r ? r.pct : null) + '">' +
+                  (r ? r.pct + '%' : '–') + '</span>' +
+              '</button>';
+            }).join('')
+          : '<div class="empty" style="padding:18px 0">No assignments set yet.</div>') +
+      '</div>' +
+
+      (hardest.length
+        ? '<div class="cr-card">' +
+            '<div class="cr-card__head"><h3>Keeps missing</h3>' +
+              '<span class="eyebrow">across their work</span></div>' +
+            hardest.map(function (x) {
+              var cty = global.GeoData.countries.filter(function (q) { return q.name === x; })[0];
+              return '<div class="an-bar">' +
+                '<div class="an-bar__label"><span>' + W.escapeHtml(x) +
+                  (cty ? ' · ' + W.escapeHtml(cty.capital) : '') + '</span></div>' +
+                '<div class="an-bar__n">' + miss[x] + ' of ' + mine.length + '</div>' +
+                '<div class="an-bar__track" style="grid-column:1/-1">' +
+                  '<div class="an-bar__fill" style="width:' +
+                    Math.round((miss[x] / mine.length) * 100) + '%;background:var(--danger)"></div>' +
+                '</div></div>';
+            }).join('') +
+          '</div>'
+        : '');
+
+    global.UI.modal({
+      title: name, icon: I.user, wide: true, body: body,
+      actions: [
+        { label: 'Remove from class', cls: 'btn--ghost', close: true,
+          onClick: function () { removePerson(name); } },
+        { label: 'Close', cls: 'btn--accent', close: true }
+      ],
+      onMount: function (root, close) {
+        W.$$('[data-work]', root).forEach(function (b) {
+          b.addEventListener('click', function () {
+            var a = list[+b.dataset.work];
+            if (!a) return;
+            /* set the mark, then come back to where it was set from */
+            close();
+            openScoreEntry(name, a.id, function () { openStudent(name); });
+          });
+        });
+      }
+    });
+
+    function stStat(n, l, sub) {
+      return '<div class="an-stat"><div class="an-stat__n">' + W.escapeHtml(String(n)) + '</div>' +
+        '<div class="an-stat__l">' + l + '</div>' +
+        (sub ? '<div class="an-stat__sub">' + W.escapeHtml(sub) + '</div>' : '') + '</div>';
+    }
+  }
+
+  /* Returning false keeps the dialog open, so the teacher can see what was
+     wrong with what they typed and fix it in place. */
+  function scoreError(root, msg) {
+    var box = W.$('#se-err', root);
+    if (box) {
+      box.textContent = msg;
+      box.style.color = 'var(--danger)';
+    }
+    var input = W.$('#se-pct', root);
+    if (input) input.focus();
+    return false;
+  }
+
+  function openScoreEntry(name, assignmentId, after) {
+    var back = function () { if (after) after(); };
     var a = cls().assignments.filter(function (x) { return x.id === assignmentId; })[0];
     var existing = resultFor(name, assignmentId);
     global.UI.modal({
@@ -588,19 +878,22 @@
       body: '<p class="t-muted" style="margin-bottom:14px">' + W.escapeHtml(a ? a.title : 'Assignment') + '</p>' +
         '<div class="field"><label class="field__label">Score, as a percentage</label>' +
         '<input class="input mono" id="se-pct" type="number" min="0" max="100" ' +
-          'value="' + (existing ? existing.pct : '') + '" placeholder="0 to 100"></div>',
+          'value="' + (existing ? existing.pct : '') + '" placeholder="0 to 100">' +
+        '<div class="field__hint" id="se-err">Anything from 0 to 100.</div></div>',
       actions: [
         (existing ? { label: 'Clear', cls: 'btn--ghost', close: true, onClick: function () {
             cls().results = cls().results.filter(function (r) {
               return !(r.name === name && r.assignmentId === assignmentId);
             });
-            W.saveNow(); render();
+            W.saveNow(); render(); back();
             if (online()) global.Cloud.clearResult(name, assignmentId).catch(cloudErr);
-          } } : { label: 'Cancel', cls: 'btn--ghost', close: true }),
+          } } : { label: 'Cancel', cls: 'btn--ghost', close: true, onClick: back }),
         { label: 'Save', cls: 'btn--accent', close: true, onClick: function (root) {
-            var v = parseInt(W.$('#se-pct', root).value, 10);
-            if (isNaN(v)) return;
-            v = Math.max(0, Math.min(100, v));
+            var raw = W.$('#se-pct', root).value.trim();
+            var v = parseInt(raw, 10);
+            /* say so rather than closing on a blank or a typo and saving nothing */
+            if (raw === '' || isNaN(v)) return scoreError(root, 'Type a number from 0 to 100.');
+            if (v < 0 || v > 100) return scoreError(root, 'A percentage has to be between 0 and 100.');
             cls().results = cls().results.filter(function (r) {
               return !(r.name === name && r.assignmentId === assignmentId);
             });
@@ -608,7 +901,7 @@
                           pct: v, correct: null, total: null, at: Date.now(), missed: [], manual: true };
             cls().results.push(entry);
             if (cls().roster.indexOf(name) === -1) cls().roster.push(name);
-            W.saveNow(); render();
+            W.saveNow(); render(); back();
             if (online()) global.Cloud.setManualScore(entry).catch(cloudErr);
           } }
       ],
@@ -616,7 +909,16 @@
     });
   }
 
-  function exportCsv() {
+  /* Student names come from students, so a name beginning with =, +, - or @
+     would be read as a formula the moment the file opened. Excel and Sheets
+     both treat a leading apostrophe as "this is text". */
+  function csvCell(cell) {
+    var s = String(cell === null || cell === undefined ? '' : cell);
+    if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
+    return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  }
+
+  function gradebookCsv() {
     var roster = people(), list = cls().assignments;
     var rows = [['Student'].concat(list.map(function (a) { return a.title; })).concat(['Average'])];
     roster.forEach(function (n) {
@@ -626,24 +928,56 @@
         if (r) scores.push(r.pct);
         return r ? r.pct : '';
       }));
-      line.push(avg(scores) === null ? '' : avg(scores));
+      var mean = avg(scores);
+      line.push(mean === null ? '' : mean);
       rows.push(line);
     });
-    var csv = rows.map(function (r) {
-      return r.map(function (cell) {
-        var s = String(cell === null || cell === undefined ? '' : cell);
-        return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
-      }).join(',');
-    }).join('\n');
+    return rows.map(function (r) { return r.map(csvCell).join(','); }).join('\n');
+  }
+
+  function csvName() {
+    var slug = String(cls().name || 'class').toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'class';
+    return 'learngeo-' + slug + '-' + new Date().toISOString().slice(0, 10) + '.csv';
+  }
+
+  /* The BOM is what makes Excel open a UTF-8 CSV without mangling accents. */
+  function downloadCsv(csv, filename) {
+    try {
+      var blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url; a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+      return true;
+    } catch (e) { return false; }
+  }
+
+  /* Downloading is what a teacher means by export, so that is the main
+     button. The text is still there to copy, for a paste straight into a
+     sheet and for the case where the download is blocked. */
+  function exportCsv() {
+    var csv = gradebookCsv();
+    var file = csvName();
 
     global.UI.modal({
-      title: 'Gradebook CSV', icon: I.chart, wide: true,
-      body: '<p class="t-muted" style="margin-bottom:12px">Copy this into a spreadsheet.</p>' +
-        '<textarea class="input mono" style="min-height:220px" readonly id="ex-csv">' +
+      title: 'Export the gradebook', icon: I.chart, wide: true,
+      body: '<p class="t-muted" style="margin-bottom:12px">Download it as ' +
+          '<b class="mono">' + W.escapeHtml(file) + '</b>, or copy the text and paste it ' +
+          'straight into a spreadsheet.</p>' +
+        '<textarea class="input mono" style="min-height:200px" readonly id="ex-csv">' +
         W.escapeHtml(csv) + '</textarea>',
       actions: [
         { label: 'Close', cls: 'btn--ghost', close: true },
-        { label: 'Copy', cls: 'btn--accent', onClick: function () { copy(csv, 'CSV copied'); return false; } }
+        { label: 'Copy', cls: 'btn--ghost', onClick: function () { copy(csv, 'CSV copied'); return false; } },
+        { label: 'Download', cls: 'btn--accent', onClick: function () {
+            if (downloadCsv(csv, file)) W.toast('Gradebook downloaded', file, I.check);
+            else W.toast('Couldn’t download', 'Your browser blocked it, so copy the text instead', I.info, 4200);
+            return false;
+          } }
       ],
       onMount: function (root) { setTimeout(function () { W.$('#ex-csv', root).select(); }, 60); }
     });
@@ -848,7 +1182,8 @@
   }
 
   global.Teacher = {
-    render: render, openBuilder: openBuilder, becomeTeacher: becomeTeacher,
+    render: render, openBuilder: openBuilder, openStudent: openStudent,
+    becomeTeacher: becomeTeacher,
     leaveTeacher: leaveTeacher, classCode: classCode, joinLink: joinLink, copy: copy,
     forget: function () { lastSync = 0; },
     get tab() { return tab; }, set tab(v) { tab = v; }

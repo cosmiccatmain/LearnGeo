@@ -114,9 +114,12 @@
         name: '', code: '',       /* teacher's own class */
         roster: [],               /* names the teacher tracks locally */
         results: [],              /* scores handed in, newest last */
-        assignments: []           /* assignments the teacher has written */
+        assignments: [],          /* assignments the teacher has written */
+        posts: []                 /* announcements on the class stream */
       },
       inbox: [],                  /* assignments a student has loaded by code */
+      stream: [],                 /* the teacher's announcements, as a student sees them */
+      streamSeen: 0,              /* newest announcement this student has read */
       enrolled: null,             /* { code, className, name, classId? } once joined */
       customSets: [],             /* saved lists of hand-picked countries */
       settings: {

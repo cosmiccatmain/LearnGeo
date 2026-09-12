@@ -44,6 +44,39 @@
     return W.state.inbox;
   }
 
+  /* Announcements from the teacher. Read-only here: the Stream is one
+     direction, which is the whole reason it is calm enough to be useful. */
+  function stream() {
+    if (!W.state.stream) W.state.stream = [];
+    return W.state.stream;
+  }
+
+  function seenAt() { return W.state.streamSeen || 0; }
+
+  function unreadPosts() {
+    var since = seenAt();
+    return stream().filter(function (p) { return (p.at || 0) > since; }).length;
+  }
+
+  function markStreamSeen() {
+    var newest = stream().reduce(function (m, p) { return Math.max(m, p.at || 0); }, 0);
+    if (newest > seenAt()) { W.state.streamSeen = newest; W.saveNow(); }
+  }
+
+  function agoLabel(ms) {
+    if (!ms || !isFinite(ms)) return '';
+    var secs = Math.max(0, Math.round((Date.now() - ms) / 1000));
+    if (secs < 60) return 'just now';
+    var mins = Math.round(secs / 60);
+    if (mins < 60) return mins + 'm ago';
+    var hrs = Math.round(mins / 60);
+    if (hrs < 24) return hrs + 'h ago';
+    var days = Math.round(hrs / 24);
+    if (days < 7) return days + 'd ago';
+    try { return new Date(ms).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }); }
+    catch (e) { return ''; }
+  }
+
   function enrolled() { return W.state.enrolled || null; }
   function className() { return enrolled() ? enrolled().className : ''; }
   function classCode() { return enrolled() ? enrolled().code : ''; }
@@ -69,6 +102,9 @@
     var done = box.filter(function (a) { return a.done; });
     var name = className();
     var code = classCode();
+    var posts = stream();
+    /* counted before the panel below marks them read */
+    var unread = unreadPosts();
 
     host.innerHTML =
       '<div class="cr">' +
@@ -86,11 +122,12 @@
         '</div>' +
 
         '<div class="cr-tabs">' +
+          crTab('stream', I.layers, 'Stream', unread || posts.length, unread > 0) +
           crTab('classwork', I.clip, 'Classwork', box.length) +
           crTab('grades', I.chart, 'Grades', done.length) +
         '</div>' +
 
-        '<div id="cl-body">' + (tab === 'grades' ? gradesPanel() : classworkPanel()) + '</div>' +
+        '<div id="cl-body">' + panel() + '</div>' +
       '</div>';
 
     W.$$('.cr-tab', host).forEach(function (b) {
@@ -98,10 +135,54 @@
     });
     wire(host);
 
-    function crTab(id, icon, label, n) {
+    function crTab(id, icon, label, n, hot) {
       return '<button class="cr-tab' + (tab === id ? ' is-active' : '') + '" data-t="' + id + '">' +
-        icon + label + (n ? '<span class="cr-tab__n">' + n + '</span>' : '') + '</button>';
+        icon + label + (n ? '<span class="cr-tab__n' + (hot ? ' cr-tab__n--new' : '') + '">' +
+          n + '</span>' : '') + '</button>';
     }
+  }
+
+  function panel() {
+    if (tab === 'stream') return streamPanel();
+    if (tab === 'grades') return gradesPanel();
+    return classworkPanel();
+  }
+
+  /* =============================== stream =========================== */
+  function streamPanel() {
+    var list = stream().slice().sort(function (a, b) {
+      if (!!a.pinned !== !!b.pinned) return a.pinned ? -1 : 1;
+      return (b.at || 0) - (a.at || 0);
+    });
+    var since = seenAt();
+    markStreamSeen();
+
+    return '<div class="row row--between" style="margin-bottom:16px">' +
+        '<div><h3 style="font-size:18px">Stream</h3>' +
+          '<div class="t-sm t-muted">Notes from ' + W.escapeHtml(className() || 'your teacher') +
+            '.</div></div>' +
+        '<button class="btn btn--ghost" id="cl-add">' + I.refresh + ' Check for new</button>' +
+      '</div>' +
+      (list.length
+        ? list.map(function (p) {
+            var isNew = (p.at || 0) > since;
+            return '<div class="st-post st-post--read' + (p.pinned ? ' st-post--pinned' : '') +
+                (isNew ? ' st-post--new' : '') + '">' +
+              '<div class="st-post__body">' +
+                W.escapeHtml(String(p.body || '')).replace(/\n/g, '<br>') + '</div>' +
+              '<div class="st-post__foot">' +
+                '<span class="st-post__when">' +
+                  (p.pinned ? I.flag + 'Pinned · ' : '') + agoLabel(p.at) + '</span>' +
+                (isNew ? '<span class="pill-tag pill-tag--new">New</span>' : '') +
+              '</div>' +
+            '</div>';
+          }).join('')
+        : '<div class="cr-card"><div class="empty-cta">' +
+            '<div class="empty-cta__i">' + I.layers + '</div>' +
+            '<b>Nothing posted yet</b>' +
+            '<p>When your teacher writes to the class — a reminder, a date for a quiz — ' +
+              'it turns up here.</p>' +
+          '</div></div>');
   }
 
   /* ------------------------------ joining ---------------------------
@@ -290,6 +371,7 @@
             var done = function () {
               W.state.inbox = inbox().filter(function (a) { return a.done || a.classCode !== e.code; });
               W.state.enrolled = null;
+              W.state.stream = [];
               W.saveNow();
               render(true);
               W.toast('You left ' + (e.className || 'the class'), '', I.check);

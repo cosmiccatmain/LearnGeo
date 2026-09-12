@@ -265,6 +265,21 @@
     return row;
   }
 
+  /* The id is left to the server: announcements are the one classroom row
+     the client does not name, so a post written offline comes back with a
+     real uuid the moment it lands. */
+  function announcementRow(p, classId) {
+    return {
+      class_id: classId,
+      body: String(p.body || '').slice(0, 2000),
+      pinned: !!p.pinned
+    };
+  }
+
+  function rowToPost(row) {
+    return { id: row.id, body: row.body, pinned: !!row.pinned, at: Date.parse(row.created_at) };
+  }
+
   function rowToResult(row) {
     return {
       id: row.id, assignmentId: row.assignment_id, title: row.title, name: row.student_name,
@@ -318,9 +333,13 @@
     var c = cls();
     var as = (c.assignments || []).map(function (a) { return assignmentRow(a, classId); });
     var rs = (c.results || []).map(function (r) { return resultRow(r, classId); });
+    var ps = (c.posts || []).filter(function (x) { return String(x.body || '').trim(); })
+      .map(function (x) { return announcementRow(x, classId); });
     return (as.length ? sb.from('assignments').upsert(as) : Promise.resolve(null))
       .then(check)
       .then(function () { return rs.length ? sb.from('results').insert(rs) : null; })
+      .then(check)
+      .then(function () { return ps.length ? sb.from('announcements').insert(ps) : null; })
       .then(check);
   }
 
@@ -353,17 +372,20 @@
           sb.from('assignments').select('id, title, mode, config, created_at').eq('class_id', row.id).order('created_at'),
           sb.from('results').select('id, assignment_id, student_id, student_name, title, pct, correct, total, missed, manual, created_at')
             .eq('class_id', row.id).order('created_at'),
-          sb.from('class_members').select('student_id, display_name, joined_at').eq('class_id', row.id).order('joined_at')
+          sb.from('class_members').select('student_id, display_name, joined_at').eq('class_id', row.id).order('joined_at'),
+          sb.from('announcements').select('id, body, pinned, created_at').eq('class_id', row.id)
+            .order('pinned', { ascending: false }).order('created_at', { ascending: false })
         ]);
       })
       .then(function (all) {
-        var as = check(all[0]), rs = check(all[1]), ms = check(all[2]);
+        var as = check(all[0]), rs = check(all[1]), ms = check(all[2]), ps = check(all[3]);
         c.assignments = as.map(function (a) {
           return { id: a.id, title: a.title, mode: a.mode, config: a.config || {},
                    from: c.name || 'Your teacher', classCode: c.code };
         });
         c.results = rs.map(rowToResult);
         c.members = ms.map(function (m) { return { id: m.student_id, name: m.display_name }; });
+        c.posts = ps.map(rowToPost);
         c.members.forEach(function (m) { if (c.roster.indexOf(m.name) === -1) c.roster.push(m.name); });
         W.save();
         setStatus('synced');
@@ -382,6 +404,23 @@
     if (!teacherReady()) return Promise.resolve();
     return sb.from('assignments').delete().eq('class_id', cls().cloudId).eq('id', id).then(check);
   }
+  /* Returns the saved row, so the caller can swap the id it invented
+     locally for the one the table actually issued. */
+  function postAnnouncement(p) {
+    if (!teacherReady()) return Promise.resolve(null);
+    return sb.from('announcements').insert(announcementRow(p, cls().cloudId))
+      .select('id, body, pinned, created_at').single().then(check).then(rowToPost);
+  }
+  function deleteAnnouncement(id) {
+    if (!teacherReady()) return Promise.resolve();
+    return sb.from('announcements').delete().eq('class_id', cls().cloudId).eq('id', id).then(check);
+  }
+  function pinAnnouncement(id, pinned) {
+    if (!teacherReady()) return Promise.resolve();
+    return sb.from('announcements').update({ pinned: !!pinned })
+      .eq('class_id', cls().cloudId).eq('id', id).then(check);
+  }
+
   function renameClass(name) {
     if (!teacherReady()) return Promise.resolve();
     return sb.from('classes').update({ name: String(name || 'Your class').slice(0, 60) || 'Your class' })
@@ -459,11 +498,14 @@
       if (!e.classId) return false;
       return Promise.all([
         sb.from('classes').select('id, code, name').eq('id', e.classId).maybeSingle(),
-        sb.from('assignments').select('id, title, mode, config, created_at').eq('class_id', e.classId).order('created_at')
+        sb.from('assignments').select('id, title, mode, config, created_at').eq('class_id', e.classId).order('created_at'),
+        sb.from('announcements').select('id, body, pinned, created_at').eq('class_id', e.classId)
+          .order('pinned', { ascending: false }).order('created_at', { ascending: false })
       ]).then(function (all) {
-        var klass = check(all[0]), rows = check(all[1]);
+        var klass = check(all[0]), rows = check(all[1]), posts = check(all[2]);
         if (!klass) {
           W.state.enrolled = null;
+          W.state.stream = [];
           W.save();
           W.toast("You're not in " + (e.className || 'that class') + ' anymore',
                   'Ask your teacher for the class code if you want to rejoin', W.Icons.info, 4200);
@@ -471,6 +513,7 @@
         }
         e.className = klass.name;
         mergeInbox(rows, e);
+        W.state.stream = posts.map(rowToPost);
         W.save();
         return true;
       });
@@ -499,6 +542,8 @@
     push: push, onChange: onChange, friendly: friendly,
     teacherSync: teacherSync, saveAssignment: saveAssignment, deleteAssignment: deleteAssignment,
     renameClass: renameClass, recordResults: recordResults, clearResult: clearResult,
+    postAnnouncement: postAnnouncement, deleteAnnouncement: deleteAnnouncement,
+    pinAnnouncement: pinAnnouncement,
     setManualScore: setManualScore, removePerson: removePerson,
     joinClass: joinClass, leaveClass: leaveClass, studentSync: studentSync,
     canSubmit: canSubmit, submitResult: submitResult,

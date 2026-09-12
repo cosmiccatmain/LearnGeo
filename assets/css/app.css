@@ -1941,6 +1941,75 @@ textarea.input:focus { outline: none; border-color: var(--accent); box-shadow: 0
 .empty-cta b { display: block; font-size: 15.5px; }
 .empty-cta p { font-size: 13.5px; color: var(--muted); margin-top: 5px; }
 
+/* ---- stream: the teacher's posts, and the student's copy of them ---- */
+.st-compose { min-height: 80px; resize: vertical; line-height: 1.55; }
+
+.st-post {
+  border: 1px solid var(--line); border-radius: 13px; background: var(--white);
+  padding: 14px 16px; margin-bottom: 10px;
+}
+.st-post:last-child { margin-bottom: 0; }
+.st-post--pinned { border-color: #F2DA96; background: #FFFDF4; }
+.st-post--new { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(27,77,255,.07); }
+.st-post__body {
+  font-size: 14.5px; line-height: 1.6; color: var(--ink); overflow-wrap: anywhere;
+}
+.st-post__foot {
+  display: flex; align-items: center; gap: 6px;
+  margin-top: 11px; padding-top: 10px; border-top: 1px solid var(--line-soft);
+}
+.st-post__when {
+  flex: 1; min-width: 0; display: flex; align-items: center; gap: 5px;
+  font-size: 12px; color: var(--faint);
+}
+.st-post__when svg { width: 13px; height: 13px; flex: none; }
+.st-post--pinned .st-post__when { color: #97761A; }
+/* the student's copy has nothing to press, so the rule would be decoration */
+.st-post--read .st-post__foot { border-top-color: transparent; padding-top: 2px; margin-top: 8px; }
+
+.pill-tag--new { background: var(--accent-soft); color: var(--accent-ink); }
+.cr-tab__n--new,
+.cr-tab.is-active .cr-tab__n--new { background: var(--accent); color: #fff; }
+
+/* ---- one student, opened from People or the gradebook ---- */
+.st-head { display: flex; align-items: center; gap: 14px; margin-bottom: 20px; }
+.person__av--lg { width: 46px; height: 46px; font-size: 16px; }
+.st-head__t { min-width: 0; }
+.st-head__t b { display: block; font-size: 17px; font-weight: 600; letter-spacing: -.022em; }
+.st-head__t span { font-size: 13px; color: var(--muted); }
+
+.st-row {
+  display: flex; align-items: center; gap: 12px; width: 100%; text-align: left;
+  padding: 11px 0; border-bottom: 1px solid var(--line-soft);
+}
+.st-row:last-child { border-bottom: none; }
+.st-row__i {
+  width: 32px; height: 32px; border-radius: 9px; flex: none;
+  display: grid; place-items: center; background: var(--line-soft); color: var(--muted);
+}
+.st-row__i--done { background: var(--success-soft); color: var(--success); }
+.st-row__t { flex: 1; min-width: 0; }
+.st-row__t b {
+  display: block; font-size: 14px; font-weight: 550; transition: color .14s;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.st-row__t > span { display: block; font-size: 12px; color: var(--muted); }
+.st-row:hover .st-row__t b { color: var(--accent); }
+
+/* a roster row is a button as far as the name goes, and a row either side of it */
+.person__open {
+  flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; text-align: left;
+}
+.person__open .person__t { display: block; }
+.person__open:hover .person__t b { color: var(--accent); }
+.gb__name-btn { font: inherit; font-weight: 560; text-align: left; }
+.gb__name-btn:hover { color: var(--accent); text-decoration: underline; }
+
+.an-grid--3 { grid-template-columns: repeat(3, 1fr); }
+.cr-grid--even { grid-template-columns: 1fr 1fr; }
+@media (max-width: 900px) { .cr-grid--even { grid-template-columns: 1fr; } }
+@media (max-width: 620px) { .an-grid--3 { grid-template-columns: 1fr; } }
+
 /* ---- first-run role choice ---- */
 .role-pick { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 @media (max-width: 560px) { .role-pick { grid-template-columns: 1fr; } }
