@@ -232,6 +232,12 @@ same way:
 2. Its branch is gated behind a migration that has not been applied, so it
    cannot ship this round anyway.
 
+   **Since corrected:** Owen applied 0001 later the same night, so this second
+   reason has expired. Reason 1 is the one that still stands, and it is on its
+   own enough: the view is keyed on names and the gradebook is keyed on account
+   ids. Read this paragraph as the record of a decision made when both reasons
+   held, not as a current statement about the database.
+
 Nothing is lost. It is on `claude/epic-mccarthy-db7ing` at `b90284b`, and what
 it needs is a port onto LearnGeo 3's person model, not a merge. The rest of
 that branch, the Stream and announcements, is in here.
