@@ -1,0 +1,193 @@
+/* ==================================================================
+   The class leaderboard
+
+   Additive on purpose. oy-07's table is the app's own gradebook:
+   .cr-card, .gb-wrap, .gb, .gb__name, .gb__score, all already in
+   app.css. That is why it looks native, and replacing it would be a
+   step backwards. Nothing here restyles any of those.
+
+   These rules cover only what the gradebook has no way to say, which is
+   everything the level ranking introduced:
+
+     the level itself, which now leads the table
+     a rank that two students can share
+     a student who has not started
+     a class with nobody in it, and a class with one person in it
+
+   Round 2 taught me the cost of guessing: I wrote a whole .clb table for
+   this screen, oy-07 quite reasonably used the app's classes instead, and
+   the block was dead on arrival. So this is offered rather than assumed,
+   and every name is listed in my NOTES for oy-07 to take or leave.
+   ================================================================== */
+
+.lb {
+  --lb-gold:   #C98A00;
+  --lb-silver: #8A8F98;
+  --lb-bronze: #B4763A;
+}
+
+/* ------------------------------- level -------------------------------
+
+   Level leads the table, so it is the one thing here with any weight to
+   it. Owen asked for level rather than gems because diamonds are spent:
+   a table built on them ranks whoever hoarded above whoever learned, and
+   two students who did identical work rank differently because one
+   bought a hat. So this badge is the answer to "who has done the work",
+   and it should read as the answer at a glance.
+   --------------------------------------------------------------------- */
+
+.lb-level {
+  display: inline-flex; align-items: baseline; gap: .35em;
+  padding: 3px 9px 3px 7px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  line-height: 1.2;
+  white-space: nowrap;
+}
+.lb-level__word {
+  font-family: var(--mono);
+  font-size: 9.5px; letter-spacing: .1em; text-transform: uppercase;
+  opacity: .72;
+}
+.lb-level__n {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 15px; font-weight: 600;
+}
+
+/* XP inside the level, which is only the tie break. It is deliberately
+   quiet: it decides an order but it is not what the table is about, and
+   a second bold number beside the level would read as a rival score. */
+.lb-xp {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* Progress through the current level, from core.js levelProgress(),
+   which gives have and need. oy-07 sets --lb-pct, 0 to 100. Optional:
+   with no value the track renders empty rather than breaking, so the
+   column can ship before the number does. */
+.lb-prog {
+  /* inline-block, not inline: oy-07 will reach for a span inside a table
+     cell and width and height do nothing on an inline box, so the track
+     renders as a zero height nothing and the column looks empty. */
+  display: inline-block;
+  vertical-align: middle;
+  position: relative;
+  width: 64px; height: 5px;
+  border-radius: 999px;
+  background: var(--line-soft);
+  overflow: hidden;
+}
+.lb-prog__fill {
+  position: absolute; inset: 0 auto 0 0;
+  width: calc(var(--lb-pct, 0) * 1%);
+  background: var(--accent);
+  border-radius: inherit;
+  transition: width .5s var(--ease, ease);
+}
+
+/* -------------------------------- rank -------------------------------- */
+
+/* Scoped under .lb, and that is not decoration. app.css has
+   `.gb th, .gb td { text-align: left }`, which is one class and one type
+   more specific than a bare `.lb-rank`, so an unscoped rule here loses
+   and the rank column silently renders left aligned against every other
+   number in the table. Checked with getComputedStyle rather than by
+   reading the cascade, because I got the cascade wrong first. */
+.lb .lb-rank {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+  color: var(--muted);
+  text-align: right;
+  white-space: nowrap;
+}
+.lb-rank.is-1, .lb-rank.is-2, .lb-rank.is-3 { font-weight: 700; }
+.lb-rank.is-1 { color: var(--lb-gold); }
+.lb-rank.is-2 { color: var(--lb-silver); }
+.lb-rank.is-3 { color: var(--lb-bronze); }
+
+/* A shared rank, marked rather than repeated silently. Two students on
+   level 7 with the same XP are equal third, and a table that prints 3
+   and 4 has quietly invented a winner between them. The equals sign is
+   drawn rather than written into the markup, so oy-07 adds one class and
+   nothing else, and a screen reader still hears the number.
+
+   The marker sits in its own space so the digits stay on the same right
+   edge as every other row. A tie must not shift the column. */
+.lb-rank.is-tied { position: relative; padding-left: .85em; }
+.lb-rank.is-tied::before {
+  content: '=';
+  position: absolute; left: 0;
+  opacity: .55;
+  font-weight: 500;
+}
+
+/* ------------------------- nothing to show yet -------------------------
+
+   Three different kinds of nothing, and they should not look the same.
+   --------------------------------------------------------------------- */
+
+/* One student, no level yet. Not an error and not a zero: a zero says
+   they did the work and scored nothing, which is a worse thing to tell a
+   class than the truth. */
+.lb-none {
+  font-size: 12.5px;
+  color: var(--faint);
+  font-style: normal;
+}
+.lb-none::before { content: '—'; margin-right: .5em; opacity: .6; }
+
+/* Nobody in the class at all. */
+.lb-empty {
+  padding: 36px 20px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 14px;
+}
+.lb-empty b { display: block; color: var(--ink); font-size: 15px; margin-bottom: 5px; }
+.lb-empty p { margin-top: 2px; }
+
+/* A class of one. A ranking table showing a single row with a 1 beside
+   it reads as a podium for an audience of nobody, so the rank column is
+   worth hiding and the row worth saying plainly. oy-07 puts .is-solo on
+   the wrapper. */
+.lb.is-solo .lb-rank { display: none; }
+.lb-solo-note {
+  margin-top: 10px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+/* ------------------------------ the viewer ----------------------------- */
+
+/* The row belonging to whoever is looking. Tinted rather than outlined,
+   because this sits inside the app's gradebook table and a border would
+   fight the row rules already there. */
+.lb-me { background: var(--accent-soft); }
+.lb-me .lb-xp { color: var(--accent-ink); opacity: .85; }
+
+/* The gradebook freezes its first column: `.gb tbody td:first-child` is
+   sticky with an opaque white background so names stay readable while the
+   table scrolls sideways. That white sits on top of the row tint, so the
+   viewer's row gets a white notch at the left and reads as a rendering
+   fault. The first cell has to be tinted itself, and the selector has to
+   out-specify the gradebook's to do it. */
+.lb .lb-me td:first-child { background: var(--accent-soft); }
+/* Hover paints `.gb tbody tr:hover td` over everything. On the viewer's
+   own row the tint is identity rather than an affordance, so it stays. */
+.lb .lb-me:hover td,
+.lb .lb-me:hover td:first-child { background: var(--accent-soft); }
+
+/* Small screens: the app's .gb-wrap already scrolls horizontally, so
+   nothing here collapses columns. It only stops the level badge and the
+   progress bar from forcing the table wider than it needs to be. */
+@media (max-width: 560px) {
+  .lb-level { padding: 2px 7px 2px 6px; }
+  .lb-level__n { font-size: 14px; }
+  .lb-prog { width: 44px; }
+}

@@ -11,6 +11,31 @@
 
   var tab = 'classwork';
   var lastSync = 0;
+  var featuresFor = null;
+  var featuresWatched = false;
+
+  /* The student half of the live quiz switch. GeoLiveStudent does not read
+     ClassFeatures itself, so if this tab were left ungated a class with the
+     live quiz switched off would still show its students the tab and let
+     them try to join a room the teacher cannot open. Defaults to on, the
+     same way the teacher side does, so a class that never set the switch is
+     unaffected. */
+  function geoliveOn() {
+    var F = global.ClassFeatures, e = W.state.enrolled;
+    if (!F || typeof F.on !== 'function') return true;
+    return F.on('geolive', (e && e.classId) || '');
+  }
+
+  function wireFeatures() {
+    var F = global.ClassFeatures, e = W.state.enrolled, id = (e && e.classId) || '';
+    if (!F || !id || featuresFor === id) return;
+    featuresFor = id;
+    if (!featuresWatched && typeof F.onChange === 'function') {
+      featuresWatched = true;
+      F.onChange(function () { render(true); });
+    }
+    if (typeof F.load === 'function') F.load(id);
+  }
 
   /* Signed in: new work from the teacher shows up by itself. Throttled,
      since Home and Classroom both ask whenever they redraw. */
@@ -105,6 +130,11 @@
     if (!host) return;
     if (!enrolled()) return renderJoin(host);
     if (fromSync !== true) syncSoon(false);
+
+    wireFeatures();
+    /* the teacher can switch the live quiz off while a student is sitting
+       on that very tab */
+    if (tab === 'geolive' && !geoliveOn()) tab = 'classwork';
     var box = inbox();
     var todo = box.filter(function (a) { return !a.done; });
     var done = box.filter(function (a) { return a.done; });
@@ -133,6 +163,7 @@
           crTab('stream', I.layers, 'Stream', unread || posts.length, unread > 0) +
           crTab('classwork', I.clip, 'Classwork', box.length) +
           crTab('grades', I.chart, 'Grades', done.length) +
+          (geoliveOn() ? crTab('geolive', I.bolt, 'GeoLive') : '') +
         '</div>' +
 
         '<div id="cl-body">' + pendingNotice() + panel() + '</div>' +
@@ -153,6 +184,7 @@
   function panel() {
     if (tab === 'stream') return streamPanel();
     if (tab === 'grades') return gradesPanel();
+    if (tab === 'geolive') return '<div id="cl-geolive"></div>';
     return classworkPanel();
   }
 
@@ -475,6 +507,14 @@
   }
 
   function wire(host) {
+    /* The join code is the teacher's to hand out and changes every game, so
+       the screen asks for it rather than us guessing one. Mounted on its own,
+       never inside a batch with the class sync. */
+    var glHost = document.getElementById('cl-geolive');
+    if (glHost && geoliveOn() && global.GeoLiveStudent && global.GeoLiveStudent.mount) {
+      global.GeoLiveStudent.mount(glHost, { code: '' });
+    }
+
     /* the header and the empty state both carry an Add button */
     W.$$('[data-add]', host).forEach(function (b) { b.addEventListener('click', checkForWork); });
     var leave = W.$('#cl-leave', host);

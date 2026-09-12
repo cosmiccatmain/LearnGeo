@@ -462,3 +462,239 @@ promoted. LearnGeo 3's 867 uncommitted lines were overwritten at the top of the
 repo, which is expected because LearnGeo 3 is one of the merge sources and its
 work is in the result. The snapshot is at `refs/safety/wip-20260911-171154`
 (`f018d49`) if any of it needs recovering.
+
+---
+
+# The two unverified paths, now verified
+
+Written after the merge reached production as `aa0ca26`. The live page is
+byte-identical to this result, so these two were running in front of real users
+while they were still only read-checked. They are checked properly now, against
+a class built to hit the exact case each one was meant to fix.
+
+## The teacher gradebook, and two students with the same name
+
+This is the bug LearnGeo 3's rewrite existed to fix, so it is the one worth
+proving. A class was set up with two accounts both called Alex Kim, one student
+with no account at all, and a repeat attempt.
+
+    People:     Alex Kim  average 90%     <- two rows, not one
+                Alex Kim  average 50%
+                Jo Fisher average 60%     <- no account, still listed
+                Sam Patel average 70%
+    Gradebook:  same four rows, separate averages
+    Cells:      data-student-id="u1" / "u2" / "u3", name carried separately
+                data-cell="a1" / "a2", the assignment id
+
+The two Alex Kims keep separate rows and separate averages. Before the fix they
+shared one row and one average. The 90% is also the *latest* attempt, not the
+best: that student scored 40% and then 90%, which is the other half of what
+LearnGeo 3 changed. The student with no account is keyed by name and still
+appears. No console errors.
+
+## The class quiz, and the four-argument pay()
+
+The one place in the merge where a function signature had to change, carrying
+Carson's `quiet` and LearnGeo 3's `country` at once. Skipping a question is the
+path that uses both.
+
+Skipping one question: **no errors, and exactly one country's mastery moved.**
+
+That is the whole point of the combination. Carson's change makes a skip cost
+what getting both halves wrong costs, so it calls `pay()` twice. LearnGeo 3's
+change means only the second of those two calls names the country, so mastery
+steps once rather than twice. One country touched is the evidence both survived.
+Had either been dropped, this would have shown zero countries or two.
+
+---
+
+# Round 3: GeoLive, the leaderboard, and the off switch
+
+Merged onto `aa0ca26`. Sixteen files from nine sessions. **Not pushed yet:**
+holding for oy-10's final network pass.
+
+## Read this first
+
+**The schema is applied, and it is no longer what is holding this back.** Owen
+ran both 0001 and 0002. Verified against the database directly rather than
+through the app:
+
+    announcements, live_sessions, live_players, live_answers   all present, RLS on
+    live_join, sync_level, live_now                            all present
+    policies on the three live_ tables                         4 each, 12 total
+    class_members.level / xp                                   nullable, no default
+    classes.geolive_enabled                                    default true
+    classes.leaderboard_enabled                                default false
+    all three live_ tables in supabase_realtime                yes
+
+That last line matters more than it looks. The publication had been empty for
+this project's entire history, so nothing here had ever received a live update.
+Without it `GeoLiveCloud.watch()` would never fire and GeoLive would look broken
+with no error anywhere.
+
+**What is unverified is now the behaviour, and it is genuinely unknown rather
+than known-good.** Everything below about structure holds: it merges cleanly,
+all 34 files parse, the app loads with no console errors, and nothing that
+already worked is broken. None of that is a claim that a live quiz survives a
+real classroom.
+
+Specifically untested, because each needs a signed-in teacher with a real class
+and those are Owen's credentials:
+
+- the eight classroom situations: a late joiner, a sleeping phone, a double tap,
+  ties, an empty selection, three countries against twenty questions, and a
+  network drop mid-game
+- row level security from a student's side
+- the leaderboard against real class data
+- the standings not reshuffling, which Owen asked for by name
+- the read/write asymmetry on the feature switches, and whether the class sync
+  survives the new columns
+
+oy-10 declined to sign in with Owen's credentials to test these. That was the
+right call and it is why these stay open rather than answered.
+
+The off switch is the exception: it needs no account, and it is verified
+running, below.
+
+## What went in
+
+Seven new modules, five existing files, one migration, two stylesheets:
+
+    oy-01  supabase/deployed/0002_geolive.sql
+    oy-02  assets/js/geolive.js
+    oy-03  assets/js/cloud-geolive.js
+    oy-04  assets/js/geolive-teacher.js, class-features.js
+    oy-05  assets/js/geolive-student.js
+    oy-06  assets/css/geolive.css, leaderboard.css
+    oy-07  assets/js/leaderboard.js
+    oy-08  assets/js/godmode.js, geolive-questions.js
+    oy-09  index.html, teacher.js, classroom.js, cloud.js, admin.js
+
+Left in the agent folders on their authors' instructions: `oy-05/tools/`,
+`oy-06/tools/`, and `oy-02/tests/`, which says in as many words "do not move
+this to the top of the repo".
+
+**There were no content conflicts.** One session owned each file, so the merge
+was assembly. The work was checking whether the pieces fit, which is where a
+round shaped like this fails if it fails.
+
+oy-09's five files are `aa0ca26` plus additions: +257 lines, −2. I measured that
+rather than taking it on trust. The two removed lines are both in `cloud.js` and
+both are replacements, not deletions: a `select` naming `student_id,
+display_name, joined_at` became `select('*')`, because naming `level` and `xp`
+before 0002 exists would error the read outright, and the `c.members` map was
+widened to carry them. Neither could have been done by adding a line alongside.
+They stay removed.
+
+## Two reports that are wrong, and both are wrong by being old
+
+Neither session did anything careless. Both measured honestly and both were
+overtaken.
+
+**oy-09 reported that GeoLive ships essentially unstyled.** Its NOTES record
+`geolive.css` defining 59 class names against 97 rendered by the screens, with
+8 in common, and say "someone has to say which vocabulary is the real one". That
+was measured at 20:07 and oy-09 said itself to treat it as a reading rather than
+a verdict.
+
+I measured the merged files: the two screens and the leaderboard render 88
+class names beginning `gl` or `lb`, and **all 88 have a rule**. oy-06 converged
+on the screens' vocabulary, which is the direction oy-09 argued for:
+`gl-stand__row`, `gl-pick` and `gl-opt` are all in the stylesheet now. Eighteen
+rules match nothing, which is harmless dead CSS. **No action needed, and nobody
+should act on the 8-of-97 figure.**
+
+**oy-10 reported that the off switch does not work in the integrated app.** It
+named three defects: `class-features.js` and `leaderboard.css` not referenced by
+`index.html`, both tabs rendered ungated, and `ClassLeaderboard.mount` called
+with no `enabled` key. It measured a real request to
+`rest/v1/live_sessions?select=id&limit=1` from a feature that is supposed to
+default off.
+
+All three are fixed in what went in, by oy-09's later passes. Verified in the
+assembled build rather than by reading the diff:
+
+    class-features.js referenced in index.html          yes
+    leaderboard.css referenced                          yes
+    both tabs behind featureOn()                        teacher.js:294-295
+    enabled: featureOn('leaderboard') passed to mount    teacher.js:379
+
+## The off switch, verified running
+
+The one part of the round that needs no migration, so the one part that can be
+shown rather than argued. Loaded the merged app in a browser:
+
+    ClassFeatures loaded                     true
+    geolive default                          on
+    leaderboard default                      off
+    tabs rendered   Stream, Classwork, People, Analytics, GeoLive, Settings
+    requests to rest/v1                      zero
+
+No Leaderboard tab, because it defaults off, and **zero network requests**. That
+is the difference between invisible and off, and it is the exact measurement
+oy-10 had failing.
+
+Both gates sit before any network call. The leaderboard's `opts.enabled ===
+false` is the first statement in `mount`, ahead of every read. GeoLive's reads
+`ClassFeatures` itself and renders a message instead of mounting. The student
+side is gated in `classroom.js`, which is the only backstop it has, because
+`GeoLiveStudent` does not read `ClassFeatures` at all.
+
+The trap oy-09 and oy-10 both flagged is real and worth keeping written down:
+**the two switches do not share a contract.** GeoLive reads the global itself;
+the leaderboard is told by its caller, and it checks `=== false`, so omitting
+the key is not the same as off. A wiring pass that handles one misses the other,
+and the one it misses is the one that defaults off.
+
+## The player id trap
+
+Ranked first for checking, because everything works when it is wrong: no error,
+no failed request, just a class watching a scoreboard of zeros.
+
+Inside a game a player is the `live_players` **row** id, not the account id.
+`open()` takes account ids, so building the game from those would make `GeoLive`
+refuse every answer as coming from a player it has never heard of.
+
+Traced the whole chain in the merged files:
+
+    live_join returns 'playerId', v_player.id        the row id
+    cloud-geolive join() passes playerId through     unchanged
+    student screen stores and sends S.playerId       the row id
+    teacher builds the session from snapshot rows    r.id, never student_id
+
+Consistent end to end. oy-04 does not create the session at `open()` time at all,
+deliberately, because the row ids do not exist until the room has seated the
+roster. The reason is written at the point of the decision, which is where the
+next person will need it.
+
+## Other checks
+
+**Script load order.** Every dependency resolves in the order `index.html` loads
+them: `cloud.js` before `cloud-geolive.js`, `data.js` and `quiz.js` before
+`geolive-questions.js`, `geolive.js` and `cloud-geolive.js` before both screens,
+`class-features.js` before the two things that read it. Every path the page asks
+for exists.
+
+**`level` and `xp` are nullable with no default.** Confirmed in the SQL. An
+earlier draft defaulted them to 1 and 0, which would have read every student who
+has never synced as a real level 1 the moment the file was applied, so the
+leaderboard would have ranked a class of ones. The late fix is in.
+
+**All 34 JavaScript files parse.** No conflict markers anywhere. The app loads
+with all seven new modules and no console errors.
+
+## Left alone deliberately
+
+**oy-07 keeps a private copy of the identity merge rule.** It was told to delete
+it once `Teacher.people` and `Teacher.ownerKey` were exported, and it declined
+while the export was still only in oy-09's folder, on the grounds that a
+fallback reached only when the export is absent cannot drift from it, and losing
+that race merges two students with the same name into one row. That was the
+right call for the window it was made in. The export is now on the real
+`teacher.js`, so the copy can go, but removing it is oy-07's edit to its own
+file and not mine to make inside a merge. Flagged to Master.
+
+## Not done
+
+Not committed, not pushed, no `vercel`, nothing promoted. The push is Owen's
+instruction to me and I am holding it for oy-10's final pass, as asked.

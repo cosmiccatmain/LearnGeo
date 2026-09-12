@@ -1,0 +1,920 @@
+/* ==================================================================
+   GeoLive
+
+   One stylesheet, two screens that want opposite things. The teacher is
+   on a projector at the front of a room and needs size and contrast. The
+   student is on a phone, in that room, in a hurry, and needs targets big
+   enough to hit without aiming.
+
+   Both are the same components. What changes is a set of local tokens on
+   the root element, so there is one set of rules rather than two that
+   drift apart. Put .gl--teacher or .gl--student on the container and
+   everything below re-scales.
+
+   Nothing here touches app.css, brand.css or any existing class. Every
+   selector is under .gl, so this file cannot reach a component it does
+   not own. It reads tokens from app.css and adds no global ones.
+
+   The app has no dark mode. I checked app.css, brand.css, auth.css,
+   demo.css, motion.css and every js and html file: there is no
+   prefers-color-scheme block and no theme attribute anywhere. So there
+   is no dark mode here either. Adding one would make GeoLive the only
+   dark-capable screen in the app, which reads as a bolted-on feature.
+   ================================================================== */
+
+.gl {
+  /* Local scale. Teacher mode below rewrites these; nothing else does. */
+  --gl-step:      1;                       /* master type multiplier */
+  --gl-gap:       14px;
+  --gl-pad:       20px;
+  --gl-radius:    var(--r-lg);
+
+  /* The app is built on hairlines. A 1px #E6E8EC rule is invisible on a
+     projector eight metres away, so line and secondary text weight are
+     tokens rather than literals, and teacher mode strengthens both. */
+  --gl-line:      var(--line);
+  --gl-line-w:    1px;
+  --gl-second:    var(--muted);
+
+  /* The four answer targets. These are the app's own accent, success,
+     gold and diamond, not a new set of quiz-show colours. Four hues the
+     palette already contains, so the screen still looks like LearnGeo. */
+  --gl-t1: var(--accent);
+  --gl-t2: var(--success);
+  --gl-t3: #C98A00;                        /* gold, darkened for contrast on white */
+  --gl-t4: #0E88C4;                        /* diamond, darkened for the same reason */
+
+  --gl-row-h: 52px;                        /* one standings row, fixed on purpose */
+
+  position: relative;
+  font-family: var(--sans);
+  color: var(--ink);
+}
+
+/* ------------------------------------------------------------------
+   Teacher, on a projector
+
+   Type scales with the viewport because a projector is not a known
+   size. clamp keeps it sane on a laptop while rehearsing and lets it
+   grow on a hall screen. Rules thicken and secondary text darkens from
+   --muted to --ink-2, because #6B7280 on white is comfortable at desk
+   distance and gone from the back row.
+   ------------------------------------------------------------------ */
+.gl--teacher {
+  /* --gl-step must stay a plain number, because everything below is
+     calc(px * step). It cannot be a clamp() of vw: adding a unitless
+     number to a length is invalid CSS, the whole token then fails, and
+     every size built on it silently falls back. Steps, not fluid. */
+  --gl-step:    1.35;
+  --gl-gap:     clamp(14px, 1.5vw, 30px);
+  --gl-pad:     clamp(20px, 2.4vw, 48px);
+  --gl-line:    #C9CFD9;
+  --gl-line-w:  2px;
+  --gl-second:  var(--ink-2);
+  --gl-row-h:   clamp(52px, 6.4vh, 92px);
+
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: var(--gl-pad);
+  background: var(--white);
+}
+/* The bigger the screen, the further away the back row is. */
+@media (min-width: 1100px) { .gl--teacher { --gl-step: 1.6;  } }
+@media (min-width: 1500px) { .gl--teacher { --gl-step: 1.95; } }
+@media (min-width: 1900px) { .gl--teacher { --gl-step: 2.3;  } }
+
+/* ------------------------------------------------------------------
+   Student, on a phone
+
+   Fills the viewport, never scrolls during a question, and keeps the
+   answer targets clear of the home indicator. dvh rather than vh so the
+   grid does not sit under Safari's collapsing toolbar.
+   ------------------------------------------------------------------ */
+.gl--student {
+  --gl-pad: 16px;
+
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: var(--gl-pad);
+  padding-bottom: calc(var(--gl-pad) + env(safe-area-inset-bottom, 0px));
+  background: var(--white);
+  touch-action: manipulation;              /* no 300ms double-tap delay */
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ------------------------------- shared ------------------------------- */
+
+/* Both screens use .gl__head and mean different things by it. On the
+   phone it is a two item row, the question count against the clock. On
+   the projector it is a heading with its subtitle underneath, so a row
+   would set the subtitle off to the right of the heading. */
+.gl__head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: var(--gl-gap);
+  margin-bottom: var(--gl-gap);
+}
+.gl--teacher .gl__head {
+  display: block;
+  margin-bottom: var(--gl-gap);
+}
+
+.gl__eyebrow {
+  font-family: var(--mono);
+  font-size: calc(11px * var(--gl-step));
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--gl-second);
+  font-weight: 500;
+}
+
+.gl__title {
+  font-size: calc(19px * var(--gl-step));
+  font-weight: 640;
+  letter-spacing: -.022em;
+}
+
+/* Where the teacher is in setting the game up: who is playing, what gets
+   asked, joining, live. oy-04 emits .gl__steps holding four .gl__step, one
+   carrying .is-now and the earlier ones .is-done, with an optional
+   .gl__steps-note on the end. Quiet on purpose. It is orientation while
+   the teacher sets up, and it should not compete with the join code once
+   a class is in the room looking at the screen. */
+.gl__steps {
+  display: flex; flex-wrap: wrap; align-items: center;
+  gap: calc(9px * var(--gl-step));
+  margin-bottom: var(--gl-gap);
+  font-family: var(--mono);
+  font-size: calc(11px * var(--gl-step));
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+.gl__step {
+  display: inline-flex; align-items: center;
+  gap: calc(9px * var(--gl-step));
+  color: var(--faint);
+  white-space: nowrap;
+}
+/* Hairline between steps. Not a chevron: at projector size a chevron
+   reads as another glyph in the row and the row stops scanning as a
+   sequence. */
+.gl__step::after {
+  content: '';
+  width: calc(16px * var(--gl-step)); height: var(--gl-line-w);
+  background: var(--gl-line);
+}
+.gl__step:last-child::after { display: none; }
+.gl__step:has(+ .gl__steps-note)::after { display: none; }
+
+.gl__step.is-done { color: var(--gl-second); }
+.gl__step.is-now  { color: var(--accent); font-weight: 600; }
+
+.gl__steps-note {
+  margin-left: auto;
+  font-family: var(--sans);
+  font-size: calc(13px * var(--gl-step));
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--gl-second);
+}
+
+/* Question 3 of 10. Mono and tabular so the width never shifts as the
+   number climbs, which would nudge everything beside it. */
+.gl-qcount {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: calc(13px * var(--gl-step));
+  color: var(--gl-second);
+}
+
+/* Time left. Driven by a CSS animation rather than a JS width write, so
+   it cannot stutter while the main thread is busy scoring. oy-04 and
+   oy-05 set --gl-secs to the question's time limit and add .is-running. */
+.gl-timer {
+  height: calc(8px * var(--gl-step));
+  border-radius: 999px;
+  background: var(--line-soft);
+  overflow: hidden;
+}
+.gl-timer__bar {
+  display: block; height: 100%; width: 100%;
+  border-radius: inherit;
+  background: var(--accent);
+  transform-origin: left center;
+}
+.gl-timer__bar.is-running {
+  animation: glDrain var(--gl-secs, 20s) linear forwards;
+}
+.gl-timer.is-low .gl-timer__bar { background: var(--danger); }
+@keyframes glDrain { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+
+/* ==================================================================
+   TEACHER, on a projector
+
+   Written against the class names oy-04 actually emits, read out of
+   geolive-teacher.js rather than taken from a summary. Everything here
+   is on the teacher's screen only, except .gl-podium, which both screens
+   build with different children.
+   ================================================================== */
+
+/* ------------------------------ shell -------------------------------- */
+
+.gl__h {
+  font-size: calc(24px * var(--gl-step));
+  font-weight: 640; letter-spacing: -.028em; line-height: 1.15;
+}
+.gl__h--mid { text-align: center; }
+
+.gl__sub {
+  margin-top: calc(5px * var(--gl-step));
+  font-size: calc(14px * var(--gl-step));
+  color: var(--gl-second);
+}
+.gl__sub--mid { text-align: center; }
+
+/* Supabase is unreachable. Not an error, the game still runs locally, so
+   it is an amber note and not a red one. */
+.gl__warn {
+  display: flex; align-items: flex-start; gap: calc(10px * var(--gl-step));
+  margin: var(--gl-gap) 0;
+  padding: calc(12px * var(--gl-step)) calc(14px * var(--gl-step));
+  border-radius: var(--r);
+  background: #FFFBEB; color: #B45309;
+  font-size: calc(13.5px * var(--gl-step));
+}
+.gl__warn svg { flex: none; }
+
+/* Label strip above a list: a caption on the left, a control on the right. */
+.gl__bar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: var(--gl-gap);
+  margin: var(--gl-gap) 0 calc(8px * var(--gl-step));
+}
+.gl__count {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: calc(12px * var(--gl-step));
+  letter-spacing: .1em; text-transform: uppercase;
+  color: var(--gl-second);
+}
+
+/* The action row. Buttons in it are the app's own .btn, so nothing here
+   styles them, only their placement. */
+.gl__foot {
+  display: flex; align-items: center; justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: calc(10px * var(--gl-step));
+  margin-top: var(--gl-gap);
+  padding-top: var(--gl-gap);
+  border-top: var(--gl-line-w) solid var(--gl-line);
+}
+.gl__note { margin-right: auto; font-size: calc(13px * var(--gl-step)); color: var(--gl-second); }
+
+.gl__empty, .gl__none {
+  display: flex; flex-direction: column; align-items: center; gap: calc(8px * var(--gl-step));
+  padding: calc(34px * var(--gl-step)) calc(20px * var(--gl-step));
+  text-align: center;
+  color: var(--gl-second);
+  font-size: calc(14px * var(--gl-step));
+}
+
+/* --------------------------- who is playing ---------------------------
+   A class is waiting while the teacher does this, so the names are big
+   targets and the whole roster stays on screen rather than scrolling
+   out from under a tap.
+   ---------------------------------------------------------------------- */
+
+.gl__roster {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(calc(190px * var(--gl-step)), 1fr));
+  gap: calc(8px * var(--gl-step));
+}
+
+.gl-pick {
+  display: flex; align-items: center; gap: calc(10px * var(--gl-step));
+  width: 100%;
+  padding: calc(9px * var(--gl-step)) calc(12px * var(--gl-step));
+  border: var(--gl-line-w) solid var(--gl-line);
+  border-radius: 999px;
+  background: var(--white);
+  text-align: left;
+  font-size: calc(14.5px * var(--gl-step));
+  font-weight: 540;
+  transition: border-color .14s, background .14s, transform .1s var(--ease);
+}
+.gl-pick:active { transform: scale(.99); }
+.gl-pick.is-on { border-color: var(--accent); background: var(--accent-soft); }
+/* Has not joined with the class code yet. This row is the answer to
+   "where is the rest of my class", so it has to read as unavailable
+   rather than merely faint: a dashed edge and no fill say "not a thing
+   you can pick" from across a room, where a 45% opacity chip just looks
+   like a chip in a dim corner of the projection. */
+.gl-pick.is-out {
+  border-style: dashed;
+  border-color: var(--line);
+  background: var(--line-soft);
+  color: var(--faint);
+  pointer-events: none;
+}
+.gl-pick.is-out .gl-pick__av { background: transparent; box-shadow: inset 0 0 0 1px var(--line); color: var(--faint); }
+
+.gl-pick__av {
+  flex: none;
+  display: grid; place-items: center;
+  width: calc(28px * var(--gl-step)); height: calc(28px * var(--gl-step));
+  border-radius: 50%;
+  background: var(--line-soft); color: var(--ink-2);
+  font-family: var(--mono); font-size: calc(11px * var(--gl-step)); font-weight: 600;
+}
+.gl-pick.is-on .gl-pick__av { background: var(--accent); color: #fff; }
+.gl-pick__n { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gl-pick__tick { flex: none; opacity: 0; color: var(--accent); transition: opacity .14s; }
+.gl-pick.is-on .gl-pick__tick { opacity: 1; }
+
+/* --------------------------- what gets asked --------------------------- */
+
+.gl__sets {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(calc(210px * var(--gl-step)), 1fr));
+  gap: calc(10px * var(--gl-step));
+}
+.gl-set {
+  display: block; width: 100%; text-align: left;
+  padding: calc(14px * var(--gl-step));
+  border: var(--gl-line-w) solid var(--gl-line);
+  border-radius: var(--gl-radius);
+  background: var(--white);
+  font-size: calc(15px * var(--gl-step));
+  font-weight: 580;
+  transition: border-color .14s, background .14s;
+}
+.gl-set:hover { border-color: #C9CFD9; background: var(--paper); }
+.gl-set.is-on { border-color: var(--accent); background: var(--accent-soft); }
+.gl-set small, .gl-set span {
+  display: block; margin-top: calc(4px * var(--gl-step));
+  font-size: calc(13px * var(--gl-step));
+  font-weight: 460;
+  color: var(--gl-second);
+}
+
+.gl__picker { margin-top: var(--gl-gap); }
+.gl__regions {
+  display: flex; flex-wrap: wrap;
+  gap: calc(7px * var(--gl-step));
+  margin-bottom: calc(10px * var(--gl-step));
+}
+/* The country list is the one thing on this screen that may scroll. It
+   is capped rather than left to run the page long, so the action row at
+   the bottom stays put while the teacher hunts. */
+.gl__countries {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(calc(160px * var(--gl-step)), 1fr));
+  gap: calc(6px * var(--gl-step));
+  max-height: calc(300px * var(--gl-step));
+  overflow-y: auto;
+  padding: calc(4px * var(--gl-step));
+  border: var(--gl-line-w) solid var(--gl-line);
+  border-radius: var(--r);
+}
+.gl-country {
+  display: flex; align-items: center; gap: calc(8px * var(--gl-step));
+  width: 100%; text-align: left;
+  padding: calc(7px * var(--gl-step)) calc(10px * var(--gl-step));
+  border: 1px solid transparent; border-radius: var(--r-sm);
+  background: var(--white);
+  font-size: calc(13.5px * var(--gl-step));
+  transition: background .12s, border-color .12s;
+}
+.gl-country:hover { background: var(--paper); }
+.gl-country.is-on { border-color: var(--accent); background: var(--accent-soft); font-weight: 560; }
+
+/* ------------------------------- joining ------------------------------- */
+
+/* The join code. The single biggest thing on the projector, because
+   thirty people are copying it onto phones at once. Letter-spaced so
+   nobody misreads an O for a 0 at distance. */
+.gl__code {
+  display: block;
+  margin: var(--gl-gap) auto;
+  width: max-content;
+  font-family: var(--mono);
+  font-size: calc(44px * var(--gl-step));
+  font-weight: 600;
+  letter-spacing: .16em;
+  text-indent: .16em;                      /* re-centres the tracked text */
+  line-height: 1.1;
+  color: var(--ink);
+  background: var(--accent-soft);
+  border-radius: var(--gl-radius);
+  padding: .22em .34em;
+}
+
+.gl__joined {
+  display: flex; flex-wrap: wrap; justify-content: center;
+  gap: calc(8px * var(--gl-step));
+  margin-top: var(--gl-gap);
+}
+/* Everyone chosen is listed from the start and fills in as they arrive,
+   rather than names appearing one by one. A teacher scanning for who is
+   missing should not have to remember who ought to be there. */
+.gl-joined {
+  display: inline-flex; align-items: center; gap: calc(8px * var(--gl-step));
+  padding: calc(6px * var(--gl-step)) calc(13px * var(--gl-step));
+  border-radius: 999px;
+  border: var(--gl-line-w) solid var(--gl-line);
+  background: var(--white);
+  font-size: calc(14px * var(--gl-step));
+  color: var(--faint);
+  transition: color .2s, border-color .2s, background .2s;
+}
+.gl-joined.is-in {
+  color: var(--ink); font-weight: 540;
+  border-color: var(--success); background: var(--success-soft);
+  animation: glChipIn .28s var(--spring);
+}
+.gl-joined__av {
+  display: grid; place-items: center;
+  width: calc(24px * var(--gl-step)); height: calc(24px * var(--gl-step));
+  border-radius: 50%;
+  background: var(--line-soft); color: var(--muted);
+  font-family: var(--mono); font-size: calc(10px * var(--gl-step)); font-weight: 600;
+}
+.gl-joined.is-in .gl-joined__av { background: var(--success); color: #fff; }
+@keyframes glChipIn { from { opacity: 0; transform: scale(.86); } to { opacity: 1; transform: scale(1); } }
+
+/* ------------------------------ the game ------------------------------- */
+
+.gl-live { display: grid; gap: var(--gl-gap); }
+
+.gl-live__top { display: flex; align-items: center; justify-content: space-between; gap: var(--gl-gap); }
+
+/* Question 3 of 10. Tabular so the width never shifts as the number
+   climbs, which would nudge the clock beside it. */
+.gl-live__n {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: calc(13px * var(--gl-step));
+  letter-spacing: .08em; text-transform: uppercase;
+  color: var(--gl-second);
+}
+/* Seconds left, counted down from JS. Reserved width for the same
+   reason, so 10 going to 9 does not shuffle the row. */
+.gl-live__clock {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: calc(30px * var(--gl-step));
+  font-weight: 600;
+  min-width: 2.6ch; text-align: right;
+}
+.gl-live__clock.is-low { color: var(--danger); }
+
+/* Both screens settled on this for the question text. On the projector it
+   is the largest thing after the join code. On a phone that size would
+   eat the room the four targets need, and the student is holding the
+   screen rather than reading it from eight metres away. */
+.gl-live__q, .gl-prompt {
+  font-size: calc(32px * var(--gl-step));
+  font-weight: 640; letter-spacing: -.032em; line-height: 1.16;
+  text-wrap: balance;
+}
+.gl--student .gl-live__q, .gl--student .gl-prompt {
+  margin: 12px 0 0;
+  font-size: 21px; font-weight: 620; letter-spacing: -.025em; line-height: 1.22;
+}
+
+.gl-live__opts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: calc(10px * var(--gl-step));
+}
+
+/* The four answers as the room sees them. These are not buttons: nobody
+   taps the projector, so they carry no hover or active state, and the
+   only job is to be readable from the back and to be told apart by
+   colour at the reveal. Same four hues as the phone, so an answer is the
+   same colour in the hand and on the wall. */
+.gl-opt {
+  display: flex; align-items: center; gap: calc(12px * var(--gl-step));
+  padding: calc(16px * var(--gl-step)) calc(18px * var(--gl-step));
+  border: calc(2px * var(--gl-step)) solid var(--gl-tint, var(--accent));
+  border-radius: var(--gl-radius);
+  background: var(--white);
+  font-size: calc(21px * var(--gl-step));
+  font-weight: 580; line-height: 1.2;
+  transition: background .24s var(--ease), opacity .24s, border-color .24s;
+}
+.gl-opt--0 { --gl-tint: var(--gl-t1); }
+.gl-opt--1 { --gl-tint: var(--gl-t2); }
+.gl-opt--2 { --gl-tint: var(--gl-t3); }
+.gl-opt--3 { --gl-tint: var(--gl-t4); }
+
+/* At the reveal one answer fills and the rest recede. Dimming the wrong
+   ones rather than reddening them leaves the right answer as the only
+   loud thing on a wall the whole room is looking at. */
+.gl-opt.is-right {
+  background: var(--success); border-color: var(--success); color: #fff;
+  animation: glRightPop .34s var(--ease);
+}
+.gl-opt.is-dim { opacity: .34; }
+
+/* How many chose it. oy-04 writes the number; if it ever also sets
+   --gl-pct on the option, the bar behind the text appears on its own and
+   the layout does not change. Without it this is simply a plain card. */
+.gl-opt {
+  position: relative;
+  background-image: linear-gradient(to right, var(--gl-tint) 0 calc(var(--gl-pct, 0) * 1%), transparent calc(var(--gl-pct, 0) * 1%));
+  background-repeat: no-repeat;
+}
+.gl-opt.is-right { background-image: none; }
+.gl-opt__n {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: calc(20px * var(--gl-step));
+  font-weight: 600;
+  color: var(--gl-second);
+}
+.gl-opt.is-right .gl-opt__n { color: rgba(255,255,255,.9); }
+
+.gl-live__foot { display: flex; align-items: center; justify-content: space-between; gap: var(--gl-gap); }
+/* 18 of 24 answered. One span, so the whole line is tabular rather than
+   just the number, which keeps it from twitching as the count climbs. */
+.gl-live__answered {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: calc(17px * var(--gl-step));
+  color: var(--gl-second);
+}
+
+/* ---------------------------- the standings ---------------------------
+
+   The brief was standings that do not jump. oy-04 builds one row per
+   player in creation order and never reorders them, then writes the rank
+   into --gl-i on the row, --gl-n for how many there are and --gl-max for
+   how many should show. A row that goes from third to first slides,
+   because the only thing that changed is a number.
+
+   Rebuilding the list in rank order instead is what makes every row
+   below a change snap a whole row height in one frame, which on a wall
+   in front of a class is the jump this exists to avoid.
+   ---------------------------------------------------------------------- */
+
+.gl-stand {
+  position: relative;
+  /* The board is appended into a bare slot div, so it cannot rely on a
+     parent gap to keep it off whatever sits above it. */
+  margin-top: var(--gl-gap);
+  /* --gl-max, not --gl-n: the same board shows a top six at the reveal
+     and the whole class at the end, without a row being added or taken
+     away. Falls back to the full count when nothing is capped. */
+  height: calc(var(--gl-max, var(--gl-n, 0)) * var(--gl-row-h));
+  transition: height .4s var(--ease);
+  overflow: hidden;
+}
+.gl-stand__row {
+  position: absolute;
+  left: 0; right: 0; top: 0;
+  height: var(--gl-row-h);
+  transform: translateY(calc(var(--gl-i, 0) * var(--gl-row-h)));
+  transition: transform .42s var(--spring), opacity .3s var(--ease);
+
+  display: grid;
+  grid-template-columns: calc(44px * var(--gl-step)) 1fr auto auto;
+  align-items: center;
+  gap: calc(12px * var(--gl-step));
+  padding: 0 calc(8px * var(--gl-step));
+  border-bottom: var(--gl-line-w) solid var(--line-soft);
+}
+/* Ranked below the cut. Still in the DOM and still sliding, so when the
+   board opens up at the end they are already in the right place. */
+.gl-stand__row.is-below { opacity: 0; pointer-events: none; }
+
+.gl-stand__pl {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: calc(17px * var(--gl-step));
+  color: var(--gl-second);
+  text-align: right;
+}
+.gl-stand__row:not(.is-below):nth-child(-n+3) .gl-stand__pl { color: var(--ink); font-weight: 600; }
+
+.gl-stand__n {
+  font-size: calc(19px * var(--gl-step));
+  font-weight: 560;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.gl-stand__streak {
+  display: inline-flex; align-items: center; gap: .3em;
+  font-family: var(--mono);
+  font-size: calc(13px * var(--gl-step));
+  color: var(--gold);
+}
+.gl-stand__streak:empty { display: none; }
+/* Reserved width and tabular figures. A score going from 940 to 1,540
+   must not widen its column and shunt the name beside it. */
+.gl-stand__s {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: calc(19px * var(--gl-step));
+  font-weight: 600;
+  min-width: 6ch; text-align: right;
+}
+
+/* The end screen is two blocks, the result and the podium, and oy-05
+   renders them as siblings. .gl-wait centres itself with auto margins on
+   every other phase, which here pushes the podium to the floor of the
+   phone with a hole above it. oy-05 puts the phase on the container, so
+   the two can be centred as one group instead. */
+.gl--student[data-phase="ended"] .gl-wait { margin: auto 0 0; }
+.gl--student[data-phase="ended"] .gl-podium { margin: 18px 0 auto; }
+
+/* ------------------------------- the end ------------------------------- */
+
+.gl-end { display: grid; gap: calc(var(--gl-gap) * 1.4); }
+
+/* Shared block, different children: oy-04 builds columns as
+   .gl-podium__col, oy-05 builds them as .gl-podium__place. Both want the
+   same three-across, bottom-aligned arrangement. */
+.gl-podium {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  align-items: end;
+  gap: var(--gl-gap);
+  max-width: calc(760px * var(--gl-step));
+  margin: 0 auto;
+  width: 100%;
+}
+
+.gl-podium__col, .gl-podium__place {
+  display: grid; justify-items: center; gap: calc(7px * var(--gl-step));
+  padding: var(--gl-pad) calc(10px * var(--gl-step));
+  border: var(--gl-line-w) solid var(--gl-line);
+  border-bottom: none;
+  border-radius: var(--gl-radius) var(--gl-radius) 0 0;
+  background: var(--white);
+  text-align: center;
+  animation: glRise .5s var(--spring) both;
+}
+
+/* DOM order is first, second, third. Screen order is the podium's. */
+.gl-podium__col--1, .gl-podium__place.is-first {
+  order: 2; min-height: calc(190px * var(--gl-step));
+  border-color: var(--gold); animation-delay: .24s;
+}
+.gl-podium__col--2, .gl-podium__place.is-second { order: 1; min-height: calc(150px * var(--gl-step)); animation-delay: .12s; }
+.gl-podium__col--3, .gl-podium__place.is-third  { order: 3; min-height: calc(120px * var(--gl-step)); animation-delay: 0s; }
+.gl-podium__place.is-me { background: var(--accent-soft); }
+
+.gl-podium__av {
+  display: grid; place-items: center;
+  width: calc(46px * var(--gl-step)); height: calc(46px * var(--gl-step));
+  border-radius: 50%;
+  background: var(--line-soft); color: var(--ink-2);
+  font-family: var(--mono); font-size: calc(15px * var(--gl-step)); font-weight: 600;
+}
+.gl-podium__col--1 .gl-podium__av { background: var(--gold); color: #fff; }
+
+.gl-podium__n, .gl-podium__name {
+  font-size: calc(17px * var(--gl-step));
+  font-weight: 600;
+  max-width: 100%;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.gl-podium__s, .gl-podium__score {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: calc(19px * var(--gl-step));
+  color: var(--gl-second);
+}
+.gl-podium__pl {
+  font-family: var(--mono);
+  font-size: calc(12px * var(--gl-step));
+  letter-spacing: .1em;
+  color: var(--faint);
+}
+.gl-podium__medal { font-family: var(--emoji); font-size: calc(30px * var(--gl-step)); line-height: 1; }
+
+@keyframes glRise { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes glRightPop { 0%{transform:scale(1)} 40%{transform:scale(1.022)} 100%{transform:scale(1)} }
+/* ==================================================================
+   STUDENT
+   ================================================================== */
+
+.gl-join { display: grid; gap: 14px; max-width: 380px; margin: auto 0; width: 100%; }
+.gl-join__field {
+  width: 100%; height: 56px; padding: 0 16px;
+  border: 1px solid var(--line); border-radius: 12px;
+  background: var(--white);
+  font-family: var(--mono);
+  font-size: 24px;                         /* 16px or more, or iOS zooms the page */
+  letter-spacing: .12em;
+  text-align: center;
+  text-transform: uppercase;
+  transition: border-color .14s, box-shadow .14s;
+}
+.gl-join__field:focus {
+  outline: none; border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(27,77,255,.12);
+}
+
+.gl-wait {
+  display: grid; gap: 10px; justify-items: center; text-align: center;
+  margin: auto 0;
+}
+.gl-wait__dots { display: flex; gap: 7px; }
+.gl-wait__dots i {
+  width: 9px; height: 9px; border-radius: 50%;
+  background: var(--faint);
+  animation: glPulse 1.3s var(--ease) infinite;
+}
+.gl-wait__dots i:nth-child(2) { animation-delay: .16s; }
+.gl-wait__dots i:nth-child(3) { animation-delay: .32s; }
+@keyframes glPulse { 0%,100% { opacity: .3; } 50% { opacity: 1; } }
+
+/* ------------------------- the four targets ---------------------------
+
+   Two by two, filling what is left of the screen. Sized by the grid
+   rather than by padding, so every target is the same size and is as
+   large as the phone allows. No target is ever smaller than 88px, which
+   is twice the 44px minimum, because this is tapped at speed by someone
+   looking at a projector and not at their hand.
+   ---------------------------------------------------------------------- */
+
+.gl-targets {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-auto-rows: minmax(88px, 1fr);
+  gap: 10px;
+  margin-top: 14px;
+  min-height: 0;                           /* lets the grid shrink inside the flex column */
+}
+
+.gl-target {
+  position: relative;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 8px;
+  padding: 12px;
+  border: 2px solid var(--gl-tint, var(--accent));
+  border-radius: 14px;
+  background: var(--white);
+  color: var(--ink);
+  font-size: 18px; font-weight: 580;
+  line-height: 1.25;
+  text-align: center;
+  transition: transform .1s var(--ease), background .14s, opacity .2s;
+}
+.gl-target:active { transform: scale(.97); }
+
+.gl-target__key {
+  display: grid; place-items: center;
+  width: 28px; height: 28px; border-radius: 8px;
+  background: var(--gl-tint, var(--accent));
+  color: #fff;
+  font-family: var(--mono); font-size: 13px; font-weight: 600;
+}
+.gl-target__text {
+  overflow: hidden;
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3;
+}
+
+.gl-target--a { --gl-tint: var(--gl-t1); }
+.gl-target--b { --gl-tint: var(--gl-t2); }
+.gl-target--c { --gl-tint: var(--gl-t3); }
+.gl-target--d { --gl-tint: var(--gl-t4); }
+
+/* Picked: filled, so it is obvious across the room which one you hit. */
+.gl-target.is-picked {
+  background: var(--gl-tint);
+  border-color: var(--gl-tint);
+  color: #fff;
+}
+.gl-target.is-picked .gl-target__key { background: rgba(255,255,255,.24); }
+
+/* After the reveal. Wrong is dimmed rather than reddened when it is not
+   the one you chose, so the right answer is the only loud thing left. */
+.gl-target.is-right {
+  background: var(--success); border-color: var(--success); color: #fff;
+  animation: glRightPop .34s var(--ease);
+}
+.gl-target.is-right .gl-target__key { background: rgba(255,255,255,.24); }
+.gl-target.is-wrong {
+  background: var(--danger); border-color: var(--danger); color: #fff;
+  animation: glShake .34s var(--ease);
+}
+.gl-target.is-wrong .gl-target__key { background: rgba(255,255,255,.24); }
+.gl-target.is-dimmed { opacity: .32; }
+.gl-target.is-locked { pointer-events: none; }
+
+@keyframes glRightPop { 0%{transform:scale(1)} 40%{transform:scale(1.03)} 100%{transform:scale(1)} }
+@keyframes glShake {
+  0%,100%{transform:translateX(0)} 20%{transform:translateX(-7px)}
+  40%{transform:translateX(6px)} 60%{transform:translateX(-4px)} 80%{transform:translateX(2px)}
+}
+
+/* --------------------------- right or wrong --------------------------- */
+
+/* No auto margin here, deliberately. The reveal renders the verdict, the
+   place line and the four targets as siblings in one flex column. An auto
+   margin and flex-grow cannot share the leftover space: once an auto
+   margin absorbs it, flex-grow is treated as zero, so .gl-targets would
+   quietly collapse to its 88px minimum while the verdict floated in the
+   middle. The reveal reads top down, verdict first, and the targets take
+   what is left. */
+.gl-verdict {
+  display: grid; gap: 6px; justify-items: center; text-align: center;
+  padding: 22px 16px;
+  border-radius: var(--r-lg);
+  margin-bottom: 4px;
+  animation: glVerdictIn .26s var(--ease);
+}
+.gl-verdict--right { background: var(--success-soft); color: #0A5C42; }
+.gl-verdict--wrong { background: var(--danger-soft);  color: #9B1C1C; }
+.gl-verdict__head { font-size: 27px; font-weight: 640; letter-spacing: -.03em; }
+.gl-verdict__points {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 34px; font-weight: 600;
+}
+.gl-verdict__note { font-size: 14px; opacity: .82; }
+@keyframes glVerdictIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+/* A thing that went wrong and that the student has to act on: a code that
+   matched no game, an answer that arrived after the class moved on. oy-05
+   had these as .gl-verdict__note with .t-muted, which is a grey line of
+   small print at the one moment someone is trying and failing to get into
+   a game in a noisy room. It carries role="alert" and the styling should
+   agree with the role. oy-05 is borrowing app.css's .auth-error until this
+   lands and can drop it now. */
+.gl-alert {
+  display: flex; align-items: flex-start; gap: 9px;
+  margin: 10px 0;
+  padding: 11px 13px;
+  border-radius: var(--r);
+  border: 1px solid rgba(224,36,36,.22);
+  background: var(--danger-soft);
+  color: #9B1C1C;
+  font-size: 14px;
+  font-weight: 520;
+  text-align: left;
+  animation: glVerdictIn .2s var(--ease);
+}
+.gl-alert svg { flex: none; }
+
+.gl-place {
+  display: flex; align-items: baseline; justify-content: center; gap: .45em;
+  margin: 0 0 4px;
+  font-size: 15px; color: var(--muted);
+}
+.gl-place__n {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 26px; font-weight: 600; color: var(--ink);
+}
+/* If the place is worth colouring, say so with a class. --gl-i cannot do
+   it: a custom property is a value, and CSS has no way to branch on a
+   number without style queries, which are not safe to rely on yet. These
+   are the same three names oy-05 already puts on its own podium. */
+.gl-place.is-first  .gl-place__n { color: var(--gold); }
+.gl-place.is-second .gl-place__n { color: #8A8F98; }
+.gl-place.is-third  .gl-place__n { color: #B4763A; }
+
+/* ==================================================================
+   CLASS LEADERBOARD
+
+   Deliberately not here. oy-07 builds the leaderboard from the app's own
+   gradebook classes, cr-card / gb-wrap / gb / gb__name / gb__score, and
+   every one of them is already defined in app.css. A leaderboard that
+   looks like the gradebook beside it is the right outcome and reusing
+   those gets it for nothing.
+
+   I had written a .clb block for it. It is removed rather than left
+   unused: dead rules in a shared stylesheet are how a second naming
+   convention creeps back in six weeks from now.
+
+   .gb is a real table with a scrolling wrapper, so it already handles
+   six columns on a phone. If the empty state, a tie, or a class with one
+   student needs anything beyond what app.css gives, that is oy-07's call
+   on markup, not a stylesheet gap.
+   ================================================================== */
+
+
+/* ==================================================================
+   Reduced motion
+
+   app.css already flattens every animation and transition to .001ms
+   globally, which is right for decoration. Two things here are not
+   decoration: the timer is the only indication of how long is left, and
+   the answer fill is the distribution itself. Both are restored.
+   ================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  .gl-timer__bar.is-running {
+    animation-duration: var(--gl-secs, 20s) !important;
+  }
+  .gl-opt { transition-duration: .3s !important; }
+
+  /* Standings still move, they just stop springing. */
+  .gl-stand__row { transition-duration: .2s !important; }
+}

@@ -16,6 +16,36 @@
   var tab = 'stream';
   var draftPicker = null;
   var lastSync = 0;
+  var featuresFor = null;      /* class whose switches we have already asked for */
+  var featuresWatched = false;
+
+  /* The two switches. on() is synchronous on purpose, and answers from the
+     module's own defaults until the class has been read: live quiz on,
+     leaderboard off. If the script never loaded we answer the same way, so a
+     failed load can never switch the leaderboard ON for a class that never
+     asked for it. Wrong in that direction is the one that shows every student
+     their rank in front of the room. */
+  function featureOn(key) {
+    var F = global.ClassFeatures;
+    if (F && typeof F.on === 'function') return F.on(key, cls().cloudId || '');
+    return key === 'geolive';
+  }
+
+  /* load() is what turns those defaults into the class's real answer, and
+     nothing else calls it until the teacher opens Settings. Without this, a
+     teacher who switched the live quiz off would keep seeing the tab until
+     they went back to look at the setting. Re-render on change so flipping a
+     switch adds or removes the tab there and then. */
+  function wireFeatures() {
+    var F = global.ClassFeatures, id = cls().cloudId || '';
+    if (!F || !id || featuresFor === id) return;
+    featuresFor = id;
+    if (!featuresWatched && typeof F.onChange === 'function') {
+      featuresWatched = true;
+      F.onChange(function () { render(true); });
+    }
+    if (typeof F.load === 'function') F.load(id);
+  }
 
   /* ============================ going online ======================== */
   function online() { return !!(global.Cloud && global.Cloud.ready); }
@@ -221,6 +251,11 @@
     var host = document.getElementById('view-teacher');
     if (!host) return;
     if (fromSync !== true) syncSoon(false);
+
+    wireFeatures();
+    /* a switch can be turned off while its own tab is the open one */
+    if ((tab === 'geolive' && !featureOn('geolive')) ||
+        (tab === 'leaderboard' && !featureOn('leaderboard'))) tab = 'stream';
     var c = cls();
     var roster = people();
 
@@ -256,6 +291,8 @@
           crTab('classwork', I.clip, 'Classwork', counts.classwork) +
           crTab('people', I.users, 'People', counts.people) +
           crTab('analytics', I.chart, 'Analytics', counts.analytics) +
+          (featureOn('geolive') ? crTab('geolive', I.bolt, 'GeoLive') : '') +
+          (featureOn('leaderboard') ? crTab('leaderboard', I.trophy, 'Leaderboard') : '') +
           crTab('settings', I.gear, 'Settings') +
         '</div>' +
 
@@ -279,17 +316,69 @@
     }
   }
 
+  /* GeoLive is all network: a game with no server is not a degraded game,
+     it is no game. So the signed-out and not-yet-online cases are answered
+     here, once, instead of each screen growing its own. The button below is
+     the one wirePanel already binds. */
+  function geolivePanel() {
+    if (!global.Cloud || !global.Cloud.signedIn) return signinHint();
+    if (!cls().cloudId) {
+      return '<div class="empty">Put your class online first, then you can run ' +
+        'a GeoLive. Use the class code button at the top.</div>';
+    }
+    return '<div id="cr-geolive"></div>';
+  }
+
   function panel() {
     if (tab === 'classwork') return classworkPanel();
     if (tab === 'people') return peoplePanel();
     if (tab === 'analytics') return analyticsPanel();
     if (tab === 'settings') return settingsPanel();
+    if (tab === 'geolive') return geolivePanel();
+    if (tab === 'leaderboard') return '<div id="cr-leaderboard"></div>';
     return streamPanel();
   }
 
   function wirePanel() {
     var host = document.getElementById('cr-body');
     if (!host) return;
+
+    /* GeoLive holds a live subscription and an interval. Leaving the tab
+       throws the markup away but neither of those, so close it here.
+       Nothing below awaits a GeoLive call and none of it shares a batch with
+       the class sync: a missing live_ table must never be able to take the
+       Classwork or People panels down with it. */
+    var GT = global.GeoLiveTeacher;
+    if (tab !== 'geolive' && GT && GT.unmount) { try { GT.unmount(); } catch (e) {} }
+
+    var glHost = document.getElementById('cr-geolive');
+    if (glHost && GT && GT.mount) {
+      GT.mount(glHost, {
+        classId: cls().cloudId || '',
+        /* roster is everyone, so a teacher who added nine names sees nine.
+           members is who can actually play: a hand-typed name has no account
+           and no device, and people() gives it an empty id, so two of them
+           would otherwise collapse into a single player. */
+        roster: people(),
+        members: (cls().members || []).slice()
+      });
+    }
+
+    var fxHost = document.getElementById('cr-features');
+    if (fxHost && global.ClassFeatures && global.ClassFeatures.mount) {
+      global.ClassFeatures.mount(fxHost, { classId: cls().cloudId || '' });
+    }
+
+    var lbHost = document.getElementById('cr-leaderboard');
+    if (lbHost && global.ClassLeaderboard && global.ClassLeaderboard.mount) {
+      global.ClassLeaderboard.mount(lbHost, {
+        classId: cls().cloudId || '', classroom: cls(), people: people(),
+        /* the leaderboard does not read the switch itself: its contract is
+           that the caller passes it. GeoLive reads ClassFeatures directly.
+           Two different contracts, so wiring one is not wiring both. */
+        enabled: featureOn('leaderboard')
+      });
+    }
 
     bind('#tm-new', function () { openBuilder(); });
     bind('#tm-postgo', submitPost);
@@ -775,6 +864,10 @@
         '<div class="field__hint" style="margin-top:8px">Your class, assignments and results will still be ' +
           'saved. To come back, go to the For teachers page on the home site.</div>' +
       '</div>' +
+      /* somewhere to actually flip them. Without this the gates above are a
+         one-way door: the leaderboard defaults off and nothing could turn it
+         on. ClassFeatures.mount adds its own clf class and loads the row. */
+      '<div class="cr-card"><div id="cr-features"></div></div>' +
     '</div>';
   }
 
@@ -1166,6 +1259,10 @@
     becomeTeacher: becomeTeacher,
     leaveTeacher: leaveTeacher, classCode: classCode, joinLink: joinLink, copy: copy,
     forget: function () { lastSync = 0; },
+    /* Exported so the leaderboard can ask who is in the class instead of
+       keeping its own copy of the rule that a typed name and the account
+       that joined under it are one student. */
+    people: people, ownerKey: ownerKey,
     get tab() { return tab; }, set tab(v) { tab = v; }
   };
 })(window);

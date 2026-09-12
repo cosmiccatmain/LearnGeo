@@ -180,9 +180,21 @@
             'does the same thing.</div>' +
         '</div>' +
 
+        '<div class="field" id="adm-god"></div>' +
+
         '<div id="adm-msg"></div>',
       actions: [{ label: 'Done', cls: 'btn--ghost', close: true }],
       onMount: function (root) {
+        /* God mode builds its own button, so this is only somewhere to put it.
+           It deliberately does nothing inside a live game and that is not a
+           gap: GeoLive points feed live_players.score, which feeds the class
+           leaderboard, so a god mode that reached it would hand an admin a way
+           to top a table of children by tapping any option. */
+        var god = W.$('#adm-god', root);
+        if (god && global.GodMode && global.GodMode.mountToggle) {
+          global.GodMode.mountToggle(god);
+        }
+
         var sw = W.$('#adm-verified', root);
         sw.addEventListener('click', function () {
           var on = !W.state.profile.verified;

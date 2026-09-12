@@ -70,6 +70,21 @@
            /Could not find the table|relation .* does not exist/i.test(msg);
   }
 
+  /* 0002_geolive has not been applied, and Owen is holding on it. Its two
+     class columns, its two member columns and sync_level are all absent
+     until he does. A missing COLUMN errors a select rather than coming back
+     empty, and a missing FUNCTION errors an rpc, so both need catching the
+     same way a missing table already is. The code below must work against a
+     database that is deliberately behind it, in both states. */
+  function missingBit(err) {
+    var code = (err && err.code) || '';
+    var msg = (err && err.message) || '';
+    return missingTable(err) ||
+           code === '42703' || code === '42883' ||
+           code === 'PGRST202' || code === 'PGRST204' ||
+           /column .* does not exist|function .* does not exist|Could not find the function/i.test(msg);
+  }
+
   function checkPosts(res) {
     if (res && res.error) {
       if (missingTable(res.error)) return [];
@@ -125,6 +140,11 @@
         W.saveLocal();
         ok = true;
         setStatus('synced');
+        /* after the profile landed, and not awaited: the push's own result
+           must not depend on a function that is not there yet. Wrapped as
+           well as caught, because a synchronous throw here would fall into
+           this chain's own catch and report a good save as offline. */
+        try { pushLevel(); } catch (e) { /* a level is never worth a red dot */ }
       })
       .catch(function () { if (mine === gen) setStatus('offline'); })
       .then(function () {
@@ -478,7 +498,12 @@
         return Promise.all([
           sb.from('assignments').select('id, title, mode, config, created_at').eq('class_id', row.id).order('created_at'),
           sb.from('results').select(RESULT_COLS).eq('class_id', row.id).order('created_at'),
-          sb.from('class_members').select('student_id, display_name, joined_at').eq('class_id', row.id).order('joined_at'),
+          /* select('*') and not the column names: level and xp arrive with
+                0002, and naming a column that is not there yet would error this
+                select, which sits in the same Promise.all as assignments,
+                results and announcements. That is the announcements outage
+                again, and this batch is the class sync, not a feature. */
+             sb.from('class_members').select('*').eq('class_id', row.id).order('joined_at'),
           sb.from('announcements').select('id, body, pinned, created_at').eq('class_id', row.id)
             .order('pinned', { ascending: false }).order('created_at', { ascending: false })
         ]).then(function (all) { return { id: row.id, all: all }; });
@@ -503,7 +528,15 @@
                    from: c.name || 'Your teacher', classCode: c.code };
         }).concat(keptA);
         c.results = fresh.concat(keptR);
-        c.members = ms.map(function (m) { return { id: m.student_id, name: m.display_name }; });
+        c.members = ms.map(function (m) {
+          var out = { id: m.student_id, name: m.display_name };
+          /* only once 0002 is in and sync_level has actually written them. The
+             columns are nullable on purpose, so unknown stays unknown rather
+             than becoming a level 1 nobody earned. */
+          if (typeof m.level === 'number') out.level = m.level;
+          if (typeof m.xp === 'number') out.xp = m.xp;
+          return out;
+        });
         c.posts = ps.map(rowToPost);
         c.members.forEach(function (m) { if (c.roster.indexOf(m.name) === -1) c.roster.push(m.name); });
         W.save();
@@ -693,6 +726,67 @@
     }).then(check);
   }
 
+  /* class-features.js looks for exactly this on Cloud, and finds nothing
+     today, so store() returns null, load() resolves null and the switches
+     render as unreachable. These two give them somewhere to live.
+
+     read uses select('*') so a class row without the 0002 columns comes back
+     as "no answer" instead of erroring, and the module falls back to its own
+     defaults: live quiz on, leaderboard off.
+
+     write deliberately REJECTS when the columns are absent. class-features
+     shows "Not saved" and puts the switch back on a rejection, which is the
+     honest outcome before the migration: a switch that appears to move and
+     silently does not is worse than one that says it could not. */
+  var FEATURE_COLS = { geolive: 'geolive_enabled', leaderboard: 'leaderboard_enabled' };
+
+  function readClassFeatures(classId) {
+    if (!ready() || !classId) return Promise.resolve(null);
+    /* its own query on purpose, never joined to the class sync */
+    return sb.from('classes').select('*').eq('id', classId).maybeSingle()
+      .then(function (res) {
+        if (res && res.error) return null;
+        var r = (res && res.data) || {}, out = {}, got = false;
+        Object.keys(FEATURE_COLS).forEach(function (k) {
+          if (typeof r[FEATURE_COLS[k]] === 'boolean') { out[k] = r[FEATURE_COLS[k]]; got = true; }
+        });
+        return got ? out : null;
+      })
+      .catch(function () { return null; });
+  }
+
+  function writeClassFeatures(classId, patch) {
+    if (!ready() || !classId || !patch) return Promise.reject(new Error('not online'));
+    var row = {};
+    Object.keys(patch).forEach(function (k) {
+      if (FEATURE_COLS[k] && typeof patch[k] === 'boolean') row[FEATURE_COLS[k]] = patch[k];
+    });
+    if (!Object.keys(row).length) return Promise.reject(new Error('nothing to set'));
+    return sb.from('classes').update(row).eq('id', classId).then(check);
+  }
+
+  /* A level is a student fact the leaderboard happens to read, not a GeoLive
+     fact, so it goes up with the profile rather than from the game module.
+     One RPC, updates this student's row in every class they are in.
+
+     Detached from the push on purpose and it can never reject: sync_level
+     does not exist until 0002 is applied, and a missing function must not
+     turn a sync that otherwise worked into a failed one. A real error costs
+     one skipped level update and the next push tries again. */
+  function pushLevel() {
+    if (!ready() || W.state.role === 'teacher') return Promise.resolve(0);
+    var e = W.state.economy || {};
+    var lv = typeof e.level === 'number' ? e.level : null;
+    var xp = typeof e.xp === 'number' ? e.xp : null;
+    if (lv === null && xp === null) return Promise.resolve(0);
+    return sb.rpc('sync_level', { p_level: lv, p_xp: xp })
+      .then(function (res) {
+        if (res && res.error && !missingBit(res.error)) throw res.error;
+        return (res && res.data) || 0;
+      })
+      .catch(function () { return 0; });
+  }
+
   global.Cloud = {
     init: init,
     signUp: signUp, signIn: signIn, signOut: signOut,
@@ -706,6 +800,8 @@
     joinClass: joinClass, leaveClass: leaveClass, studentSync: studentSync,
     canSubmit: canSubmit, submitResult: submitResult,
     get lastInboxChange() { return lastMerge; },
+    classFeatures: { read: readClassFeatures, write: writeClassFeatures },
+    syncLevel: pushLevel,
     get available() { return !!client(); },
     get sb() { return client(); },
     get user() { return user; },
