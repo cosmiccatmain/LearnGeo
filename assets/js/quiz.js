@@ -47,7 +47,10 @@
   /* Lower score = shakier = show sooner. */
   function score(c) {
     var m = W.state.mastery[c.name];
-    if (!m) return -1;                       /* unseen sits just ahead of known */
+    /* Unseen sits just ahead of known, shuffled among itself: a flat -1
+       would leave every untouched country in dataset order, so a new
+       learner's first deck was always the same run down Africa. */
+    if (!m) return -1 + Math.random() * 0.9;
     return m.box * 10 - m.w * 3 + Math.random();
   }
 
@@ -123,12 +126,18 @@
 
   /* Build a full sequence of questions for a session. */
   function generate(config) {
-    var all = pool({ regions: config.regions, scope: config.scope, countries: config.countries });
-    if (all.length < 5) all = pool({ scope: config.scope });
+    /* Two pools, and they are not the same one. The questions are asked
+       about exactly what was requested; the wrong answers may have to come
+       from further afield, because a hand-picked list of three cannot
+       supply three distractors on its own. Drawing the questions from the
+       widened pool too is what used to turn "only my list" into a random
+       world test whenever the list was shorter than five. */
+    var wanted = pool({ regions: config.regions, scope: config.scope,
+                        countries: config.countries, weakFirst: config.weakFirst });
+    if (!wanted.length) wanted = pool({ scope: config.scope });
+    var all = wanted.length >= 5 ? wanted : pool({ scope: config.scope });
 
-    var ordered = config.weakFirst
-      ? pool({ regions: config.regions, scope: config.scope, countries: config.countries, weakFirst: true })
-      : W.shuffle(all);
+    var ordered = config.weakFirst ? wanted : W.shuffle(wanted);
 
     var types = config.types && config.types.length ? config.types : ['capital'];
     var n = Math.min(config.count || 20, ordered.length);
