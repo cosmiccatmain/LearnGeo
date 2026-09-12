@@ -413,7 +413,7 @@
     <div class="hud">
       <span class="hud__item hud__fire hidden" id="hud-fire" title="Answer streak">🔥 <span id="hud-streak">0</span></span>
       <span class="hud__item hud__xp" id="hud-xp-chip" title="Level"><span id="hud-level">Lv 1</span></span>
-      <span class="hud__item hud__gem" id="hud-gem-chip" title="Diamonds">💎 <span id="hud-gems">0</span></span>
+      <span class="hud__item hud__gem" id="hud-gem-chip" title="Diamonds">💎 <span id="hud-gems">0</span><span id="hud-gems-short">0</span></span>
     </div>
 
     <button class="avatar-btn" id="avatar-btn" title="Profile" aria-haspopup="menu">
@@ -493,6 +493,11 @@
       </div>
     </div>
   </div>
+
+  <!-- Where #mode-tabs lives on phones: too narrow for the switcher to share
+       a row with the brand, the HUD and the avatar. ui.js moves the same
+       element in and out of here, so the sliding pill is never rebuilt. -->
+  <div class="modebar" id="modebar"></div>
 </div>
 
 <div id="fx-layer"></div>

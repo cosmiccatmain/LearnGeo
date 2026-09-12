@@ -644,6 +644,24 @@
     return m + ':' + (s < 10 ? '0' : '') + s;
   }
 
+  /* A diamond balance has no ceiling — the admin panel hands out whatever
+     gets typed — so anywhere the number shares a row with something else it
+     has to be able to give ground: 100,241,768 → 100M. Under a thousand
+     there is nothing to save, so the full figure stands. */
+  var UNITS = [[1e12, 'T'], [1e9, 'B'], [1e6, 'M'], [1e3, 'K']];
+
+  function compact(n) {
+    n = Number(n) || 0;
+    for (var i = 0; i < UNITS.length; i++) {
+      if (Math.abs(n) >= UNITS[i][0]) {
+        var v = n / UNITS[i][0];
+        return (Math.abs(v) >= 100 ? Math.round(v)
+                                   : Math.round(v * 10) / 10).toLocaleString() + UNITS[i][1];
+      }
+    }
+    return n.toLocaleString();
+  }
+
   /* Render an avatar (artwork + decoration + status dot) as HTML. */
   function avatarHtml(profile, opts) {
     opts = opts || {};
@@ -693,6 +711,6 @@
     gem: gem, verifiedMark: verifiedMark,
     escapeHtml: escapeHtml, normalise: normalise, matches: matches, tight: tight,
     shuffle: shuffle, sample: sample, pick: pick,
-    el: el, $: $, $$: $$, fmtTime: fmtTime, avatarHtml: avatarHtml
+    el: el, $: $, $$: $$, fmtTime: fmtTime, compact: compact, avatarHtml: avatarHtml
   };
 })(window);

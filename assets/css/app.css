@@ -349,11 +349,18 @@ a { color: inherit; text-decoration: none; }
 }
 /* Mode switcher: a single pill slides between the three tabs rather than
    each one flicking its own background on and off. */
+/* flex: 0 1 auto with min-width: 0 is what lets the bar fit a phone at all —
+   the tabs are `flex: none` and `nowrap`, so without this the strip sets a
+   hard 220px floor, pushes the avatar off screen and takes every view
+   sideways with it. It scrolls rather than clips once squeezed. */
 .tabs {
   display: flex; gap: 2px; margin-left: 14px;
   position: relative; padding: 3px;
   background: var(--line-soft); border-radius: 11px;
+  flex: 0 1 auto; min-width: 0;
+  overflow-x: auto; scrollbar-width: none;
 }
+.tabs::-webkit-scrollbar { display: none; }
 .tabs__thumb {
   position: absolute; top: 3px; bottom: 3px; left: 0;
   border-radius: 8px; background: var(--ink);
@@ -377,12 +384,16 @@ a { color: inherit; text-decoration: none; }
 .tab svg { transition: transform .42s var(--spring); }
 .tab.is-active svg { transform: scale(1.08); }
 
-.hud { display: flex; align-items: center; gap: 6px; }
+/* Rigid, so the tab strip is the one thing in the bar that gives ground.
+   Without this the chips take the squeeze instead and "Lv 37" breaks over
+   two lines inside a 32px pill. */
+.hud { display: flex; align-items: center; gap: 6px; flex: none; }
 .hud__item {
-  display: inline-flex; align-items: center; gap: 6px;
+  display: inline-flex; align-items: center; gap: 6px; flex: none;
   height: 32px; padding: 0 11px; border-radius: 999px;
   border: 1px solid var(--line); background: var(--white);
   font-family: var(--mono); font-size: 13px; font-weight: 560;
+  white-space: nowrap;
   transition: transform .18s var(--ease);
 }
 .hud__item.is-bumped { animation: bump .42s var(--ease); }
@@ -390,6 +401,9 @@ a { color: inherit; text-decoration: none; }
   0% { transform: scale(1); } 35% { transform: scale(1.16); } 100% { transform: scale(1); }
 }
 .hud__gem  { color: #0369A1; border-color: #BAE6FD; background: #F0F9FF; }
+/* Two spellings of the same balance; the media queries below pick one. The
+   chip's title carries the exact figure either way. */
+#hud-gems-short { display: none; }
 .hud__xp   { color: var(--accent); border-color: #C7D2FE; background: var(--accent-soft); }
 .hud__fire { color: #B45309; border-color: #FDE68A; background: #FFFBEB; }
 
@@ -1189,6 +1203,9 @@ textarea.input:focus { outline: none; border-color: var(--accent); box-shadow: 0
   .modes { grid-template-columns: 1fr; }
   .tabs .tab span { display: none; }
   .hud__item { padding: 0 9px; }
+  /* An eight-figure balance is ~85px of the row the switcher needs. */
+  #hud-gems { display: none; }
+  #hud-gems-short { display: inline; }
 }
 /* Narrow phones: the top bar has to shed weight so the avatar stays reachable. */
 @media (max-width: 560px) {
@@ -1197,7 +1214,6 @@ textarea.input:focus { outline: none; border-color: var(--accent); box-shadow: 0
   .hero__cta .btn { width: 100%; }
   .topbar { padding: 0 10px; gap: 6px; }
   .topbar .brand__text { display: none; }
-  .tabs { margin-left: 4px; }
   .tab { padding: 0 9px; }
   .hud__xp { display: none; }
   .hud__class { max-width: 128px; }
@@ -1211,7 +1227,29 @@ textarea.input:focus { outline: none; border-color: var(--accent); box-shadow: 0
   .vtabs { overflow-x: auto; }
   .split { grid-template-columns: 1fr !important; }
   .shop-grid { grid-template-columns: repeat(auto-fill, minmax(108px, 1fr)); }
+
+  /* The switcher moves out of the top bar and under the thumb. Six icon tabs
+     cannot share a 320px row with the brand, the HUD and the avatar, and a
+     strip squeezed to the ~47px left over is not something anyone can hit.
+     Down here they divide the full width instead, ~50px each at 320px.
+     ui.js moves the element itself, so the pill is never rebuilt. */
+  .modebar > .tabs {
+    margin: 0; border-radius: 0; padding: 6px 8px;
+    gap: 4px; background: var(--white);
+    border-top: 1px solid var(--line);
+    overflow: visible;                 /* six flexed tabs never overflow */
+  }
+  .modebar > .tabs .tab {
+    flex: 1 1 0; min-width: 0;
+    justify-content: center; height: 44px; padding: 0;
+  }
+  .modebar > .tabs .tabs__thumb { top: 6px; bottom: 6px; }
 }
+
+/* Holds the switcher on phones. Carries no chrome of its own, so it collapses
+   to nothing when refreshTabs() hides the strip — a teacher has one
+   destination and gets no switcher at all. */
+.modebar { flex: none; position: relative; z-index: 60; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .001ms !important; transition-duration: .001ms !important; }
