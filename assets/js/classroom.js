@@ -20,6 +20,18 @@
      them try to join a room the teacher cannot open. Defaults to on, the
      same way the teacher side does, so a class that never set the switch is
      unaffected. */
+  /* The student half of the leaderboard switch. Hidden when off, rather than
+     shown greyed out the way the teacher's is: a teacher who sees it off can
+     turn it on, a student cannot, so for them an off feature is only noise.
+     Defaults to OFF if the switches never loaded, the same direction as the
+     teacher side, because the wrong way round shows every student their rank
+     in front of the class because a file did not arrive. */
+  function leaderboardOn() {
+    var F = global.ClassFeatures, e = W.state.enrolled;
+    if (!F || typeof F.on !== 'function') return false;
+    return F.on('leaderboard', (e && e.classId) || '');
+  }
+
   function geoliveOn() {
     var F = global.ClassFeatures, e = W.state.enrolled;
     if (!F || typeof F.on !== 'function') return true;
@@ -135,6 +147,7 @@
     /* the teacher can switch the live quiz off while a student is sitting
        on that very tab */
     if (tab === 'geolive' && !geoliveOn()) tab = 'classwork';
+    if (tab === 'leaderboard' && !leaderboardOn()) tab = 'classwork';
     var box = inbox();
     var todo = box.filter(function (a) { return !a.done; });
     var done = box.filter(function (a) { return a.done; });
@@ -164,6 +177,7 @@
           crTab('classwork', I.clip, 'Classwork', box.length) +
           crTab('grades', I.chart, 'Grades', done.length) +
           (geoliveOn() ? crTab('geolive', I.bolt, 'GeoLive') : '') +
+          (leaderboardOn() ? crTab('leaderboard', I.trophy, 'Leaderboard') : '') +
         '</div>' +
 
         '<div id="cl-body">' + pendingNotice() + panel() + '</div>' +
@@ -185,6 +199,7 @@
     if (tab === 'stream') return streamPanel();
     if (tab === 'grades') return gradesPanel();
     if (tab === 'geolive') return '<div id="cl-geolive"></div>';
+    if (tab === 'leaderboard') return '<div id="cl-leaderboard"></div>';
     return classworkPanel();
   }
 
@@ -510,6 +525,29 @@
     /* The join code is the teacher's to hand out and changes every game, so
        the screen asks for it rather than us guessing one. Mounted on its own,
        never inside a batch with the class sync. */
+    /* Who else is in the class is fetched on its own and only when this tab is
+       actually open, never inside the class sync. An empty list is a real
+       answer here: it means either nobody has joined or the policy will not
+       show them, and the table says the same thing either way. */
+    var lbHost = document.getElementById('cl-leaderboard');
+    if (lbHost && leaderboardOn() && global.ClassLeaderboard && global.ClassLeaderboard.mount) {
+      var en = W.state.enrolled || {};
+      global.ClassLeaderboard.mount(lbHost, {
+        classId: en.classId || '',
+        people: (en.members || []).slice(),
+        enabled: true
+      });
+      /* an empty array is still an answer, so this asks once and not on
+         every redraw */
+      if (!en.members && global.Cloud && global.Cloud.classMembers) {
+        global.Cloud.classMembers(en.classId || '').then(function (list) {
+          en.members = list;
+          W.save();
+          render(true);
+        });
+      }
+    }
+
     var glHost = document.getElementById('cl-geolive');
     if (glHost && geoliveOn() && global.GeoLiveStudent && global.GeoLiveStudent.mount) {
       global.GeoLiveStudent.mount(glHost, { code: '' });

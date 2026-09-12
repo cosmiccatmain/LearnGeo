@@ -253,9 +253,12 @@
     if (fromSync !== true) syncSoon(false);
 
     wireFeatures();
-    /* a switch can be turned off while its own tab is the open one */
-    if ((tab === 'geolive' && !featureOn('geolive')) ||
-        (tab === 'leaderboard' && !featureOn('leaderboard'))) tab = 'stream';
+    /* GeoLive is on by default, so a teacher who turned it off knows it
+       exists and the tab can go. The leaderboard is the opposite: it is off
+       until someone switches it on, so removing the tab as well leaves a
+       teacher with nothing to find. It stays, marked Off, and says how to
+       turn it on. Two people went looking for this tonight. */
+    if (tab === 'geolive' && !featureOn('geolive')) tab = 'stream';
     var c = cls();
     var roster = people();
 
@@ -292,7 +295,8 @@
           crTab('people', I.users, 'People', counts.people) +
           crTab('analytics', I.chart, 'Analytics', counts.analytics) +
           (featureOn('geolive') ? crTab('geolive', I.bolt, 'GeoLive') : '') +
-          (featureOn('leaderboard') ? crTab('leaderboard', I.trophy, 'Leaderboard') : '') +
+          crTab('leaderboard', I.trophy, 'Leaderboard',
+                featureOn('leaderboard') ? 0 : 'Off') +
           crTab('settings', I.gear, 'Settings') +
         '</div>' +
 
@@ -329,13 +333,33 @@
     return '<div id="cr-geolive"></div>';
   }
 
+  /* Off is a state worth showing, not a reason to hide. A feature that is
+     invisible by default, behind a switch that is also not obvious, cannot be
+     told apart from a feature nobody built. Two people went looking for this
+     one tonight and found nothing. Turning it on stays the teacher's decision;
+     finding out that it exists should not be. */
+  function leaderboardPanel() {
+    if (featureOn('leaderboard')) return '<div id="cr-leaderboard"></div>';
+    return '<div class="cr-card">' +
+        '<div class="cr-card__head"><h3>Class leaderboard</h3></div>' +
+        '<p class="t-sm t-muted" style="margin-bottom:14px">' +
+          'A standing table for your class, ranked by level, so everyone can see ' +
+          'where they are. It is off for this class, so nobody can see it yet.</p>' +
+        '<p class="t-sm t-muted" style="margin-bottom:14px">' +
+          'It starts off on purpose. It shows every student their place in front ' +
+          'of the rest of the class, and that is your call to make rather than ' +
+          'something to switch on for you.</p>' +
+        '<button class="btn btn--accent" id="tm-to-features">Turn it on in Settings</button>' +
+      '</div>';
+  }
+
   function panel() {
     if (tab === 'classwork') return classworkPanel();
     if (tab === 'people') return peoplePanel();
     if (tab === 'analytics') return analyticsPanel();
     if (tab === 'settings') return settingsPanel();
     if (tab === 'geolive') return geolivePanel();
-    if (tab === 'leaderboard') return '<div id="cr-leaderboard"></div>';
+    if (tab === 'leaderboard') return leaderboardPanel();
     return streamPanel();
   }
 
@@ -396,6 +420,7 @@
     bind('#tm-invite', shareInvite);
     bind('#tm-addperson', openAddPerson);
     bind('#tm-export', exportCsv);
+    bind('#tm-to-features', function () { tab = 'settings'; render(true); });
 
     /* Rows carry the id of what they are about rather than their position
        in the list: a sync can reorder or shorten that list between the
@@ -837,6 +862,9 @@
   function settingsPanel() {
     var c = cls();
     return '<div class="cr-grid cr-grid--even">' +
+      /* first, not third. A teacher opening Settings to look for a feature
+         should not have to scroll past Class and Data to find out it exists. */
+      '<div class="cr-card"><div id="cr-features"></div></div>' +
       '<div class="cr-card">' +
         '<div class="cr-card__head"><h3>Class</h3></div>' +
         '<div class="field"><label class="field__label">Class name</label>' +
@@ -864,10 +892,6 @@
         '<div class="field__hint" style="margin-top:8px">Your class, assignments and results will still be ' +
           'saved. To come back, go to the For teachers page on the home site.</div>' +
       '</div>' +
-      /* somewhere to actually flip them. Without this the gates above are a
-         one-way door: the leaderboard defaults off and nothing could turn it
-         on. ClassFeatures.mount adds its own clf class and loads the row. */
-      '<div class="cr-card"><div id="cr-features"></div></div>' +
     '</div>';
   }
 

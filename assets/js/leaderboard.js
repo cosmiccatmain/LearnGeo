@@ -60,38 +60,18 @@
     return (s && s.classroom) || null;
   }
 
-  /* Last resort only. oy-09 passes people in, and teacher.js exports
-     people() besides, so this runs only if a caller does neither. It is
-     kept because the merge rule is the most dangerous thing in this
-     file to get wrong: a name the teacher typed and the account that
-     joined under it are one student, but two accounts with the same
-     name are two students. */
-  function localPeople(c) {
-    var byKey = {}, byName = {}, out = [];
+  /* teacher.js owns who is in a class, and it is loaded before this file
+     and passes its answer in. This carried a copy of its merge rule for
+     two rounds, while the export existed only in a folder waiting to be
+     merged: losing that race would have merged two students with the
+     same name into one row, which is the one failure here nobody would
+     spot from the screen. The export is on main now, so the copy is
+     gone and there is one rule again.
 
-    function add(id, name) {
-      var key = id || ('name:' + name);
-      if (byKey[key]) return byKey[key];
-      var p = byName['n:' + name];
-      if (p && (!p.id || !id)) {
-        p.keys.push(key);
-        if (id && !p.id) p.id = id;
-        byKey[key] = p;
-        return p;
-      }
-      p = { id: id || '', name: name, keys: [key] };
-      byKey[key] = p;
-      if (!byName['n:' + name]) byName['n:' + name] = p;
-      out.push(p);
-      return p;
-    }
-
-    (c.members || []).forEach(function (m) { if (m && m.name) add(m.id || '', m.name); });
-    (c.roster || []).forEach(function (n) { if (n) add('', n); });
-    (c.results || []).forEach(function (r) { if (r && r.name) add(r.studentId || '', r.name); });
-    return out;
-  }
-
+     If neither source answers, this returns nobody and the table says
+     the class is empty. That is the right way to be wrong: an empty
+     table is obviously wrong, a table built on a guessed identity rule
+     is wrong and looks fine. */
   function roster(c, opts) {
     if (opts && opts.people && opts.people.length) return opts.people.slice();
     var T = global.Teacher;
@@ -101,7 +81,7 @@
         if (list && list.length) return list.slice();
       } catch (e) { /* fall through */ }
     }
-    return localPeople(c);
+    return [];
   }
 
   /* ============================== level ============================ */
@@ -164,22 +144,14 @@
       if (!row) return null;
       var lv = row.level, xp = row.xp;
       if (lv === null || lv === undefined || !isFinite(Number(lv))) return null;
-      var level = Number(lv), into = Number(xp) || 0;
-
-      /* class_members.level defaults to 1 and xp to 0, so every member
-         row carries those the moment the migration runs, whether or not
-         that student's device has ever synced. Taken at face value the
-         whole class would read a real-looking "Lv 1" and the fallback
-         would never fire again, which is worse than the fallback: a
-         student with class work behind them would drop from Lv~ 4 to
-         Lv 1 the day the SQL is applied, and nothing would look broken.
-
-         So level 1 with no XP is read as "not synced yet". The cost is a
-         student genuinely on level 1 with nothing done, and for them the
-         derived number is 1 as well, or higher and better earned. */
-      if (level <= 1 && into <= 0) return null;
-
-      return { level: level, xp: into };
+      /* No guessing needed: class_members.level and .xp are nullable with
+         no default, and cloud.js only copies them onto a member when
+         they are actually numbers. So absent means nobody has synced and
+         present means somebody did, including a genuine level 1. This
+         used to carry a guard reading level 1 with no XP as unsynced,
+         written when the columns defaulted to 1; that default is gone
+         and so is the guard, because it would now hide a real level. */
+      return { level: Number(lv), xp: Number(xp) || 0 };
     }
 
     if (opts && opts.levels && opts.levels[t.id]) {
@@ -493,15 +465,32 @@
     return null;
   }
 
-  /* Level leads. XP within the level breaks a tie on level, because two
-     students on level 4 are not equal if one is most of the way to 5.
-     Accuracy breaks a tie on both, then the name, and finally the
-     account id.
+  /* THE RANKING RULE. This is where it is decided; the line the table
+     prints under itself says the same thing in the teacher's words.
 
-     That last key is why this cannot wander: two accounts sharing a
-     display name fell through every other test and ended up in whatever
-     order the roster arrived in, which is a network result. Anyone who
-     has not started sits below everyone who has, whatever their name. */
+     A class of thirty lands on a handful of levels, so ties here are not
+     an edge case, they are most of the board: measured 2026-09-12, a
+     realistic thirty put every single student on a shared place. So the
+     order has to be total, and it has to be the same order every render,
+     every session and every device. A board that quietly reorders equal
+     students in front of a class is worse than one that ranks them
+     wrongly, because nobody can tell which draw was the true one.
+
+       1. anyone who has started, above anyone who has not
+       2. higher level
+       3. further into that level, since two students on level 4 are not
+          equal if one is nearly 5. This is the tie-break a teacher can
+          repeat, and it is the last one that decides a PLACE: students
+          matching on 2 and 3 share a place and are marked tied.
+       4. better accuracy          } these only decide the order inside a
+       5. name, then account id    } shared place, never the place itself
+
+     Keys 4 and 5 exist so the display order cannot wander. The account
+     id is the floor and cannot tie: two accounts sharing a display name
+     used to fall through every other test and land in whatever order the
+     roster arrived in, which is a network result. Names are compared
+     with < rather than localeCompare on purpose, so the order does not
+     depend on the device's locale. */
   function order(tallies) {
     return tallies.slice().sort(function (a, b) {
       if (a.started !== b.started) return a.started ? -1 : 1;
@@ -654,46 +643,75 @@
       '</tbody></table></div>';
   }
 
+  function plural(n, one, many) { return n + ' ' + (n === 1 ? one : many); }
+
+  /* The caption is one sentence about what the table is, then a note for
+     each thing on it that is not self-explanatory. Built in that order on
+     purpose: the first line a teacher reads should tell them what they
+     are looking at, not explain a tilde they have not noticed yet. */
   function caption(list) {
-    var started = list.filter(function (t) { return t.started; }).length;
-    if (!started) {
-      return '<div class="t-sm t-muted" style="margin-top:10px">' +
-        'Nobody has answered anything yet. Levels fill in here on their own.</div>';
-    }
+    var live = list.filter(function (t) { return t.started; });
+    var est = live.filter(function (t) { return t.levelSource === 'class'; }).length;
+    var real = live.length - est;
+    var waiting = list.length - live.length;
+    var line;
+
     /* A class of one is told plainly rather than ranked. The rank column
        is hidden by .lb.is-solo, so without this the row would sit there
        with no explanation for where the ranking went. */
     if (list.length === 1) {
       return '<div class="lb-solo-note">' +
         'One student in this class, so there is nothing to rank yet. ' +
-        'Level still counts up as they work.</div>';
+        'Their level still counts up as they work.</div>';
     }
-    var live = list.filter(function (t) { return t.started; });
-    var est = live.filter(function (t) { return t.levelSource === 'class'; }).length;
-    var real = live.length - est;
 
-    var line;
-    if (est && !real) {
-      /* The state of things until the schema change lands. */
-      line = 'Levels marked Lv~ are worked out from work recorded in this class, ' +
-             'so they read lower than the level each student sees on their own device. ' +
-             'They are replaced by the real number once devices sync.';
-    } else if (est && real) {
-      /* Worth saying plainly: this is the one state where the order is
-         not comparing like with like. */
-      line = est + ' of these levels are still worked out from class work only (Lv~) ' +
-             'and read lower than the real thing, so the order will shift as the rest sync.';
+    if (live.length === 1) {
+      /* A ranking of one is not a ranking. Say so rather than leaving a
+         lone "1" looking like somebody won something. */
+      line = 'Only ' + esc(live[0].name) + ' has started, so there is nothing to ' +
+             'compare yet. The rest join the ranking as they answer questions.';
     } else {
-      line = 'Level is each student\'s own, synced from their device. ' +
-             'Retakes count once, the same as in the gradebook.';
+      line = 'Ranked on level, which counts questions answered in quizzes and ' +
+             'live games alike. Retakes count once, the same as in the gradebook.';
+      if (waiting > 0) {
+        line += ' ' + plural(waiting, 'student has', 'students have') +
+                ' not answered anything yet.';
+      }
     }
+
+    /* The ranking rule, in words a teacher can repeat to a student who
+       asks why they are level with someone. Shown only when the board
+       actually contains a shared place, which on a real class of thirty
+       is nearly always. */
+    if (list.some(function (t) { return t.tied; })) {
+      line += ' Place goes on level first, then how far into that level a ' +
+              'student is. Two students who match on both share a place, ' +
+              'shown with =.';
+    }
+
+    /* What the tilde means, and only when one is on screen. */
+    if (est && !real) {
+      line += ' Levels marked Lv~ are worked out from work recorded in this ' +
+              'class, so they read lower than the level each student sees on ' +
+              'their own device. The real number replaces them once devices sync.';
+    } else if (est && real) {
+      /* The one state where the order is not comparing like with like. */
+      line += ' ' + est + ' of these levels are still worked out from class work ' +
+              'only (Lv~) and read lower than the real thing, so the order will ' +
+              'shift as the rest sync.';
+    } else if (real) {
+      /* Worth saying once everything is real: this is the student's own
+         level, the same number they see on their own screen, and not
+         anything this table worked out. */
+      line += ' These are each student\'s own levels, synced from their devices.';
+    }
+
     /* Where the GeoLive figure came from, said plainly. Switching the
        live quiz off stops new games; it does not erase what students
        already earned, and an all-time table should not quietly drop a
        term's work because a teacher turned the feature off last week.
        But a number that keeps counting after its feature is off is
-       exactly the kind that should say so, the same reasoning as the
-       tilde on an estimated level. */
+       exactly the kind that should say so. */
     if (live.some(function (t) { return t.games > 0; })) {
       var C = global.GeoLiveCloud;
       var off = false;
@@ -712,6 +730,7 @@
       line += ' Marks entered by hand are counted against the length the ' +
               'same assignment ran to for the rest of the class.';
     }
+
     return '<div class="t-sm t-muted" style="margin-top:10px">' + line + '</div>';
   }
 
@@ -720,13 +739,31 @@
     el.innerHTML = table(list, showLive) + caption(list);
   }
 
+  /* Three kinds of nothing, and a teacher should be able to tell them
+     apart at a glance. Two of them are the first thing anybody sees when
+     they switch this on for a real class, so neither may look like a
+     board that failed to load.
+
+     A table of names with a dash in every column is the worst of both:
+     it looks like data that did not arrive. Better to say plainly that
+     there is nothing yet and that the class is there. */
   function draw(el, c, opts) {
     var list = ranked(order(tally(c, opts)));
+
     if (!list.length) {
       el.innerHTML = empty('Nobody in this class yet',
-        'The leaderboard fills in as students join and start answering.');
+        'Students appear here once they join with the class code.');
       return list;
     }
+
+    if (!list.some(function (t) { return t.started; })) {
+      el.innerHTML = empty('Nothing to rank yet',
+        plural(list.length, 'student is', 'students are') + ' in this class. ' +
+        'Levels and scores appear here as soon as they answer questions, ' +
+        'in a quiz or in a live game.');
+      return list;
+    }
+
     paint(el, list);
     return list;
   }

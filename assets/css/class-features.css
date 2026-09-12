@@ -1,0 +1,180 @@
+/* ==================================================================
+   Class features, the per class on/off switches
+
+   There has never been a stylesheet for this component. Ten class names
+   are rendered by class-features.js and none of them had a single rule
+   anywhere in the repo, checked across every css file including every
+   agent folder on 2026-09-12. With no rules the two switches collapse
+   into one run-on line:
+
+     "Live quizRun a quiz the class answers together, on their own
+      devices.On"
+
+   That is the GeoLive switch and the class leaderboard switch rendered
+   as a paragraph. A toggle that does not look like a toggle does not get
+   toggled, which is why Owen and his teacher both went looking for a
+   leaderboard they could not find.
+
+   Every name here comes from class-features.js, which oy-09 owns. None
+   of it is invented and none of it is renamed.
+
+   The host sits inside the app's own .cr-card, which already supplies
+   the border, radius, white and 18px of padding, so nothing here draws a
+   second card around it.
+   ================================================================== */
+
+.clf { display: block; }
+
+/* ------------------------------- head -------------------------------- */
+
+.clf__head { margin-bottom: 14px; }
+
+/* Matches .cr-card__head h3 so this card's title sits at the same size as
+   every other card title in Settings. */
+.clf__h {
+  font-size: 15.5px;
+  font-weight: 640;
+  letter-spacing: -.015em;
+}
+
+.clf__sub {
+  margin-top: 4px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+/* The switches cannot be changed while the class is offline, which is a
+   state a teacher really hits. It was rendering as ordinary text in the
+   middle of the paragraph. Amber rather than red: nothing is broken and
+   nothing was lost, the control is just not available yet. */
+.clf__warn {
+  display: flex; align-items: flex-start; gap: 9px;
+  margin: 0 0 14px;
+  padding: 11px 13px;
+  border-radius: var(--r);
+  background: #FFFBEB;
+  color: #B45309;
+  font-size: 13px;
+  line-height: 1.45;
+}
+.clf__warn svg { flex: none; margin-top: 1px; }
+
+/* ------------------------------- a row -------------------------------
+
+   One feature per row: what it is on the left, the switch on the right.
+   Before this they ran together into a sentence and two features read as
+   one blob of text.
+   ---------------------------------------------------------------------- */
+
+.clf-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 0;
+}
+.clf-row + .clf-row { border-top: 1px solid var(--line-soft); }
+.clf-row:last-child { padding-bottom: 2px; }
+
+.clf-row__t { min-width: 0; }
+.clf-row__t b {
+  display: block;
+  font-size: 14.5px;
+  font-weight: 600;
+  letter-spacing: -.01em;
+}
+/* The note is a separate line, not a continuation of the label. This is
+   the rule that stops "Live quizRun a quiz the class answers together". */
+.clf-row__t span {
+  display: block;
+  margin-top: 3px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+/* ------------------------------ the switch ----------------------------
+
+   A real toggle. It has to be readable as on or off from across a desk
+   without reading the word beside it, so it carries the two signals a
+   physical switch has: the knob is at one end or the other, and the
+   track changes colour. Either one alone is weaker than it looks. Colour
+   alone fails for a colour blind teacher, and position alone is easy to
+   miss at a glance.
+
+   class-features.js renders the button as the track with the knob and
+   the word inside it, so the track is .clf-switch itself and the knob is
+   positioned within it. The word swaps sides with the knob.
+   ---------------------------------------------------------------------- */
+
+.clf-switch {
+  position: relative;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;          /* off: word right, knob left */
+  width: 84px; height: 32px;
+  padding: 0 13px 0 0;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: var(--line);
+  cursor: pointer;
+  transition: background .2s var(--ease);
+  -webkit-tap-highlight-color: transparent;
+}
+.clf-switch:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.clf-switch__dot {
+  position: absolute;
+  top: 3px; left: 3px;
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  background: var(--white);
+  box-shadow: 0 1px 3px rgba(10,10,11,.28);
+  transition: left .2s var(--ease);
+}
+
+.clf-switch__t {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  transition: color .2s;
+}
+
+/* On. .is-on lives on the row, not the switch, which is how the markup
+   renders it. */
+.clf-row.is-on .clf-switch {
+  background: var(--success);
+  justify-content: flex-start;        /* on: word left, knob right */
+  padding: 0 0 0 13px;
+}
+.clf-row.is-on .clf-switch__dot { left: 55px; }   /* 84 - 24 - 3 - 2 border */
+.clf-row.is-on .clf-switch__t { color: #fff; }
+
+/* Offline, or mid write. Still legible, plainly not usable. The row's
+   text dims with it so the whole feature reads as unavailable rather
+   than leaving a live looking label beside a dead control. */
+.clf-switch[disabled] {
+  cursor: default;
+  opacity: .5;
+  box-shadow: none;
+}
+.clf-row:has(.clf-switch[disabled]) .clf-row__t { opacity: .6; }
+
+/* Narrow. The switch keeps its size, because it is the thing being
+   aimed at; the text wraps instead. */
+@media (max-width: 460px) {
+  .clf-row { gap: 12px; }
+  .clf-row__t span { font-size: 12.5px; }
+}
+
+/* app.css already flattens animation globally under reduced motion. The
+   knob is the state, not decoration, so it keeps a short move: with it
+   frozen the only remaining cue is colour. */
+@media (prefers-reduced-motion: reduce) {
+  .clf-switch__dot { transition-duration: .12s !important; }
+}

@@ -704,3 +704,133 @@ file and not mine to make inside a merge. Flagged to Master.
 
 Not committed, not pushed, no `vercel`, nothing promoted. The push is Owen's
 instruction to me and I am holding it for oy-10's final pass, as asked.
+
+---
+
+# Round 4: GeoLive was dead, and every check we ran said it was fine
+
+Merged onto `f1f60d0`. Twelve files: ten changed, two new.
+
+## Read this first
+
+**GeoLive has never run. Not once, not for anyone, including us.**
+`public.live_sessions` has zero rows for its entire history. aj tried to open a
+real room and could not.
+
+The cause is `42P17`, infinite recursion in a row level security policy. The
+`live_players` SELECT policy contains a subquery over `live_players`, so it
+re-enters itself, and it is separately mutually recursive with `live_sessions`,
+whose policy reads `live_players`. Either cycle alone is fatal. Open, join, read
+and score are all dead.
+
+**The fix is written and it is NOT applied.**
+`supabase/deployed/0003_geolive_rls_recursion.sql` is in this commit as a file.
+Nobody has run it against the database, and nobody in this project should:
+that is Owen's to do. Until he does, everything in this round about GeoLive is
+code that has never been exercised against a working policy.
+
+**"0003 exists" is not "GeoLive works".** It works when a teacher opens a room
+and a student joins it. That has not happened yet.
+
+## The thing worth learning from this round
+
+Every schema check anyone ran last round passed, and the feature was dead the
+whole time:
+
+    four tables present            true
+    three functions present        true
+    twelve policies present        true
+    three tables in realtime       true
+
+All four were correct. Not one of them asked the database to **evaluate** a
+policy. Twelve policies, counted and confirmed, every one unusable.
+
+I ran those checks and verified them independently rather than repeating
+somebody else's numbers, which was the right instinct aimed at the wrong
+target. Counting is not testing. **Applied is not usable.** A structural check
+answers "is it there", and the question that mattered was "does it work when a
+real user touches it", which nothing we ran asked.
+
+That is the general lesson and it outlives this bug: the next feature gated on
+row level security will fail exactly the same way if the only thing that comes
+out of tonight is a corrected policy. What is needed is an evaluation harness,
+which is what oy-10 built this round.
+
+## What I added that nobody owned
+
+**One line: the `class-features.css` stylesheet link in `index.html`.**
+
+oy-06 wrote a new stylesheet for the feature switches this round. oy-09 owns
+`index.html` and recorded that it "needed nothing this round", which was true of
+everything oy-09 was asked to do. Neither was wrong from where they stood, and
+only the merge sees both folders.
+
+Measured before adding it: `class-features.js` renders 9 `clf` class names and
+all 9 are defined in `class-features.css` and **nowhere else**. Without the link
+the feature-switch panel renders completely unstyled, which is the exact
+complaint that put oy-06 on this task, so the fix would have shipped dead.
+
+This is the same shape as the announcements failure and the vocabulary
+mismatch: a file that is present, correct, and not connected to anything.
+
+## Verified this round
+
+    all 34 JavaScript files parse            yes
+    conflict markers                         none
+    every asset index.html references        exists
+    CSS coverage, gl / lb / clf              97 rendered, 97 with rules, 0 unstyled
+    shop double-charge fix still in ui.js    all three parts
+    all seven profile themes have c1 and c2  yes, so no theme paints undefined
+
+The theme change is the only thing in this round that touches a feature which
+currently works in production, so it got the closest reading: it is inline
+styles on the profile card body, stats and text, driven by theme colour, with no
+logic change and no new dependency. Its author verified all seven themes in a
+browser.
+
+## NOT verified this round, and this is a real gap
+
+**I could not run it in a browser.** Five dev servers were running and all five
+belong to other sessions; the cap is five per folder and starting mine would
+have meant stopping someone else's work. So this round is static verification
+only.
+
+That matters, and I would rather say so than let the list above read as
+complete. Last round a browser run caught two real defects that every static
+check passed: two functions with the same name where the second silently
+replaced the first, and a keyboard handler registered twice. Neither was
+visible to `node --check`. **Nothing of that kind would have been caught this
+round.**
+
+Still unverified from before, unchanged: the eight classroom situations, row
+level security from a student's side in the real app, the leaderboard against
+real class data, and whether the scoreboard slides rather than jumps.
+
+## Two things recorded at Master's request
+
+**1. The anti-cheat constraint in the `live_answers` INSERT policy.** It
+requires `correct = false` and `points = 0`. A student can only ever submit an
+*unscored* answer, and only a teacher can score it. There is no student UPDATE
+policy on `live_answers` or `live_players` either, and those two facts together
+are the entire reason a student cannot award themselves points.
+
+This must survive 0003. It is exactly the kind of constraint a later tidy-up
+removes, on the reasoning that the client already sends the right values. The
+client sending the right values is not a guarantee; the policy is what makes it
+one. Removing it hands the class leaderboard to whoever opens the network tab.
+
+**2. A test that was wrong before it was right.** Master's first attempt to
+reproduce the fix inserted a student answer with `correct = true` and
+`points = 900`, got `42501`, and nearly became a second reported bug on top of
+the recursion. The policy was correct and the expectation was the fault.
+
+That is the fourth instance of the same shape tonight: two reports that said
+broken about things already fixed, one test expecting the wrong thing, and one
+set of structural checks that passed while the feature was dead. **A failing
+check and a real defect are not the same thing, and neither are a passing check
+and working software.** A red result is evidence about the pair, not about the
+code.
+
+Both of those are now rules in `agents/README.md`, swept into this commit:
+timestamp every measured claim, and separate the number from what you think it
+means.

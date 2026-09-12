@@ -312,3 +312,96 @@ that is not a fault in any session's file.
 `addPlayer` seats a mid-game joiner at 0 and their answers count. A rejoin
 returns the same player with score and seat intact, adds nobody, and does not
 duplicate them on the board. Both were silent failures last round.
+
+## Round 4: the join screen in the screenshot. Measured 2026-09-12.
+
+**My markup is not what puts the form in the corner.** Both causes are in
+`geolive.css`. I proved it by simulating a CSS-only fix in a browser with my
+markup untouched, and the form centred perfectly. So there is nothing to change
+here, and changing the markup would only fight oy-06's fix.
+
+Reproduced the reported screen: oy-06's real `geolive.css` and `app.css`, my
+real `geolive-student.js`, mounted into a 1400 by 800 panel the way oy-09 does
+it. Harness at `tools/`, served from my scratchpad.
+
+Measured, all 2026-09-12:
+
+| what | number |
+| --- | --- |
+| `.gl-join` width | 380px, its own `max-width` |
+| its offset from the left edge | 16px, the container padding |
+| white above the form, 1150px viewport | 448px |
+| `.gl--student` height in a 798px panel | 1150px, overflowing |
+
+**Cause 1, vertical.** `.gl--student` has `min-height: 100dvh`. Embedded in
+oy-09's tab panel the screen does not own the viewport, so on any viewport
+taller than the panel the column is sized to the wrong box, overflows, and
+everything inside it centres against a box the student cannot see. At a 1150px
+viewport that put 448px of white above the form, which is the "fell down a lift
+shaft" effect. `min-height: 100%` fixes it.
+
+**Cause 2, horizontal.** `.gl-join` is `width: 100%; max-width: 380px;
+margin: auto 0`. The `0` is the inline margin, so there is no horizontal
+centring at all, and in a column flex container the item falls to the cross
+axis start, which is the left edge. `margin-inline: auto` fixes it.
+
+**A warning for oy-06, because the obvious fix breaks the tiles.** Putting
+`align-items: center` on `.gl--student` centres everything, and it collapses
+`.gl-targets` from 1326px to **286px** and the prompt from 1326px to 247px,
+measured. That shrinks the answer tiles, which is the one thing Master ruled
+must stay big. Centre the narrow blocks individually with `margin-inline:
+auto` on `.gl-join`, `.gl-wait` and `.gl-verdict`, and leave the stretch
+default alone so the tiles and the prompt keep the full width.
+
+Two lines, and it holds across every phase I can render:
+
+```css
+.gl--student { min-height: 100%; justify-content: center; }
+.gl-join, .gl-wait, .gl-verdict { margin-inline: auto; }
+```
+
+**Not mine either:** "bigger" is `max-width: 380px` on `.gl-join` and the font
+sizes, all in the stylesheet. I have not touched them and have not invented a
+class. If a new one is wanted for a centred column, say the word and I will
+take a name from Master rather than pick one.
+
+**What I could not test.** No live game, because `live_players` has a
+recursive SELECT policy and the migrations are not applied. Everything above is
+static rendering of real markup against real CSS, which needs no database.
+
+## Round 4 continued: ties and the two waiting states. Measured 2026-09-12.
+
+154 checks pass: 90 behaviour, 14 integration, 50 for these rounds.
+
+**An inconsistency with the teacher's board, found by reading oy-04 rather than
+assuming.** My place was a competition rank, `1 + how many scored higher`, so
+two students level on points both read "2nd". oy-04's board numbers rows by
+position, `i + 1`, so the projector at the front of the room has them 2nd and
+3rd. A student would have seen a better number on their phone than the class
+saw on the wall, which is the exact "this is broken" moment the ruling is
+trying to prevent. My place is now the position in the standings, so the two
+agree.
+
+**Ties now say why.** On the reveal, a short line naming who they are level
+with. At the end, where there is time to read it, the rule as well: "Level with
+Sam. Ties go on correct answers, then speed, then who joined first." Kept to
+one line and no em dashes.
+
+**Joining while an answer is on screen now has a design.** It had none, and
+what it did was worse than nothing: it told a student who had just walked in
+"You missed that one, nothing sent in time", which is both wrong and faintly
+accusatory. The screen can tell the two apart because it records the question
+it watched go live, so a student who was present and stayed silent still gets
+"You missed that one", and one who was not in the room gets "You are in, next
+question shortly" with no points claimed and a real place shown. Verified in a
+browser, not only in the harness.
+
+**Zero players holds.** An empty room renders the waiting screen, claims no
+attendance count and invents no place from an empty board.
+
+**A warning about my own preview harness.** It serves a copy, so it renders
+whatever was last copied into the scratchpad, and the browser caches that copy
+on top. I read a stale screen twice and nearly reported a working feature as
+broken. Anything driving `tools/preview.html` should re-copy the file and bust
+the cache before believing a screenshot. The browser checks above were taken
+after fetching the source fresh and re-evaluating it.

@@ -1,5 +1,46 @@
 # NOTES for LearnGeo 2 OY
 
+## Round 4: an empty room is a valid game (measured 2026-09-12)
+
+**No code changed. `assets/js/geolive.js` is byte-identical to the merged copy;
+all three requirements already held, and now they are pinned by tests.**
+41 new tests, **168 passing, 0 failing** (`node agents/oy-02/tests/geolive.test.js`,
+run 2026-09-12). The old count was 127.
+
+**1. Zero players is valid throughout, not just at open.** A room created with
+no roster at all, and one created with an explicitly empty roster, both start,
+serve questions, reveal, advance and end. `standings()` is an empty list rather
+than an error at every step, `answered()` is 0, a tap from somebody not in the
+room is refused rather than crashing, and a reveal with nobody there returns
+the right answer with every option on zero. There is no minimum-player gate to
+remove because there never was one.
+
+**2. The late joiner, now the common path.** Someone who joins at question 3
+has no record for 1 and 2, and none is invented. Their score starts at 0, so
+they sit below anyone who has scored and can overtake on merit the moment they
+answer. Earlier questions' counts are untouched by their arrival, and their
+`joinedAt` keeps `restreak()` from treating questions asked before they walked
+in as ones they missed. Joining while the answer is on screen is allowed: the
+closed question is not theirs to answer, and they play the next one normally.
+
+**3. Ties are decided by the seat, and the seat cannot tie.** Most points, then
+most correct, then quicker total time, then the order they joined. Three
+students dead level render in the same order three times running, and so does
+a deliberately messy game with two late arrivals, a reconnect and a reconciled
+straggler. **The rule the screens should state plainly: tied on everything, the
+student who joined first is shown first.** A late joiner therefore sits below an
+original player they are level with, which is arbitrary but fixed, and fixed is
+the property that matters on a projector.
+
+One test of mine was wrong before it was right: I had a "straggler" who had
+already answered live, so `applyRecorded` correctly refused to overwrite the
+live answer and my expectation was the thing at fault.
+
+GeoLive is reported dead in production on a policy recursion in `live_players`
+(oy-01 owns that, measured by Master 2026-09-12). It does not touch this file:
+the engine is pure, has no database access, and is tested without one. It does
+mean nobody can validate the engine against a real game yet.
+
 ## Round 3: audit of oy-07's leaderboard (I am testing, not building)
 
 `tests/leaderboard.audit.js`, run with

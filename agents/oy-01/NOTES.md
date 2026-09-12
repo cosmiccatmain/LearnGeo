@@ -342,3 +342,126 @@ Passkeys, from round 1, still true:
 `announcements` table in the live database, though the folder's README lists
 one. Anything written against `announcements` today will fail. Not mine to
 fix, but whoever owns the Stream should know.
+
+## Round 4: GeoLive was completely broken, and the fix
+
+`supabase/deployed/0003_geolive_rls_recursion.sql`. Do not edit 0002; it is
+applied. 0003 is a correction on top and only rewrites policies.
+
+**The bug was mine.** The SELECT policy I wrote on `live_players` asked a
+question about `live_players`, so evaluating the policy evaluated the policy.
+Postgres refuses with `42P17: infinite recursion detected in policy for
+relation "live_players"`. `live_sessions` and `live_answers` had it too by
+another route: their policies read `live_players`, whose policy read them
+back. Every GeoLive path was dead: opening, joining, reading, answering,
+scoring. That is why `live_sessions` has never held a row.
+
+**The fix, narrowed after Master measured it:** only the two SELECT policies
+that were actually recursive are rewritten, `live_players` and
+`live_sessions`, each calling a `security definer` function in `private`
+instead of querying a `live_` table. Those functions look without going
+through policies, so nothing can loop. Two of them: `is_in_session` and
+`is_session_teacher`. Same pattern as `is_class_teacher` and
+`is_class_member`, which never had the problem.
+
+**The four `live_answers` policies are deliberately untouched.** They were
+never wrong, only unreachable: their subqueries entered the two recursive
+policies and died there. Once those two are sound the answer policies work
+unchanged, which Master measured and I then reproduced myself with only this
+file applied. My first draft rewrote all twelve; narrower is better for a
+production fix, and it keeps the anti-cheat insert rule exactly as it was
+rather than restating it.
+
+**Residual coupling worth knowing.** Because the answer policies still read
+`live_players` and `live_sessions` through RLS, the invariant "no policy reads
+a live_ table" is not established repo-wide, only for the two rewritten. If
+anyone ever adds a policy on `live_players` or `live_sessions` that reads
+`live_answers`, the loop comes back by a new route. The rule to hold is: a
+policy on a live_ table must not read a live_ table. Put the question in
+`private` as a security definer function instead.
+
+**Why every earlier check missed it, and this is the part worth keeping.**
+Everything we ran was structural: tables exist, twelve policies present,
+functions defined, three tables in the publication, the whole file executes
+against a copy without error. All true. Not one of them ever asked the
+database to *evaluate* a policy, and a policy that parses is not a policy that
+runs. The first evaluation in the feature's life was a teacher clicking a
+button in front of a class.
+
+Master's rolled-back execution test was worth doing and could not have caught
+this either, because the file applies perfectly. The recursion only exists at
+query time, as a particular user.
+
+**How this one was tested,** as the real teacher and the real students against
+the live database, inside transactions rolled back afterwards (verified: zero
+rows in all three tables, no helper functions left, the old policy still in
+place):
+
+- teacher opens a game: works, was `42P17` before
+- teacher reads players and sessions: works, was `42P17` before
+- student joins by code, sees the game and the players: works
+- `joined_at` distinguishes seated from arrived; `asked_at` stamped by trigger
+- student answers; student cannot score themselves (blocked, 42501); student
+  updating their own mark changes 0 rows; teacher marks 1
+- a class member who has not joined sees 0 sessions, 0 players, 0 answers
+- teacher seats a roster name (`joined_at` null), student cannot insert a
+  player row (blocked), student deletes nothing, teacher deletes its own
+
+Re-tested after narrowing to two policies, all eighteen checks passing with
+only this file applied: teacher opens a room and seats a player; student joins
+by code and reads the game and both players; student answers unscored; a
+student submitting an already-scored answer is refused (42501); a class member
+who has not joined sees 0 sessions, 0 players, 0 answers; teacher reads and
+scores the answer; student rescoring their own changes 0 rows; student
+deleting a seat changes 0 rows; teacher removes the seat and deletes the game.
+Verified afterwards that nothing persisted.
+
+**If you touch these policies again:** never let a policy on a `live_` table
+query a `live_` table, directly or through a view. Put the question in
+`private` as a `security definer` function. And test by evaluating as a real
+user, not by listing what exists.
+
+## The comment on the session policy overstates what it does
+
+Found by Master while verifying 0003, and it is a real mismatch in my file.
+
+My comment says "a student who has not joined cannot read the game". The code
+does not do that. `is_in_session` tests for a `live_players` row, and
+`seatRoster` writes a row for every invited student when the room opens, with
+`joined_at` null. So every invited student can read the session row, and the
+session row carries `questions`, which include the answers.
+
+**Why it did not hold the fix, checked rather than accepted.** I read the two
+files rather than trusting the summary:
+
+- `assets/js/cloud-geolive.js:370` reads the session with `select('*')`, the
+  whole row including `questions`, on every poll, for every player.
+- `assets/js/geolive-student.js:578` and `:732` decide right and wrong on the
+  device from `q.answer`.
+
+So a joined student has always had every remaining answer on their device.
+That is architectural and predates 0002. An invited student reading the row
+early is the same data slightly sooner, not a new capability, and the feature
+was completely dead. Shipping was right.
+
+**The follow-up is safe to make.** Gating `is_in_session` on
+`joined_at is not null` will not break joining, because the join path never
+reads the session: `cloud-geolive.js` joins only through the `live_join`
+function, and oy-03's own comment at that call says so. Either make that
+change or delete the sentence from the comment; do not leave the file
+claiming a protection it does not provide.
+
+**One consequence to know before that change, or before the leaderboard moves.**
+`ClassLeaderboard` is mounted only in `teacher.js` today, and a teacher can
+read every session in their class, so `totals()` works. On a student's screen
+it would not: a student can only read sessions they were in, so an all-time
+class table rendered from a student device would show only that student's own
+games. That is true today and is not caused by 0003, but it will look like a
+broken leaderboard the day it is put on the student screen. It needs a
+class-scoped read policy for ended sessions, which is a deliberate change.
+
+**The bigger one, for Owen not for a hotfix:** the client is trusted with the
+answers. Anyone who opens devtools mid-game can read every remaining question.
+Fixing it means the session stops shipping answers to students and the reveal
+delivers them another way. That is a design decision with a cost, and it
+should be decided rather than smuggled in.

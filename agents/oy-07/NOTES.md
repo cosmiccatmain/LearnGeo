@@ -1,6 +1,119 @@
 # NOTES for LearnGeo 7 OY
 
-Round 3. I own `assets/js/leaderboard.js`. It ranks on level now.
+I own `assets/js/leaderboard.js`. It ranks on level, never on diamonds.
+Current through round 4. All measurements dated 2026-09-12 unless said
+otherwise.
+
+## The ranking rule, and why ties are the whole board
+
+Ties are not an edge case here, and how far from one they are depends on how
+long the class has been going. Simulated 30 students, 2026-09-12:
+
+| The class has done | Levels on the board | Distinct places | Students sharing a place |
+| --- | --- | --- | --- |
+| one 20-question quiz | 2 | 9 of 30 | **27 of 30** |
+| one 20-question quiz, wider ability spread | 2 | 14 of 30 | 24 of 30 |
+| a term: 8 quizzes of 20 | 4 | 28 of 30 | 4 of 30 |
+| a term: 8 quizzes of 40 | 6 | 29 of 30 | 2 of 30 |
+
+**A new class is nearly all ties and an established one is nearly none.** That
+is worth knowing before switching it on, because the first thing a teacher sees
+is the top row of that table: almost everybody level with almost everybody.
+That is the board working, not the board broken. It sorts itself out over a
+term as the levels spread.
+
+(My first measurement said every one of thirty shared a place. That was an
+artifact of test data drawn from ten fixed scores. The table above varies each
+student's accuracy per quiz and is the honest number.)
+
+So the order has to be total and identical on every render, every session and
+every device. A board that quietly reorders equal students in front of a class
+is worse than one that ranks them wrongly, because nobody can tell which draw
+was the true one.
+
+The rule, and it is written in the comment on `order()` where the decision is
+actually made, not only here:
+
+1. anyone who has started, above anyone who has not
+2. higher level
+3. further into that level, since two students on level 4 are not equal if one
+   is nearly 5
+
+Those three decide a **place**. Students matching on 2 and 3 share it and are
+marked tied. Two more keys decide only the order inside a shared place, never
+the place itself: accuracy, then name, then account id. The account id is the
+floor and cannot tie. Names compare with `<` rather than `localeCompare`, so
+the order does not depend on the device's locale.
+
+The table prints the same rule in the teacher's words whenever a shared place
+is on screen: "Place goes on level first, then how far into that level a
+student is. Two students who match on both share a place, shown with =."
+
+Proved rather than asserted: 200 shuffles of the input rows, 100 shuffles of
+the roster, and a fresh load of the module, all produce one identical board.
+Two students called Sam stay separate and stay in the same order.
+
+## Round 4: the empty board is a real screen now
+
+Two people went looking for this leaderboard and found nothing, and part of
+that is mine. When a teacher switches it on for the first time, nobody in the
+class has synced a level yet, so what they used to get was a table of names
+with a dash in every column. That is the worst of both: it looks like data
+that failed to arrive rather than a board with nothing on it yet.
+
+Measured 2026-09-12, four screens, all rewritten:
+
+- **Nobody has joined.** "Nobody in this class yet / Students appear here once
+  they join with the class code." No table.
+- **Switched on, nobody has answered anything.** "Nothing to rank yet / 3
+  students are in this class. Levels and scores appear here as soon as they
+  answer questions, in a quiz or in a live game." No table. This is the screen
+  the round is about: it now confirms the class is really there and says what
+  makes it fill.
+- **One student has started, the rest have not.** A table, with "Only Ana has
+  started, so there is nothing to compare yet." A lone "1" should not look like
+  somebody won something.
+- **A working class.** Leads with what the table is ranked on, then counts who
+  has not started, then explains the tilde. The first line a teacher reads
+  should say what they are looking at, not explain a mark they have not
+  noticed yet.
+
+A test asserts that no data table is ever drawn when nobody has started, at 0,
+1, 3 and 30 students, because that is the exact shape of the thing that made
+this look broken.
+
+Switched off still renders nothing at all and makes no network call. That is
+the contract oy-09 wires: the caller passes `enabled`, this file does not read
+the switch itself.
+
+## For Owen, before you run a real game
+
+**The leaderboard is off until you turn it on.** That was deliberate and it was
+my recommendation: a leaderboard publishes a ranking of children to their
+class, and switching that on for every existing class in an update nobody read
+the notes for means a teacher finds out when a student asks why they are last.
+Turn it on per class.
+
+**Two kinds of level, and the table tells you which.** `Lv 14` is the student's
+own level, synced from their device. `Lv~ 2` is worked out from work recorded
+in this class and always reads lower, because it cannot see solo practice. Every
+student shows `Lv~` until their device next syncs. If you see `Lv~` everywhere
+after people have used the app, sync is not running.
+
+**What has not been tested: an actual game.** Everything here is verified
+against the real files of the sessions it talks to, and 127 checks pass. None
+of that says the game plays, because playing one needs a signed-in teacher and
+a real class. The first person to find out is you.
+
+**Expect a lot of ties at first.** A class that has done one quiz puts roughly
+27 of 30 students on a shared place, because there are only two levels to be on
+yet. That is the board working. After a term of quizzes it is 2 of 30. The
+table under the board explains the rule in a line you can repeat to a student.
+
+**What I would watch on the leaderboard specifically.** Whether a student who
+only plays live games gets a level at all; whether two students with the same
+first name stay on separate rows; and whether a class you mark by hand shows
+levels rather than a column of "not started".
 
 ## Built on
 
@@ -37,7 +150,7 @@ them.
 
 ## Status
 
-Status: Complete. 125 checks passing across seven suites, twelve of them
+Status: Complete. 168 checks passing across nine suites, twelve of them
 against oy-03's real `cloud-geolive.js` and one against oy-06's real
 stylesheet. oy-02's audit also still passes all 17 of its requirement checks
 after these changes.
@@ -111,17 +224,26 @@ being told:
   integration fixtures were stale against this and I updated them rather than
   working around it.
 
-## The off switch default
+## The off switch default, and what it cost
 
-Settled: the leaderboard defaults **off**, GeoLive stays on. oy-01 owns the
-change. The reason, for whoever reads this later: GeoLive is a thing a teacher
-starts, so defaulting it on is harmless. A leaderboard publishes a ranking of
-children to their class, and turning that on for every existing class in an
-update nobody read the notes for means a teacher finds out when a student asks
-why they are last.
+Settled: the leaderboard defaults **off**, GeoLive stays on. The reason still
+holds: a leaderboard publishes a ranking of children to their class, and
+turning that on for every existing class in an update nobody read the notes for
+means a teacher finds out when a student asks why they are last.
 
-My side needs nothing: `enabled: false` already renders nothing and makes no
-network call, with a test that fails if a single call is made.
+Worth recording honestly, because it was my recommendation: on 2026-09-12 two
+people went looking for this feature and neither found it, because a board that
+is invisible by default sits behind a switch that is also not obvious, and from
+the outside that is identical to a feature nobody built. Defaulting off was
+right. Defaulting off **without making the switch findable** was not, and that
+is the half nobody thought about, including me.
+
+The discoverability work is oy-09's. My side of it is that the first screen a
+teacher sees after switching it on now says what it is rather than looking
+broken, which is the round 4 section above.
+
+`enabled: false` still renders nothing and makes no network call, with a test
+that fails if a single call is made.
 
 ## What a hand-typed mark is worth, and why
 
@@ -196,68 +318,35 @@ itself now that oy-03 selects `answered` and `correct`, which I verified
 through its real module; and the profile-level hazard is what Owen settled by
 choosing to sync the real number.
 
-## Two gaps in the real-level chain, found by reading oy-01's SQL
+## Both gaps in the real-level chain are closed, verified on main
 
-Both are the same silent shape as the oy-03 one, and neither is my file.
+I flagged two. Both are fixed on `origin/main` and I checked the file rather
+than taking the word for it:
 
-**1. Nothing selects the columns.** oy-01 added `class_members.level` and
-`.xp`, and oy-03 writes them through `sync_level()`. But `cloud.js:481` still
-selects `student_id, display_name, joined_at`, and maps members to
-`{ id, name }`. oy-09 has no `cloud.js` in its folder. So the numbers will be
-written to a column nothing ever reads, `classroom.members` will never carry
-them, and my synced path can never fire. oy-09 needs two column names in that
-select and two fields in the map. My side is ready and needs no change.
+- `cloud.js` now selects `*` from `class_members` and copies `level` and `xp`
+  onto a member **only when they are actually numbers**, so unknown stays
+  unknown. `cloud-geolive.js` calls `sync_level()` on sync.
+- The columns are nullable with no default now, instead of `not null default 1`.
 
-**2. `level` defaults to 1, so unsynced looks synced.** The columns are
-`not null default 1` and `default 0`, so every member row carries level 1 and
-xp 0 the instant the migration runs, whether or not that device has ever
-synced. Taken at face value, the day Owen applies the SQL the whole class would
-read a real-looking `Lv 1`, the fallback would never fire again, and a student
-with class work behind them would drop from `Lv~ 4` to `Lv 1` with nothing
-appearing broken.
+That second change made my own guard obsolete **and wrong**, so it is gone. I
+had been reading "level 1 with no XP" as not-yet-synced, which was right while
+every row defaulted to 1 and would now hide a student genuinely on level 1.
+Absent means nobody synced; present means somebody did.
 
-I guarded it here: level 1 with no XP is read as not synced. The cost is a
-student genuinely on level 1 having done nothing, and for them the derived
-number is also 1, or higher and better earned. Tested.
+## The private copy of the identity rule is retired
 
-The cleaner fix is oy-01's and I am not asking for it this late: nullable
-columns with no default, so null means "never synced" and the guess is not
-needed. If that migration is ever revised, that is the change.
+`teacher.js` is on main exporting `people` and `ownerKey`, it loads before this
+file, and it passes `people` in when it mounts the table. Two independent
+sources, so the copy I held for two rounds is deleted and there is one rule
+again.
 
-## Reading GeoLive history after the live quiz is switched off
+If neither source ever answers, `roster()` returns nobody and the table says
+the class is empty. That is the right way to be wrong: an empty table is
+obviously wrong, while a table built on a guessed identity rule is wrong and
+looks fine.
 
-oy-10 found that with GeoLive off and the leaderboard on, opening the table
-still queries `live_sessions`. That is deliberate and the ruling kept it:
-switching off the live quiz stops new games, it does not erase what students
-already earned. A class that played for a term and then switched it off should
-not watch those points vanish from an all-time table, and erasing history would
-be the harder thing to explain to a teacher.
-
-Two things came out of it, both done:
-
-**The table says where the number came from.** When any row's points include
-live games, the caption says so, and says it differently depending on whether
-the feature is currently on. Off reads "still counts games this class finished
-before the live quiz was switched off". Same reasoning as the tilde on an
-estimated level: a number whose source is not obvious should say where it came
-from, and a number that keeps counting after its feature is off is exactly that.
-
-**A class that has never played is not probed on every redraw.** A teacher
-screen redraws often and each redraw remounts this table. Once `totals()`
-answers empty for a class, that is remembered for 60 seconds and the next
-mounts ask nothing. A class with history is never remembered, so it is always
-current.
-
-`refresh()` clears that memory and re-asks. That matters more than it looks:
-my first attempt cleared the memo and then called `draw()`, which only
-re-renders from local state, so a refresh would have reported success and
-changed nothing. `mount()` and `refresh()` now run the same function.
-
-Worth being precise about the promise: what Owen was promised is that a
-switched-off feature makes no network call. With the **leaderboard** off this
-file mounts nothing and calls nothing, which oy-10 measured across five tabs
-and I assert in a test. The query oy-10 saw is the leaderboard's own, made
-while the leaderboard is on.
+The tests now install `people()` and `ownerKey()` copied verbatim from main's
+`teacher.js`, so they exercise the real rule rather than my idea of it.
 
 ## Do not overwrite
 

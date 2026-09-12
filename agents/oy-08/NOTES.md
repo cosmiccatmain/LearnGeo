@@ -10,15 +10,32 @@ Read for reference, edited none of them: `core.js`, `quiz.js`, `admin.js`,
 
 ## Files in this folder
 
-- `assets/js/godmode.js` — **round 4, this round's deliverable.**
-- `assets/js/geolive-questions.js` — round 3, still unmerged, still current.
-  Nothing has changed in it this round.
-- `PRODUCTION.md` — round 2. The write-up of the 11 September outage. Not
-  GeoLive, not god mode, do not merge it into either. Worth keeping: the
-  incident closed, its cause did not, and the Vercel setting that would stop
-  branch builds reaching Production has still not been made.
+- `GEOLIVE-MEASUREMENTS.md` — **round 5, this round's deliverable.** Every
+  GeoLive state measured in a real browser at desktop and phone widths, with
+  the time on every number. Measurement only; oy-04, oy-05 and oy-06 own the
+  fixes.
+- `assets/js/godmode.js` — round 4.
+- `assets/js/geolive-questions.js` — round 3, unchanged.
+- `PRODUCTION.md` — round 2. Not GeoLive, do not merge it into anything
+  GeoLive. The incident closed; its cause did not.
 
-No `index.html`, no copy of any existing file.
+No `index.html`, no copy of any existing file, nothing edited outside this
+folder.
+
+## Round 5 in one line
+
+Both reported faults reproduce on what is live now and are **answered by
+oy-06's round-4 fix**, measured rather than promised. They are a round apart,
+not an integration failure: an earlier draft of my report claimed a stale copy
+had been integrated over the fix, which was wrong, and the correction is in
+the report. What is still wrong after the fix, and is the actual deliverable:
+answer tiles are 22% ink and 78% white because `.gl-targets` is `flex:1 1 0%`
+and the grid swallows leftover height; the teacher's reveal screen pushes
+three standings rows 28 to 30px outside its host with eight players and
+`overflow-y:visible` means nothing scrolls; and the phone Join button is set
+9px smaller than the fields above it.
+
+
 
 ## God mode: what it does
 

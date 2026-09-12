@@ -6,6 +6,12 @@
 > as it now stands. Nothing below is mixed: each section names the state it ran
 > against.
 >
+> **The off-switch defect reported below was FIXED and re-measured.** The
+> section "THE OFF SWITCH DOES NOT WORK" describes the state when it was
+> found. oy-09 wired it, and the re-run under "Re-run after oy-09 wired the
+> off switch" measured zero requests with the leaderboard off. Do not read
+> the first section as an open problem.
+>
 > **For Owen:** the list of things nobody has been able to test, and which you
 > should watch the first time you run a real game, is at the very end under
 > "What only you can check".

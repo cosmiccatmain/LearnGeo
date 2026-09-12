@@ -787,6 +787,31 @@
       .catch(function () { return 0; });
   }
 
+  /* The student's own view of who else is in their class. studentSync
+     deliberately does not fetch this and I am not adding it there: that batch
+     carries the assignments and the stream, which a student always needs,
+     and class_members is a table their policy may or may not let them read.
+     Putting an uncertain read next to a certain one is the announcements
+     outage again.
+
+     So: its own call, and an empty list on ANY refusal. A policy that says no
+     reads here as an empty class rather than an error, which is the same
+     answer a class with nobody in it gives. */
+  function classMembers(classId) {
+    if (!ready() || !classId) return Promise.resolve([]);
+    return sb.from('class_members').select('*').eq('class_id', classId).order('joined_at')
+      .then(function (res) {
+        if (res && res.error) return [];
+        return (res.data || []).map(function (m) {
+          var out = { id: m.student_id, name: m.display_name };
+          if (typeof m.level === 'number') out.level = m.level;
+          if (typeof m.xp === 'number') out.xp = m.xp;
+          return out;
+        });
+      })
+      .catch(function () { return []; });
+  }
+
   global.Cloud = {
     init: init,
     signUp: signUp, signIn: signIn, signOut: signOut,
@@ -801,6 +826,7 @@
     canSubmit: canSubmit, submitResult: submitResult,
     get lastInboxChange() { return lastMerge; },
     classFeatures: { read: readClassFeatures, write: writeClassFeatures },
+    classMembers: classMembers,
     syncLevel: pushLevel,
     get available() { return !!client(); },
     get sb() { return client(); },

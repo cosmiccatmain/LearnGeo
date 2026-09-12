@@ -200,7 +200,10 @@ async function joinGame(e) {
              standings: [{ id: 'X', name: 'Ada', score: 2400 }, { id: 'P1', name: 'Owen', score: 1900 }, { id: 'Y', name: 'Sam', score: 1900 }] });
     const h = e.html();
     ok('tells them where they finished', /You finished/.test(h) && /2nd/.test(h));
-    ok('ties share a place', /2nd/.test(h));
+    /* ties do NOT share a place: the engine's order is total and the
+       teacher's board numbers rows by position, so level players read as
+       2nd and 3rd. A shared 2nd would disagree with the projector. */
+    ok('a tie reads as a position, not a shared place', /2nd/.test(h) && !/2nd of 3[\s\S]*2nd of 3/.test(h));
     ok('podium uses oy-06 rank classes', /is-first/.test(h) && /is-second/.test(h) && /is-third/.test(h));
     ok('podium marks which row is theirs', /is-me/.test(h));
   }

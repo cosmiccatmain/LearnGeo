@@ -83,17 +83,17 @@ for (const f of jsFiles) {
   for (const m of src.matchAll(/'([^'\\]*(?:\\.[^'\\]*)*)'/g)) literals.push(m[1]);
   for (const m of src.matchAll(/"([^"\\]*(?:\\.[^"\\]*)*)"/g)) literals.push(m[1]);
   for (const lit of literals) {
-    for (const m of lit.matchAll(/(?:^|[\s"'=])((?:gl|lb)(?:-|__)[A-Za-z0-9_-]*)/g)) {
+    for (const m of lit.matchAll(/(?:^|[\s"'=])((?:gl|lb|clf)(?:-|__)[A-Za-z0-9_-]*)/g)) {
       const tok = m[1];
       if (tok.endsWith('-')) partial.add(tok); else add(tok, f);
     }
-    for (const m of lit.matchAll(/(?:^|\s)(gl|lb)(?=\s|$)/g)) add(m[1], f);
+    for (const m of lit.matchAll(/(?:^|\s)(gl|lb|clf)(?=\s|$)/g)) add(m[1], f);
   }
 }
 
 /* Only classes this project owns are ours to answer for. app.css classes a
    screen borrows are someone else's rules and are not a gap here. */
-const mine = c => /^(gl|lb)(-|__)/.test(c) || c === 'gl' || c === 'lb';
+const mine = c => /^(gl|lb|clf)(-|__)/.test(c) || c === 'gl' || c === 'lb' || c === 'clf';
 
 const unstyled = [...emitted].filter(([c]) => mine(c) && !defined.has(c) && !ids.has(c));
 const dead     = [...defined].filter(([c]) => mine(c) && !emitted.has(c) &&

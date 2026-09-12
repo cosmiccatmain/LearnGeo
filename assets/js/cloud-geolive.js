@@ -184,10 +184,125 @@
     } catch (e) {}
   }
 
+  /* ============================== faults ============================= */
+
+  /* The bug this replaces, measured 2026-09-12: the database was refusing
+     every GeoLive call with 42P17, a recursive policy, and this file turned
+     that into the same null it returns for "the tables do not exist yet"
+     and for "nothing found". A teacher could not open a room, the screen
+     could not tell the three apart, and it invented an explanation he then
+     acted on. An hour went into checking structure that was all present.
+
+     So failures are now sorted into three kinds, and a caller can ask
+     which one it is:
+
+       absent   the tables or functions are not there yet. The designed
+                quiet state: this is what today looks like before the SQL
+                is applied, and it stays quiet.
+       blocked  the database refused and will refuse again. A recursive
+                policy, a privilege error, anything structural. Loud, and
+                not retried, because asking again in two seconds cannot
+                help and hides the cause.
+       offline  the network or the server had a moment. Quiet, and retried.
+
+     Reads still never throw, so no screen can crash while rendering. What
+     changed is that "refused" is no longer silent, and no longer
+     indistinguishable from "empty". */
+  var FAULT = null;
+  var faultListeners = [];
+  var strict = false;
+
+  function missingColumn(err) {
+    var code = (err && err.code) || '';
+    var msg = (err && err.message) || '';
+    return code === '42703' || code === 'PGRST204' ||
+           /Could not find the '.*' column|column .* does not exist/i.test(msg);
+  }
+
+  function classify(err) {
+    var code = String((err && err.code) || '');
+    var msg = (err && err.message) || '';
+    if (missingTable(err) || missingFunction(err) || missingColumn(err)) return 'absent';
+    /* 42P17 is the recursion Postgres refuses outright; 42501 is a policy
+       saying no. Every 42xxx is the SQL being wrong rather than the network
+       being slow, and will still be wrong in an hour. */
+    if (/^42/.test(code)) return 'blocked';
+    if (/^5\d\d$/.test(code)) return 'offline';
+    if (/Failed to fetch|NetworkError|Load failed|timed out|timeout|aborted/i.test(msg)) return 'offline';
+    return 'unknown';
+  }
+
+  function note(err, where) {
+    var kind = classify(err);
+    FAULT = {
+      kind: kind,
+      code: String((err && err.code) || ''),
+      message: (err && err.message) || String(err || ''),
+      where: where,
+      at: new Date().toISOString()
+    };
+    if (kind === 'blocked') {
+      /* console.error rather than warn, deliberately. This one will not fix
+         itself, it is not the connection, and the last time it happened it
+         sat behind a warning for an hour while a room full of students
+         waited. */
+      try {
+        if (global.console && global.console.error) {
+          global.console.error('GeoLive: the database refused this and will keep refusing it (' +
+            FAULT.code + ', ' + where + '): ' + FAULT.message +
+            '. This is a policy or schema fault, not a connection problem.');
+        }
+      } catch (e) {}
+    } else if (kind !== 'absent') {
+      warn(where, err);
+    }
+    faultListeners.forEach(function (fn) {
+      try { fn(FAULT); } catch (e) { warn('a fault listener threw', e); }
+    });
+    return kind;
+  }
+
+  /* 'off' the switch, 'ready' working, 'absent' not set up yet, 'blocked'
+     refused and staying refused, 'offline' a bad moment, 'unknown' nothing
+     tried yet. A screen showing a message to a teacher should read this
+     rather than guessing from a null. */
+  function status() {
+    if (!enabled) return 'off';
+    if (setUp === true) return 'ready';
+    if (FAULT) return FAULT.kind === 'unknown' ? 'offline' : FAULT.kind;
+    return 'unknown';
+  }
+
+  function lastFault() { return FAULT; }
+
+  /* A blocked database is not asked again, which is the point. But once the
+     SQL is fixed, a teacher should not have to reload to find out: this is
+     what a "try again" button calls. Caller-driven on purpose, so nothing
+     retries a structural refusal on a timer. */
+  function recheck() {
+    setUp = null;
+    FAULT = null;
+    probing = null;
+    return available();
+  }
+
+  function onFault(fn) {
+    if (typeof fn === 'function') faultListeners.push(fn);
+    return function off() {
+      faultListeners = faultListeners.filter(function (f) { return f !== fn; });
+    };
+  }
+
+  /* Off by default: with it on, the calls that a person triggered reject
+     with the real error instead of resolving to null, so a teacher pressing
+     Start learns that it failed. Left off until oy-04 and oy-05 catch it,
+     because an uncaught rejection in a screen is its own outage. */
+  function setStrict(on) { strict = !!on; return strict; }
+
   /* Anything that is not "the table is not there" is a real error. */
   function check(res) {
     if (res && res.error) {
-      if (missingTable(res.error)) { setUp = false; return null; }
+      if (note(res.error, 'reading') === 'absent') { setUp = false; return null; }
       throw res.error;
     }
     return res ? res.data : null;
@@ -198,32 +313,58 @@
     if (!sb()) return Promise.resolve(false);
     if (setUp !== null) return Promise.resolve(setUp);
     if (probing) return probing;
+    /* Two probes, not one, and the second is the one that matters.
+       Measured 2026-09-12: reading live_sessions while signed out returns an
+       empty result rather than an error, because every policy on these
+       tables applies to signed-in users only. So the tables existing is not
+       the same question as "will my calls work", and answering only the
+       first one reported ready while a signed-in teacher was being refused
+       outright. When there is an account, read live_players too: that is
+       the table whose policy referred to itself, so a structural refusal
+       surfaces here, at mount, instead of when someone presses Start. */
     probing = sb().from(SESSIONS).select('id').limit(1)
       .then(function (res) {
-        if (res.error) {
-          if (missingTable(res.error)) { setUp = false; return false; }
-          throw res.error;
-        }
-        setUp = true;
-        return true;
+        if (res.error) return settle(res.error);
+        if (!me()) { setUp = true; FAULT = null; return true; }
+        return sb().from(PLAYERS).select('id').limit(1).then(function (p2) {
+          if (p2.error) return settle(p2.error);
+          setUp = true;
+          FAULT = null;            /* it works now, so forget the old story */
+          return true;
+        });
       })
-      .catch(function (err) {
-        if (missingTable(err)) { setUp = false; return false; }
-        /* Offline, or a server having a bad day. Not set up as far as this
-           call goes, but ask again next time rather than remembering a no. */
-        warn('could not check whether it is set up', err);
-        setUp = null;
-        return false;
-      })
+      .catch(function (err) { return settle(err); })
       .then(function (v) { probing = null; return v; });
     return probing;
+  }
+
+  /* Absent and blocked are both settled answers, so stop asking. Offline
+     and unknown are not, so leave setUp null and ask again next time: a
+     server having a bad minute is not the same as a policy that cannot
+     work. Conflating those two is what made a permanent refusal look like
+     a passing glitch. */
+  function settle(err) {
+    var kind = note(err, 'checking whether GeoLive is set up');
+    setUp = (kind === 'absent' || kind === 'blocked') ? false : null;
+    return false;
   }
 
   /* Every entry point goes through here, so one missing table can only
      ever produce the empty answer for that one call. */
   function withTables(fn) {
     if (!enabled) return Promise.resolve(null);
-    return available().then(function (ok) { return ok ? fn() : null; });
+    return available().then(function (ok) {
+      if (ok) return fn();
+      /* A refusal is worth telling the person who pressed the button, but
+         only once a screen is ready to catch it. */
+      if (strict && FAULT && FAULT.kind === 'blocked') {
+        var e = new Error('GeoLive is refused by the database: ' + FAULT.message);
+        e.code = FAULT.code;
+        e.geoliveFault = FAULT;
+        return Promise.reject(e);
+      }
+      return null;
+    });
   }
 
   function code() {
@@ -877,6 +1018,13 @@
        and it stops watches that are already running. */
     setEnabled: setEnabled,
     isEnabled: isEnabled,
+    /* why GeoLive is not working, when it is not: 'off', 'ready', 'absent',
+       'blocked', 'offline'. Read this instead of guessing from a null. */
+    status: status,
+    lastFault: lastFault,
+    recheck: recheck,
+    onFault: onFault,
+    setStrict: setStrict,
     available: available,
     open: open,
     join: join,

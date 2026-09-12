@@ -578,3 +578,108 @@ just stop it being displayed, only the SQL can do it, by filtering the update on
 switch meaning one thing on screen and another in the table. My own reading is
 that storing a number nobody displays is fine and not worth the complexity, but
 it should be a decision rather than an accident.
+
+# Round 4 — the error channel, and what I measured
+
+All timestamps UTC, 2026-09-12.
+
+## What was wrong with my file, and it is a fair hit
+
+`available()` caught any failed probe, warned once, set `setUp = null` and
+returned false. `withTables()` then returned null without calling anything. So
+three different situations arrived at the screens as the same null:
+
+- the tables do not exist yet
+- the database is actively refusing every call
+- nothing was found, which is a perfectly normal answer
+
+A teacher could not open a room, the screen could not tell which of those had
+happened, and it explained the failure with a guess he then acted on. My
+`missingTable()` test was careful; the other branch had none of that care.
+
+I also read the `live_players` and `live_sessions` policies myself in round 2
+and did not spot the recursion. I checked that the table and column names were
+real. I did not check whether a policy referred to its own table. That is the
+lesson and it is mine.
+
+## The three kinds, and what each does now
+
+- **absent** (42P01, 42703, 42883, PGRST202/204/205): the tables or functions
+  are not there yet. Quiet, no retry, `status()` is `'absent'`. This is the
+  designed state and stays silent.
+- **blocked** (any 42xxx that is not absent, so 42P17 recursion and 42501
+  privilege): the database refused and will refuse again. **`console.error`,
+  not `warn`**, saying in words that this is a policy or schema fault and not a
+  connection problem. Not retried, because asking again in two seconds cannot
+  help and hides the cause. `status()` is `'blocked'` and `lastFault()` carries
+  the code, the message, where it happened and when.
+- **offline** (5xx, fetch failures, timeouts): a bad moment. Quiet, retried on
+  the next call, `status()` is `'offline'`.
+
+New, all additive: `status()`, `lastFault()`, `onFault(fn)`, `recheck()` for a
+"try again" button once the SQL is fixed, and `setStrict(on)`.
+
+Reads still never throw, so no screen can crash while rendering. `setStrict` is
+off by default: with it on, the calls a person triggered reject with the real
+error instead of resolving null, so a teacher pressing Start learns it failed.
+It stays off until oy-04 and oy-05 catch it, because an uncaught rejection in a
+screen is its own outage. **Master: say the word and I flip the default.**
+
+Tested against the exact failure, 15:36 to 15:38:
+
+- 42P17: `status()` 'blocked', one `console.error`, the fault carries
+  `42P17`/the recursion message/a timestamp, a listener was notified, and three
+  `available()` calls produced exactly one probe. It stops asking.
+- 42P01: 'absent', and completely silent.
+- A fetch failure: 'offline', and it does ask again.
+- Reads never threw in any of those. In strict mode a write rejected with the
+  real error, code and fault attached.
+- `recheck()` after a fault clears it and goes back to 'ready'.
+
+## The second probe, and why one was not enough
+
+Measured 15:36: **reading `live_sessions` while signed out returns an empty
+result, not an error**, because every policy on these tables applies to
+signed-in users only. So "do the tables exist" and "will my calls work" are
+different questions, and answering only the first reported **ready while a
+signed-in teacher was being refused outright**.
+
+`available()` now reads `live_players` as well when there is an account. That
+is the table whose policy referred to itself, so a structural refusal surfaces
+at mount rather than when someone presses Start. Signed out, it skips the second
+probe: there is nothing to learn, since GeoLive needs an account anyway.
+
+Verified with stand-ins: signed out -> one read, 'ready'. Signed in with the
+recursion -> two reads, 'blocked' at mount. Healthy and signed in -> two reads,
+'ready'. No tables -> one read, 'absent', and it does not bother with the
+second.
+
+**Not verified live for a signed-in user.** I have no teacher credentials and
+will not handle any, so the authenticated path is tested against stand-ins only.
+
+## Measured state of the live database, 15:36 to 15:37
+
+- **0001 and 0002 ARE applied.** `announcements`, `live_sessions`,
+  `live_players` and `live_answers` all exist, all with RLS on, all empty.
+  This changed since my last check; somebody applied them.
+- **0003 is NOT applied.** The live `live_players` SELECT policy still contains
+  exactly one subquery over `live_players` itself:
+  `EXISTS (SELECT 1 FROM live_players me WHERE me.session_id = s.id AND
+  me.student_id = auth.uid())`. So every signed-in GeoLive read still fails
+  with 42P17 in production right now.
+- `live_sessions` still has 0 rows for its whole history, which matches: no
+  game has ever been created.
+
+## What the screens need, named as Master asked
+
+Neither change is mine to make:
+
+- **oy-04 (`geolive-teacher.js`)**: at mount, and after any call that resolves
+  null, read `GeoLiveCloud.status()` instead of inferring from the null.
+  `'blocked'` should say the live quiz feature is not working and needs fixing,
+  not that the room is empty. `lastFault().code` is worth showing to a teacher
+  who will be asked to report it.
+- **oy-05 (`geolive-student.js`)**: the same on join. A student told "no game
+  has that code" when the truth is 42P17 will try the code again, and again.
+- Either can subscribe with `onFault(fn)` to be told the moment it happens
+  rather than polling `status()`.

@@ -232,6 +232,78 @@ const snap=x=>Object.assign({status:'asking',index:0,questions:QS,timeLimitMs:20
        e.host.querySelectorAll('.gl-place__n').length>0, e.html().slice(0,200));
   }
 
+
+  console.log('\n--- 7. ties, and the number the projector shows ---');
+  {
+    const e=env(); await joinGame(e);
+    /* Owen and Sam dead level on points; the engine's order is total, so
+       the teacher's board numbers them 2 and 3, not 2 and 2 */
+    e.push(Object.assign(snap({status:'ended',msLeft:null}),{
+      players:[{id:'row-ada',name:'Ada',score:2400,joined_at:'2026-09-12T00:00:00Z'},
+               {id:'row-owen',name:'Owen',score:1900,joined_at:'2026-09-12T00:00:01Z'},
+               {id:'row-sam',name:'Sam',score:1900,joined_at:'2026-09-12T00:00:02Z'}]}));
+    const h=e.html();
+    ok('shows the same number the teacher board shows, 2nd', /2nd/.test(h), h.slice(0,220));
+    ok('says who they are level with', /Level with Sam/.test(h), h.slice(0,260));
+    ok('and says how a tie is decided', /Ties go on correct answers, then speed, then who joined first/.test(h));
+    ok('no em dashes in the copy', !/—/.test(h));
+  }
+  {
+    /* the student below the tie gets 3rd, not a shared 2nd */
+    const e=env({joinReturns:{sessionId:'S1',playerId:'row-sam'}}); await joinGame(e);
+    e.push(Object.assign(snap({status:'ended',msLeft:null}),{
+      players:[{id:'row-ada',name:'Ada',score:2400,joined_at:'2026-09-12T00:00:00Z'},
+               {id:'row-owen',name:'Owen',score:1900,joined_at:'2026-09-12T00:00:01Z'},
+               {id:'row-sam',name:'Sam',score:1900,joined_at:'2026-09-12T00:00:02Z'}]}));
+    const h=e.html();
+    ok('the later joiner is shown third, matching the board', /3rd/.test(h), h.slice(0,220));
+    ok('and is told who they are level with', /Level with Owen/.test(h));
+  }
+
+  console.log('\n--- 8. joining while an answer is already on screen ---');
+  {
+    const e=env(); await joinGame(e);
+    /* first thing this student ever sees is a reveal they were not there for */
+    e.push(snap({status:'reveal',index:0,msLeft:null}));
+    const h=e.html();
+    ok('is not accused of missing a question they were not in the room for',
+       !/You missed that one/.test(h), h.slice(0,200));
+    ok('reads as you are in', /You are in/.test(h), h.slice(0,200));
+    ok('and tells them what happens next', /Next question shortly/.test(h));
+    ok('claims no points for it', !/gl-verdict__points/.test(h));
+  }
+  {
+    /* present the whole time and simply did not answer: that IS a miss */
+    const e=env(); await joinGame(e);
+    e.push(snap({status:'asking',index:0}));
+    e.push(snap({status:'reveal',index:0,msLeft:null}));
+    const h=e.html();
+    ok('a student who was there and stayed silent is still told they missed it',
+       /You missed that one/.test(h), h.slice(0,200));
+    ok('and told nothing was sent', /Nothing sent in time/.test(h));
+  }
+  {
+    /* and they can play the next question normally */
+    const e=env(); await joinGame(e);
+    e.push(snap({status:'reveal',index:0,msLeft:null}));
+    e.push(snap({status:'asking',index:1,msLeft:20000}));
+    e.host.fire('click',e.host.querySelector('.gl-target--a'));
+    await tick();
+    ok('a late joiner plays the next question normally', e.calls.answer.length===1,
+       'sent '+e.calls.answer.length);
+  }
+
+  console.log('\n--- 9. an empty room, which is now the first thing anyone sees ---');
+  {
+    const e=env(); await joinGame(e);
+    e.push(snap({status:'lobby',msLeft:null,players:[],answers:[]}));
+    const h=e.html();
+    ok('zero players does not throw or blank the screen', /You are in/.test(h), h.slice(0,200));
+    ok('and claims no attendance count', !/person here|people here/.test(h));
+    ok('no place is invented from an empty board',
+       e.host.querySelectorAll('.gl-place__n').length===0);
+  }
+
   console.log('\n'+(fail===0?'ALL PASS':fail+' FAILED')+'  ('+pass+' passed)');
   process.exit(fail?1:0);
 })();

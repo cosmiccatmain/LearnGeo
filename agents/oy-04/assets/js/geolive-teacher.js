@@ -94,12 +94,44 @@
   function cloud(method) {
     var args = Array.prototype.slice.call(arguments, 1);
     var C = global.GeoLiveCloud;
-    if (!C || typeof C[method] !== 'function') return Promise.resolve(null);
-    try {
-      return Promise.resolve(C[method].apply(C, args)).catch(function () { return null; });
-    } catch (e) {
+    if (!C || typeof C[method] !== 'function') {
+      noteFailure(method, null, 'GeoLiveCloud.' + method + ' is not there');
       return Promise.resolve(null);
     }
+    try {
+      return Promise.resolve(C[method].apply(C, args)).catch(function (err) {
+        noteFailure(method, err);
+        return null;
+      });
+    } catch (err) {
+      noteFailure(method, err);
+      return Promise.resolve(null);
+    }
+  }
+
+  /* Callers still get null, so nothing crashes, but the reason does not
+     disappear with it. A database error and a room that simply is not
+     there used to arrive here as the same null, which is how a recursive
+     policy error sat unseen for an hour while a teacher checked his wifi.
+
+     Logged every time, and kept so the message shown can say what is
+     actually known rather than guessing a cause. */
+  var lastFailure = null;
+
+  function noteFailure(method, err, why) {
+    var detail = why || (err && (err.message || err.code || err.error_description)) || '';
+    lastFailure = { method: method, detail: String(detail || ''), at: Date.now() };
+    try {
+      if (global.console && global.console.warn) {
+        global.console.warn('[GeoLive] ' + method + ' failed:', detail || err, err || '');
+      }
+    } catch (e) {}
+  }
+
+  /* Only a failure from this attempt, so an old one cannot be reported as
+     the reason for a new thing going wrong. */
+  function failureSince(t) {
+    return (lastFailure && lastFailure.at >= t) ? lastFailure : null;
   }
 
   function rules() { return global.GeoLive || null; }
@@ -222,8 +254,10 @@
     /* Asked last, so the first screen is already up while this answers.
        If the tables are not there yet the teacher finds out before they
        have picked anybody, not after. */
+    var asked = Date.now();
     cloud('available').then(function (ok) {
       if (!view || view.stage !== 'players') return;
+      view.whyUnavailable = ok ? null : failureSince(asked);
       /* Anything that is not a clear yes counts as no: false, a missing
          module, or a call that threw and came back null. Saying the room
          is ready when it is not is the one answer a teacher cannot use. */
@@ -277,8 +311,15 @@
         '<h2 class="gl__h">Who is playing?</h2>' +
         '<div class="gl__sub">Tap a name to leave someone out. Only these students can join.</div>' +
       '</div>' +
+      /* Says what is known: the live quiz is not available. It does not
+         name a cause, because the cause is not known here and a teacher
+         acts on whatever they are told. The detail, when there is one, is
+         the thing worth passing on to whoever can fix it. */
       '<div id="gl-offline" class="gl__warn" hidden>' + I.info +
-        ' This class is not online, so nobody can join a live game yet. Sign in and sync the class first.' +
+        ' The live quiz is not available for this class yet, so nothing here will start a game.' +
+        (view.whyUnavailable && view.whyUnavailable.detail
+          ? ' If you are reporting it, this is what it said: ' + esc(view.whyUnavailable.detail) + '.'
+          : '') +
       '</div>' +
       (view.roster.length
         ? '<div class="gl__bar">' +
@@ -306,12 +347,19 @@
             }).join('') +
           '</div>' +
           '<div class="gl__foot">' +
-            '<button class="btn btn--primary btn--lg" id="gl-to-questions"' +
-              (picked ? '' : ' disabled') + '>Next, pick the questions</button>' +
+            '<button class="btn btn--primary btn--lg" id="gl-to-questions">' +
+              'Next, pick the questions</button>' +
+            (picked ? '' :
+              '<span class="gl__note">Nobody picked yet. You can still open a room and let them join with the code.</span>') +
           '</div>'
         : '<div class="gl__empty">' + I.users +
-            '<b>No students in this class yet</b>' +
-            '<span>Add them on the People tab, then come back and start a game.</span>' +
+            '<b>No students on the class list yet</b>' +
+            '<span>You can still open a room now. Anyone in the class can join with the code, ' +
+              'and they will show up here as they arrive.</span>' +
+          '</div>' +
+          '<div class="gl__foot">' +
+            '<button class="btn btn--primary btn--lg" id="gl-to-questions">' +
+              'Next, pick the questions</button>' +
           '</div>');
   }
 
@@ -424,17 +472,19 @@
         esc(j.name || 'Someone') + '</span>';
     }).join('') : '') +
     '<span class="gl__count">' +
-      (known
-        ? hereCount() + ' of ' + chosenPlayers().length + ' here'
-        : 'Waiting for the class. Start when everyone is looking at their phone.') +
+      (!chosenPlayers().length
+        ? 'Nobody on the list yet. Anyone in the class can join with the code above.'
+        : known
+          ? hereCount() + ' of ' + chosenPlayers().length + ' here'
+          : 'Waiting for the class. Start when everyone is looking at their phone.') +
     '</span>';
   }
 
-  /* With presence known, wait for somebody. Without it, the teacher is
-     looking at the room and this screen is not, so the button is theirs. */
-  function readyToStart() {
-    return presenceKnown() ? hereCount() > 0 : (view.joined || []).length > 0;
-  }
+  /* Once a room is open, starting is the teacher's call. They can see the
+     room and this screen cannot, and opening before the class walks in is
+     the normal way round. An empty game is not broken: anyone who joins
+     later is seated as they arrive. */
+  function readyToStart() { return !!view.session; }
 
   /* Who is in the room. Matched on the account id, falling back to the
      name they joined under, so the lobby chips and the answered count are
@@ -592,7 +642,17 @@
      at the reveal and the whole class at the end without any row being
      added or taken away. */
   function boardSlot(visible) {
-    return '<div id="gl-stand-slot" data-visible="' + (visible || 0) + '"></div>';
+    return '<div id="gl-stand-slot" data-visible="' + (visible || 0) + '"></div>' + tieNote();
+  }
+
+  /* The order two level students appear in is arbitrary, but it is fixed,
+     and fixed is the property that matters on a wall in front of a class.
+     Said on screen rather than left implicit, because a teacher who cannot
+     explain the order to the student asking about it will reasonably
+     assume the scoreboard is broken. */
+  function tieNote() {
+    return '<span class="gl__note">Level on points? Whoever got more right is ' +
+      'first, then whoever was quicker, then whoever joined the game first.</span>';
   }
 
   function ensureBoard() {
@@ -853,6 +913,7 @@
     }
     var btn = W.$('#gl-open', view.el);
     if (btn) { btn.disabled = true; btn.textContent = 'Opening…'; }
+    var asked = Date.now();
 
     /* The chosen limit goes to the room, which clamps it and stores it.
        What comes back is what the game actually runs on. */
@@ -862,7 +923,13 @@
       .then(function (room) {
         if (!view) return;
         if (!room || !room.code) {
-          W.toast('Could not open the room', 'A live game needs the class to be online. Everything else still works.', I.info, 5000);
+          var why = failureSince(asked);
+          W.toast('The room did not open',
+            'Nothing was started, and this is not something you did. ' +
+            (why && why.detail
+              ? 'If you are reporting it, this is what it said: ' + why.detail + '.'
+              : 'Try it again in a moment, and tell us if it keeps happening.'),
+            I.info, 6500);
           if (btn) { btn.disabled = false; btn.textContent = 'Open the room'; }
           return;
         }
@@ -892,13 +959,16 @@
      in it. Never rebuilt after that: a rebuild is a reset, and resetting
      mid-game would wipe every score the class has just earned. */
   function syncSession(rows) {
-    if (!rules() || !rows || !rows.length) return;
+    if (!rules()) return;
     if (view.session && view.stage !== 'lobby') return;
 
-    var players = rows.map(function (r) {
+    var players = (rows || []).map(function (r) {
       return { id: r.id || r.playerId, name: r.name || 'Student' };
     }).filter(function (p) { return !!p.id; });
-    if (!players.length) return;
+
+    /* An empty room is a real starting point, not a failure. A teacher
+       opening before the class walks in is the normal case, and anyone who
+       joins later is added to the game rather than turned away. */
 
     if (view.session && sameIds(view.session.players, players) &&
         (!view.limitMs || view.session.limitMs === view.limitMs)) return;
@@ -909,6 +979,24 @@
       view.session = rules().create(made);
       view.board = null;   /* the board is built per set of players */
     } catch (e) { /* keep whatever we had rather than nothing */ }
+  }
+
+  /* Someone who arrives after the start. GeoLive.answer refuses a player
+     it does not know, so without this their taps would vanish while their
+     phone showed the question quite happily. addPlayer gives them a seat
+     and a score of zero, and leaves anyone already in the game alone. */
+  function seatLatecomers(rows) {
+    if (!view.session || view.stage === 'lobby' || !rules()) return;
+    if (typeof rules().addPlayer !== 'function') return;
+    var have = {};
+    view.session.players.forEach(function (p) { have[p.id] = true; });
+    (rows || []).forEach(function (r) {
+      var id = r.id || r.playerId;
+      if (!id || have[id]) return;
+      try { rules().addPlayer(view.session, { id: id, name: r.name || 'Student' }); }
+      catch (e) {}
+      view.board = null;   /* the board is one row per player */
+    });
   }
 
   function sameIds(a, b) {
@@ -943,6 +1031,7 @@
       view.joined = snap.players.slice();
       notePresenceSignal(view.joined);
       syncSession(view.joined);
+      seatLatecomers(view.joined);
       if (view.stage === 'lobby') {
         var box = W.$('#gl-joined', view.el);
         if (box) box.innerHTML = joinedRows();

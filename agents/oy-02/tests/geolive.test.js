@@ -437,6 +437,120 @@ console.log('\nA PLAYER WHO JOINS LATE');
   is('and the whole board is still a total order', new Set(board.map(p => p.id)).size, 5);
 }
 
+console.log('\nAN EMPTY ROOM, ALL THE WAY THROUGH (round 4: the normal case)');
+{
+  // a teacher opens the room and puts the code on the board. Nobody is in yet.
+  const s = G.create({ questions });
+  is('a room with no roster at all is created', [s.status, s.players.length], ['lobby', 0]);
+  is('and starts', G.start(s).status, 'asking');
+  is('with a live question', G.current(s).answer, 'Lima');
+  is('nobody has answered', G.answered(s), 0);
+  is('the board is empty rather than broken', G.standings(s), []);
+  is('a tap from someone not in the room is refused, not a crash', G.answer(s, 'ghost', 'Lima', 0), null);
+  const r = G.reveal(s);
+  is('the reveal still shows the answer', r.answer, 'Lima');
+  is('with every option on zero', r.counts, { Sucre: 0, Lima: 0, 'Buenos Aires': 0, Caracas: 0 });
+  is('revealing an empty room twice is the same', G.reveal(s), r);
+  is('it moves on', G.next(s).status, 'asking');
+  G.next(s); G.next(s);
+  is('and ends like any other game', s.status, 'ended');
+  is('with an empty board, still not broken', G.standings(s), []);
+  is('and no live question', G.current(s), null);
+}
+{
+  const s = G.start(G.create({ questions, players: [] }));
+  is('an explicitly empty roster behaves the same', [s.status, G.standings(s).length, G.answered(s)], ['asking', 0, 0]);
+}
+
+console.log('\nTHE ROOM FILLS UP AFTER IT STARTED');
+{
+  const s = G.start(G.create({ questions, players: [] }));   // empty at the buzzer
+  const ana = G.addPlayer(s, { id: 'a', name: 'Ana' });
+  is('the first student walks in during question 1', [ana.added, ana.joinedAt], [true, 0]);
+  is('and can answer straight away', G.answer(s, 'a', 'Lima', 2000).points, 960);
+  is('the answered count sees one of one', G.answered(s), 1);
+  const r1 = G.reveal(s);
+  is('the reveal counts only the people who were there', r1.counts.Lima, 1);
+  G.next(s);
+
+  const ben = G.addPlayer(s, { id: 'b', name: 'Ben' });
+  is('a second student arrives at question 2', ben.joinedAt, 1);
+  is('the new arrival starts on zero', ben.score, 0);
+  is('and sits below the student who has been playing', G.standings(s).map(p => p.id), ['a', 'b']);
+  G.answer(s, 'b', 'Oslo', 0);
+  G.answer(s, 'a', 'Bergen', 0);
+  is('a late joiner can overtake on merit', G.standings(s).map(p => p.id), ['b', 'a']);
+  const r2 = G.reveal(s);
+  is('question 2 counts both of them', r2.counts.Oslo + r2.counts.Bergen, 2);
+  is('question 1 is untouched by the arrival', s.answers[0]['b'], undefined);
+  is('and its counts are unchanged', G.scoreRecorded(s, 0, 'Lima', 2000).points, 960);
+}
+{
+  // arriving while the answer is on screen
+  const s = G.start(G.create({ questions, players: [{ id: 'a', name: 'Ana' }] }));
+  G.answer(s, 'a', 'Lima', 0);
+  G.reveal(s);
+  const late = G.addPlayer(s, { id: 'z', name: 'Zed' });
+  is('joining during the reveal is allowed', late.added, true);
+  is('but the closed question is not theirs to answer', G.answer(s, 'z', 'Lima', 0), null);
+  is('they are on the board at zero', G.standings(s).find(p => p.id === 'z').score, 0);
+  G.next(s);
+  is('and they play the next question normally', G.answer(s, 'z', 'Oslo', 0).points, 1000);
+}
+
+console.log('\nTIES, INCLUDING LATE ARRIVALS');
+{
+  const s = G.start(G.create({ questions, players: [] }));
+  G.addPlayer(s, { id: 'a', name: 'Ana' });
+  G.addPlayer(s, { id: 'b', name: 'Ben' });
+  G.addPlayer(s, { id: 'c', name: 'Cy' });
+  G.answer(s, 'a', 'Lima', 4000);
+  G.answer(s, 'b', 'Lima', 4000);
+  G.answer(s, 'c', 'Lima', 4000);
+  G.reveal(s);
+  const one = G.standings(s), two = G.standings(s), three = G.standings(s);
+  is('three students dead level are ordered by who joined first', one.map(p => p.id), ['a', 'b', 'c']);
+  is('identical scores, identical points', one.map(p => p.score), [920, 920, 920]);
+  is('and the order holds on a second render', two, one);
+  is('and a third', three, one);
+}
+{
+  // a late joiner tied with someone who was there from the start
+  const s = G.start(G.create({ questions, players: [{ id: 'a', name: 'Ana' }] }));
+  G.reveal(s); G.next(s);                       // Ana missed question 1
+  G.addPlayer(s, { id: 'z', name: 'Zed' });
+  G.answer(s, 'a', 'Oslo', 5000);
+  G.answer(s, 'z', 'Oslo', 5000);
+  G.reveal(s);
+  const board = G.standings(s);
+  is('tied on everything, the earlier seat is shown first', board.map(p => p.id), ['a', 'z']);
+  is('and they really are tied', board[0].score === board[1].score, true);
+  is('the order is the same on a redraw', G.standings(s), board);
+}
+{
+  // the messiest sequence I can build, rendered three times
+  const s = G.start(G.create({ questions, players: [] }));
+  G.addPlayer(s, { id: 'a', name: 'Ana' });
+  G.answer(s, 'a', 'Lima', 1000);
+  G.addPlayer(s, { id: 'b', name: 'Ben' });     // arrives, taps as the question closes
+  G.reveal(s);
+  const straggler = G.applyRecorded(s, 0, 'b', 'Lima', 1100);
+  is('the straggler was folded in', straggler.applied, true);
+  G.next(s);
+  G.addPlayer(s, { id: 'c', name: 'Cy' });
+  G.answer(s, 'c', 'Oslo', 900);
+  G.answer(s, 'a', 'Oslo', 900);
+  G.addPlayer(s, { id: 'a', name: 'Ana again' });  // a reconnect mid-game
+  G.reveal(s); G.next(s);
+  G.answer(s, 'b', 'Cairo', 100);
+  G.reveal(s); G.next(s);
+  const a = G.standings(s), b = G.standings(s), c = G.standings(s);
+  is('a messy game still renders the same three times running', [a, b], [c, c]);
+  is('the reconnect did not cost Ana her points', s.players.find(p => p.id === 'a').score > 0, true);
+  is('the straggler was counted once', s.answers[0]['b'].choice, 'Lima');
+  is('everyone who joined is on the board', a.length, 3);
+}
+
 console.log('\nDETERMINISM');
 {
   const run = () => {

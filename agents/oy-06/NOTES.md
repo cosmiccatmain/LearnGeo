@@ -242,6 +242,132 @@ to notice. I assumed the tool was broken. The test was: the class I deleted
 also appeared inside an `@media` block, so it was still defined and the tool
 was right. Check the test before the thing it tests.
 
+## Round 4: the layout, measured 2026-09-12 08:37
+
+aj ran a real game and said the formatting sucked, huge buttons, ugly. Owen
+said make it bigger and centred. Three causes, all in this file, all
+reproduced in a 1400x800 stand-in for the classroom panel before touching
+anything.
+
+**It thought it owned the viewport.** Both containers had `min-height: 100dvh`.
+They mount into `#cl-geolive`, a bare div inside the classroom panel, so the
+container came out taller than the space it was given and pushed its own
+content below the fold. That is the 400px of white above the join form.
+`min(100dvh, 560px)` plus `justify-content: center` now.
+
+**`margin: auto 0` is not centring.** It is auto top and bottom and ZERO left
+and right, so every card centred vertically and sat hard against the left
+edge. On a phone the container is the width of the screen and nobody notices;
+in a 1400px panel it is the whole complaint. `margin-inline: auto` now.
+
+**The projector scale was being applied to ordinary buttons.** `--gl-step`
+exists so a class can read the question from the back row, and it was sizing
+the Back button too. At 1.6x the note under a set label came out LARGER than
+the label above it. Controls are on their own `--gl-ctl` now, which does not
+follow the projector. Display type scales; controls stay control sized.
+
+**The student screen is capped to 560px and centred.** Stretched across the
+panel each answer tile was 678 by 331, which is the "enormously large buttons"
+complaint. 259 by 331 now, and unchanged on a phone, where the viewport is
+narrower than the cap.
+
+`height: 100%` is on both containers. It resolves to auto against a bare div,
+so it costs nothing today, and it fills the moment the host has a height.
+
+### Still needs markup, not CSS
+
+To truly fill the panel, `#cl-geolive` in `classroom.js` needs a height. CSS
+cannot fill a parent that has none. I proved the rest works by rendering the
+same page with `style="height:100%"` on that div: the form then centres in
+the full 800px. One line, and it is oy-09's file, not mine.
+
+## Round 4 addition: the feature switches, measured 2026-09-12 08:45
+
+`assets/css/class-features.css` is new. Ten class names are rendered by
+`class-features.js` and not one of them had a rule anywhere in the repo,
+checked across every css file including every agent folder. With no rules the
+two switches collapse into one run-on line:
+
+> "Live quizRun a quiz the class answers together, on their own devices.On"
+
+That is the GeoLive switch and the leaderboard switch rendered as a paragraph.
+A toggle that does not look like a toggle does not get toggled, which is why
+Owen and his teacher both went looking for a leaderboard they could not find.
+
+Every name comes from `class-features.js`, which oy-09 owns. Nothing invented,
+nothing renamed. The host sits inside the app's `.cr-card`, which already
+supplies border, radius, white and 18px padding, so this draws no second card.
+
+**The switch carries two signals, not one.** The knob moves 4px to 56px across
+an 84px track, and the track goes from `--line` to `--success`. Position alone
+is easy to miss at a glance; colour alone fails for a colour blind teacher.
+Both together is what a physical switch does.
+
+`.clf__warn` is the offline state and is amber, not red: nothing is broken and
+nothing was lost, the control just is not available yet. The row's label dims
+with its disabled switch, so a feature reads as unavailable rather than leaving
+a live looking label beside a dead control.
+
+`tools/cssmatch.js` now covers `clf` as well as `gl` and `lb`. All four screens
+against all three stylesheets: clean both directions at 08:45.
+
+### Two stylesheets are not linked, and that is the whole bug repeating
+
+`index.html` links `geolive.css` only. `leaderboard.css` and
+`class-features.css` are not linked. Until oy-09 adds them, this fix renders
+exactly as the bug it fixes: correct rules that no page loads. That is one line
+each in a file I do not own.
+
+## Round 4, the three measured faults. All numbers 2026-09-12 08:54
+
+Measured on a 390x844 phone and a 1400x758 panel, before and after.
+
+**Answer tiles were 21% ink.** 174x300 around 63px of content. `.gl-targets`
+was `flex: 1` with `grid-auto-rows: minmax(88px, 1fr)`, so the grid absorbed
+every spare pixel and the tiles inflated to fill it. Nobody chose 300px. Rows
+cap at 168px now and the grid no longer stretches: **174x168, 40% ink**. The
+spare height became space between the question and the answers, which reads as
+layout, rather than padding inside a button, which reads as a button sized
+wrong. The timer and question count are pinned to the top and the question and
+its four answers centre together as one group.
+
+**The teacher reveal was clipping, and not for the reason it looked.** Eight
+players, three rows past the bottom. Two separate causes:
+
+1. `--gl-row-h` was `clamp(42px, 5.4vh, 76px)`. The board's height is
+   `calc(--gl-max * --gl-row-h)` and each row is `translateY(--gl-i *
+   --gl-row-h)`, and with a clamp in there the two disagreed. **This is the
+   same mistake as `--gl-step` in round 2.** A variable that is multiplied in
+   one place and used raw in another must be a plain length. Steps, not fluid.
+2. `.gl-stand` is a flex item in a column, so it shrank: from the 512px its
+   rows occupy to 310px. Its rows are absolutely positioned inside
+   `overflow: hidden`, so shrinking did not compress the board, it **clipped**
+   it. Rows five to eight were simply not drawn, with no scrollbar and no sign
+   anything was missing. `flex: none` now, and the panel scrolls instead.
+
+`justify-content` is `safe center` on both containers. With plain `center`,
+content taller than the box overflows both ends and the top can never be
+scrolled to. After: box 512 = rows 512, panel scrollable, all eight reachable.
+
+**The join button was smaller than its own inputs.** 358x48 at 15px under two
+358x56 fields at 24px: the one thing a student is trying to do was the least
+prominent thing on screen. **358x56 at 17px** now.
+
+### The guard earned itself back this round
+
+My first join fix targeted `.gl-go`. oy-05 had moved that from a class to a
+`data-gl-go` attribute, so the rule silently matched nothing and the button
+kept the app's 48px. `cssmatch` reported it as a dead rule and that is the
+only reason I noticed. A rule that matches nothing looks exactly like a rule
+that works.
+
+### Two states I could not measure and did not style blind
+
+Teacher game-over podium and student answer-locked. Both need a live game and
+GeoLive is dead in production on the 42P17 recursion. The podium and the
+locked tiles share their rules with states I did render, so they inherit the
+same proportions, but I have not seen either and am not claiming them.
+
 ## Do not overwrite
 
 - There is no dark mode here on purpose. I checked app.css, brand.css,

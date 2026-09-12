@@ -1,0 +1,114 @@
+<!doctype html><html><head><meta charset="utf-8">
+<title>oy-05 student screen, real CSS</title>
+<link rel="stylesheet" href="assets/css/app.css">
+<link rel="stylesheet" href="assets/css/geolive.css">
+<style>
+  body { margin:0; font-family:system-ui,sans-serif; background:#eef0f3; }
+  .bar { padding:8px 12px; background:#111; color:#fff; font:12px ui-monospace,monospace; display:flex; gap:6px; flex-wrap:wrap; align-items:center; }
+  .bar button { font:11px ui-monospace,monospace; padding:4px 8px; border:0; border-radius:5px; background:#333; color:#fff; cursor:pointer; }
+  .bar button:hover { background:#555; }
+  /* the panel oy-09 mounts into: a tab body inside the page, NOT the viewport */
+  .panel { width:1400px; height:800px; margin:16px; background:#fff; border:1px solid #ccd;
+           border-radius:12px; overflow:auto; position:relative; }
+  .panel::before { content:'cl-geolive panel, 1400 x 800'; position:absolute; top:4px; right:8px;
+                   font:10px ui-monospace,monospace; color:#b9c0ca; z-index:5; }
+</style></head><body>
+<div class="bar">
+  <span>phase:</span>
+  <button data-go="join">join</button>
+  <button data-go="lobby">lobby</button>
+  <button data-go="asking">question</button>
+  <button data-go="locked">answered</button>
+  <button data-go="reveal">reveal</button>
+  <button data-go="ended">game over</button>
+  <button data-go="walkin">joined mid-reveal</button>
+  <button data-go="off">switched off</button>
+  <span id="now"></span>
+</div>
+<div class="panel"><div id="cl-geolive"></div></div>
+
+<script>
+/* ---- stubs: just enough to drive every state, no database ---- */
+window.WW = {
+  escapeHtml: function (s) { return String(s==null?'':s).replace(/[&<>"']/g, function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); },
+  state: { profile: { displayName: 'Owen' } },
+  accountId: function () { return 'acct-owen'; }
+};
+window.Cloud = { signedIn: true, user: { id: 'acct-owen' } };
+
+var QS = [
+  { prompt:'What is the capital of Peru?',  answer:'Lima',    options:['Sucre','Lima','Buenos Aires','Caracas'] },
+  { prompt:'What is the capital of Kenya?', answer:'Nairobi', options:['Nairobi','Kampala','Dodoma','Lusaka'] }
+];
+var PLAYERS = [
+  { id:'row-owen', name:'Owen', score:1487, streak:2, joined_at:'2026-09-12T00:00:00Z' },
+  { id:'row-ada',  name:'Ada',  score:2400, streak:3, joined_at:'2026-09-12T00:00:01Z' },
+  { id:'row-sam',  name:'Sam',  score:1487, streak:0, joined_at:'2026-09-12T00:00:02Z' },
+  { id:'row-kit',  name:'Kit',  score:400,  streak:0, joined_at:null }
+];
+window.GeoLive = {
+  current: function (s) { return (s.questions||[])[s.index] || null; },
+  standings: function (s) { return (s.players||[]).slice().sort(function(a,b){return b.score-a.score; })
+      .map(function(p){ return {id:p.id,name:p.name,score:p.score,streak:p.streak}; }); },
+  answered: function () { return 3; }
+};
+var push = null;
+window.GeoLiveCloud = {
+  join: function () { return Promise.resolve({ sessionId:'S1', playerId:'row-owen' }); },
+  watch: function (id, fn) { push = fn; return Promise.resolve(function(){}); },
+  answer: function () { return Promise.resolve({ accepted:true, first:true, row:null }); },
+  serverNow: function () { return Date.now(); },
+  get clockSource() { return 'server'; },
+  isEnabled: function () { return true; }
+};
+
+function snap(x) {
+  var o = { status:'asking', index:0, questions:QS, timeLimitMs:20000,
+            players:PLAYERS, answers:[], at:Date.now(), msLeft:13000 };
+  for (var k in x) o[k] = x[k];
+  return o;
+}
+</script>
+<script src="assets/js/geolive-student.js"></script>
+<script>
+var host = document.getElementById('cl-geolive');
+var api = window.GeoLiveStudent.mount(host, { code:'' });
+
+function fill() {
+  var f = host.querySelectorAll('.gl-join__field');
+  if (f[0]) f[0].value = 'ZQ4T';
+  if (f[1]) f[1].value = 'Owen';
+}
+function joinNow() {
+  fill();
+  var b = host.querySelector('[data-gl-go]');
+  if (b) b.click();
+  return new Promise(function (r) { setTimeout(r, 30); });
+}
+var GO = {
+  join:   function () { api.destroy(); api = window.GeoLiveStudent.mount(host, { code:'' }); fill(); },
+  lobby:  function () { return joinNow().then(function(){ push(snap({status:'lobby', msLeft:null})); }); },
+  asking: function () { return joinNow().then(function(){ push(snap({})); }); },
+  locked: function () { return joinNow().then(function(){ push(snap({}));
+            var t = host.querySelector('.gl-target--b'); if (t) t.click(); }); },
+  reveal: function () { return joinNow().then(function(){ push(snap({}));
+            var t = host.querySelector('.gl-target--b'); if (t) t.click();
+            return new Promise(function(r){ setTimeout(function(){
+              push(snap({status:'reveal', msLeft:null})); r(); }, 40); }); }); },
+  ended:  function () { return joinNow().then(function(){ push(snap({status:'ended', msLeft:null})); }); },
+  walkin: function () { return joinNow().then(function(){ push(snap({status:'reveal', msLeft:null})); }); },
+  off:    function () { return joinNow().then(function(){ push(snap({})); push(null); }); }
+};
+document.querySelectorAll('[data-go]').forEach(function (b) {
+  b.addEventListener('click', function () {
+    GO.join();
+    var fn = GO[b.dataset.go];
+    if (b.dataset.go !== 'join') Promise.resolve(fn && fn());
+    document.getElementById('now').textContent = '  showing: ' + b.dataset.go;
+  });
+});
+GO.join();
+document.getElementById('now').textContent = '  showing: join';
+</script>
+</body></html>

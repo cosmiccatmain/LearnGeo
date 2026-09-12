@@ -637,6 +637,44 @@
     runEffect(host);
   }
 
+  /* A theme used to be a 1px border at 20% alpha and three numbers in c2, and
+     every c2 is near black, so at 17px they all read as dark text. Measured on
+     the rendered card that was 5% of its area, none of it loud. Seven themes,
+     up to 800 diamonds, and no way to tell which one was on.
+
+     Owen's answer to what a theme should colour was "all of the white space
+     around like bio and stuff", so the body is the canvas: everything under
+     the banner, behind the name, pronouns, bio and stats.
+
+     Two things it still must not touch. The BANNER is its own purchasable
+     slot and repainting the top strip would make every banner in the shop
+     worthless. The NAMEPLATE is its own slot too. The theme owns the space
+     between them and nothing else.
+
+     Readability is the limit that shapes the numbers below. The body carries
+     c1 at 37% down to 20%, which is a clear pastel on white for all seven
+     including Graphite, and every piece of text on that surface is set from
+     c2, which is near black in every theme. That is why the greys are
+     overridden here: var(--faint) at #9CA3AF is fine on white and much too
+     weak once the surface is tinted. Inline beats the class rule, so this
+     needs no stylesheet change. */
+  function themeCard(t) { return 'border-color:' + t.c1; }
+
+  function themeBody(t) {
+    return 'border-top:3px solid ' + t.c1 + ';' +
+           /* both stops carry colour: a fade to transparent leaves the bottom
+              of the card white, which is the white space Owen is pointing at */
+           'background:linear-gradient(180deg,' + t.c1 + '5E 0%,' + t.c1 + '33 100%)';
+  }
+
+  function themeStats(t) {
+    return 'background:' + t.c1 + '40;border-top-color:' + t.c1 + '73;' +
+           'border-radius:12px;padding:12px 10px 10px';
+  }
+
+  /* c2 at an alpha, so secondary text stays secondary without going pale */
+  function themeInk(t, a) { return 'color:' + t.c2 + a; }
+
   function profileCard(live) {
     var p = W.state.profile, s = W.state;
     var banner = Cos.find(Cos.banners, p.banner);
@@ -646,17 +684,20 @@
     var pron = (live && live.pronouns) || p.pronouns;
     var about = (live && live.about !== undefined) ? live.about : p.about;
 
-    return '<div class="profile-card" style="border-color:' + theme.c1 + '33">' +
+    return '<div class="profile-card" style="' + themeCard(theme) + '">' +
       '<div class="profile-card__banner" style="background:' + banner.css + '"></div>' +
       '<div class="profile-fx" data-effect="' + p.effect + '"></div>' +
-      '<div class="profile-card__body">' +
+      '<div class="profile-card__body" style="' + themeBody(theme) + '">' +
         '<div class="profile-card__avatar">' + W.avatarHtml(p) + '</div>' +
         '<div class="profile-card__name" style="background:' + plate.css + ';color:' + plate.text + '">' +
           W.escapeHtml(name) + W.verifiedMark(p, 15) + '</div>' +
-        '<div class="profile-card__tag">Level ' + s.economy.level + ' · ' + s.economy.diamonds.toLocaleString() + ' 💎</div>' +
-        (pron ? '<div class="profile-card__pronouns">' + W.escapeHtml(pron) + '</div>' : '') +
-        (about ? '<div class="profile-card__about">' + W.escapeHtml(about) + '</div>' : '') +
-        '<div class="profile-card__stats">' +
+        '<div class="profile-card__tag" style="' + themeInk(theme, 'C7') + '">Level ' +
+          s.economy.level + ' · ' + s.economy.diamonds.toLocaleString() + ' 💎</div>' +
+        (pron ? '<div class="profile-card__pronouns" style="' + themeInk(theme, 'AB') + '">' +
+          W.escapeHtml(pron) + '</div>' : '') +
+        (about ? '<div class="profile-card__about" style="' + themeInk(theme, 'E6') +
+          ';border-top-color:' + theme.c1 + '59">' + W.escapeHtml(about) + '</div>' : '') +
+        '<div class="profile-card__stats" style="' + themeStats(theme) + '">' +
           stat(s.stats.answered, 'answered') +
           stat(s.stats.answered ? Math.round(s.stats.correct / s.stats.answered * 100) + '%' : '—', 'accuracy') +
           stat(W.masteredCount(), 'mastered') +
@@ -664,7 +705,10 @@
       '</div></div>';
 
     function stat(v, l) {
-      return '<div class="profile-card__stat" style="color:' + theme.c2 + '"><b>' + v + '</b><span>' + l + '</span></div>';
+      /* the label override is the point: var(--faint) is pinned in app.css and
+         is far too weak once the surface behind it is no longer white */
+      return '<div class="profile-card__stat" style="color:' + theme.c2 + '">' +
+        '<b>' + v + '</b><span style="' + themeInk(theme, 'B0') + '">' + l + '</span></div>';
     }
   }
 

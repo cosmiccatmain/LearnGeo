@@ -282,6 +282,7 @@
       result: null,           /* only ever what came back from the network */
       askedAt: 0,
       scoreBefore: null,      /* our total as this question opened */
+      sawAsking: -1,          /* the question we watched go live, so a late joiner is not told they missed one */
       accepted: null,         /* true in, false refused, null not heard yet */
       clockKnown: false,
       limit: FALLBACK_LIMIT,
@@ -317,9 +318,23 @@
       }
       if (me < 0) return null;
       var mine = num(list[me].score, 0);
-      var place = 1;
-      for (i = 0; i < list.length; i++) if (num(list[i].score, 0) > mine) place++;
-      return { place: place, of: list.length, score: mine, streak: num(list[me].streak, 0) };
+
+      /* Position in the standings, which is the number the teacher's board
+         shows for the same row. A competition rank, where equal points share
+         a place, would tell a student they are second while the projector at
+         the front of the room has them third. The engine's order is a total
+         order and never reshuffles, so this is the one to trust. */
+      var place = me + 1;
+
+      /* Who they are dead level with, so the screen can say why they are
+         where they are instead of leaving it to be guessed at. Nearest
+         neighbour on the same points: the one above if there is one. */
+      var level = null;
+      if (me > 0 && num(list[me - 1].score, 0) === mine) level = list[me - 1].name;
+      else if (me + 1 < list.length && num(list[me + 1].score, 0) === mine) level = list[me + 1].name;
+
+      return { place: place, of: list.length, score: mine,
+               streak: num(list[me].streak, 0), levelWith: level };
     }
 
     function myScoreNow() {
@@ -440,6 +455,11 @@
         S.askedAt = Date.now();
         S.clockKnown = !firstEver;
       }
+
+      /* A late joiner has no business being told they missed a question
+         they were not there for. This is the only way to tell the two
+         apart: present and silent, or not yet in the room. */
+      if (statusOf(s) === 'asking') S.sawAsking = S.index;
 
       S.phase = phaseFor(s);
       render();
@@ -623,7 +643,8 @@
       return '<p class="gl-place' + rankClass(p.place) + '">' +
           '<span class="gl-place__n">' + ordinal(p.place) + '</span> of ' + p.of +
           ' <span class="gl-place__n">' + p.score + '</span> points' +
-        '</p>';
+        '</p>' +
+        (p.levelWith ? '<p class="gl__eyebrow">Level with ' + esc(p.levelWith) + '</p>' : '');
     }
 
     function signinHtml() {
@@ -732,8 +753,14 @@
         else if (q.answer != null && mine != null) right = String(q.answer) === String(mine);
       }
 
+      /* Joined while an answer was already on screen. They did not miss
+         this question, they were not in the room for it, and they play the
+         next one normally. */
+      var walkedIn = mine == null && S.sawAsking !== S.index;
+
       var head, mod;
       if (S.accepted === false) { head = 'That one did not count'; mod = ''; }
+      else if (walkedIn) { head = 'You are in'; mod = ''; }
       else if (mine == null) { head = 'You missed that one'; mod = ''; }
       else if (right === true) { head = 'Right'; mod = ' gl-verdict--right'; }
       else if (right === false) { head = 'Not this time'; mod = ' gl-verdict--wrong'; }
@@ -753,6 +780,7 @@
 
       var note = '';
       if (S.accepted === false) note = 'The class had moved on by the time it arrived';
+      else if (walkedIn) note = 'Next question shortly';
       else if (right === false && q.answer != null) note = 'It was ' + q.answer;
       else if (mine == null) note = 'Nothing sent in time';
 
@@ -774,7 +802,11 @@
           (p
             ? '<p class="gl-place' + rankClass(p.place) + '">You finished ' +
               '<span class="gl-place__n">' + ordinal(p.place) + '</span> of ' + p.of +
-              ' <span class="gl-place__n">' + p.score + '</span> points</p>'
+              ' <span class="gl-place__n">' + p.score + '</span> points</p>' +
+              (p.levelWith
+                ? '<p class="gl-verdict__note t-muted">Level with ' + esc(p.levelWith) +
+                  '. Ties go on correct answers, then speed, then who joined first.</p>'
+                : '')
             : '<p class="gl-verdict__note t-muted">Thanks for playing</p>') +
         '</div>' +
         (top.length

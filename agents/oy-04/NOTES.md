@@ -242,6 +242,68 @@ fills. The honest fallback still holds on a database without the change:
   after the reveal took a player from 0 to 980 and produced a second
   `markAnswers` call carrying both marks.
 
+## Round 4, all measured 2026-09-12
+
+**The message that lied to aj is gone.** "A live game needs the class to be
+online" was an inference presented as a diagnosis, and a teacher acted on it by
+checking his internet. Both places that guessed a cause now say only what is
+known:
+
+- The room fails to open: "The room did not open. Nothing was started, and this
+  is not something you did." plus the actual error text when there is one, so it
+  can be passed to whoever can fix it.
+- The availability banner: "The live quiz is not available for this class yet,
+  so nothing here will start a game." It no longer tells anyone to sign in,
+  because a false `available()` means the tables are missing, not that the
+  teacher is signed out.
+
+**The reason survives the catch now.** `cloud()` still resolves null so nothing
+crashes, but every failure is logged as `[GeoLive] <method> failed: <detail>`
+and kept, so the message can quote it and a future hour is not spent guessing.
+Verified against the exact error aj hit: with `open()` rejecting with
+"infinite recursion detected in policy for relation live_players", the console
+carries that line and the toast quotes it without naming a cause. Only a
+failure from the current attempt is ever quoted, so a stale one cannot be
+reported as the reason for something new.
+
+**Opening with nobody there works, and was checked rather than assumed.**
+
+- A teacher with an empty class list gets the empty state *and* a Next button,
+  and the lobby reads "Nobody on the list yet. Anyone in the class can join
+  with the code above."
+- Start is enabled as soon as a room exists. It used to wait for somebody to
+  arrive, which is backwards: opening before the class walks in is the normal
+  case, and the teacher can see the room while this screen cannot.
+- A game builds with zero seated players rather than refusing.
+- Anyone arriving after the start is seated with `GeoLive.addPlayer` rather
+  than having every answer silently refused. Verified: started at "0 of 0
+  answered", a student joined mid-game, answered, and scored 960.
+
+**Layout, measured against oy-06's stylesheet at 08:35.** The teacher screen
+renders 55 `gl*` names and 51 have rules; the two that looked missing are built
+by concatenation (`gl-opt--0` to `gl-opt--3`) and do exist. This file has zero
+inline styles and one root carrying `gl gl--teacher`, with every screen a flat
+child of it, so nothing in the markup forces content into a corner.
+`.gl--teacher` currently centres vertically with `justify-content: center` but
+sets no horizontal bound, so the horizontal half of "bigger and centered" is a
+`max-width` plus `margin-inline: auto` on that container, which is oy-06's to
+add. Reported rather than worked around, and no stylesheet was touched.
+
+## The tie-break is on screen, measured 2026-09-12
+
+Under the standings and under the podium: "Level on points? Whoever got more
+right is first, then whoever was quicker, then whoever joined the game first."
+
+The order itself is oy-02's and this screen only renders it. The reason for
+saying it out loud is that a fixed arbitrary order looks like a broken one to
+anyone who cannot explain it, and the person being asked is a teacher standing
+in front of the student who came second. Verified with three students dead
+level on 960, rendered in join order, seats 0, 1 and 2, with the line beneath
+them.
+
+It uses `gl__note`, which is already in oy-06's vocabulary. No new class name
+was invented for it.
+
 ## Do not overwrite
 
 - **The seat key.** Rows are tracked by `seat`, never by account id, because

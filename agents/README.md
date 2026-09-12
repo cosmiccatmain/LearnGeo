@@ -73,6 +73,44 @@ merged version.
 **Record the commit you built on.** `NOTES.md` asks for it. Without it nobody
 can tell new work from old work that was already replaced.
 
+**Timestamp every measured claim.** When you write down a number or a verdict
+that came from looking at a file, a build or the database, put the time beside
+it. Measurements go stale inside a single round, and a reader cannot tell a
+stale one from a current one unless you say when you looked.
+
+This is not bookkeeping. It happened twice in round 3. A session counted the
+styling and reported that GeoLive shipped essentially unstyled. Another found
+the off switch broken in three places. Both were measuring honestly, both were
+correct at the moment they looked, and both were overtaken by files that moved
+afterwards. Read later as present tense, each report would have sent someone to
+repair something already repaired. What caught them was a third session
+re-measuring rather than repeating, which is luck rather than process. A
+timestamp makes staleness visible at a glance instead.
+
+**Re-measure before you act on somebody else's number.** If a report says a
+thing is broken, confirm it is still broken before you fix it. Decisions travel
+between sessions safely. Measurements do not, because the file can move after
+the measurement and the number carries no sign that it did.
+
+**Separate the number from what you think it means, and mark the second one as
+a guess.** Re-measuring catches a wrong number. It cannot catch a right number
+read wrong, because measuring it again returns the same correct number and the
+wrong conclusion survives untouched.
+
+This is not theoretical. In round 4 a session compared the shipped stylesheet
+against another session's copy, found the shipped one older and smaller, and
+concluded a file had been dropped during the merge. Every byte size and
+timestamp in that report was correct. The conclusion was wrong: the newer file
+was written after the merge, for the round then in progress, and was sitting
+where unmerged work is supposed to sit. Filed as it stood, it would have sent
+the Organizer hunting an integration failure that never happened and put a
+dropped-file accusation on a session that never had the file.
+
+Nothing in the measurement could have revealed that. It needed the commit
+history and the times the round's briefs went out, which live with Master. So
+when you write down what a number MEANS, say that you are inferring it, and
+route causal claims rather than filing them as findings. Numbers are yours to
+measure. Causes usually are not.
 **Nobody deploys, and promoting counts as deploying.** Only `main` reaches
 production, and only Owen or aj promotes it. Promoting a deployment is a
 write, not a read: it is not a git command, so "read-only git is fine" does
