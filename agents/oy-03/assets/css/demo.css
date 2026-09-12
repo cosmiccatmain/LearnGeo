@@ -1,0 +1,110 @@
+/* ==================================================================
+   LearnGeo - landing page demo ("Try three questions")
+   Kept in its own file so it can't collide with edits to app.css.
+   Uses the tokens and .option styles from app.css.
+   ================================================================== */
+
+.try__grid {
+  display: grid; grid-template-columns: 1fr 1.05fr; gap: 56px; align-items: center;
+}
+.try__copy h2 { margin-top: 12px; font-size: clamp(28px, 3.4vw, 40px); letter-spacing: -.032em; }
+.try__copy > p { margin-top: 14px; font-size: 17px; color: var(--muted); }
+.try__list { list-style: none; margin: 22px 0 0; padding: 0; display: grid; gap: 10px; }
+.try__list li { display: flex; gap: 12px; align-items: center; font-size: 14.5px; color: var(--ink-2); }
+.try__list span {
+  flex: none; width: 26px; height: 26px; border-radius: 8px;
+  display: grid; place-items: center;
+  background: var(--accent-soft); color: var(--accent);
+  font-family: var(--mono); font-size: 12px; font-weight: 600;
+}
+
+/* the quiz card itself */
+.demo { min-height: 468px; display: flex; flex-direction: column; }
+.demo .preview-card__bar { justify-content: space-between; }
+.demo__lights { display: flex; gap: 6px; }
+.demo__bar-label { font-family: var(--mono); font-size: 11.5px; color: var(--faint); }
+.demo__body { padding: 24px; flex: 1; display: flex; flex-direction: column; }
+
+.demo__top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.demo__dots { display: flex; gap: 5px; }
+.demo__dots i {
+  width: 22px; height: 4px; border-radius: 999px; background: var(--line);
+  transition: background .25s var(--ease);
+}
+.demo__dots i.is-now   { background: var(--accent); }
+.demo__dots i.is-right { background: var(--success); }
+.demo__dots i.is-wrong { background: var(--danger); }
+
+.demo__stage { flex: 1; display: flex; flex-direction: column; }
+.demo__stage.is-in { animation: demoIn .28s var(--ease); }
+@keyframes demoIn { from { opacity: 0; transform: translateX(10px); } }
+
+.demo__ask { margin-top: 18px; font-size: 13px; color: var(--faint); }
+.demo__q { margin-top: 4px; font-size: 26px; font-weight: 640; letter-spacing: -.03em; line-height: 1.15; }
+
+.demo__shape {
+  margin: 12px auto 0; width: 100%; max-width: 190px; aspect-ratio: 1;
+  display: block;
+}
+.demo__shape path {
+  fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.6;
+  stroke-linejoin: round; vector-effect: non-scaling-stroke;
+}
+.demo__shape.is-right path { fill: var(--success-soft); stroke: var(--success); }
+.demo__shape.is-wrong path { fill: var(--danger-soft); stroke: var(--danger); }
+
+.demo .options { margin-top: 16px; grid-template-columns: 1fr 1fr; }
+.demo .option { padding: 11px 13px; font-size: 14px; }
+.demo .option__text { min-width: 0; overflow-wrap: anywhere; }
+
+.demo__foot {
+  margin-top: auto; padding-top: 16px;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 56px;
+}
+.demo__note { font-size: 13.5px; color: var(--muted); }
+.demo__note b { color: var(--ink); }
+.demo__note.is-right b { color: #0A5C42; }
+.demo__note.is-wrong b { color: #9B1C1C; }
+
+/* results screen inside the card */
+.demo__end { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 10px 0; }
+.demo__score { font-family: var(--mono); font-size: 54px; font-weight: 600; letter-spacing: -.04em; line-height: 1; }
+.demo__score small { font-size: 22px; color: var(--faint); }
+.demo__verdict { margin-top: 10px; font-size: 16px; font-weight: 600; }
+.demo__recap { margin: 18px 0 0; padding: 0; list-style: none; width: 100%; max-width: 340px; text-align: left; }
+.demo__recap li {
+  display: flex; gap: 10px; align-items: baseline; padding: 9px 0;
+  border-bottom: 1px solid var(--line-soft); font-size: 13.5px;
+}
+.demo__recap li:last-child { border-bottom: none; }
+.demo__recap .tag { flex: none; width: 16px; font-weight: 700; }
+.demo__recap .tag--right { color: var(--success); }
+.demo__recap .tag--wrong { color: var(--danger); }
+.demo__recap .what { flex: 1; color: var(--ink-2); }
+.demo__recap .ans { color: var(--muted); }
+.demo__end .row-btns { margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+
+/* the sign-up popup at the end */
+.demo-pop { text-align: center; padding: 6px 4px 2px; }
+.demo-pop__globe {
+  width: 56px; height: 56px; margin: 0 auto 14px; border-radius: 16px;
+  display: grid; place-items: center; background: var(--accent-soft); color: var(--accent);
+  animation: demoBob 2.4s var(--ease) infinite;
+}
+@keyframes demoBob { 50% { transform: translateY(-4px) rotate(-4deg); } }
+.demo-pop h3 { font-size: 22px; letter-spacing: -.03em; }
+.demo-pop > p { margin: 8px auto 0; max-width: 40ch; color: var(--muted); font-size: 14.5px; }
+.demo-pop .role-pick { margin-top: 20px; text-align: left; }
+.demo-pop__later { margin-top: 14px; font-size: 13px; color: var(--faint); }
+.demo-pop__later:hover { color: var(--ink); text-decoration: underline; }
+
+@media (max-width: 860px) {
+  .try__grid { grid-template-columns: 1fr; gap: 32px; }
+}
+@media (max-width: 480px) {
+  .demo .options { grid-template-columns: 1fr; }
+  .demo { min-height: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .demo__stage.is-in, .demo-pop__globe { animation: none; }
+}
