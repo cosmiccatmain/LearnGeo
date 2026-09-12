@@ -29,7 +29,11 @@
     if (sb) return sb;
     if (!global.supabase || !global.supabase.createClient) return null;
     sb = global.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
-      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
+      auth: {
+        persistSession: true, autoRefreshToken: true, detectSessionInUrl: true,
+        /* passkey sign-in (assets/js/passkey.js); opt-in while it is experimental */
+        experimental: { passkey: true }
+      }
     });
     return sb;
   }
@@ -499,6 +503,7 @@
     joinClass: joinClass, leaveClass: leaveClass, studentSync: studentSync,
     canSubmit: canSubmit, submitResult: submitResult,
     get available() { return !!client(); },
+    get sb() { return client(); },
     get user() { return user; },
     get signedIn() { return !!user; },
     get ready() { return ready(); },

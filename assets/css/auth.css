@@ -1,0 +1,40 @@
+/* ==================================================================
+   LearnGeo - passkeys and the show-password eye (assets/js/passkey.js)
+   Its own file so it can't clash with edits to app.css.
+   ================================================================== */
+
+/* ---- eye button inside a password box ---- */
+.pw-box { position: relative; display: block; }
+.pw-box .input { padding-right: 46px; }
+.pw-eye {
+  position: absolute; right: 5px; top: 50%; transform: translateY(-50%);
+  width: 34px; height: 34px; border-radius: 8px;
+  display: grid; place-items: center; color: var(--faint);
+  transition: color .15s, background .15s;
+}
+.pw-eye:hover { color: var(--ink); background: var(--line-soft); }
+.pw-eye.is-on { color: var(--accent); }
+
+/* ---- sign in with a passkey ---- */
+.passkey-row { margin-bottom: 18px; }
+.passkey-btn { gap: 9px; }
+.auth-or {
+  display: flex; align-items: center; gap: 12px;
+  margin: 14px 0 0; color: var(--faint); font-size: 12.5px;
+}
+.auth-or::before, .auth-or::after {
+  content: ''; flex: 1; height: 1px; background: var(--line);
+}
+
+/* ---- the passkey list ---- */
+.pk-list { display: grid; gap: 8px; }
+.pk-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 11px 13px; border: 1px solid var(--line); border-radius: 12px;
+}
+.pk-row svg { color: var(--accent); flex: none; }
+.pk-row b { display: block; font-size: 14px; font-weight: 560; }
+.pk-row span { font-size: 12.5px; color: var(--faint); }
+.pk-empty {
+  padding: 16px 0; color: var(--muted); font-size: 13.5px; text-align: center;
+}
