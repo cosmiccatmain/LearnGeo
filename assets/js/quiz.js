@@ -123,12 +123,20 @@
 
   /* Build a full sequence of questions for a session. */
   function generate(config) {
-    var all = pool({ regions: config.regions, scope: config.scope, countries: config.countries });
-    if (all.length < 5) all = pool({ scope: config.scope });
+    /* What was actually asked for. The questions come from this list however
+       short it is: a hand-picked set of three countries is a test on those
+       three, not on the whole world. */
+    var wanted = pool({ regions: config.regions, scope: config.scope,
+                        countries: config.countries, weakFirst: !!config.weakFirst });
 
-    var ordered = config.weakFirst
-      ? pool({ regions: config.regions, scope: config.scope, countries: config.countries, weakFirst: true })
-      : W.shuffle(all);
+    /* Wrong answers need a wider field than the questions do, so a list too
+       short to supply its own distractors borrows the rest of the scope for
+       them. Only the distractors: it never decides what gets asked. */
+    var all = wanted.length >= 5 ? wanted : pool({ scope: config.scope });
+
+    /* weakFirst has already put the shakiest at the front, so take from
+       there. Otherwise which ones get asked is a fair draw. */
+    var ordered = config.weakFirst ? wanted : W.shuffle(wanted);
 
     var types = config.types && config.types.length ? config.types : ['capital'];
     var n = Math.min(config.count || 20, ordered.length);

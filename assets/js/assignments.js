@@ -269,16 +269,27 @@
     var input = host.querySelector('[data-input]');
     var hitBox = host.querySelector('[data-hits]');
 
+    /* Ranked by how the match starts, not by where the country happens to
+       sit in the dataset. Both tests were already here, but ORed together
+       inside one filter they came out in dataset order, which put Namibia
+       ahead of India for "ind" (Windhoek) and Benin ahead of Portugal for
+       "port" (Porto-Novo). Sorting is stable, so ties keep that order. */
     function search(q) {
       var n = W.normalise(q);
       if (!n) return [];
-      return global.GeoData.countries.filter(function (c) {
-        if (chosen.indexOf(c.name) !== -1) return false;
-        return W.normalise(c.name).indexOf(n) === 0 ||
-               W.normalise(c.capital).indexOf(n) === 0 ||
-               W.normalise(c.name).indexOf(n) !== -1 ||
-               W.normalise(c.capital).indexOf(n) !== -1;
-      }).slice(0, 8);
+      var hits = [];
+      global.GeoData.countries.forEach(function (c) {
+        if (chosen.indexOf(c.name) !== -1) return;
+        var name = W.normalise(c.name), cap = W.normalise(c.capital);
+        var rank = name.indexOf(n) === 0 ? 0     /* the country starts with it */
+                 : cap.indexOf(n) === 0  ? 1     /* its capital does */
+                 : name.indexOf(n) !== -1 ? 2    /* it is in the name somewhere */
+                 : cap.indexOf(n) !== -1  ? 3    /* or in the capital */
+                 : -1;
+        if (rank !== -1) hits.push({ c: c, rank: rank });
+      });
+      hits.sort(function (a, b) { return a.rank - b.rank; });
+      return hits.slice(0, 8).map(function (h) { return h.c; });
     }
 
     function drawTokens() {

@@ -74,9 +74,13 @@ A teacher gets one class with one class code. The teacher view has Stream, Class
 and Analytics tabs, plus a gradebook. Students get a Classroom tab where their assigned work
 shows up.
 
-Without accounts, the classroom runs on codes you copy and paste: `LGC-` codes to join,
-`LG1-` codes for assignments and `LGR-` codes to send results back. A teacher can paste in a
-whole batch of result codes at once, or type a score into the gradebook by hand.
+Joining takes an account, so the teacher knows whose work is whose. A student types the six
+characters of the class code and their name; assignments arrive on their own after that, and
+a finished score goes straight back to the gradebook. A score that can't be sent right away
+is queued and goes out as soon as the connection is back. The teacher can also type a score
+into the gradebook by hand.
+
+The long copy-and-paste codes this used to run on (`LGC-`, `LG1-`, `LGR-`) are gone.
 
 ## Accounts (Supabase)
 
@@ -123,9 +127,12 @@ controlled by the policies above.
 ## Maps
 
 The map uses [Leaflet](https://leafletjs.com/) with OpenStreetMap tiles. OpenStreetMap's tile
-server is free and doesn't need an API key, so the app works without any setup. If you want
-higher rate limits, Settings > Map lets you pick CARTO, MapTiler, Thunderforest or Stadia and
-paste in your key. If you pick one of those without a key, it goes back to plain OpenStreetMap.
+server is free and doesn't need an API key, so the app works without any setup.
+
+`map.js` can also draw from CARTO, MapTiler, Thunderforest or Stadia, and falls back to plain
+OpenStreetMap whenever a provider that needs a key doesn't have one. There is no longer a
+screen for choosing between them: the picker was taken out of Settings, so `tileProvider` and
+`apiKey` in the save are the only way in.
 
 Map data © OpenStreetMap contributors.
 
@@ -154,7 +161,9 @@ Leaflet and supabase-js are loaded from CDNs in `index.html`, so there's nothing
 
 `index.html` is the student page and carries the app shell too, so every button on it opens
 the app. `teachers.html` is marketing only: no app shell, and its buttons are plain links into
-`index.html?role=teacher`. It loads one script and nothing else, `globe.js`, for the hero.
+`index.html?role=teacher`. It loads one script and nothing else, `relief.js`, for the hero.
+The student page gets the globe; the teacher page gets the same world opened out flat, so the
+two don't show the same picture.
 
 `?role=` and `?view=` are read once on load and then wiped off the address bar. A role in the
 URL only settles things for a guest; if the save belongs to an account, the account's own role
@@ -168,6 +177,8 @@ teachers.html                   teacher landing page (marketing only, no app she
 assets/css/app.css              main styles
 assets/css/motion.css           button feedback and transitions
 assets/css/demo.css             landing page demo
+assets/css/auth.css             sign in, sign up and passkeys
+assets/css/brand.css            the brand mark
 assets/js/data.js               the 213 places: capitals, coordinates, notes, aliases
 assets/js/cosmetics.js          avatars, decorations, effects, nameplates, banners, themes, achievements
 assets/js/avatars.js            inline SVG artwork for avatars (no emoji fonts needed)
@@ -175,10 +186,13 @@ assets/js/core.js               icons, state, storage, economy, sound, reward ef
 assets/js/map.js                Leaflet setup, country shapes, the map blur
 assets/js/worldmap.js           the outlines as one flat inline SVG, no Leaflet
 assets/js/globe.js              the globe behind the hero headline, drawn to a canvas
+assets/js/relief.js             the same world laid out flat, behind the teachers.html hero
 assets/js/quiz.js               question generation
-assets/js/assignments.js        suggestions, share codes, handing in work
+assets/js/assignments.js        suggestions, the country picker, handing in work
 assets/js/cloud.js              Supabase accounts, save sync, online classes
 assets/js/ui.js                 shell, profile menu, sign in, settings, customization, shop
+assets/js/passkey.js            passkey sign-in
+assets/js/admin-pin.js          the PIN the admin panel asks for
 assets/js/portal.js             study center home screen, built around the map
 assets/js/admin.js              ?admin panel: grants the verified seal and diamonds
 assets/js/teacher.js            teacher view: stream, classwork, people, analytics

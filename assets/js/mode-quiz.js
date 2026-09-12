@@ -270,7 +270,14 @@
     '</div>';
     var skip = document.getElementById('qz-skip');
     if (skip) skip.addEventListener('click', function () {
-      it.nameOk = false; it.capOk = false; it.nameGiven = ''; it.capGiven = '';
+      /* A skip costs what getting both halves wrong costs. It used to cost
+         nothing at all: the report said 0 of 2, but the answer streak
+         survived and the mastery record never heard about the country, so
+         skipping everything you did not know kept a ×3 combo alive. */
+      it.nameGiven = ''; it.capGiven = '';
+      it.nameOk = false; it.capOk = false;
+      pay(false, skip, true);      /* the country */
+      pay(false, skip);            /* and its capital, one sound between them */
       stage = 'marked'; paintMap(); renderSidebar();
     });
 
@@ -346,11 +353,13 @@
     }
   }
 
-  function pay(correct, anchor) {
+  /* `quiet` is for the first of a pair scored together, so a skip marks two
+     wrong answers without playing the same sound twice over itself. */
+  function pay(correct, anchor, quiet) {
     var gains = W.award(correct, { country: item().country.name, baseXp: 12, baseGems: 5 });
     Q.xp += gains.xp; Q.gems += gains.gems;
     if (correct) { W.Sound.correct(gains.combo); W.burstFrom(anchor, gains); }
-    else W.Sound.wrong();
+    else if (!quiet) W.Sound.wrong();
     if (gains.level) {
       W.Sound.levelUp();
       W.confetti({ count: 90, power: 300, y: window.innerHeight * 0.4 });
