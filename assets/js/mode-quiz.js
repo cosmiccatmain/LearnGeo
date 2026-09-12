@@ -392,6 +392,11 @@
     W.Sound.finish();
     if (pct >= 70) W.confetti({ count: 120, power: 340, y: window.innerHeight * 0.35 });
     global.UI.refreshHud(true);
+    /* the quiz that was just counted may be the fifth, or the first
+       perfect one, and neither is checked anywhere else on this path */
+    W.checkAchievements().forEach(function (a, i) {
+      setTimeout(function () { W.toast('Achievement: ' + a.name, '+' + a.reward + ' 💎', I.trophy, 4200); }, 700 + i * 500);
+    });
     renderReport();
   }
 

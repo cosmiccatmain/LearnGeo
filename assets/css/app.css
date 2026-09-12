@@ -2176,11 +2176,15 @@ textarea.input:focus { outline: none; border-color: var(--accent); box-shadow: 0
    ================================================================== */
 .rings {
   position: relative; margin-top: 16px;
-  display: grid; grid-template-columns: 240px 1fr; gap: 26px; align-items: center;
+  display: grid; grid-template-columns: var(--ring-size) minmax(0, 560px);
+  gap: 26px; align-items: center; justify-content: center;
   background: var(--white); border: 1px solid var(--line);
   border-radius: 16px; padding: 20px 22px;
+  --ring-size: 264px;
 }
-.rings__viz { position: relative; width: 240px; height: 240px; }
+.rings__viz {
+  position: relative; width: var(--ring-size); max-width: 100%; aspect-ratio: 1;
+}
 .rings__svg { width: 100%; height: 100%; transform: rotate(-90deg); display: block; }
 
 .ring__track { fill: none; stroke: var(--line-soft); }
@@ -2190,24 +2194,31 @@ textarea.input:focus { outline: none; border-color: var(--accent); box-shadow: 0
 }
 .ring__hit { fill: none; stroke: transparent; cursor: pointer; outline: none; }
 
-/* Dim the other rings while one is being read. */
+/* Dim the other rings while one is being read. The one being read thickens
+   by less than the gap around it, so it never touches its neighbours. */
 .rings.is-focused .ring__arc { opacity: .26; }
-.rings.is-focused .ring__arc.is-on { opacity: 1; stroke-width: 13; }
+.rings.is-focused .ring__arc.is-on { opacity: 1; stroke-width: 10; }
 .rings.is-focused .ring__track { opacity: .55; }
 
+/* ---- the readout in the hole ----
+   The hole is 134 of the 240 the dial is drawn in, so a plate of 48% of the
+   dial clears the innermost ring on every side, corners included. Its width
+   is what portal.js measures the number against. */
 .rings__mid {
-  position: absolute; inset: 0; display: grid; place-content: center;
-  text-align: center; pointer-events: none;
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  width: 48%; text-align: center; pointer-events: none;
 }
 .rings__mid-n {
-  display: block; font-family: var(--mono); font-size: 23px; font-weight: 650;
+  display: inline-block; white-space: nowrap;
+  font-family: var(--mono); font-size: 24px; font-weight: 650;
+  font-variant-numeric: tabular-nums;
   letter-spacing: -.04em; line-height: 1.1; color: var(--ink);
   transition: color .2s var(--ease);
 }
-.rings__mid-n span { font-size: 15px; color: var(--faint); font-weight: 500; }
+.rings__mid-n span { font-size: .64em; color: var(--faint); font-weight: 500; }
 .rings__mid-l {
-  display: block; margin-top: 2px; font-size: 11px; color: var(--faint);
-  max-width: 74px; line-height: 1.25; margin-inline: auto;
+  display: block; margin-top: 3px; font-size: 11px; color: var(--faint);
+  line-height: 1.25;
 }
 
 /* ---- legend ---- */
@@ -2219,13 +2230,27 @@ textarea.input:focus { outline: none; border-color: var(--accent); box-shadow: 0
 }
 .rleg:hover, .rleg.is-on { background: var(--paper); }
 .rleg__dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
-.rleg__t { flex: 1; min-width: 0; }
+.rleg__t { flex: 0 1 148px; min-width: 0; }
 .rleg__t b {
   display: block; font-family: var(--mono); font-size: 15px; font-weight: 620;
+  font-variant-numeric: tabular-nums;
   letter-spacing: -.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.rleg__t span { display: block; font-size: 11.5px; color: var(--faint); }
-.rleg__pct { flex: none; font-size: 12px; color: var(--faint); }
+.rleg__t span {
+  display: block; font-size: 11.5px; color: var(--faint);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+/* The bar takes the slack, so the percentage stays beside its own row
+   rather than drifting off to the far edge of a wide card. */
+.rleg__bar {
+  flex: 1 1 auto; min-width: 40px; height: 5px; border-radius: 3px;
+  background: var(--line-soft); overflow: hidden;
+}
+.rleg__bar i {
+  display: block; height: 100%; border-radius: 3px;
+  transition: width .8s var(--ease);
+}
+.rleg__pct { flex: 0 0 38px; font-size: 12px; color: var(--faint); text-align: right; }
 
 /* ---- the card that follows the cursor ---- */
 .rings__tip {
@@ -2239,11 +2264,19 @@ textarea.input:focus { outline: none; border-color: var(--accent); box-shadow: 0
 @keyframes tipIn { from { opacity: 0; transform: translateY(4px); } }
 
 @media (max-width: 860px) {
-  .rings { grid-template-columns: 1fr; justify-items: center; gap: 16px; }
+  .rings { grid-template-columns: minmax(0, 1fr); justify-items: center; gap: 16px; }
   .rings__legend { width: 100%; }
+}
+/* No room for the bar and the number both: the number wins. */
+@media (max-width: 460px) {
+  .rings { --ring-size: 240px; padding: 18px 14px; }
+  .rleg { gap: 9px; padding: 9px 8px; }
+  .rleg__t { flex: 1 1 auto; }
+  .rleg__bar { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {
   .ring__arc { transition: opacity .2s, stroke-width .2s; }
+  .rleg__bar i { transition: none; }
 }
 
 /* ==================================================================
