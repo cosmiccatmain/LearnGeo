@@ -39,6 +39,18 @@
     <button class="btn btn--ghost btn--sm hidden" id="nav-continue">Continue where you left off</button>
     <button class="btn btn--ghost btn--sm" id="nav-signin">Sign in</button>
     <button class="btn btn--primary btn--sm" data-launch="portal">Open the app</button>
+    <!-- the same links again, for the widths where the row above does not fit -->
+    <button class="nav__burger" id="nav-menu-btn" aria-expanded="false" aria-controls="nav-menu" aria-label="Sections">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+    </button>
+    <div class="nav__sheet" id="nav-menu">
+      <a href="#try">Try it</a>
+      <a href="#modes">Modes</a>
+      <a href="#coverage">What's in it</a>
+      <a href="#screens">Screenshots</a>
+      <a href="#rewards">Rewards</a>
+      <a href="teachers.html">For teachers</a>
+    </div>
   </nav>
 
   <header class="hero" id="top">
@@ -49,8 +61,7 @@
     <h1>Learn geography like a <em>superstar</em>.</h1>
     <p class="hero__sub">
       Staring at a list of capitals doesn't really work. Here you answer a question and the map
-      shows you where the place is, so the name sticks to an actual spot. It has all 193 UN members,
-      both observer states, and 18 territories that tend to come up in class.
+      shows you where the place is, so the name sticks to an actual spot.
     </p>
     <div class="hero__cta">
       <button class="btn btn--accent btn--lg" data-launch="learn">Start learning</button>
@@ -228,7 +239,7 @@
           <div class="shot__body">
             <div class="home-shot__head">
               <div>
-                <b>Good evening, Explorer.</b>
+                <b id="shot-greeting">Good evening, Explorer.</b>
                 <span>1,240 questions answered · 86% accuracy · 124 places still to go</span>
               </div>
               <div class="home-shot__score"><b>89</b><span>/ 213</span>
@@ -340,7 +351,7 @@
   <!-- rewards -->
   <section class="section--paper section" id="rewards">
     <div class="section__inner">
-      <div class="prose-block">
+      <div class="split">
         <div>
           <span class="eyebrow">Rewards</span>
           <h2 style="margin-top:12px;font-size:clamp(28px,3.4vw,40px)">You earn stuff for getting answers right.</h2>
@@ -360,6 +371,48 @@
               <div><b>10 achievements</b><span>Each one pays out diamonds when you unlock it.</span></div></li>
           </ul>
           <button class="btn btn--accent btn--lg" style="margin-top:26px" data-launch="learn">Start learning</button>
+        </div>
+
+        <!-- The profile the copy is describing, with the real numbers: base
+             XP and diamonds are 10 and 4, the streak multiplier tops out at
+             ×3, level 8 costs 360 XP, and these are four of the ten
+             achievements at what they actually pay. -->
+        <div>
+          <div class="preview-card">
+            <div class="preview-card__bar">
+              <span class="preview-card__dot"></span><span class="preview-card__dot"></span><span class="preview-card__dot"></span>
+              <span class="shot__label" style="margin-left:auto">Profile</span>
+            </div>
+            <div class="rw">
+              <div class="rw__lv">
+                <div class="rw__lv-top">
+                  <b class="mono">Level 7</b>
+                  <span class="mono">215 / 360 XP</span>
+                </div>
+                <div class="pbar" style="height:6px"><div class="pbar__fill pbar__fill--accent" style="width:60%"></div></div>
+                <span class="rw__lv-note">145 XP to go, which is five right in a row on a ×3 streak.</span>
+              </div>
+
+              <div class="rw__earn">
+                <span class="eyebrow">One right answer, on a ×3 streak</span>
+                <div class="pv-rewards" style="margin-top:10px">
+                  <span class="chip chip--xp mono">+30 XP</span>
+                  <span class="chip chip--gem mono">+12 <span class="gem">&#128142;</span></span>
+                  <span class="chip chip--fire mono">×3 streak</span>
+                </div>
+              </div>
+
+              <div class="rw__ach">
+                <div class="rw__ach-top"><span class="eyebrow">Achievements</span><span class="mono">2 / 10</span></div>
+                <ul>
+                  <li class="is-done"><b>First Steps</b><span>Answer your first question</span><i class="mono">25</i></li>
+                  <li class="is-done"><b>On a Roll</b><span>Hit a 10-answer streak</span><i class="mono">75</i></li>
+                  <li><b>Unstoppable</b><span>Hit a 25-answer streak</span><i class="mono">200</i></li>
+                  <li><b>Globetrotter</b><span>Master 100 countries</span><i class="mono">600</i></li>
+                </ul>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

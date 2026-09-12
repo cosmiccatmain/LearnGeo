@@ -42,6 +42,7 @@
       if (global.Cloud && global.Cloud.signedIn) global.UI.showApp('portal');
       else global.UI.openAuth('signin');
     });
+    navMenu();
     global.UI.refreshLanding();
     if (global.Cloud) global.Cloud.init();
 
@@ -59,10 +60,42 @@
 
     W.touchDaily();
     global.UI.refreshHud();
+    shotGreeting();
     landingMaps();
     openFromUrl();
 
     window.addEventListener('resize', function () { global.GeoMap.invalidate(); });
+  }
+
+  /* ---- the section links, on the widths where they do not fit ----
+     Below 860px the row of links in the bar is hidden, which used to
+     leave a phone with no way up to the teacher page or down to the demo
+     short of scrolling the whole page. The same links live in a sheet
+     under the bar instead. */
+  function navMenu() {
+    var btn = document.getElementById('nav-menu-btn');
+    var sheet = document.getElementById('nav-menu');
+    if (!btn || !sheet) return;
+
+    function open(on) {
+      sheet.classList.toggle('is-open', on);
+      btn.setAttribute('aria-expanded', on ? 'true' : 'false');
+    }
+
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      open(!sheet.classList.contains('is-open'));
+    });
+    /* picking something is the end of it, and so is anything else:
+       clicking away, pressing escape, or the row fitting again */
+    sheet.addEventListener('click', function () { open(false); });
+    document.addEventListener('click', function () { open(false); });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') open(false);
+    });
+    global.addEventListener('resize', function () {
+      if (global.innerWidth > 860) open(false);
+    });
   }
 
   /* ---- teachers.html hands the role over in the URL ----
@@ -121,6 +154,17 @@
       return;
     }
     global.UI.showApp(view || 'portal');
+  }
+
+  /* The Home screenshot greets you by the hour, the same way the real
+     home screen does, so the picture is not stuck on "evening" at nine in
+     the morning. */
+  function shotGreeting() {
+    var el = document.getElementById('shot-greeting');
+    if (!el) return;
+    var h = new Date().getHours();
+    var when = h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
+    el.textContent = when + ', Explorer.';
   }
 
   /* ---- the two maps on the landing page ----

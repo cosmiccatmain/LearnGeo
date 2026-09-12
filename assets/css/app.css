@@ -218,7 +218,9 @@ a { color: inherit; text-decoration: none; }
   font-size: 18px; color: var(--muted); line-height: 1.62;
 }
 .hero__cta { margin-top: 34px; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
-.hero__note { margin-top: 16px; font-size: 13px; color: var(--faint); }
+/* Reads over the globe rather than over the page, so it cannot be as
+   quiet as a note on white would be. */
+.hero__note { margin-top: 16px; font-size: 13px; color: var(--muted); }
 
 /* stat strip — a card tucked under the hero rather than four numbers
    floating in the white space between two sections */
@@ -242,8 +244,39 @@ a { color: inherit; text-decoration: none; }
 }
 .stat__l { margin-top: 4px; font-size: 12.5px; color: var(--faint); }
 
+/* The menu the six section links fold into once the row will not fit.
+   It hangs off the bar rather than pushing the page down, so opening it
+   never moves what is being read. */
+.nav__burger {
+  display: none; flex: none; width: 36px; height: 36px; border-radius: 9px;
+  place-items: center; color: var(--ink);
+  transition: background .15s var(--ease);
+}
+.nav__burger:hover { background: var(--line-soft); }
+.nav__burger svg { width: 20px; height: 20px; }
+.nav__sheet {
+  display: none;
+  position: absolute; top: 100%; left: 0; right: 0;
+  padding: 8px 14px 14px;
+  /* opaque, unlike the bar above it: a list of links with the headline
+     showing through it is unreadable */
+  background: var(--white);
+  border-bottom: 1px solid var(--line);
+  box-shadow: var(--shadow-lg);
+}
+.nav__sheet.is-open { display: grid; gap: 2px; }
+.nav__sheet a {
+  padding: 11px 10px; border-radius: 10px;
+  font-size: 15px; font-weight: 500; color: var(--ink-2);
+}
+.nav__sheet a:hover { background: var(--paper); color: var(--ink); }
+
 /* sections */
 .section { max-width: 1180px; margin: 0 auto; padding: 84px 32px; }
+/* Every section is reached from a link in a bar that is stuck to the top
+   of the window, so each one has to keep the bar's height clear of itself
+   or it arrives with its first line tucked underneath. */
+.landing section[id], .landing header[id] { scroll-margin-top: calc(var(--topbar-h) + 16px); }
 .section--paper { background: var(--paper); max-width: none; border-block: 1px solid var(--line); }
 .section--paper > .section__inner { max-width: 1180px; margin: 0 auto; }
 .section__head { max-width: 62ch; margin-bottom: 42px; }
@@ -1177,6 +1210,7 @@ textarea.input:focus { outline: none; border-color: var(--accent); box-shadow: 0
 }
 @media (max-width: 860px) {
   .nav__links { display: none; }
+  .nav__burger { display: grid; }
   .stats { grid-template-columns: 1fr 1fr; }
   .stat:nth-child(2) { border-right: none; }
   .stat:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
@@ -1193,6 +1227,7 @@ textarea.input:focus { outline: none; border-color: var(--accent); box-shadow: 0
 /* Narrow phones: the top bar has to shed weight so the avatar stays reachable. */
 @media (max-width: 560px) {
   .nav { padding: 0 14px; gap: 10px; }
+  .nav__burger { width: 32px; }
   #nav-continue { display: none; }
   .hero__cta .btn { width: 100%; }
   .topbar { padding: 0 10px; gap: 6px; }
@@ -1211,6 +1246,13 @@ textarea.input:focus { outline: none; border-color: var(--accent); box-shadow: 0
   .vtabs { overflow-x: auto; }
   .split { grid-template-columns: 1fr !important; }
   .shop-grid { grid-template-columns: repeat(auto-fill, minmax(108px, 1fr)); }
+}
+
+/* Below this the wordmark and the two buttons stop fitting on one line,
+   and it is the buttons that get squashed: "Open the app" comes out as
+   "Dpen the app". The mark on its own still says whose page this is. */
+@media (max-width: 374px) {
+  .nav .brand__text { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1534,6 +1576,48 @@ textarea.input:focus { outline: none; border-color: var(--accent); box-shadow: 0
 }
 
 .prose-block { max-width: 720px; }
+
+/* ================================================================
+   LANDING — the profile card beside the rewards copy
+   ================================================================ */
+.rw { padding: 22px; display: grid; gap: 20px; }
+.rw__lv-top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 9px; }
+.rw__lv-top b { font-size: 20px; font-weight: 620; letter-spacing: -.03em; }
+.rw__lv-top span { font-size: 13px; color: var(--faint); }
+.rw__lv-note { display: block; margin-top: 9px; font-size: 12.5px; color: var(--faint); }
+
+.rw__earn { padding-top: 18px; border-top: 1px solid var(--line-soft); }
+
+.rw__ach { padding-top: 18px; border-top: 1px solid var(--line-soft); }
+.rw__ach-top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.rw__ach-top .mono { font-size: 12px; color: var(--faint); }
+.rw__ach ul { margin: 10px 0 0; padding: 0; list-style: none; display: grid; gap: 1px; }
+.rw__ach li {
+  display: grid; grid-template-columns: 1fr auto; align-items: baseline;
+  gap: 2px 12px; padding: 9px 0 9px 26px; position: relative;
+  border-bottom: 1px solid var(--line-soft);
+}
+.rw__ach li:last-child { border-bottom: none; }
+.rw__ach li b { grid-area: 1 / 1; font-size: 13.5px; font-weight: 580; color: var(--faint); }
+.rw__ach li span { grid-area: 2 / 1; font-size: 12px; color: var(--faint); }
+.rw__ach li i {
+  grid-area: 1 / 2 / span 2 / 3; align-self: center; justify-self: end;
+  font-style: normal; font-size: 12.5px; color: var(--faint);
+}
+.rw__ach li i::after { content: ' \1F48E'; font-family: var(--emoji); font-size: .86em; }
+/* the ring in the margin: filled for the two that are unlocked */
+.rw__ach li::before {
+  content: ''; position: absolute; left: 3px; top: 12px;
+  width: 13px; height: 13px; border-radius: 50%;
+  border: 1.5px solid var(--line);
+}
+.rw__ach li.is-done b { color: var(--ink); }
+.rw__ach li.is-done i { color: #0369A1; }
+.rw__ach li.is-done::before {
+  border-color: var(--success); background: var(--success);
+  box-shadow: inset 0 0 0 2px var(--white), inset 0 0 0 5px var(--success);
+}
+
 .check-grid--3 { grid-template-columns: repeat(3, 1fr); }
 @media (max-width: 700px) { .check-grid--3 { grid-template-columns: 1fr 1fr; } }
 

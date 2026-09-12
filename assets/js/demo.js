@@ -6,7 +6,11 @@
      2. capital -> country
      3. name the country from its outline (shapes in demo-shapes.js)
    Nothing here touches the saved state. When it's done we ask if they
-   want to sign up as a student or a teacher.
+   want to sign up as a student or a teacher, once per visit.
+
+   The options are lettered A to D and those letters work: the card
+   answers to the keyboard whenever it is the thing on screen, which is
+   what anyone who has used the app itself will reach for.
 -------------------------------------------------------------------*/
 (function (global) {
   'use strict';
@@ -28,7 +32,7 @@
   var ICON_X = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>';
   var ICON_GLOBE = '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18a15 15 0 0 1 0-18"/></svg>';
 
-  var root, qs, at, results, locked;
+  var root, qs, at, results, locked, asked = false;
 
   function esc(s) {
     return String(s).replace(/[&<>"']/g, function (ch) {
@@ -44,6 +48,14 @@
     return a;
   }
 
+  /* The back of a flashcard prints the capital's position, so the demo
+     prints it the same way rather than inventing a second format. */
+  function where(c) {
+    if (!c || typeof c.lat !== 'number') return '';
+    return Math.abs(c.lat).toFixed(2) + '\u00B0 ' + (c.lat < 0 ? 'S' : 'N') + ', ' +
+           Math.abs(c.lon).toFixed(2) + '\u00B0 ' + (c.lon < 0 ? 'W' : 'E');
+  }
+
   function find(name) {
     var list = global.GeoData.countries;
     for (var i = 0; i < list.length; i++) if (list[i].name === name) return list[i];
@@ -51,39 +63,80 @@
   }
 
   /* Three wrong answers, from the same region when possible so it isn't
-     obvious which one is right. */
-  function wrongOnes(c, key) {
+     obvious which one is right. `only` narrows the pool: the outline
+     question draws its decoys from the countries that have an outline
+     here too, so nobody is asked to rule out a country the size of a town.
+
+     They are kept near the answer's own length as well. Partly because a
+     decoy twice as long as everything else is not a decoy, and partly
+     because the answers are short and a thirty-character one wraps its
+     button onto a second line, which makes the card taller than the
+     question before it and moves the page while it is being read. */
+  function wrongOnes(c, key, only) {
+    var room = Math.max(String(c[key]).length + 6, 14);
     var all = global.GeoData.countries.filter(function (x) {
-      return x.name !== c.name && x.status !== 2 && x[key] !== c[key];
+      return x.name !== c.name && x.status !== 2 && x[key] !== c[key] &&
+             x[key].length <= room && (!only || only[x.name]);
     });
     var near = shuffle(all.filter(function (x) { return x.region === c.region; }));
     var far = shuffle(all.filter(function (x) { return x.region !== c.region; }));
     return near.concat(far).slice(0, 3).map(function (x) { return x[key]; });
   }
 
+  /* Three questions, or as many as the data can actually supply: nothing
+     in here is allowed to throw, because a card that is dead on arrival
+     costs more than a round of two questions ever would.
+
+     All three show the country's outline, since that is the whole claim
+     the app makes — a name sticks once it has a shape and a place to go
+     with it. Question one names the country, so its outline is up from the
+     start; question two would be handing over the answer, so its outline
+     waits until the answer is in. */
   function build() {
+    var shapes = global.DemoShapes || {};
+    var outlined = {};
+    Object.keys(shapes).forEach(function (n) { if (find(n)) outlined[n] = true; });
+
     var pool = shuffle(FAMILIAR.map(find).filter(function (c) { return c && !c.note; }));
+    pool = pool.filter(function (c) { return outlined[c.name]; })
+               .concat(pool.filter(function (c) { return !outlined[c.name]; }));
     var a = pool[0], b = pool[1];
 
-    var shapes = shuffle(Object.keys(global.DemoShapes || {}).filter(function (n) {
-      return find(n) && n !== a.name && n !== b.name;
+    var drawn = shuffle(Object.keys(outlined).filter(function (n) {
+      return (!a || n !== a.name) && (!b || n !== b.name);
     }));
-    var s = find(shapes[0]);
+    var s = find(drawn[0]);
 
-    return [
-      { label: 'Country → Capital', ask: 'What’s the capital of', subject: a.name,
-        answer: a.capital, recap: a.name, options: shuffle([a.capital].concat(wrongOnes(a, 'capital'))) },
-      { label: 'Capital → Country', ask: 'Which country has this capital?', subject: b.capital,
-        answer: b.name, recap: b.capital, options: shuffle([b.name].concat(wrongOnes(b, 'name'))) },
-      { label: 'Identify the country', ask: 'Which country is this?', shape: global.DemoShapes[s.name],
-        answer: s.name, recap: 'The outline', options: shuffle([s.name].concat(wrongOnes(s, 'name'))) }
-    ];
+    var out = [];
+    if (a) out.push({
+      label: 'Country → Capital', ask: 'What’s the capital of', subject: a.name + '?',
+      answer: a.capital, recap: a.name, fact: a.region + ' · ' + where(a),
+      shape: shapes[a.name],
+      options: shuffle([a.capital].concat(wrongOnes(a, 'capital')))
+    });
+    if (b) out.push({
+      label: 'Capital → Country', ask: 'Which country has this capital?', subject: b.capital,
+      answer: b.name, recap: b.capital, fact: b.region + ' · ' + where(b),
+      shape: shapes[b.name], keepBack: true,
+      options: shuffle([b.name].concat(wrongOnes(b, 'name')))
+    });
+    if (s) out.push({
+      label: 'Identify the country', ask: 'Which country is this?', shape: shapes[s.name],
+      answer: s.name, recap: 'The outline', fact: s.region + ' · capital ' + s.capital,
+      options: shuffle([s.name].concat(wrongOnes(s, 'name', outlined)))
+    });
+    return out;
   }
 
   function start() {
     qs = build();
     at = 0;
     results = [];
+    if (!qs.length) {                       /* no data to ask about */
+      root.innerHTML = '';
+      setBar('Try it in the app');
+      return;
+    }
     draw();
   }
 
@@ -94,19 +147,31 @@
     }).join('') + '</div>';
   }
 
+  /* The question, the outline and the four options all sit in one stage of
+     a fixed shape: the options are pinned to the bottom of it and the
+     outline takes whatever is left, so the card is exactly the same height
+     on all three questions and nothing under it moves as you go. */
   function draw() {
     var q = qs[at];
     locked = false;
     setBar('Question ' + (at + 1) + ' of ' + qs.length);
 
-    var subject = q.shape
-      ? '<svg class="demo__shape" viewBox="0 0 200 200" role="img" aria-label="A country outline"><path d="' + q.shape + '"/></svg>'
-      : '<div class="demo__q">' + esc(q.subject) + (q.label === 'Country → Capital' ? '?' : '') + '</div>';
+    var outline = q.shape
+      ? '<div class="demo__shape-wrap' + (q.keepBack ? ' is-back' : '') + '">' +
+          '<svg class="demo__shape" viewBox="0 0 200 200" preserveAspectRatio="xMidYMid meet" ' +
+            'role="img" aria-label="The outline of a country"><path d="' + q.shape + '"/></svg>' +
+        '</div>'
+      : '<div class="demo__shape-wrap"></div>';
+    /* Always rendered, empty on the outline question: the stage keeps one
+       shape whatever is being asked, so the outline lands in the same
+       place and at the same size on all three. */
+    var subject = '<div class="demo__q">' + esc(q.subject || '') + '</div>';
 
     root.innerHTML =
       '<div class="demo__top"><span class="eyebrow">' + esc(q.label) + '</span>' + dots() + '</div>' +
       '<div class="demo__stage is-in">' +
-        '<div class="demo__ask">' + esc(q.ask) + '</div>' + subject +
+        '<div class="demo__ask">' + esc(q.ask) + '</div>' + subject + outline +
+        '<div class="demo__fact" aria-live="polite"></div>' +
         '<div class="options">' + q.options.map(function (o, i) {
           return '<button class="option" data-i="' + i + '">' +
             '<span class="option__key">' + KEYS[i] + '</span>' +
@@ -114,11 +179,31 @@
             '<span class="option__mark"></span></button>';
         }).join('') + '</div>' +
       '</div>' +
-      '<div class="demo__foot"><span class="demo__note">Pick one.</span></div>';
+      '<div class="demo__foot"><span class="demo__note">Pick one, or press ' +
+        KEYS.slice(0, q.options.length).map(function (k) { return '<kbd>' + k + '</kbd>'; }).join('') +
+      '.</span></div>';
 
     W.$$('.option', root).forEach(function (b) {
       b.addEventListener('click', function () { choose(parseInt(b.dataset.i, 10)); });
     });
+    fitShape();
+  }
+
+  /* Every outline is drawn into the same 200 x 200 box, so a wide country
+     like Iceland ends up a third the size of a tall one like Chile. Crop
+     the view to what the path actually covers and each one arrives at the
+     same size, filling the space the card has for it. */
+  function fitShape() {
+    var svg = root.querySelector('.demo__shape');
+    var path = svg && svg.querySelector('path');
+    if (!path || !path.getBBox) return;
+    try {
+      var b = path.getBBox();
+      if (!b.width || !b.height) return;
+      var pad = Math.max(b.width, b.height) * 0.04;
+      svg.setAttribute('viewBox', (b.x - pad) + ' ' + (b.y - pad) + ' ' +
+                                  (b.width + pad * 2) + ' ' + (b.height + pad * 2));
+    } catch (e) { /* the 200 x 200 box is a fine fallback */ }
   }
 
   function choose(i) {
@@ -135,8 +220,20 @@
       if (q.options[j] === q.answer) { b.classList.add('is-right'); mark.innerHTML = ICON_CHECK; }
       else if (j === i) { b.classList.add('is-wrong'); mark.innerHTML = ICON_X; }
     });
+    /* The outline settles on the right answer whichever way the guess
+       went. It is a picture of that country and it always was, so turning
+       it red for a wrong guess says something untrue about the drawing;
+       the red belongs on the option that was picked. */
+    var wrap = root.querySelector('.demo__shape-wrap');
+    if (wrap) wrap.classList.remove('is-back');
     var shape = root.querySelector('.demo__shape');
-    if (shape) shape.classList.add(right ? 'is-right' : 'is-wrong');
+    if (shape) shape.classList.add('is-solved');
+
+    var fact = root.querySelector('.demo__fact');
+    if (fact) {
+      fact.innerHTML = '<b>' + esc(q.answer) + '</b><span class="mono">' + esc(q.fact || '') + '</span>';
+      fact.classList.add('is-in');
+    }
 
     root.querySelector('.demo__dots').outerHTML = dots();
     sound(right);
@@ -145,14 +242,23 @@
     var foot = root.querySelector('.demo__foot');
     foot.innerHTML =
       '<span class="demo__note ' + (right ? 'is-right' : 'is-wrong') + '">' +
-        (right ? '<b>Correct!</b>' : '<b>Not quite.</b> It’s ' + esc(q.answer) + '.') + '</span>' +
+        (right ? '<b>Correct.</b> ' + esc(scoreLine()) : '<b>Not quite.</b> It’s ' + esc(q.answer) + '.') + '</span>' +
       '<button class="btn btn--primary btn--sm" data-next>' + (last ? 'See my score' : 'Next question') + '</button>';
     var next = foot.querySelector('[data-next]');
-    next.addEventListener('click', function () {
-      if (last) finish();
-      else { at++; draw(); }
-    });
+    next.addEventListener('click', advance);
     next.focus({ preventScroll: true });
+  }
+
+  /* Where they stand, said in words rather than as a second scoreboard. */
+  function scoreLine() {
+    var got = results.filter(function (r) { return r.right; }).length;
+    if (got === results.length) return got === 1 ? 'One down.' : got + ' in a row.';
+    return got + ' of ' + results.length + ' so far.';
+  }
+
+  function advance() {
+    if (at === qs.length - 1) finish();
+    else { at += 1; draw(); }
   }
 
   function sound(right) {
@@ -199,7 +305,14 @@
     if (got === qs.length && W.confetti && W.state.settings.effects) {
       try { W.confetti({ count: 40, power: 170 }); } catch (e) {}
     }
-    setTimeout(popup, 650);
+
+    /* Asked once a visit, and only after the score has had a moment to be
+       read. Someone who plays a second round has already answered the
+       question, and being asked again is just a door held shut. */
+    if (!asked && !(global.Cloud && global.Cloud.signedIn)) {
+      asked = true;
+      setTimeout(popup, 1600);
+    }
   }
 
   function popup() {
@@ -262,10 +375,55 @@
     if (bar) bar.textContent = text;
   }
 
+  /* ---- the keyboard ----
+     A, B, C, D and 1 to 4 pick an option; Enter or the space bar takes the
+     next question. The card only listens while it is the thing the visitor
+     is looking at: not once the app is open over the top of it, not behind
+     a dialog, not while it is scrolled off the screen, and never while
+     something is being typed into. */
+  function listening() {
+    if (!root || !root.firstChild) return false;
+    var app = document.getElementById('app');
+    if (app && app.classList.contains('is-open')) return false;
+    if (document.body.classList.contains('no-scroll')) return false;   /* a dialog is up */
+    var r = root.getBoundingClientRect();
+    return r.bottom > 80 && r.top < (global.innerHeight || 0) - 80;
+  }
+
+  function typing(el) {
+    if (!el) return false;
+    var tag = el.tagName;
+    return el.isContentEditable || tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
+  }
+
+  function onKey(e) {
+    if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey || typing(e.target)) return;
+    if (!listening()) return;
+
+    var next = root.querySelector('[data-next]');
+    if (next && (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar')) {
+      e.preventDefault();
+      advance();
+      return;
+    }
+    if (locked || !qs || !qs[at]) return;
+
+    var k = String(e.key || '').toUpperCase();
+    var i = KEYS.indexOf(k);
+    if (i === -1 && k >= '1' && k <= '4') i = Number(k) - 1;
+    if (i < 0 || i >= qs[at].options.length) return;
+
+    e.preventDefault();
+    var btn = root.querySelector('.option[data-i="' + i + '"]');
+    if (btn) btn.classList.add('is-tapped');
+    choose(i);
+  }
+
   function init() {
     root = document.getElementById('demo-body');
     if (!root || !global.GeoData) return;
     start();
+    document.addEventListener('keydown', onKey);
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);

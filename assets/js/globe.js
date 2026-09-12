@@ -11,7 +11,10 @@
    frame. Points are thinned once at load, so a frame is arithmetic over
    a few thousand coordinates and nothing else.
 
-   It drifts on its own and leans toward the pointer.
+   It drifts on its own and leans toward the pointer, and only while it
+   is actually being looked at: scrolled past, or with the app open over
+   the top of it, the loop stops rather than re-projecting a few thousand
+   coordinates a second into a canvas nobody can see.
 -------------------------------------------------------------------*/
 (function (global) {
   'use strict';
@@ -23,7 +26,7 @@
   var EASE = 0.055;        /* how quickly it catches up to the pointer */
   var THIN = 0.7;          /* drop points closer together than this, in degrees */
 
-  var canvas, ctx, land = null, raf = null, sized = 0;
+  var canvas, ctx, land = null, raf = null, sized = 0, running = false, onScreen = true;
   var lon = -20, lat = 18;             /* where the projection is centred */
   var spin = -20, targetLon = 0, targetLat = 18;
   var last = 0, reduced = false;
@@ -165,6 +168,46 @@
     draw();
   }
 
+  /* Whether the globe is worth animating at all: not when reduced motion
+     was asked for, not while the hero is off the screen, and not once the
+     app has been opened over the landing page. */
+  function wanted() {
+    if (reduced || !canvas) return false;
+    if (!onScreen) return false;
+    var app = document.getElementById('app');
+    if (app && app.classList.contains('is-open')) return false;
+    return true;
+  }
+
+  function sync() {
+    var want = wanted();
+    if (want === running) return;
+    running = want;
+    if (want) {
+      last = 0;                       /* no catch-up leap after a pause */
+      raf = global.requestAnimationFrame(frame);
+      global.addEventListener('pointermove', point, { passive: true });
+    } else {
+      if (raf) global.cancelAnimationFrame(raf);
+      raf = null;
+      global.removeEventListener('pointermove', point);
+    }
+  }
+
+  /* The app is opened by a click somewhere on the landing page, and there
+     is no event for "a class was added", so the check rides along with
+     the clicks and with anything else that could have changed the answer. */
+  function watch() {
+    if (global.IntersectionObserver) {
+      new global.IntersectionObserver(function (entries) {
+        onScreen = entries.some(function (e) { return e.isIntersecting; });
+        sync();
+      }, { rootMargin: '120px' }).observe(canvas.parentNode);
+    }
+    document.addEventListener('click', function () { setTimeout(sync, 0); }, true);
+    document.addEventListener('visibilitychange', sync);
+  }
+
   function point(e) {
     var x = e.clientX / global.innerWidth - 0.5;
     var y = e.clientY / global.innerHeight - 0.5;
@@ -201,13 +244,11 @@
 
     /* Asked for less motion: draw the globe once and leave it there, rather
        than repainting sixty times a second to show the same picture. */
-    if (!reduced) {
-      raf = global.requestAnimationFrame(frame);
-      global.addEventListener('pointermove', point, { passive: true });
-    }
+    watch();
+    sync();
     global.addEventListener('resize', function () {
       sized = 0;
-      if (reduced) draw();
+      if (!running) draw();
     }, { passive: true });
 
     /* The land is a megabyte, so it is never on the critical path: the
@@ -215,7 +256,7 @@
     shapes().then(function (byName) {
       land = prepare(byName);
       canvas.parentNode.classList.add('has-land');
-      if (reduced) draw();
+      if (!running) draw();
     }, function () {});
   }
 

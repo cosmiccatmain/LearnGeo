@@ -18,8 +18,10 @@
   font-family: var(--mono); font-size: 12px; font-weight: 600;
 }
 
-/* the quiz card itself */
-.demo { min-height: 468px; display: flex; flex-direction: column; }
+/* The quiz card itself. The height is set here rather than left to the
+   question, so that going from a capital to a country to an outline never
+   moves the page under the pointer. */
+.demo { min-height: 534px; display: flex; flex-direction: column; }
 .demo .preview-card__bar { justify-content: space-between; }
 .demo__lights { display: flex; gap: 6px; }
 .demo__bar-label { font-family: var(--mono); font-size: 11.5px; color: var(--faint); }
@@ -35,26 +37,51 @@
 .demo__dots i.is-right { background: var(--success); }
 .demo__dots i.is-wrong { background: var(--danger); }
 
-.demo__stage { flex: 1; display: flex; flex-direction: column; }
+.demo__stage { flex: 1; display: flex; flex-direction: column; min-height: 0; }
 .demo__stage.is-in { animation: demoIn .28s var(--ease); }
 @keyframes demoIn { from { opacity: 0; transform: translateX(10px); } }
 
 .demo__ask { margin-top: 18px; font-size: 13px; color: var(--faint); }
-.demo__q { margin-top: 4px; font-size: 26px; font-weight: 640; letter-spacing: -.03em; line-height: 1.15; }
-
-.demo__shape {
-  margin: 12px auto 0; width: 100%; max-width: 190px; aspect-ratio: 1;
-  display: block;
+.demo__q {
+  margin-top: 4px; min-height: 1.15em;
+  font-size: 26px; font-weight: 640; letter-spacing: -.03em; line-height: 1.15;
 }
+
+/* The outline takes the room left between the question and the options
+   rather than claiming a square of its own, which is what keeps the card
+   the same height whichever question is up. It is laid out over the gap
+   rather than in it: an inline SVG reports a square of its own as its
+   size, and a square is exactly what there is no room for here.
+
+   The floor is well under the height it usually gets, so that whatever an
+   option needs beyond one line comes out of here first and the card holds
+   its height instead of the page moving. */
+.demo__shape-wrap { position: relative; flex: 1 1 0; min-height: 88px; margin: 10px 0 2px; }
+.demo__shape {
+  position: absolute; inset: 0; width: 100%; height: 100%; display: block;
+  transition: opacity .34s var(--ease), transform .34s var(--ease);
+}
+/* Question two asks which country a capital belongs to, so its outline is
+   the answer and has to stay back until the answer is in. */
+.demo__shape-wrap.is-back .demo__shape { opacity: 0; transform: scale(.94); }
 .demo__shape path {
   fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.6;
   stroke-linejoin: round; vector-effect: non-scaling-stroke;
+  transition: fill .3s var(--ease), stroke .3s var(--ease);
 }
-.demo__shape.is-right path { fill: var(--success-soft); stroke: var(--success); }
-.demo__shape.is-wrong path { fill: var(--danger-soft); stroke: var(--danger); }
+.demo__shape.is-solved path { fill: var(--success-soft); stroke: var(--success); }
 
-.demo .options { margin-top: 16px; grid-template-columns: 1fr 1fr; }
+/* The answer, and the one line about it that makes the name a place:
+   region and the capital's position, the same pair the flashcards show. */
+.demo__fact { margin-top: auto; min-height: 54px; padding-top: 12px; }
+.demo__fact.is-in { animation: demoFact .34s var(--ease); }
+.demo__fact b { display: block; font-size: 15px; font-weight: 620; letter-spacing: -.02em; }
+.demo__fact span { display: block; margin-top: 1px; font-size: 11.5px; color: var(--faint); }
+@keyframes demoFact { from { opacity: 0; transform: translateY(6px); } }
+
+.demo .options { margin-top: 14px; grid-template-columns: 1fr 1fr; flex: none; }
 .demo .option { padding: 11px 13px; font-size: 14px; }
+.demo .option.is-tapped { transform: scale(.985); }
 
 .demo__foot {
   margin-top: auto; padding-top: 16px;
@@ -62,6 +89,12 @@
 }
 .demo__note { font-size: 13.5px; color: var(--muted); }
 .demo__note b { color: var(--ink); }
+.demo__note kbd {
+  display: inline-block; margin: 0 1px; min-width: 19px; padding: 1px 4px;
+  border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 5px;
+  background: var(--white); font-family: var(--mono); font-size: 11px;
+  font-weight: 500; color: var(--muted); text-align: center; line-height: 1.5;
+}
 .demo__note.is-right b { color: #0A5C42; }
 .demo__note.is-wrong b { color: #9B1C1C; }
 
@@ -103,7 +136,10 @@
 @media (max-width: 480px) {
   .demo .options { grid-template-columns: 1fr; }
   .demo { min-height: 0; }
+  /* no keyboard to press them on */
+  .demo__note kbd { display: none; }
+  .demo__shape-wrap { min-height: 150px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .demo__stage.is-in, .demo-pop__globe { animation: none; }
+  .demo__stage.is-in, .demo__fact.is-in, .demo-pop__globe { animation: none; }
 }
