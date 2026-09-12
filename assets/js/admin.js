@@ -150,7 +150,7 @@
             }).join('') +
           '</div>' +
           '<div class="row" style="gap:8px;margin-top:10px">' +
-            '<input class="input mono" id="adm-amount" type="number" min="1" step="1" ' +
+            '<input class="input mono" id="adm-amount" type="number" step="1" ' +
               'placeholder="Any amount" style="flex:1">' +
             '<button class="btn btn--accent" id="adm-give">Give</button>' +
           '</div>' +
