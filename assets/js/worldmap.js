@@ -189,12 +189,22 @@
   }
 
   /* What the picture currently says, in one short string, so that opening
-     the study centre again with nothing changed costs nothing. */
+     the study centre again with nothing changed costs nothing.
+
+     Counts alone are not what the picture says: getting one mastered
+     country wrong and another right leaves the same two numbers and a
+     different map, and the cache would then hand back the old colours.
+     So the band each country is in goes into the key as well. */
   function signature(opts) {
     if (opts.mode && opts.mode !== 'mastery') return opts.mode + ':' + (opts.highlight || '');
-    var m = W.state.mastery, seen = 0, done = 0;
-    Object.keys(m).forEach(function (k) { seen += 1; if (m[k].box >= 4) done += 1; });
-    return 'mastery:' + seen + ':' + done;
+    var m = W.state.mastery, seen = 0, done = 0, h = 0;
+    Object.keys(m).forEach(function (k) {
+      var band = m[k].box >= 4 ? 2 : 1;
+      seen += 1;
+      if (band === 2) done += 1;
+      for (var i = 0; i < k.length; i++) h = (h * 31 + k.charCodeAt(i) * band) | 0;
+    });
+    return 'mastery:' + seen + ':' + done + ':' + h;
   }
 
   /* ============================== render ============================ */
