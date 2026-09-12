@@ -221,14 +221,39 @@
     }
 
     /* not signed in yet: do that first, then come straight back and finish */
-    if (!C.ready) {
+    if (!C.signedIn) {
       W.state.profile.displayName = name;
       W.saveNow();
       pending = code;
-      global.UI.openAuth(C.signedIn ? 'signin' : 'signup', function () { finish(host, code, name); });
+      global.UI.openAuth('signup', function () { finish(host, code, name); });
       return;
     }
+
+    /* Signed in, but the account has not finished settling: a sign-in that
+       has only just landed, or a device that is offline. Waiting is the
+       whole answer here. Sending them back through the sign-in dialog is
+       not — it turns them away with "already signed in" and the join goes
+       nowhere. */
+    if (!C.ready) {
+      busy(host, true, 'Joining…');
+      return whenReady(function (ok) {
+        if (ok) return finish(host, code, name);
+        busy(host, false);
+        joinError(host, 'Can’t reach the server',
+          'You are signed in, but we cannot get to your class right now. Your code is fine — ' +
+          'try again once you are back online.');
+      });
+    }
     finish(host, code, name);
+  }
+
+  /* Poll for a live client rather than firing into one that is not ready.
+     Gives up after about five seconds so the button never sticks. */
+  function whenReady(fn, tries) {
+    tries = tries || 0;
+    if (global.Cloud.ready) return fn(true);
+    if (tries > 25) return fn(false);
+    setTimeout(function () { whenReady(fn, tries + 1); }, 200);
   }
 
   function finish(host, code, name) {
@@ -304,7 +329,7 @@
 
   function wire(host) {
     /* the header and the empty state both carry an Add button */
-    W.$$('#cl-add', host).forEach(function (b) { b.addEventListener('click', checkForWork); });
+    W.$$('[data-add]', host).forEach(function (b) { b.addEventListener('click', checkForWork); });
     var leave = W.$('#cl-leave', host);
     if (leave) leave.addEventListener('click', leaveClass);
 
@@ -332,7 +357,7 @@
           '<div class="t-sm t-muted">Assignments from your teacher.</div></div>' +
         '<div class="row" style="gap:8px">' +
           '<button class="btn btn--ghost" id="cl-leave">Leave class</button>' +
-          '<button class="btn btn--ghost" id="cl-add">' + I.refresh + ' Check for new work</button>' +
+          '<button class="btn btn--ghost" data-add>' + I.refresh + ' Check for new work</button>' +
         '</div>' +
       '</div>' +
       (box.length
@@ -366,7 +391,7 @@
             '<b>No assignments yet</b>' +
             '<p>Nothing has been set yet. When your teacher saves an assignment it turns up ' +
               'here on its own, with nothing for you to type.</p>' +
-            '<button class="btn btn--ghost" id="cl-add" style="margin-top:16px">' +
+            '<button class="btn btn--ghost" data-add style="margin-top:16px">' +
               I.refresh + ' Check for new work</button>' +
           '</div></div>');
   }
