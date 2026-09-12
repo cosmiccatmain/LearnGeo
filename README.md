@@ -74,6 +74,19 @@ A teacher gets one class with one class code. The teacher view has Stream, Class
 and Analytics tabs, plus a gradebook. Students get a Classroom tab where their assigned work
 shows up.
 
+**Stream** is the teacher writing to the class: a reminder, a date for a quiz, a well done.
+Posts can be pinned to the top and go out the same way assignments do, turning up in every
+student's own Stream tab with an unread badge that clears once they have been read. It only
+runs one way — students read it, they can't post back.
+
+**People and the gradebook open one student.** Clicking a name shows what they have handed in,
+their average against the class average, and the countries that student personally keeps
+missing. A score can be typed in from there, for the student who did it on paper.
+
+The gradebook exports as a real CSV file. Names come from students, so a name starting with
+`=`, `+`, `-` or `@` is written out quoted — otherwise it would be a live formula the moment
+the file opened in Excel.
+
 Without accounts, the classroom runs on codes you copy and paste: `LGC-` codes to join,
 `LG1-` codes for assignments and `LGR-` codes to send results back. A teacher can paste in a
 whole batch of result codes at once, or type a score into the gradebook by hand.
@@ -102,6 +115,13 @@ All of this is in `assets/js/cloud.js`.
 | `class_members` | who joined which class, under what name | the student and the teacher |
 | `assignments` | title, mode, config | the teacher (read/write) and students (read) |
 | `results` | score, correct/total, countries missed | the student who sent it and the teacher |
+| `announcements` | the class stream: body, pinned | the teacher (read/write) and students (read) |
+
+There are two schemas described in this repo and only one of them is real.
+`supabase/deployed/` is the live one — the tables above, the ones `cloud.js` talks to.
+`supabase/migrations/` describes a different design that has never been applied: classes keyed
+on `owner_id`, seats with four states, `submissions` instead of `results`, and three Edge
+Functions. Apply `deployed/`; `supabase/deployed/README.md` explains the split.
 
 Row-level security is on for every table. Students join through the `join_class(code, name)`
 function and hand in work through `submit_result(...)`, so nobody can add themselves to a
@@ -181,7 +201,7 @@ assets/js/cloud.js              Supabase accounts, save sync, online classes
 assets/js/ui.js                 shell, profile menu, sign in, settings, customization, shop
 assets/js/portal.js             study center home screen, built around the map
 assets/js/admin.js              ?admin panel: grants the verified seal and diamonds
-assets/js/teacher.js            teacher view: stream, classwork, people, analytics
+assets/js/teacher.js            teacher view: stream, classwork, people, analytics, one student
 assets/js/classroom.js          student Classroom tab
 assets/js/mode-learn.js         Learn
 assets/js/mode-test.js          Practice test
