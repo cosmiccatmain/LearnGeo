@@ -150,11 +150,17 @@
      that stat while a card explains what it is counting.
   ------------------------------------------------------------------ */
 
-  /* Ring geometry, outermost first. */
-  /* Thinner strokes pulled outward, so the hole in the middle is wide
-     enough for the label to sit in without touching the inner ring. */
-  var RING_R = [104, 89, 74, 59, 44];
-  var RING_W = 11;
+  /* Ring geometry, outermost first, in viewBox units.
+
+     The five rings are a thin band pressed against the rim, because
+     everything inside the innermost one is the readout and the readout has
+     to hold a diamond balance, which has no ceiling and so no length you
+     can design around. A band of 8 with 3 between leaves a hole 134 across
+     — a little over half the width of the whole thing — and fitMid() takes
+     care of whatever still will not fit. */
+  var RING_W = 8;                          /* stroke width */
+  var RING_PITCH = 11;                     /* centre to centre: 3 units of gap */
+  var RING_R = [115, 104, 93, 82, 71];
 
   function ringData(s, st) {
     var d = s.daily;
@@ -184,14 +190,17 @@
             : d.dayStreak + ' day' + (d.dayStreak === 1 ? '' : 's') + ' running. ' +
               (7 - d.dayStreak) + ' more fills the ring.' },
 
+      /* the label carries the level, so the value carries the thing the
+         ring is actually measuring: progress through it */
       { key: 'xp', label: 'Level ' + s.economy.level, colour: '#1B4DFF',
-        value: 'Lv ' + s.economy.level,
+        value: lp.have.toLocaleString() + ' / ' + lp.need.toLocaleString() + ' XP',
         pct: lp.have / Math.max(1, lp.need),
         detail: (lp.need - lp.have) + ' XP to level ' + (s.economy.level + 1) +
                 '. You have ' + lp.have + ' of ' + lp.need + '.' },
 
       { key: 'gem', label: 'Diamonds', colour: '#0284C7',
         value: s.economy.diamonds.toLocaleString(),
+        short: compact(s.economy.diamonds),
         pct: target ? s.economy.diamonds / target.price : 1,
         detail: !target
           ? 'You own everything in Customization.'
@@ -208,6 +217,22 @@
           : st.correct.toLocaleString() + ' right out of ' + st.answered.toLocaleString() +
             ' answered, across every mode.' }
     ];
+  }
+
+  /* A balance can be granted from the admin panel and so has no size the
+     readout can count on. Past the point where the full number stops being
+     readable it is shown like this instead: 100,241,768 → 100.2M. */
+  var UNITS = [[1e12, 'T'], [1e9, 'B'], [1e6, 'M'], [1e3, 'K']];
+
+  function compact(n) {
+    for (var i = 0; i < UNITS.length; i++) {
+      if (Math.abs(n) >= UNITS[i][0]) {
+        var v = n / UNITS[i][0];
+        return (Math.abs(v) >= 100 ? Math.round(v)
+                                   : Math.round(v * 10) / 10).toLocaleString() + UNITS[i][1];
+      }
+    }
+    return Number(n).toLocaleString();
   }
 
   /* The cheapest item the learner has not unlocked yet, across every
@@ -245,24 +270,37 @@
           'stroke="' + g.colour + '" stroke-width="' + RING_W + '" stroke-linecap="round" ' +
           'stroke-dasharray="' + circ + '" stroke-dashoffset="' + circ + '" ' +
           'style="--to:' + (circ * (1 - pct)) + '"/>' +
-        /* a fatter invisible copy so the ring is easy to point at */
+        /* a fatter invisible copy so the ring is easy to point at. One
+           pitch wide, so the bands tile the whole dial: any narrower
+           leaves dead gaps between rings, any wider and a ring steals
+           the edge of its neighbour. */
         '<circle class="ring__hit" data-i="' + i + '" cx="120" cy="120" r="' + r + '" ' +
-          'stroke-width="' + (RING_W + 6) + '" tabindex="0" role="button" ' +
+          'stroke-width="' + RING_PITCH + '" tabindex="0" role="button" ' +
           'aria-label="' + W.escapeHtml(g.label + ': ' + g.value) + '"/>';
     }).join('');
 
     return '<div class="rings" id="stat-rings">' +
       '<div class="rings__viz">' +
         '<svg viewBox="0 0 240 240" class="rings__svg">' + arcs + '</svg>' +
-        '<div class="rings__mid" id="rings-mid">' + midHtml(rings, -1, s) + '</div>' +
+        '<div class="rings__mid" id="rings-mid">' + midHtml(rings, -1) + '</div>' +
       '</div>' +
       '<div class="rings__legend">' +
         rings.map(function (g, i) {
+          var pct = Math.round(Math.min(1, Math.max(0, g.pct || 0)) * 100);
+          /* the row is one line wide, so a balance past this length shows
+             the same short form the middle falls back to */
+          var shown = (g.short && g.value.length > 13) ? g.short : g.value;
           return '<button class="rleg" data-i="' + i + '">' +
             '<span class="rleg__dot" style="background:' + g.colour + '"></span>' +
-            '<span class="rleg__t"><b>' + W.escapeHtml(g.value) + '</b>' +
+            '<span class="rleg__t"><b>' + W.escapeHtml(shown) + '</b>' +
               '<span>' + W.escapeHtml(g.label) + '</span></span>' +
-            '<span class="rleg__pct mono">' + Math.round(Math.min(1, g.pct || 0) * 100) + '%</span>' +
+            /* the same arc again, straightened out: it carries the eye from
+               the label to the number on the far side of the row. Starts at
+               nothing and is released with the arcs, so the two read as one
+               thing filling in rather than two. */
+            '<span class="rleg__bar"><i style="width:0;--to:' + pct + '%;background:' +
+              g.colour + '"></i></span>' +
+            '<span class="rleg__pct mono">' + pct + '%</span>' +
           '</button>';
         }).join('') +
       '</div>' +
@@ -271,15 +309,54 @@
   }
 
   /* Middle of the rings: a summary at rest, the hovered stat otherwise. */
-  function midHtml(rings, i, s) {
+  function midHtml(rings, i) {
     if (i < 0 || !rings[i]) {
       var done = rings.filter(function (g) { return (g.pct || 0) >= 1; }).length;
-      return '<b class="rings__mid-n">' + done + '<span>/5</span></b>' +
+      return '<b class="rings__mid-n">' + done + '<span>/' + rings.length + '</span></b>' +
         '<span class="rings__mid-l">rings closed</span>';
     }
     var g = rings[i];
-    return '<b class="rings__mid-n" style="color:' + g.colour + '">' + W.escapeHtml(g.value) + '</b>' +
+    return '<b class="rings__mid-n" style="color:' + g.colour + '"' +
+        (g.short ? ' data-short="' + W.escapeHtml(g.short) + '"' : '') + '>' +
+        W.escapeHtml(g.value) + '</b>' +
       '<span class="rings__mid-l">' + W.escapeHtml(g.label) + '</span>';
+  }
+
+  /* Write the readout and then make it fit.
+
+     The hole is a fixed size and a diamond balance is not: eight figures
+     at the full size runs out over the rings on both sides. So the number
+     goes in at the size it would like to be, gets measured, and steps down
+     until it is inside the hole. Everything short — a level, a streak, a
+     percentage — measures under the limit and is left alone. */
+  var MID_MAX = 24, MID_MIN = 12;
+
+  function setMid(mid, rings, i) {
+    mid.innerHTML = midHtml(rings, i);
+    fitMid(mid);
+  }
+
+  function fitMid(mid) {
+    var n = W.$('.rings__mid-n', mid);
+    if (!n) return;
+    var room = mid.clientWidth;
+    if (!room) return;                         /* not laid out yet */
+
+    n.style.fontSize = MID_MAX + 'px';
+    /* .rings__mid-n is an inline-block inside a fixed-width plate, so this
+       is the width the text actually wants even when it overflows */
+    var want = n.offsetWidth;
+
+    /* Past the size where shrinking stops helping, swap the number for its
+       short form rather than print something nobody can read. */
+    if (want > room * (MID_MAX / MID_MIN) && n.dataset.short) {
+      n.textContent = n.dataset.short;
+      want = n.offsetWidth;
+    }
+
+    if (want > room) {
+      n.style.fontSize = Math.max(MID_MIN, Math.floor(MID_MAX * room / want)) + 'px';
+    }
   }
 
   /* Hover, focus and touch all drive the same highlight. */
@@ -291,19 +368,32 @@
     var mid = W.$('#rings-mid', box);
     var tip = W.$('#rings-tip', box);
 
-    /* let the arcs grow from zero once laid out */
+    /* let the arcs and the bars grow from zero once laid out */
     requestAnimationFrame(function () {
       W.$$('.ring__arc', box).forEach(function (a) {
         a.style.strokeDashoffset = a.style.getPropertyValue('--to');
       });
+      W.$$('.rleg__bar i', box).forEach(function (b) {
+        b.style.width = b.style.getPropertyValue('--to');
+      });
     });
+
+    /* The resting readout went in as a string, so it has never been
+       measured. Do it now, and again once the web font has arrived: the
+       fallback the first pass measures is not the font it ends up in. */
+    fitMid(mid);
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(function () {
+        if (document.body.contains(mid)) fitMid(mid);
+      });
+    }
 
     function show(i, ev) {
       box.classList.add('is-focused');
       W.$$('[data-i]', box).forEach(function (n) {
         n.classList.toggle('is-on', +n.dataset.i === i);
       });
-      mid.innerHTML = midHtml(rings, i, s);
+      setMid(mid, rings, i);
       var g = rings[i];
       tip.innerHTML = '<b style="color:' + g.colour + '">' + W.escapeHtml(g.label) + '</b>' +
         '<span>' + W.escapeHtml(g.detail) + '</span>';
@@ -328,7 +418,7 @@
     function clear() {
       box.classList.remove('is-focused');
       W.$$('[data-i]', box).forEach(function (n) { n.classList.remove('is-on'); });
-      mid.innerHTML = midHtml(rings, -1, s);
+      setMid(mid, rings, -1);
       tip.hidden = true;
     }
 
