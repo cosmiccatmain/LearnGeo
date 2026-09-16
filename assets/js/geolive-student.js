@@ -249,6 +249,43 @@
     return (!n || n === 'Explorer') ? '' : n;
   }
 
+  /* God mode goes through godmode.js's own surface rather than reading its
+     flag and repeating its logic here. liveReveal says what to mark,
+     liveChoice says what to send, and both tell it a live game is happening
+     so its banner stops guessing from the DOM.
+
+     Absent GodMode, or an older one without these, means off: no marker and
+     the tap goes through untouched, which is exactly how this screen behaved
+     before god mode existed. */
+  function godAnswer(q) {
+    var G = global.GodMode;
+    if (G && typeof G.liveReveal === 'function') {
+      try { return G.liveReveal(q); } catch (e) { /* off */ }
+    }
+    return null;
+  }
+
+  function godChoice(q, picked) {
+    var G = global.GodMode;
+    if (G && typeof G.liveChoice === 'function') {
+      try { return G.liveChoice(q, picked); } catch (e) { /* send the tap */ }
+    }
+    return picked;
+  }
+
+  /* The banner's only other way of knowing was whether #cl-geolive existed
+     when god mode was switched on. Turn god mode on first and then walk into
+     GeoLive, which is the natural order, and that check has already run: the
+     banner says nothing is recorded while answers are being recorded. This
+     is the half that says so at mount, and says the opposite at unmount, so
+     it cannot lie in either direction. */
+  function godLive(v) {
+    var G = global.GodMode;
+    if (G && typeof G.setLive === 'function') {
+      try { G.setLive(!!v); } catch (e) { /* nothing to tell */ }
+    }
+  }
+
   function cloudFn(name) {
     var C = global.GeoLiveCloud;
     return (C && typeof C[name] === 'function') ? C[name].bind(C) : null;
@@ -494,6 +531,19 @@
         return;
       }
 
+      /* God mode rewrites the CHOICE, here, on this device, and nothing
+         else. It never writes correct or points: a student's device is not
+         allowed to grade itself and this does not become the exception. The
+         real answer goes to the server and the teacher's grader marks a
+         genuinely correct answer, so the standings the class sees stay
+         honest about what was submitted.
+
+         S.choice takes the rewritten value rather than the tap, so every
+         state after this one, the lock, the reveal, the verdict, the points
+         and the place, is consistent with what was actually sent. That is
+         what keeps god mode out of the rest of this file. */
+      choice = godChoice(q, choice);
+
       /* Lock first, send second. Nothing async sits between the tap and
          the lock, so a second tap has nothing left to do. */
       S.answeredIndex = S.index;
@@ -586,6 +636,9 @@
 
     function targetsHtml(q, mode, picked) {
       var mine = picked === undefined ? S.choice : picked;
+      /* asked once per render rather than per option, and only where it can
+         show: liveReveal is null whenever god mode is off */
+      var godAns = mode === 'open' ? godAnswer(q) : null;
       var list = (q && q.options) || [];
       return '<div class="gl-targets">' + list.map(function (opt, i) {
         var cls = 'gl-target gl-target--' + (SLOTS[i] || 'a');
@@ -603,9 +656,20 @@
           cls += ' is-locked';
           extra = ' disabled';
         }
-        return '<button type="button" class="' + cls + '" data-slot="' + i + '"' + extra + '>' +
+        /* God mode points at the answer before it is tapped. Deliberately a
+           written word and not the reveal's colouring: in a test session
+           "god mode is showing me the answer" and "the answer has been
+           revealed" are one keystroke apart, and they must not look alike.
+           Only while the question is open, because at the reveal the target
+           already carries is-right and a second marker would be noise. */
+        var mark = (mode === 'open' && godAns != null &&
+                    String(opt) === String(godAns))
+          ? '<span class="gl__eyebrow">god mode answer</span>'
+          : '';
+        return '<button type="button" class="' + cls + '" data-slot="' + i + '"' + extra +
+            (mark ? ' aria-label="' + esc(opt) + ', the correct answer, shown by god mode"' : '') + '>' +
             '<span class="gl-target__key">' + (KEYS[i] || '') + '</span>' +
-            '<span class="gl-target__text">' + esc(opt) + '</span>' +
+            '<span class="gl-target__text">' + esc(opt) + '</span>' + mark +
           '</button>';
       }).join('') + '</div>';
     }
@@ -824,6 +888,13 @@
 
     function render() {
       if (S.dead) return;
+
+      /* If the container has been taken out of the page without anyone
+         calling destroy, this screen is drawing into nothing: the watch
+         keeps polling and the god mode banner keeps claiming a live game
+         after the tab has been left. Take ourselves down instead. */
+      if (detached()) { destroy(); return; }
+
       clearLow();
 
       if (S.phase === 'off') S.host.innerHTML = offHtml();
@@ -868,8 +939,18 @@
       if (slot >= 0) { ev.preventDefault(); tap(slot); }
     }
 
+    /* Guarded: the document may not be a real one under test, and a host
+       that was never in the document is not "detached", it is just not
+       mounted into the page yet. */
+    function detached() {
+      var d = host.ownerDocument;
+      if (!d || typeof d.contains !== 'function') return false;
+      return d.contains(host) === false && S.seen > 0;
+    }
+
     function destroy() {
       S.dead = true;
+      godLive(false);
       clearLow();
       stopWatch();
       host.removeEventListener('click', onClick);
@@ -893,6 +974,8 @@
     /* The container classes are ours to add. oy-09 hands over a bare
        div and this is what makes it a GeoLive screen. */
     if (host.classList) host.classList.add('gl', 'gl--student');
+
+    godLive(true);
 
     host.addEventListener('click', onClick);
     document.addEventListener('keydown', onKey);

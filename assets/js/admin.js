@@ -186,10 +186,34 @@
       actions: [{ label: 'Done', cls: 'btn--ghost', close: true }],
       onMount: function (root) {
         /* God mode builds its own button, so this is only somewhere to put it.
-           It deliberately does nothing inside a live game and that is not a
-           gap: GeoLive points feed live_players.score, which feeds the class
-           leaderboard, so a god mode that reached it would hand an admin a way
-           to top a table of children by tapping any option. */
+
+           IT USED TO DO NOTHING INSIDE A LIVE GAME, ON PURPOSE. Owen asked for
+           it to work there, which is his call, so it now does. The reasoning
+           for the old refusal is kept below rather than deleted, because the
+           harm it names is real and the protection against it is what changed,
+           not the harm.
+
+           The old note said GeoLive points feed live_players.score which feeds
+           the class leaderboard. Measured 2026-09-12, that is not how the
+           table ranks. order() in leaderboard.js sorts on level, then XP within
+           the level, and both come from class_members, which GeoLive never
+           writes. Accuracy is only the third key, reached when two students are
+           on an identical level AND identical XP.
+
+           So a god-moded game cannot climb the table. What it can still do is
+           write a false accuracy, a false answered count and a false streak
+           into a row on a table that has children's names on it, and break a
+           tie. That is a smaller harm than the old note claimed and it is still
+           a real one.
+
+           What protects it: god mode never fakes a verdict. GeoLive is graded
+           on the host's device, and that is untouched. What god mode rewrites is
+           the CHOICE submitted from its own device, so the host grades a real
+           answer. The exclusion of assisted play from the class leaderboard is
+           SPECIFIED BUT NOT YET BUILT: it needs a marker that survives to the
+           teacher's device, and that lives in cloud-geolive.js, not here. Until
+           it lands, a god-moded game does show up in those columns. Do not read
+           this comment as saying it is handled. */
         var god = W.$('#adm-god', root);
         if (god && global.GodMode && global.GodMode.mountToggle) {
           global.GodMode.mountToggle(god);

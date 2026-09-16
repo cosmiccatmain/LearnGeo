@@ -44,6 +44,47 @@
     return !!(global.Admin && global.Admin.unlocked);
   }
 
+  /* --------------------------------------------------- inside a live game */
+
+  /* GeoLive is graded on the TEACHER's device. A student inserts an answer
+     with correct false and points zero, and the host writes the real verdict.
+     That is what stops a phone declaring itself the winner, and none of it is
+     touched here.
+
+     So god mode does not fake the verdict. It rewrites the CHOICE, on the
+     machine of the person who switched it on: you tap Peru, the real answer
+     is submitted, and the host grades a genuinely correct answer. Real points,
+     a real place in the standings, no rule bent anywhere. The only fiction is
+     at the point of submission. */
+  var live = false;
+
+  /* The student screen calls this on mount and unmount. The banner has to tell
+     the truth about recording, and what is true changes with whether a live
+     game is running, so it cannot be one fixed string. */
+  function setLive(v) {
+    var next = !!v;
+    if (next === live) return live;
+    live = next;
+    paintBanner();
+    return live;
+  }
+
+  /* Which option to show as the answer, before anything is tapped. Null when
+     god mode is off, so the screen marks nothing. */
+  function liveReveal(q) {
+    if (!on || !q || q.answer == null) return null;
+    setLive(true);
+    return q.answer;
+  }
+
+  /* What to submit. Off, or a question with no answer to swap in, and the real
+     tap goes through untouched. */
+  function liveChoice(q, picked) {
+    if (!on || !q || q.answer == null) return picked;
+    setLive(true);
+    return q.answer;
+  }
+
   /* ------------------------------------------------------- the patches */
 
   /* Three places decide whether an answer was right, and they are not the
@@ -166,7 +207,22 @@
     pill.appendChild(off);
     document.body.appendChild(ring);
     document.body.appendChild(pill);
-    ui = { ring: ring, pill: pill };
+    ui = { ring: ring, pill: pill, label: label };
+    paintBanner();   /* the fixed string above is only right outside a game */
+  }
+
+  /* Outside a live game nothing is written: award() is stubbed, so the honest
+     line is that none of it counts. INSIDE a live game that is false. Points,
+     streaks and the answered and correct counts all go into live_players, the
+     host writes them, and the class leaderboard folds finished games into a
+     student's accuracy. Saying "nothing is being recorded" there would be a
+     lie told to the one person who needs to know what they are doing, and this
+     banner is the only thing telling them. */
+  function paintBanner() {
+    if (!ui || !ui.label) return;
+    ui.label.textContent = live
+      ? 'God mode on · your answers are sent as correct · this game IS recorded'
+      : 'God mode on · every answer counts as right · nothing is being recorded';
   }
 
   function hideBanner() {
@@ -206,6 +262,12 @@
     if (on) return true;
     if (!available()) return false;
     on = true;
+    /* Switched on with a live game already on screen, the student screen has
+       long since mounted and will not call setLive again until the next
+       question. Without this the banner would say nothing is being recorded
+       while the next answer is recorded, which is the one moment the operator
+       is most likely to read it. Asking the DOM errs towards warning. */
+    live = !!document.getElementById('cl-geolive');
     patch();
     showBanner();
     return true;
@@ -241,6 +303,11 @@
   document.addEventListener('keydown', onHotkey, true);
 
   global.GodMode = {
+    /* the live-game surface, called by geolive-student.js */
+    liveReveal: liveReveal,
+    liveChoice: liveChoice,
+    setLive: setLive,
+    get inLive() { return live; },
     available: available,
     enable: enable,
     disable: disable,

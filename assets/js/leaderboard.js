@@ -267,7 +267,7 @@
       /* kept apart from the live figures so applying GeoLive twice
          cannot count it twice */
       quizAnswered: 0, quizRight: 0, quizBest: 0,
-      liveAnswered: 0, liveRight: 0, liveBest: 0, live: 0, games: 0
+      liveAnswered: 0, liveRight: 0, liveBest: 0, live: 0, games: 0, excluded: 0
     };
   }
 
@@ -431,9 +431,37 @@
       if (touched.indexOf(t) === -1) {
         /* first row for this student in this call: clear, do not add */
         t.liveAnswered = 0; t.liveRight = 0; t.liveBest = 0;
-        t.live = 0; t.games = 0;
+        t.live = 0; t.games = 0; t.excluded = 0;
         touched.push(t);
       }
+
+      /* God mode must not appear here beside real students on points it
+         did not earn. The exclusion cannot happen in this file and that
+         is not a gap: totals() sums a student's games before I see them,
+         so by the time a row arrives, one god-mode game and three real
+         ones are a single number that cannot be unpicked. The filtering
+         belongs where the rows still exist.
+
+         Nothing here reads GodMode.on either. That is the viewing
+         device's own state, and a board that hid rows because of what
+         the reader's browser happens to be doing would be a comment, not
+         a protection: the same board on a teacher's laptop would show
+         the lie. What this file honours is what the DATA says.
+
+         Two shapes, whichever oy-03 settles on:
+           excludedGames  a count already removed from the sums, used
+                          only to tell the teacher. This is the one to
+                          prefer, because the numbers arrive clean.
+           godMode: true  the whole entry was played in god mode, so
+                          drop it. Only correct when an entry never mixes
+                          god-mode and real play. */
+      var dropped = Number(row.excludedGames) || 0;
+      if (row.godMode === true) {
+        t.excluded += Math.max(1, Number(row.games) || 1) + dropped;
+        used = true;
+        return;
+      }
+      t.excluded += dropped;
 
       /* Points are shown, never ranked on. They carry a speed bonus. */
       t.live += Number(row.points) || 0;
@@ -720,6 +748,17 @@
         ? ' The GeoLive column still counts games this class finished before ' +
           'the live quiz was switched off.'
         : ' The GeoLive column counts every live game this class has finished.';
+    }
+
+    /* A total a teacher cannot account for is the thing this caption
+       exists to stop, and an excluded game is that problem one layer
+       down: the class's points will not match the games they watched
+       happen. So say it, and say how many. */
+    var dropped = list.reduce(function (n, t) { return n + (t.excluded || 0); }, 0);
+    if (dropped > 0) {
+      line += ' ' + plural(dropped, 'game', 'games') + ' played in god mode ' +
+              (dropped === 1 ? 'is' : 'are') + ' left out, so these totals will ' +
+              'not match every game you watched.';
     }
 
     /* Marks the teacher typed carry a percentage and no question count,

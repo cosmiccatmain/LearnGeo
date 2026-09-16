@@ -974,3 +974,105 @@ The merge is three-way against current main, so everything added since the
 branch was cut is intact: all nine GeoLive and leaderboard scripts, all three
 newer stylesheets, the round 4 theme work (`themeBody`, `themeStats`) and the
 shop double-charge fix in `ui.js`. Every asset `index.html` references exists.
+
+---
+
+# Round 5: god mode inside GeoLive
+
+Merged onto `8a95195`. Five files. I refused this round once, on 2026-09-15,
+because the leaderboard exclusion was specified and half-built. Both gaps are
+now closed and I checked both rather than taking them.
+
+## Read this first
+
+**The exclusion is built on both sides and it does not fire yet.** It needs
+`0004`, which adds an `assisted` column to `live_answers` and `live_players`
+and a trigger raising the answer's flag to the player row. That migration is
+not written into this commit and has not been applied.
+
+**So until Owen runs 0004, a god-moded game still contributes a false accuracy,
+a false answered count and a false streak to the class leaderboard, in a row
+with a real student's name on it.**
+
+What it cannot do is climb the table. `order()` ranks on started, then level,
+then XP within the level, and both come from `class_members`, which GeoLive
+only ever SELECTs. Accuracy is the third key and is reached only when two
+students sit on an identical level and identical XP. So the exposure is
+distorted columns and a broken tie, not a stolen first place.
+
+**Answering never breaks while 0004 is pending.** oy-03 built that
+deliberately: the first answer tries with `assisted`, takes `PGRST204`, retries
+without it, is accepted, and the column is not attempted again for that
+session. That is why this ships today rather than waiting.
+
+## The honest limit, recorded rather than buried
+
+**This is not proof against a modified client.** The flag is set by the device
+that is playing. Someone editing the JavaScript can decline to set it. What
+this records is the app's own god mode being used, which is the feature that
+exists.
+
+Anything stronger means the server noticing impossible answers, and that is a
+different job from this one. Nobody should read the exclusion as a defence
+against cheating in general.
+
+## The four rulings, checked
+
+**1. The mechanism touches nothing security-shaped.** GeoLive is graded on the
+teacher's device. A student inserts `correct = false` and `points = 0`, and the
+host writes the real verdict. God mode rewrites the CHOICE submitted from its
+own device, so the host grades a genuinely correct answer. No SQL changed in
+this round, so the `live_answers` INSERT policy is untouched, and nothing
+writes a verdict or a score client-side.
+
+**2. A god-mode player is kept off the class leaderboard.** Producer:
+`cloud-geolive.js` sets `assisted` at the moment the answer is written, from
+the device playing. Consumer: `leaderboard.js` reads `excludedGames` and drops
+those games whole, from points, games, answered, correct and best streak, then
+tells the teacher in the caption how many were left out.
+
+The marker is not asserted at read time by the cheating device, which is the
+thing that would have made it worthless. It is written when the answer is
+written. oy-07 refuses to read `GodMode.on` at all, and says why: that is the
+viewing device's state, and the same board on a teacher's laptop would show
+the lie.
+
+**3. The admin gate is unchanged, and it is stronger than it was asked to be.**
+`Admin.unlocked`, set by the Supabase-checked PIN, dead when the tab closes,
+zero storage references across all five files.
+
+Checked at runtime: `Admin.unlocked` is a **getter with no setter**. Assigning
+to it from the console does nothing, and `GodMode.enable()` returns false for
+anyone who has not actually passed the PIN. I had to redefine the property to
+test the banner at all.
+
+**4. The banner tells the truth, in the order that was broken.** Verified
+running, not read:
+
+    outside a game    God mode on · every answer counts as right · nothing is being recorded
+    inside a game     God mode on · your answers are sent as correct · this game IS recorded
+    after leaving     God mode on · every answer counts as right · nothing is being recorded
+    after disable     (no banner)
+
+The third line is the one that matters. Before this round nothing called
+`setLive(false)`, so the fix I recommended would have shipped the same lie
+inverted: a banner claiming a recorded game for the rest of the tab's life.
+oy-05 read the actual file rather than the summary of it, found that
+`liveReveal` and `liveChoice` both raise the flag and nothing lowers it, and
+wired both ends.
+
+It also added a net for a `destroy()` that never comes: `render()` checks
+whether the host has been taken out of the page and takes the screen down
+itself. That covers the real case, because oy-09 still does not call
+`destroy()` and has reported so three rounds running.
+
+## Verified
+
+All 34 JavaScript files parse, no conflict markers, no storage in any of the
+five files, and the app loads with no console errors. God mode refuses to
+enable without the PIN at runtime. The banner was exercised through all four
+states in a browser.
+
+Not verified: a real game played with god mode on, end to end, against the
+live database. That needs a teacher account and a class, and no agent should
+be using Owen's credentials to get one.
