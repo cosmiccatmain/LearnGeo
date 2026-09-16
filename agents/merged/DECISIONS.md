@@ -913,3 +913,64 @@ looks like pointless long-hand and reads as something to simplify.
 That is the same class as the duplicate `onKey` and the recursive policy:
 valid, plausible, and wrong only at runtime, where reading it will never show
 you. The comment explaining it sits with the code.
+
+---
+
+# The phone top bar, merged on its own
+
+Separate from round 5 and deliberately not folded into it. Round 5 is held
+(see below); this is `claude/practical-darwin-4zrj3v`, unrelated, and it
+matters now because students join GeoLive on phones.
+
+## It was never half-merged. I got that wrong first time.
+
+I reported, and Master repeated, that the branch was partially in main:
+`compact(` and `hud-gem-chip` appeared to be there while `hud-gems-short` did
+not. That reading was wrong.
+
+`compact()` already lived in `portal.js` and `hud-gem-chip` already lived in the
+HUD, both before this branch existed. I matched on names the branch happens to
+touch and read the hits as evidence of a merge. Checking properly: of the 92
+code lines the branch adds, the 12 that appear in main are generic CSS
+(`white-space: nowrap;`) and `portal.js`'s own pre-existing `compact()`.
+
+**None of the branch's work was in main. Nothing was dropped and nothing was
+lost.** It was simply never merged.
+
+That is exactly the error the new rule in `agents/README.md` names: I had a
+number and reported an inference. The number was right, what I took it to mean
+was not.
+
+## The one conflict was not a judgment call
+
+`app.css`, a single hunk, and the two sides are unrelated rules that happened
+to land adjacent: main's `@media (max-width: 374px)` hiding the brand text, and
+the branch's `.modebar` rule. Neither contradicts the other. Both kept. Nothing
+here needed a ruling.
+
+`core.js`, `ui.js` and `index.html` merged clean.
+
+## Verified in a browser, at both widths
+
+At 375px: the balance renders `100M`, the full figure is hidden, the chip's
+title carries `100,241,768 diamonds` so the exact number is still reachable,
+and there is no horizontal overflow.
+
+At 1024px: the full figure shows and the short one hides. The swap lives in
+`@media (max-width: 860px)`.
+
+No console errors at either width.
+
+Two of my readings during this check were wrong before they were right, both
+because the browser served cached `app.css` and `ui.js` while the HTML had
+updated. The first said no CSS rule existed for either span; the second said
+both were visible at once. Neither was true. Versioning the asset URLs settled
+it. Worth recording because a stale-asset read looks exactly like a real
+layout bug.
+
+## What was preserved
+
+The merge is three-way against current main, so everything added since the
+branch was cut is intact: all nine GeoLive and leaderboard scripts, all three
+newer stylesheets, the round 4 theme work (`themeBody`, `themeStats`) and the
+shop double-charge fix in `ui.js`. Every asset `index.html` references exists.

@@ -116,8 +116,14 @@
     var teacher = s.role === 'teacher';
 
     set('hud-gems', s.economy.diamonds.toLocaleString());
+    set('hud-gems-short', W.compact(s.economy.diamonds));
     set('hud-level', 'Lv ' + s.economy.level);
     set('hud-streak', String(s.streak.current));
+
+    /* Narrow screens show the short spelling, so keep the exact figure
+       somewhere it can still be read. */
+    var gemChip = document.getElementById('hud-gem-chip');
+    if (gemChip) gemChip.title = s.economy.diamonds.toLocaleString() + ' diamonds';
 
     /* XP, diamonds and answer streaks are earned by answering questions,
        which teachers never do here. Their half of the top bar says which
@@ -1044,6 +1050,10 @@
       if (d.role && d.role !== role) return;
       var b = W.el('button', 'tab' + (d.view === currentView ? ' is-active' : ''));
       b.dataset.view = d.view;
+      /* The label is display:none from 1080px down and gone from the
+         accessibility tree with it, so the button carries its own name. */
+      b.title = d.label;
+      b.setAttribute('aria-label', d.label);
       b.innerHTML = I[d.icon] + '<span>' + d.label + '</span>';
       b.addEventListener('click', function () { go(d.view); });
       bar.appendChild(b);
@@ -1054,7 +1064,35 @@
        bar at all and the brand carries them home. */
     bar.classList.toggle('hidden', n < 2);
     if (thumb) bar.insertBefore(thumb, bar.firstChild);
+    placeTabs();
     positionThumb(false);
+  }
+
+  /* ---------------------------------------------------------------
+     Below the phone breakpoint the switcher is a bottom bar instead of
+     part of the top bar: six icon tabs, the brand, the HUD and the avatar
+     do not fit in 320px, and the strip was the thing forcing every view to
+     scroll sideways. The element moves rather than being rebuilt, so the
+     tabs keep their handlers and the pill keeps its place.
+  ---------------------------------------------------------------- */
+  var phone = global.matchMedia ? global.matchMedia('(max-width: 560px)') : null;
+
+  function placeTabs() {
+    var bar = document.getElementById('mode-tabs');
+    var top = document.querySelector('.topbar');
+    var bottom = document.getElementById('modebar');
+    var host = (phone && phone.matches) ? bottom : top;
+    if (!bar || !host || bar.parentNode === host) return;
+    /* back into the top bar it goes after the brand, ahead of the spacer
+       that pushes the HUD right */
+    if (host === top) host.insertBefore(bar, top.querySelector('.grow'));
+    else host.appendChild(bar);
+    positionThumb(false);
+  }
+
+  if (phone) {
+    if (phone.addEventListener) phone.addEventListener('change', placeTabs);
+    else if (phone.addListener) phone.addListener(placeTabs);
   }
 
   /* Slide the pill under whichever tab is active. Measured rather than
@@ -1076,6 +1114,15 @@
     if (animate === false) thumb.style.transition = 'none';
     thumb.style.width = w + 'px';
     thumb.style.transform = 'translateX(' + x + 'px)';
+
+    /* offsetLeft is unaffected by scrolling and the pill is inside the
+       scroller, so the two stay together — but the active tab can still sit
+       off the edge on a squeezed strip. Bring it back into view. */
+    if (bar.scrollWidth > bar.clientWidth) {
+      var into = x - (bar.clientWidth - w) / 2;
+      if (bar.scrollTo) bar.scrollTo({ left: into, behavior: animate === false ? 'auto' : 'smooth' });
+      else bar.scrollLeft = into;
+    }
     if (animate === false) {
       void thumb.offsetWidth;          /* flush, then hand control back to CSS */
       thumb.style.transition = '';
