@@ -1124,3 +1124,45 @@ net catches a container removed by something that never went through this path;
 this catches the path. One is belt and the other is braces, and the round that
 had only the net was the round where the banner could keep claiming a live game
 after the tab was left.
+
+### Measured at runtime, both ways
+
+The fix above was verified by counting live instances in a browser rather than
+by reading the code. The same script was run against the commit before it and
+the commit after, driving the real path: open the GeoLive tab, force three sync
+redraws, then switch away.
+
+    before (aabf998)          after (87349bd)
+    open      1 alive         open      1 alive
+    3 redraws 4 ALIVE         3 redraws 1 alive
+    left tab  4 ALIVE         left tab  0 alive
+              god mode said             god mode said
+              "recorded"                "not recorded"
+
+Four live student screens after three redraws, none of them destroyed, and all
+four still there after leaving the tab. That reproduces oy-09's numbers exactly.
+
+**Why four instances is worse than four stray timers.** The student screen's
+three listeners are on `document` and `window`, not on its container, so
+replacing the panel never removed them. Each stacked instance keeps listening.
+One keypress reaches every one of them, so a student on their fourth redraw
+sends four answers from one press, in a live quiz, having done nothing wrong.
+The abandoned watch and countdown are the quiet half of this bug; that is the
+half a child would actually see.
+
+The last row also closes the round 5 banner lie in the other direction.
+`destroy()` calls `godLive(false)`, so before this fix god mode went on
+claiming a game was being recorded after the user had left it. It now stops.
+
+**Kept deliberately:** the student screen's own `detached()` net. It would
+probably reap those instances on the next watch tick, so the four above are an
+immediate state rather than a permanent leak. The window is still the bug,
+because inside it every stacked instance is listening on `document`. The net
+catches a container removed by a path that never calls `destroy()`; this
+catches the path.
+
+**Checked and correctly untouched:** the teacher screen was never affected.
+`GeoLiveTeacher` exports `mount` and `unmount`, `teacher.js` has called
+`unmount()` since round 2, and `mount()` opens by calling `unmount()` so it
+self-cleans on redraw. `ClassLeaderboard` holds no interval, subscription or
+listener, so it has nothing to take down.
