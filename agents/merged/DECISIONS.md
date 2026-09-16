@@ -1005,6 +1005,34 @@ deliberately: the first answer tries with `assisted`, takes `PGRST204`, retries
 without it, is accepted, and the column is not attempted again for that
 session. That is why this ships today rather than waiting.
 
+### This round creates the hazard and ships ahead of the mitigation
+
+That sentence is the honest description and it is worth stating rather than
+leaving to be inferred, because there is a tempting and wrong way to describe
+the same facts.
+
+The wrong way: the exclusion reads a field nothing sets, so it excludes nothing,
+so the board behaves exactly as it does today, so there is no regression. Every
+clause is true **of the leaderboard file** and the conclusion is false **of the
+round**. Before this commit, zero god-moded games could reach the class board,
+because god mode did nothing inside GeoLive. After it, they can. What is missing
+is not an unfired protection sitting harmlessly by; it is the mitigation for a
+hazard this commit introduces.
+
+Shipping it anyway is a judgement, and it rests on three things that are true
+rather than on that framing:
+
+1. **Only an admin can trigger it.** The gate is a Supabase-checked PIN that
+   dies with the tab, and the flag it sets cannot be assigned to (below). This
+   is not something a student can reach.
+2. **It cannot change the ranking**, only accuracy, answered counts, streaks
+   and a tie-break.
+3. **The banner is the actual mitigation, not a nicety.** An operator who is
+   truthfully told "this game IS recorded" before playing can decline. That is
+   what converts an unmitigated hazard into an informed choice, and it is why
+   this round was held until the banner was wired rather than shipped on the
+   mechanism alone.
+
 ## The honest limit, recorded rather than buried
 
 **This is not proof against a modified client.** The flag is set by the device
