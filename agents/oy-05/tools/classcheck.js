@@ -25,6 +25,8 @@ function build(signedOut){
   const win={};Object.assign(win,{window:win,document,console,setInterval,clearInterval,setTimeout,clearTimeout,Promise,Date,Math,
     addEventListener(){},removeEventListener(){},
     Cloud:{signedIn:!signedOut,user:signedOut?null:{id:'u1'}},
+    Admin:{unlocked:true},
+    GodMode:{get on(){return true;},available(){return true;}},
     WW:{escapeHtml:s=>String(s==null?'':s),state:{profile:{displayName:'Owen'}},accountId:()=>'l1'},
     GeoLive:{current:s=>(s.questions||[])[s.index]||null,standings:s=>s.standings||[],answered:()=>3},
     GeoLiveCloud:{join:()=>Promise.resolve({sessionId:'S1',playerId:'P1'}),

@@ -683,3 +683,106 @@ Neither change is mine to make:
   has that code" when the truth is 42P17 will try the code again, and again.
 - Either can subscribe with `onFault(fn)` to be told the moment it happens
   rather than polling `status()`.
+
+# Round 5 — marking a game played with god mode
+
+All timestamps UTC, 2026-09-15.
+
+## What I built, and it needs one schema change to do anything
+
+`totals()` now returns `excludedGames` on every row: games dropped for having
+been played with god mode on, already out of `points`, `games`, `answered`,
+`correct` and `bestStreak`. That is the shape oy-07 asked for and said it
+preferred, and for the reason it gave: one student can have a mix of honest and
+assisted games, and an aggregate cannot be unpicked after the fact.
+
+`answer()` now records it, at the moment of the answer, from the device that is
+playing: `assisted: true` when `GodMode.on` is true as the answer is sent.
+
+**The marker is not asserted at read time, which is the whole point.** It is
+written when the answer is written, into a row nobody can update afterwards:
+students have no update policy on `live_answers`. A board opened later on a
+teacher's laptop reads what the data says, never what the reading device has
+switched on.
+
+**What it is not, stated plainly.** It is not proof against a modified client.
+Someone editing the JavaScript can simply not set the flag, and no client-side
+marker can prevent that. This records the app's own god mode being used, which
+is the feature that exists and the thing a child would actually reach for.
+Anything stronger means the server noticing impossible answers, which is a
+different job and a bigger one. I would rather say this than have the flag
+trusted more than it deserves.
+
+## The schema change I need: 0004
+
+Verified against the live database at 15:41: no column on `live_answers`,
+`live_players` or `live_sessions` can carry this today. So nothing I ship works
+until this lands, and both halves of my code are written to sit quietly until
+it does.
+
+```sql
+alter table public.live_answers
+  add column if not exists assisted boolean not null default false;
+
+alter table public.live_players
+  add column if not exists assisted boolean not null default false;
+
+/* Raise it from the answer to the player row, so the class table can see it
+   without reading every answer in the class's history. Server side, so the
+   playing device cannot set it for anyone but itself and cannot unset it at
+   all. */
+create or replace function private.flag_assisted()
+returns trigger language plpgsql security definer set search_path = '' as $$
+begin
+  if new.assisted then
+    update public.live_players set assisted = true where id = new.player_id;
+  end if;
+  return new;
+end $$;
+
+drop trigger if exists live_answers_assisted on public.live_answers;
+create trigger live_answers_assisted after insert on public.live_answers
+  for each row execute function private.flag_assisted();
+```
+
+Why this shape:
+
+- **On the answer, because god mode can be switched on mid-game.** A flag set
+  once at join would miss a student who turns it on at question 4.
+- **Raised to the player row by a trigger, because students cannot write
+  `live_players`** (teacher-only update) and because `totals()` already reads
+  exactly that row. No extra query, no client involvement in the propagation.
+- **The existing insert policy already allows it.** It pins `correct = false`
+  and `points = 0` and says nothing about other columns, so the client can set
+  `assisted` and cannot set a score. Nothing about the policy needs changing.
+- **It cannot be cleared.** No student update policy exists on either table.
+
+One question for Master rather than something I should decide: a teacher
+demonstrating god mode to a class will flag their own game. There is no way to
+un-flag one, and adding it means a teacher update policy on `live_answers`.
+Worth doing only if it actually comes up.
+
+## Tested, 15:44 to 15:47, against stand-ins
+
+- God mode on at answer time writes `assisted: true`; off writes false; a page
+  with no `GodMode` object at all writes false rather than throwing.
+- **Before the column exists**, which is today: the first answer tries with
+  `assisted`, gets `PGRST204`, retries without it and is accepted. The second
+  answer does not try again. Answering never breaks while 0004 is pending.
+- `totals()` with a mixed student: an assisted game worth 9000 points, a streak
+  of 20 and 100% accuracy is dropped whole. She keeps her honest game (1800
+  points, 10 answered, 8 correct, streak 4, one game) and carries
+  `excludedGames: 1`. A student with no assisted games is untouched.
+- `totals()` reads the player row with `select('*')` now, because naming a
+  column that does not exist fails the whole read, which is the mistake
+  `asked_at` taught us in round 2.
+
+## Measured state, 15:38 to 15:41
+
+- GeoLive is live: 0003 applied, recursion gone, the three tables exist.
+- `godMode`/`excludedGames` appear in exactly one file, oy-07's unmerged
+  `agents/oy-07/assets/js/leaderboard.js`. The merged `assets/js/leaderboard.js`
+  on `origin/main` has none of it, so the consumer side is not shipped either.
+- My clone is 24 commits behind `origin/main`; I worked from
+  `origin/main:assets/js/cloud-geolive.js`, which is byte-identical to my folder
+  copy (sha 64d0b9e1).

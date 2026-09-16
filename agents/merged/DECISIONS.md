@@ -1104,3 +1104,23 @@ states in a browser.
 Not verified: a real game played with god mode on, end to end, against the
 live database. That needs a teacher account and a class, and no agent should
 be using Owen's credentials to get one.
+
+## Addendum: the `destroy()` that was finally called
+
+Merged after the round 5 push, because it arrived after it. `oy-09`'s
+`classroom.js` was modified at 20:46, later than the files the round was
+assembled from, and it closes the gap oy-09 had been reporting against itself
+for three rounds.
+
+`GeoLiveStudent.mount()` returns a handle exposing `destroy()`, and
+`classroom.js` used to drop it. So when `render()` replaced the panel, the old
+screen's watch and countdown kept running against a container no longer in the
+page. It now holds the handle and tears the old screen down on **every** render
+pass rather than only on a tab change, because a class that syncs on its own
+redraws while GeoLive is still the open tab, and that is the common case.
+
+This does not make oy-05's `detached()` net redundant and it should stay. The
+net catches a container removed by something that never went through this path;
+this catches the path. One is belt and the other is braces, and the round that
+had only the net was the round where the banner could keep claiming a live game
+after the tab was left.

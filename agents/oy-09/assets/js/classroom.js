@@ -11,6 +11,14 @@
 
   var tab = 'classwork';
   var lastSync = 0;
+  /* The live screen that is currently up, so it can be taken down.
+     GeoLiveStudent hands its instance back from mount() and that handle is
+     the only way to reach destroy(): the module exports mount alone, and the
+     copy it leaves on the container goes when render() replaces the markup.
+     Dropping the return value, which is what this file used to do, left the
+     watch and the countdown running against a container that is no longer in
+     the page. */
+  var liveStudent = null;
   var featuresFor = null;
   var featuresWatched = false;
 
@@ -548,9 +556,21 @@
       }
     }
 
+    /* Whatever happens next, the screen that was up is already gone: render()
+       has replaced the panel, so its container is detached. Take it down
+       before anything else, and do it on EVERY pass rather than only when the
+       tab changes. A sync that redraws while GeoLive is still the open tab
+       detaches the old container just as thoroughly as switching away does,
+       and that one is the common case: the class syncs on its own. */
+    if (liveStudent) {
+      try { liveStudent.destroy(); } catch (e) { /* it is going anyway */ }
+      liveStudent = null;
+    }
+
     var glHost = document.getElementById('cl-geolive');
     if (glHost && geoliveOn() && global.GeoLiveStudent && global.GeoLiveStudent.mount) {
-      global.GeoLiveStudent.mount(glHost, { code: '' });
+      /* keep the handle: it is the only route to destroy() */
+      liveStudent = global.GeoLiveStudent.mount(glHost, { code: '' }) || null;
     }
 
     /* the header and the empty state both carry an Add button */

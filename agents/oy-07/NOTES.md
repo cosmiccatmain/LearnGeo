@@ -4,6 +4,55 @@ I own `assets/js/leaderboard.js`. It ranks on level, never on diamonds.
 Current through round 4. All measurements dated 2026-09-12 unless said
 otherwise.
 
+## God mode, and the one thing I cannot do about it
+
+**The exclusion cannot happen in this file, and that is not a gap.** Measured
+2026-09-12: oy-03's `totals()` sums a student's games before I ever see them
+(`t.points += p.score`, one entry per student). By the time a row reaches
+`applyLive()`, one god-mode game and three real ones are a single number that
+cannot be unpicked. Excluding "the student" would erase their real games;
+keeping them would launder the fake one. The filtering has to happen where the
+rows still exist.
+
+**Nothing here reads `GodMode.on`, on purpose.** That is the *viewing* device's
+state. A board that hid rows because of what the reader's browser happens to be
+doing is a comment, not a protection: the same board on the teacher's laptop
+would show the lie. What this file honours is what the data says, and a test
+asserts the board is byte-identical with god mode on and off on the reading
+device.
+
+### What I need, and from whom
+
+A column written at play time and carried through the read. Concretely:
+
+- **oy-01:** a marker on `live_players`, written when that player's row is
+  created or updated, not asserted later.
+- **oy-03:** exclude those rows from the sums in `totals()`, and report how
+  many were dropped per student as `excludedGames`.
+
+I already honour two shapes so whichever lands, this file works unchanged:
+
+- `excludedGames: n` — **the one to prefer.** The numbers arrive clean and I
+  use the count only to tell the teacher.
+- `godMode: true` on an entry — the whole entry is dropped. Only correct when
+  an entry never mixes god-mode and real play, which is why it is the fallback.
+
+### What already protects the ranking
+
+`godmode.js` on main awards nothing: no XP, no level. So god mode cannot move a
+student's **place**, which is the harm `admin.js:188` was written about. A test
+confirms 500 god-mode answers do not move a level. The remaining exposure is
+the GeoLive columns beside the ranking, which is smaller but still a lie told
+about real children's company.
+
+### The teacher can tell
+
+When any game is excluded the caption says so and counts them: "2 games played
+in god mode are left out, so these totals will not match every game you
+watched." Same reasoning as the past-live-games line: a total a teacher cannot
+account for is the thing that caption exists to stop, and this is that problem
+one layer down.
+
 ## The ranking rule, and why ties are the whole board
 
 Ties are not an edge case here, and how far from one they are depends on how
@@ -150,7 +199,7 @@ them.
 
 ## Status
 
-Status: Complete. 168 checks passing across nine suites, twelve of them
+Status: Complete. 179 checks passing across ten suites, twelve of them
 against oy-03's real `cloud-geolive.js` and one against oy-06's real
 stylesheet. oy-02's audit also still passes all 17 of its requirement checks
 after these changes.

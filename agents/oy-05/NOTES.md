@@ -405,3 +405,134 @@ on top. I read a stale screen twice and nearly reported a working feature as
 broken. Anything driving `tools/preview.html` should re-copy the file and bust
 the cache before believing a screenshot. The browser checks above were taken
 after fetching the source fresh and re-evaluating it.
+
+## Round 5: god mode on the student screen. Measured 2026-09-12.
+
+171 checks pass: 90 behaviour, 14 integration, 67 for rounds 3 to 5.
+
+**Two call sites, one boolean.** `godOn()` reads `global.GodMode.on` and
+returns false when GodMode is absent, so a page that never loaded it behaves
+exactly as before. Nothing else in the file branches on it.
+
+1. **The marking.** While a question is open, the correct target carries the
+   words "god mode answer" and an aria-label saying so. Deliberately a written
+   word and not the reveal's colouring, because in a test session "god mode is
+   showing me the answer" and "the answer has been revealed" are one keystroke
+   apart and must not look alike. Tested: no target carries `is-right` while
+   the marker is up.
+2. **The rewrite.** At the single point where a tap becomes an answer, the
+   choice becomes `q.answer`. It never writes `correct` or `points`: a
+   student's device is not allowed to grade itself and this is not the
+   exception. The real answer goes to the server and the teacher's grader
+   marks a genuinely correct answer. `S.choice` takes the rewritten value, so
+   the lock, reveal, verdict, points and place all stay consistent with what
+   was actually sent, which is what keeps god mode out of the rest of the file.
+
+Survives every state, tested: a second tap still sends one answer, a closed
+question stays closed, the keyboard goes through the same rewrite, the
+mid-reveal walk-in state is unchanged, and a question with no `answer` field
+marks nothing and submits the tap untouched.
+
+### Two corrections to the brief
+
+**`godmode.js` is oy-08's, not oy-09's**, and it is already merged at
+`assets/js/godmode.js`. The gate is `global.Admin.unlocked` from
+`assets/js/admin.js:290`. oy-09's folder holds no god mode file at all.
+
+**The leaderboard worry is narrower than stated.** The brief says a god-mode
+player must not end up on the class leaderboard, and cites that as why god mode
+was kept out of GeoLive. Read rather than assumed: `leaderboard.js` ranks on
+**level**, and its header says level comes from answered questions and
+"deliberately not from GeoLive's points". Level comes from XP via `W.award()`,
+which `godmode.js` patches to award nothing while it is on, and this screen has
+never called `award()` at all. So god-mode play cannot move a student up the
+term-long table.
+
+What it does move is the **in-game standings**, which is the projector during a
+lesson, and that is real: a god-mode player will beat the class in the live
+game. That is inherent in the ruling that real points must land, and it looks
+like the intended behaviour for a testing tool rather than a defect. Worth
+saying out loud so nobody later reads it as an oversight.
+
+### One thing I need ruled
+
+A louder treatment for the marker wants a class, and I am not inventing one.
+I propose `.gl-target--god` on the marked target so oy-06 can make it
+unmistakable at a glance. Until then the marker is words in `.gl__eyebrow`,
+which is defined and correct but small.
+
+### What I could not exercise
+
+No live game. `live_players` still has the recursive select policy and 0003 is
+unapplied, so nothing here has been through a real join, a real grader or a
+real `saveStandings`. Specifically unverified: that the teacher's grader does
+mark a rewritten choice correct, and that the points land in `live_players`.
+Both are the mechanism the ruling rests on and both are one round of real
+testing away. Everything above is this screen against stubs, against the real
+rules module, and rendered in a browser against the real stylesheet.
+
+## Round 5 fix: the banner. Measured 2026-09-15.
+
+181 checks pass: 90 behaviour, 14 integration, 77 for rounds 3 to 5.
+
+**I did both of the two options, because neither one fixes it alone.** Reading
+oy-09's file rather than the summary: `liveReveal` and `liveChoice` both call
+`setLive(true)`, and **nothing anywhere calls `setLive(false)`**. So routing
+through them, which was the suggested option 2, stops the banner under-claiming
+and leaves it over-claiming for good: once any god-mode question has been on
+screen the banner says a game is being recorded until the tab is closed. That
+is the same lie pointing the other way, which is exactly what I was warned to
+avoid.
+
+So: the marking and the rewrite now go through `liveReveal` and `liveChoice`,
+which removes the duplicated logic, **and** the screen calls `setLive(true)` at
+mount and `setLive(false)` at unmount, which is the only thing that makes it
+true at both ends.
+
+It reports at mount even when god mode is off, because the operator can switch
+god mode on without remounting, and then the banner needs to already know where
+it is.
+
+**Verified against the real `godmode.js`, not a stub**, in the order that was
+broken:
+
+| step | banner |
+| --- | --- |
+| god mode on, not yet in GeoLive | nothing is being recorded |
+| walk into GeoLive | **this game IS recorded** |
+| leave the tab | nothing is being recorded |
+
+And in the same page: one target marked "Lima, god mode answer", tapped Buenos
+Aires, `Lima` handed to the network, Lima shown as picked, no reveal colouring
+while the marker is up.
+
+**A screen thrown away without `destroy()` now takes itself down.** oy-09 still
+never calls it, which I have reported three times. Until it does, a tab switch
+left my watch polling and would now leave the banner claiming a live game after
+Owen has left GeoLive. The screen checks on each render whether its container
+is still in the page and destroys itself if not, which clears the watch, the
+timer and the banner. It is a net, not a substitute: `destroy()` is still the
+right call and the mount-time half of the banner fix depends on nothing else.
+
+**An older godmode.js without the surface is off, not a crash.** Tested with
+`liveReveal`, `liveChoice` and `setLive` all deleted: no marker, and the tap
+goes through untouched.
+
+**The grader link, mostly closed.** Not my measurement: LearnGeo Master queried
+production on 2026-09-15 and reported 11 answers, 5 graded correct, 5 scored
+with points, max 971, across 2 games, with zero correct-but-unscored rows. On
+those numbers the teacher's grader is working in production and `applyRecorded`
+is completing rather than half-writing. I have not re-run that query and cannot
+from here, so treat it as Master's number with Master's date, not mine.
+
+That closes the half I could not see. My rewrite happens before submission, on
+the device, so what reaches the grader is an ordinary answer that happens to be
+right and the server cannot tell the difference, which is the whole design.
+Pair it with my own browser run, where Lima was handed to the network after
+Buenos Aires was tapped, and the chain is evidenced in two halves that meet.
+
+**What is still genuinely unproven**, and it is now one small thing rather than
+a whole link: nobody has run a single god-mode answer through a real game and
+read that row back. Until someone does, the two halves are joined by reasoning
+rather than by one observation. It is a minute of work for whoever next opens a
+real game.

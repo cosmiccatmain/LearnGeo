@@ -465,3 +465,53 @@ answers. Anyone who opens devtools mid-game can read every remaining question.
 Fixing it means the session stops shipping answers to students and the reveal
 delivers them another way. That is a design decision with a cost, and it
 should be decided rather than smuggled in.
+
+## 0004: marking answers given with god mode on
+
+`supabase/deployed/0004_geolive_assisted.sql`, 109 lines, one transaction,
+re-runnable. Two columns and one trigger. No policy is touched.
+
+- `live_answers.assisted` and `live_players.assisted`, both
+  `not null default false`, so the eleven answers already recorded read as
+  not assisted, which is what they were.
+- `private.flag_assisted()` carries the marker from an answer up to its
+  player row.
+
+**Why the marker is on the answer, not the player:** god mode can be switched
+on part way through a game, so a flag set at join would miss a student who
+turns it on at question four.
+
+**Why the trigger is security definer:** a student may write their own answer
+but has no write access to `live_players` at all, and that is exactly what
+stops anyone editing their own score. The marker still has to reach the player
+row, so the database carries it there under its own privileges rather than a
+policy being relaxed to let a client do it. It cannot be pointed at someone
+else: the insert policy already forces the answer's player row to be the
+caller's own.
+
+**One deviation from the shape Master tested, flagged and kept:** their trigger
+fires `after insert` only. Mine fires `after insert or update of assisted`,
+with a `when (new.assisted)` guard so a normal answer never runs it. A teacher
+can update an answer, so the marker becoming true by that route should reach
+the player row too. My test's step 3 exercises exactly that and would have
+passed silently as a gap in the insert-only version.
+
+**Tested against the live database, as the teacher and both students, rolled
+back, with the real data checked afterwards** (11 answers still present, none
+marked assisted, 2 sessions, 3 players, no columns, function or trigger left
+behind, rollback honoured by a probe first):
+
+    1 normal answer omitting the column -> false
+    2 player not flagged yet            -> false
+    3 UPDATE path flags the player      -> true
+    4 INSERT path flags the player      -> true
+    5 student clears own player flag    -> 0 rows
+    6 student clears own answer flag    -> 0 rows
+    7 later clean answer does not clear -> true, no laundering
+    8 student scoring themselves        -> still refused 42501
+    9 real answers marked assisted      -> 0
+   10 real answers still present        -> 11
+
+**The honest limit, also written in the file:** this records the app's own god
+mode being used. Someone editing the JavaScript can decline to send the
+marker. It catches what a student would actually reach for, not a forger.

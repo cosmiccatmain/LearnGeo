@@ -111,6 +111,24 @@ history and the times the round's briefs went out, which live with Master. So
 when you write down what a number MEANS, say that you are inferring it, and
 route causal claims rather than filing them as findings. Numbers are yours to
 measure. Causes usually are not.
+
+**To ask whether a branch was merged, look for its own added lines, not for a
+name it happens to mention.** Grepping for an identifier tells you the
+identifier exists somewhere. It does not tell you that the change which
+introduced it ever landed, because the name may have predated the branch
+entirely.
+
+This cost a wrong report to Owen. A branch was called half-merged on the
+strength of three names, two of which already lived in the file before that
+branch was written. Nothing had been half-merged and nothing was lost: it had
+simply never been merged at all.
+
+Two sessions ran that same flawed check independently and reached the same
+answer, and the agreement was mistaken for confirmation. It is not. Two people
+making the same mistake is one mistake, twice. What answers the question is
+whether the branch's own added lines are present in the target, or a virtual
+merge with `git merge-tree`, and that is the check to run first.
+
 **Nobody deploys, and promoting counts as deploying.** Only `main` reaches
 production, and only Owen or aj promotes it. Promoting a deployment is a
 write, not a read: it is not a git command, so "read-only git is fine" does

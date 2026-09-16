@@ -618,3 +618,173 @@ not touch a `live_` table and is unaffected by 0003 entirely.
 (Master measured 2), and the live value of `leaderboard_enabled` for the class.
 Those need row reads, which my session is refused. The schema above is mine; the
 row counts are Master's, measured 2026-09-12.
+
+
+---
+
+# Round 5 (god mode): the live-game hooks
+
+Measured 2026-09-12 ~23:55 against origin/main 759ce3f, verified at runtime.
+
+## What I built
+
+`godmode.js` +68 −1, `admin.js` +28 −4.
+
+Three functions for `geolive-student.js` to call:
+
+    GodMode.liveReveal(q)        -> q.answer when on, null when off
+    GodMode.liveChoice(q, tap)   -> q.answer when on, the real tap when off
+    GodMode.setLive(bool)        -> call on mount and unmount
+
+Plus `GodMode.inLive`. Verified at runtime: off, `liveReveal` returns null and
+`liveChoice('Caracas')` returns `'Caracas'`. On, `liveReveal` returns `'Lima'`
+and both `liveChoice('Sucre')` and `liveChoice('Caracas')` return `'Lima'`. A
+question with no `answer` passes the real tap through untouched.
+
+**No verdict is ever faked.** The host still grades. God mode rewrites the
+submitted choice on its own device, so the host grades a genuinely correct
+answer and the points and standings are real.
+
+## The banner no longer lies
+
+Outside a live game: "nothing is being recorded", which is true, `award()` is
+stubbed. Inside one: **"your answers are sent as correct · this game IS
+recorded"**, because points, streaks and the answered and correct counts all go
+into `live_players` and the class leaderboard folds finished games in.
+
+`enable()` also asks the DOM whether `#cl-geolive` is present, so switching god
+mode on mid-game does not leave the old line up until the next question. It errs
+towards warning.
+
+## The admin gate is untouched, and it is better than I expected
+
+`available()` is byte-identical to main. No storage was added.
+
+Worth recording: **`Admin.unlocked` is a getter with no setter.** You cannot
+forge it from the console with `Admin.unlocked = true`; I had to replace the
+whole object to test. Whoever wrote that did the right thing and it should stay
+that way.
+
+## Correction to the harm the old comment named
+
+The old `admin.js` note said GeoLive points feed `live_players.score` which
+feeds the class leaderboard, so god mode there would let an admin top a table of
+children. **Measured, that is not how the table ranks.**
+
+`order()` in `leaderboard.js` sorts on: started, then **level**, then **XP
+within the level**, then accuracy, then name, then id. Level and XP come from
+`class_members`, which GeoLive never writes, and `W.award` is never called from
+GeoLive at all.
+
+So a god-moded game **cannot climb the table**. Accuracy is only the third key,
+reached when two students are on an identical level AND identical XP.
+
+What it can still do, and this is real: write a false accuracy, a false answered
+count and a false best streak into a row on a table with children's names on it,
+and break a tie. Smaller than the old note claimed, not nothing.
+
+## Requirement 2 is NOT built, and admin.js says so
+
+Master ruled the requirement and asked me to propose the mechanism. The
+proposal is below; nothing is implemented, and the comment in `admin.js`
+explicitly tells the next reader not to assume it is handled.
+
+`live_join` forces `student_id = auth.uid()`, so a client cannot detach its own
+identity, and `totals()` in `cloud-geolive.js` folds `live_players` rows into a
+student's line by that id. The exclusion therefore has to be visible on the
+teacher's device, which means it has to survive to the server.
+
+**Option A, zero migration.** God mode joins with a marker on the display name,
+which `live_join` takes from the client. `totals()` skips rows whose name
+carries it. Costs nothing, ships today, and the marker is visible in the game,
+which is arguably the honest outcome. Both changes are oy-03's.
+
+**Option B, durable.** One nullable `assisted boolean` on `live_answers`, which
+is the table a student may already insert into, set by the god-mode device.
+`totals()` skips any player with an assisted answer in that session. No policy
+change and no weakening of host-grades. Costs a migration from oy-01 plus two
+changes in oy-03.
+
+**Both are self-reported and neither is a security control.** A device that had
+the PIN could decline to mark itself. The PIN gate is the real boundary; this is
+about not polluting a children's table during legitimate use. Do not let either
+be described as preventing cheating.
+
+## Status
+
+Status: my two files complete and verified at runtime. Requirement 2 proposed,
+not built, and flagged as such in the code. `geolive-student.js` is oy-05's and
+needs the three calls above.
+
+
+---
+
+# Round 6: destroy() on tab change
+
+Measured 2026-09-15 against origin/main aabf998, at runtime.
+
+## The shape is not quite what the brief said, and only half of it was missing
+
+The brief said "the GeoLive screens expose destroy() and nothing ever calls it".
+Read rather than taken:
+
+- **Teacher.** `GeoLiveTeacher` exports `mount` and `unmount`, not `destroy`.
+  `teacher.js` has called `GT.unmount()` on leaving the tab since round 2, and
+  `mount()` opens with `unmount()`, so it also self-cleans on a redraw. **The
+  teacher side was already handled.** Nothing changed there.
+- **Student.** `GeoLiveStudent` exports `mount` ALONE. `destroy` lives on the
+  instance that `mount()` returns, and on a copy it leaves at
+  `host.__glStudent`. `classroom.js` threw the return value away, and the copy
+  on the host goes when `render()` replaces the panel. So there was no route to
+  `destroy` at all.
+
+So it is one file, one leak, student only.
+
+## The fix
+
+`classroom.js` +21 −1. Keep the instance in a module var, and take the previous
+one down **on every pass through `wire()`**, not only when the tab changes. A
+sync redraw detaches the container just as thoroughly as switching away, and
+that is the common case because the class syncs on its own.
+
+## Measured, both ways
+
+Same script against both versions: open GeoLive, redraw three times, switch away.
+
+| | instances made | destroyed | still alive | GodMode.inLive |
+| --- | --- | --- | --- | --- |
+| **main aabf998**, after 3 redraws | 4 | 0 | **4** | true |
+| **main aabf998**, after switching away | 4 | 0 | **4** | **true** |
+| **with this fix**, after 3 redraws | 5 | 4 | **1** | true |
+| **with this fix**, after switching away | 5 | 5 | **0** | **false** |
+
+On main, every redraw stacks another live instance, and four were still alive
+and still reporting a live game after the user had walked away from the tab.
+
+Fair to oy-05: its `detached()` net would very likely reap those on their next
+watch tick, so this measures the immediate state rather than a permanent leak.
+The window is what matters though, because inside it every stacked instance is
+still listening on `document` and one keypress answers several times.
+
+## Worse than the brief described, in one specific way
+
+`destroy()` also removes `document` keydown, `document` visibilitychange and
+`window` online listeners. Those are not on the container, so replacing the
+panel does not touch them: they accumulate per instance. The brief mentioned the
+watch and the timer, and the listeners are the part that produces the visible
+bug, which is one keypress sending several answers.
+
+It also calls `godLive(false)`, so the god-mode banner stops claiming a game is
+being recorded. That is the round-5 lie pointing the other way, and this is what
+fixes it.
+
+## Checked and not needed
+
+- `ClassLeaderboard` exports `mount`, `tally`, `ownerKey`, with no interval,
+  subscription or teardown. One-shot render, nothing to take down.
+- The teacher side, as above.
+
+## Status
+
+Status: complete, one file. Verified at runtime with the before case measured
+rather than assumed.

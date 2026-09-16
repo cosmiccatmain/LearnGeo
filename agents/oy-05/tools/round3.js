@@ -15,7 +15,8 @@ const QS=[{prompt:'Capital of Peru?',answer:'Lima',options:['Sucre','Lima','Buen
 function rules(){ const w={}; Object.assign(w,{window:w,console,Date,Math,JSON,Promise}); vm.runInNewContext(RULES,w); return w.GeoLive; }
 
 function env(opts={}){
-  const host=new El('div'); const docL={}; let onChange=null; const calls={answer:[],join:[],watch:[]};
+  const host=new El('div');
+  let liveFlag=false; const liveCalls=[]; const docL={}; let onChange=null; const calls={answer:[],join:[],watch:[]};
   let enabled = opts.enabled !== false;
   const document={hidden:false,addEventListener(t,f){(docL[t]=docL[t]||[]).push(f)},removeEventListener(t,f){docL[t]=(docL[t]||[]).filter(x=>x!==f)},
     createElement:t=>new El(t),fire(t,x){(docL[t]||[]).forEach(f=>f(Object.assign({type:t,preventDefault(){}},x||{})))},
@@ -23,6 +24,14 @@ function env(opts={}){
   const win={}; Object.assign(win,{window:win,document,console,setInterval,clearInterval,setTimeout,clearTimeout,
     Promise,Date,Math,JSON,addEventListener(){},removeEventListener(){},
     Cloud:{signedIn:true,user:{id:'acct-owen'}},
+    Admin:{unlocked:!!opts.god},
+    GodMode:{
+      get on(){return !!opts.god;}, available(){return !!opts.god;},
+      get live(){return liveFlag;},
+      setLive(v){ liveFlag=!!v; liveCalls.push(!!v); return liveFlag; },
+      liveReveal(q){ if(!opts.god||!q||q.answer==null) return null; liveFlag=true; liveCalls.push(true); return q.answer; },
+      liveChoice(q,picked){ if(!opts.god||!q||q.answer==null) return picked; liveFlag=true; liveCalls.push(true); return q.answer; }
+    },
     WW:{escapeHtml:s=>String(s==null?'':s),state:{profile:{displayName:'Owen'}},accountId:()=>'acct-owen'},
     GeoLiveCloud:{
       join:(...a)=>{calls.join.push(a);return Promise.resolve(opts.joinReturns||{sessionId:'S1',playerId:'row-owen'})},
@@ -36,6 +45,7 @@ function env(opts={}){
   vm.runInNewContext(MINE,win);
   const api=win.GeoLiveStudent.mount(host,{});
   return {host,win,calls,api,document,
+    get liveFlag(){return liveFlag;}, liveCalls,
     setEnabled:v=>{enabled=!!v;},
     push:s=>onChange&&onChange(s),
     stop:()=>onChange&&onChange(null),
@@ -302,6 +312,158 @@ const snap=x=>Object.assign({status:'asking',index:0,questions:QS,timeLimitMs:20
     ok('and claims no attendance count', !/person here|people here/.test(h));
     ok('no place is invented from an empty board',
        e.host.querySelectorAll('.gl-place__n').length===0);
+  }
+
+
+  console.log('\n--- 10. god mode, off ---');
+  {
+    const e=env(); await joinGame(e);
+    e.push(snap({}));
+    const h=e.html();
+    ok('no marker anywhere', !/answer<\/span>/.test(h) && !/the correct answer/.test(h), h.slice(0,200));
+    e.host.fire('click',e.host.querySelector('.gl-target--a'));   /* Sucre, wrong */
+    await tick();
+    ok('the tap is sent exactly as tapped', e.calls.answer[0][3]==='Sucre', JSON.stringify(e.calls.answer[0]));
+  }
+  {
+    /* GodMode absent entirely, which is a page that never loaded it */
+    const e=env(); delete e.win.GodMode;
+    await joinGame(e);
+    e.push(snap({}));
+    e.host.fire('click',e.host.querySelector('.gl-target--a'));
+    await tick();
+    ok('no GodMode object means off, not a throw', e.calls.answer.length===1 && e.calls.answer[0][3]==='Sucre');
+  }
+
+  console.log('\n--- 11. god mode, on ---');
+  {
+    const e=env({god:true}); await joinGame(e);
+    e.push(snap({}));
+    /* assert on the DOM: this harness's html() flattens text and drops
+       both class names and attributes */
+    const marked=[...e.host.querySelectorAll('.gl-target')]
+      .filter(t=>t.querySelectorAll('.gl__eyebrow').length>0);
+    ok('exactly one target is marked before anything is tapped', marked.length===1,
+       'marked '+marked.length);
+    ok('the marker is on Lima, the real answer',
+       marked.length===1 && /Lima/.test(marked[0].textContent),
+       marked.length? marked[0].textContent : 'none');
+    ok('and the marker is announced to a screen reader',
+       marked.length===1 && /correct answer/.test(marked[0].attrs['aria-label']||''),
+       marked.length? String(marked[0].attrs['aria-label']) : 'none');
+    ok('and it is NOT the reveal treatment',
+       ![...e.host.querySelectorAll('.gl-target')].some(n=>n.classList.contains('is-right')));
+  }
+  {
+    const e=env({god:true}); await joinGame(e);
+    e.push(snap({}));
+    e.host.fire('click',e.host.querySelector('.gl-target--c'));   /* taps Buenos Aires */
+    await tick();
+    ok('whatever is tapped is submitted as the real answer',
+       e.calls.answer[0][3]==='Lima', JSON.stringify(e.calls.answer[0]));
+    ok('the screen shows what was actually sent, not the tap',
+       e.host.querySelector('.gl-target--b').classList.contains('is-picked'));
+    ok('and never writes correct or points itself',
+       e.calls.answer[0].length===5, 'args: '+JSON.stringify(e.calls.answer[0]));
+    e.push(snap({status:'reveal',msLeft:null}));
+    ok('the reveal reads as right',
+       e.host.querySelector('.gl-verdict').classList.contains('gl-verdict--right'),
+       e.host.querySelector('.gl-verdict').className);
+  }
+  {
+    /* keyboard goes through the same rewrite */
+    const e=env({god:true}); await joinGame(e);
+    e.push(snap({}));
+    e.document.fire('keydown',{key:'4'});                          /* Caracas */
+    await tick();
+    ok('the keyboard is rewritten too', e.calls.answer[0][3]==='Lima', JSON.stringify(e.calls.answer[0]));
+  }
+  {
+    /* a second tap is still ignored, god mode or not */
+    const e=env({god:true}); await joinGame(e);
+    e.push(snap({}));
+    e.host.fire('click',e.host.querySelector('.gl-target--a'));
+    e.host.fire('click',e.host.querySelector('.gl-target--c'));
+    await tick();
+    ok('one answer, not two', e.calls.answer.length===1, 'sent '+e.calls.answer.length);
+  }
+  {
+    /* time up still blocks it: god mode is not a way past a closed question */
+    const e=env({god:true}); await joinGame(e);
+    e.push(snap({askedAt:Date.now()-25000,timeLimitMs:20000,msLeft:0}));
+    e.host.fire('click',e.host.querySelector('.gl-target--a'));
+    await tick();
+    ok('a closed question stays closed', e.calls.answer.length===0, 'sent '+e.calls.answer.length);
+  }
+  {
+    /* a late joiner in god mode: the walk-in state still reads right */
+    const e=env({god:true}); await joinGame(e);
+    e.push(snap({status:'reveal',index:0,msLeft:null}));
+    ok('the walk-in state is unchanged by god mode', /You are in/.test(e.html()), e.html().slice(0,200));
+  }
+  {
+    /* no answer on the question means nothing to mark, and no throw */
+    const e=env({god:true}); await joinGame(e);
+    const noAnswer=[{prompt:'Capital of Peru?',options:['Sucre','Lima','Buenos Aires','Caracas']}];
+    e.push(Object.assign(snap({}),{questions:noAnswer}));
+    ok('a question with no answer field marks nothing and does not throw',
+       !/the correct answer/.test(e.html()));
+    e.host.fire('click',e.host.querySelector('.gl-target--a'));
+    await tick();
+    ok('and the tap goes through untouched', e.calls.answer[0][3]==='Sucre');
+  }
+
+
+  console.log('\n--- 12. the banner cannot lie in either direction ---');
+  {
+    /* the natural order: god mode on FIRST, then walk into GeoLive */
+    const e=env({god:true});
+    ok('mounting says a live game is happening', e.liveFlag===true,
+       'setLive calls: '+JSON.stringify(e.liveCalls));
+    await joinGame(e);
+    e.push(snap({}));
+    ok('still live with a question up', e.liveFlag===true);
+    e.api.destroy();
+    ok('leaving the screen says it is not', e.liveFlag===false,
+       'setLive calls: '+JSON.stringify(e.liveCalls));
+  }
+  {
+    /* god mode OFF: the screen must still tell the banner where it is,
+       because the operator can switch it on later without remounting */
+    const e=env();
+    ok('mount reports live even with god mode off', e.liveFlag===true);
+    e.api.destroy();
+    ok('and clears it on the way out', e.liveFlag===false);
+  }
+  {
+    /* the marking and the rewrite now come from godmode.js, not from here */
+    const e=env({god:true}); await joinGame(e);
+    e.push(snap({}));
+    const marked=[...e.host.querySelectorAll('.gl-target')].filter(t=>t.querySelector('.gl__eyebrow'));
+    ok('liveReveal drives the marker', marked.length===1 && /Lima/.test(marked[0].textContent));
+    e.host.fire('click',e.host.querySelector('.gl-target--c'));
+    await tick();
+    ok('liveChoice drives the rewrite', e.calls.answer[0][3]==='Lima', JSON.stringify(e.calls.answer[0]));
+  }
+  {
+    /* an older godmode.js without the surface is off, not a crash */
+    const e=env({god:true});
+    delete e.win.GodMode.liveReveal; delete e.win.GodMode.liveChoice; delete e.win.GodMode.setLive;
+    await joinGame(e);
+    e.push(snap({}));
+    ok('no surface means no marker',
+       [...e.host.querySelectorAll('.gl-target')].every(t=>!t.querySelector('.gl__eyebrow')));
+    e.host.fire('click',e.host.querySelector('.gl-target--a'));
+    await tick();
+    ok('and the tap goes through untouched', e.calls.answer[0][3]==='Sucre');
+  }
+  {
+    /* a second mount replaces the first and the banner survives it */
+    const e=env({god:true}); await joinGame(e);
+    e.push(snap({}));
+    e.remount();
+    ok('a remount leaves the banner saying live, not cleared by the old instance',
+       e.liveFlag===true, 'setLive calls: '+JSON.stringify(e.liveCalls));
   }
 
   console.log('\n'+(fail===0?'ALL PASS':fail+' FAILED')+'  ('+pass+' passed)');

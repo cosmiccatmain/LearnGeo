@@ -79,6 +79,32 @@
   var enabled = true;
   var liveWatches = [];
 
+  /* ======================= playing with help ========================= */
+
+  /* God mode shows a student the answer. That is fine as a teaching tool
+     and ruinous in a class table, so a game played with it on has to be
+     recognisable later, and recognisable from the DATA rather than from
+     whatever the device doing the reading happens to have switched on.
+
+     So it is written at the moment of the answer, by the device that was
+     actually playing, into a row nobody can update afterwards: students
+     have no update policy on live_answers. A read cannot assert it and a
+     later toggle cannot rewrite it.
+
+     What this is NOT: proof against a modified client. Someone editing
+     the JavaScript can simply not set the flag, and no client-side marker
+     can stop that. This records the app's own god mode being used, which
+     is the thing that exists and the thing a child would actually reach
+     for. Anything stronger has to be the server noticing impossible
+     answers, which is a different job. Saying so plainly because a marker
+     everyone trusts more than it deserves is worse than none. */
+  var assistedColumn = true;   /* until the database says otherwise */
+
+  function godOn() {
+    var G = global.GodMode;
+    try { return !!(G && G.on); } catch (e) { return false; }
+  }
+
   function setEnabled(on) {
     var was = enabled;
     enabled = !!on;
@@ -686,13 +712,36 @@
           if (session.question_index !== (index | 0)) return null;
 
           var t0 = Date.now();
-          return sb().from(ANSWERS).insert({
-            session_id: sessionId,
-            player_id: playerId,
-            question_index: index | 0,
-            choice: picked.slice(0, 120),
-            ms: Math.max(0, Math.min(3600000, ms | 0))
-          }).select('player_id, question_index, choice, correct, points, ms, created_at').single()
+
+          function row(withAssisted) {
+            var r = {
+              session_id: sessionId,
+              player_id: playerId,
+              question_index: index | 0,
+              choice: picked.slice(0, 120),
+              ms: Math.max(0, Math.min(3600000, ms | 0))
+            };
+            /* recorded as it happens, by the device that is playing */
+            if (withAssisted) r.assisted = godOn();
+            return r;
+          }
+
+          function send(withAssisted) {
+            return sb().from(ANSWERS).insert(row(withAssisted))
+              .select('player_id, question_index, choice, correct, points, ms, created_at')
+              .single()
+              .then(function (res) {
+                /* the column arrives with 0004; until then answering has to
+                   carry on working, so drop it and remember for this session */
+                if (res.error && withAssisted && missingColumn(res.error)) {
+                  assistedColumn = false;
+                  return send(false);
+                }
+                return res;
+              });
+          }
+
+          return send(assistedColumn)
             .then(function (ins) {
               if (ins.error) {
                 if (missingTable(ins.error)) { setUp = false; return null; }
@@ -965,8 +1014,9 @@
           var games = check(res) || [];
           if (!games.length) return [];
           var ids = games.map(function (g) { return g.id; });
-          return sb().from(PLAYERS)
-            .select('session_id, student_id, name, score, streak, answered, correct, joined_at')
+          /* the whole row on purpose: naming a column that is not there
+             yet fails the read outright, and assisted arrives with 0004 */
+          return sb().from(PLAYERS).select('*')
             .in('session_id', ids).order('joined_at', { ascending: false })
             .then(function (pres) {
               var players = check(pres) || [];
@@ -989,11 +1039,22 @@
                     studentId: p.student_id || null,
                     name: String(p.name || 'Player'),
                     points: 0, bestStreak: 0, games: 0,
-                    answered: 0, correct: 0
+                    answered: 0, correct: 0,
+                    /* games dropped for being played with god mode on,
+                       already out of the numbers above. oy-07 shows this
+                       to the teacher and prefers it to a godMode flag,
+                       because one student can have a mix and an aggregate
+                       cannot be unpicked afterwards. */
+                    excludedGames: 0
                   };
                   order.push(key);
                 }
                 var t = by[key];
+                /* Played with help, so it is out: not its points, not its
+                   answers, not its streak. Counted instead, so the teacher
+                   is told the table is missing a game rather than left to
+                   wonder why a total looks small. */
+                if (p.assisted === true) { t.excludedGames++; return; }
                 t.points += Math.max(0, p.score | 0);
                 if ((p.streak | 0) > t.bestStreak) t.bestStreak = p.streak | 0;
                 t.answered += Math.max(0, p.answered | 0);
