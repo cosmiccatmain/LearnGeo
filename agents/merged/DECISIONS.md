@@ -1294,3 +1294,34 @@ The check has a known blind spot: a semantic child class whose parent styles
 it. That is different from round 4's `class-features.css`, where nine rendered
 classes had no rules anywhere and the panel really was unstyled. A flagged
 class is a question, not a verdict.
+
+## Addendum: one comment added, and a digest mystery closed
+
+**`readClassFeatures` now says why it stays a `select`.** oy-03 flagged that
+`cloud.js` has one remaining `from('classes').select('*')` and that it is
+correct: a tag travels, so `readClassTag` has to be an rpc, but the feature
+switches do not travel and there is no `class_features` function to call.
+
+The line already carried a comment, but it explained a different hazard, that
+the query must not be joined to the class sync. The hazard oy-03 named, that
+somebody greps for the pattern and converts it to match `readClassTag`, was
+unwritten. That is the shape this project keeps paying for: the reasoning
+existed in a message and not in the artifact.
+
+Added at the line. One comment removed, ten added, zero lines of behaviour
+changed, checked by reading every added and removed line rather than trusting
+the diffstat.
+
+**The sha discrepancy is closed and it was nothing.** oy-03 reported its file
+as `74c06a62`; Master and I both computed `bec5fbcb` with `git hash-object`.
+Same 49666 bytes, different algorithm:
+
+    git hash-object (sha1 with blob header)   bec5fbcb
+    raw sha1                                  8d4bbad1
+    raw sha256                                74c06a62   <- what oy-03 reported
+    md5                                       32f06c3e
+
+oy-03 quoted a sha256. Nobody was looking at a different file. Worth one line
+because two sessions had already looked at it and left it open, and "the
+content is not in doubt" is a weaker statement than "the digests are the same
+bytes under two algorithms".

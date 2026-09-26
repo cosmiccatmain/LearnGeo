@@ -987,7 +987,16 @@
 
   function readClassFeatures(classId) {
     if (!ready() || !classId) return Promise.resolve(null);
-    /* its own query on purpose, never joined to the class sync */
+    /* its own query on purpose, never joined to the class sync.
+
+       AND IT STAYS A SELECT. readClassTag above is an rpc because a tag
+       travels: a student meets four letters belonging to a class they are
+       not in, so only a definer function can answer. These switches do not
+       travel. A teacher reads them for a class they are already in, and
+       there is no class_features function to call. Grepping for
+       from('classes').select and making this match readClassTag would call
+       something that does not exist and read as tidying up while it broke
+       the feature switches. */
     return sb.from('classes').select('*').eq('id', classId).maybeSingle()
       .then(function (res) {
         if (res && res.error) return null;
