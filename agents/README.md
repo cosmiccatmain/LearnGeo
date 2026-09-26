@@ -46,6 +46,30 @@ and never edit `merged/`, which belongs to the Organizer.
    ones at the top of the repo in a single commit.
 6. The round is over. Session folders are cleared for the next one.
 
+## The wiring check, before any push
+
+This one is the Organizer's and it cannot be delegated, which is why it sits
+here rather than under Rules.
+
+For every NEW file in the round: does anything load it, and does anything call
+it? A new script needs a tag in `index.html`. A new stylesheet needs a link. A
+new global needs a consumer. Then check the reverse: every global a merged file
+READS must be defined by something that also ships in the same round.
+
+The defect it catches has appeared five times: the announcements table, the
+`gl`/`lb` class-name vocabulary, `class-features.css`, a banner button bound
+inside the wrong container, and `worntag.js`, which was written, merged, and
+loaded by nothing. Every one was present, correct and connected to nothing. No
+error, no failing check, and the feature simply does not run.
+
+It is structural rather than careless. Each session sees its own folder. The
+producer is correct and the consumer is correct; the wiring between them
+belongs to whoever owns the file in the middle, and that session has no reason
+to know the other exists. One session writes a stylesheet, another owns the
+page and is never told to link it. Not one of the five was caught by a session
+owning either half, because neither half was wrong. Only somebody reading two
+folders at once can see it, and that is the Organizer.
+
 ## Rules
 
 **Write only inside your own folder.** During a round, `agents/oy-NN/` is the
