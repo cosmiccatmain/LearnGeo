@@ -273,7 +273,13 @@
       '<div class="cr">' +
         '<div class="cr-banner">' +
           '<div>' +
-            '<h1>' + W.escapeHtml(c.name || 'Your class') + '</h1>' +
+            /* Unnamed classes get the offer in the title itself, which is
+               where a teacher is already looking, rather than in Settings
+               where nobody went. A named one is just a heading. */
+            (named(c.name)
+              ? '<h1>' + W.escapeHtml(c.name) + '</h1>'
+              : '<h1><button class="cr-banner__name" id="tm-nameit">' +
+                  'Name your class</button></h1>') +
             '<p>' + c.assignments.length + ' assignment' + (c.assignments.length === 1 ? '' : 's') +
               ' · ' + roster.length + ' student' + (roster.length === 1 ? '' : 's') +
               ' · ' + c.results.length + ' result' + (c.results.length === 1 ? '' : 's') + ' in</p>' +
@@ -312,6 +318,11 @@
     });
     var getBtn = document.getElementById('tm-getcode');
     if (getBtn) getBtn.addEventListener('click', shareInvite);
+    /* Bound here rather than in wirePanel, which only reaches inside
+       #cr-body. The banner sits outside it, which is why the other two
+       banner buttons are bound here too. */
+    var nameBtn = document.getElementById('tm-nameit');
+    if (nameBtn) nameBtn.addEventListener('click', askName);
     wirePanel();
 
     function crTab(id, icon, label, n) {
@@ -1263,12 +1274,66 @@
     }
   }
 
+  /* A class nobody names is called "Your class" for the rest of its life.
+     The field for it has always existed, a card down in Settings, which
+     for most people is the same as not existing: a real class with three
+     students in it was still called "Your class" a fortnight after it was
+     made. So the name is asked for at the one moment the teacher is
+     already thinking about the class, and the banner keeps offering
+     until it has one. */
+  function named(n) {
+    var s = String(n || '').trim();
+    return !!s && s.toLowerCase() !== 'your class';
+  }
+
+  /* Saves by the same path as the Settings field, so a class is renamed
+     one way rather than two that can drift apart. */
+  function saveName(v) {
+    var name = String(v || '').trim().slice(0, 40);
+    if (!name) return false;
+    cls().name = name;
+    W.saveNow();
+    render();
+    if (online()) global.Cloud.renameClass(name).catch(cloudErr);
+    return true;
+  }
+
+  function askName() {
+    global.UI.modal({
+      title: 'Name your class',
+      icon: I.users,
+      body: '<div class="field"><label class="field__label">Class name</label>' +
+          '<input class="input" id="tm-askname" maxlength="40" ' +
+            'placeholder="e.g. Period 3 Geography"></div>' +
+        '<div class="field__hint">Your students see this. You can change it ' +
+          'later in Settings.</div>',
+      actions: [
+        { label: 'Not now', cls: 'btn--ghost', close: true },
+        { label: 'Save', cls: 'btn--primary', close: true, onClick: function (m) {
+            var el = W.$('#tm-askname', m);
+            /* Returning false holds the dialog open, so an empty box cannot
+               quietly dismiss and leave the class unnamed again. */
+            return saveName(el && el.value) ? true : false;
+          } }
+      ],
+      onMount: function (m, close) {
+        var el = W.$('#tm-askname', m);
+        if (!el) return;
+        el.focus();
+        el.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter' && saveName(el.value)) close();
+        });
+      }
+    });
+  }
+
   function becomeTeacher() {
     W.state.role = 'teacher';
     W.state.roleChosen = true;
     W.saveNow();
     global.UI.refreshTabs();
     global.UI.go('teacher');
+    if (!named(cls().name)) askName();
   }
 
   function leaveTeacher() {

@@ -1936,6 +1936,16 @@ textarea.input:focus { outline: none; border-color: var(--accent); box-shadow: 0
 .cr-banner > * { position: relative; z-index: 1; }
 .cr-banner h1 { font-size: clamp(24px, 3vw, 34px); letter-spacing: -.03em; }
 .cr-banner p { margin-top: 6px; font-size: 14px; color: rgba(255,255,255,.86); }
+/* The title of a class nobody has named yet. It has to read as the
+   heading it replaces, not as a button parked in the banner, so it
+   inherits the h1 and only the dashed underline says it is tappable. */
+.cr-banner__name {
+  font: inherit; letter-spacing: inherit; color: inherit;
+  background: none; border: 0; padding: 0; cursor: pointer;
+  text-decoration: underline; text-decoration-style: dashed;
+  text-underline-offset: 5px; text-decoration-color: rgba(255,255,255,.5);
+}
+.cr-banner__name:hover { text-decoration-color: rgba(255,255,255,.9); }
 .cr-banner__code {
   background: rgba(255,255,255,.16); backdrop-filter: blur(6px);
   border: 1px solid rgba(255,255,255,.26); border-radius: 12px;
