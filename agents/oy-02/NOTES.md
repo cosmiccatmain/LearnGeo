@@ -1,5 +1,115 @@
 # NOTES for LearnGeo 2 OY
 
+## Round 6: achievements become wearable badges (measured 2026-09-25)
+
+**Flagging first: I wrote four files beyond my brief.** My brief said
+cosmetics.js and the core.js achievement path. I also changed `avatars.js`,
+`ui.js` and the four mode files. Each is explained below and none could be
+avoided; if any belongs to someone else this round, take my copy as a proposal
+and say so. Everything is inside `agents/oy-02/` and nothing outside it was
+touched.
+
+**46 tests pass** (`node agents/oy-02/tests/badges.test.js`), plus a browser
+check of the real dialog. geolive.js is untouched and still 168.
+
+### Your reading was right
+
+`checkAchievements()` pushes the id into `state.achievements`, pays
+`a.reward`, and touches nothing cosmetic. Nothing anywhere reads
+`state.achievements` except the achievements list in the profile menu. So
+achievements unlocked nothing before this.
+
+### What an earned badge is
+
+Ten badges, one per achievement, in `cosmetics.js` carrying `earn: '<id>'`.
+Owned when that id is in `state.achievements` **and by no other route**: no
+price, nothing written into `state.owned`, no grant to go wrong. That also
+answers "must not grant twice" by never granting at all, and it means a reset
+that clears achievements takes the badges with it. Both are tested against the
+real `core.js`, not a copy of its rules.
+
+They sit in `DECORATIONS`, so they compete for the one wearing slot rather
+than adding a second. The four bought badges are untouched at their original
+prices.
+
+### The glyphs, and why not to reuse the four
+
+Ten new outline marks in `avatars.js`: flag, flame, bolt, bullseye, clipboard,
+cards, region, chevrons, bars, orbit. **Art only; no behaviour changed.**
+
+I did not reuse laurel, compass, bloom or crown. Somebody paid up to 1400
+diamonds for those, and an earned badge that looked identical to a bought one
+would say the wrong thing about how it was got. Each mark differs in shape,
+not only in colour, so they are still told apart in greyscale or by someone
+who cannot separate the hues, and each is a plain outline that still reads at
+the 14px the avatar corner draws it at.
+
+### Why ui.js had to change
+
+It could not be done in cosmetics.js alone, and the reason is concrete.
+`shopPanel()` decides ownership as `it.price === 0 || owned.indexOf(it.id)`.
+A badge with `price: 0` is owned by everybody from day one, which is the one
+thing the rule forbids. A badge with no price falls to the second test,
+renders as "💎 undefined", and `data-price` becomes 0 through `(it.price || 0)`,
+so clicking it opens "Unlock for 0 💎" and `spend(0)` succeeds. **An unearned
+badge would be purchasable for nothing.** Three small changes close it:
+ownership goes through `Cos.ownsEarned`, a locked badge shows what unlocks it
+instead of a price, and `buy()` refuses anything carrying an `earn` whatever
+price it is handed.
+
+### The six unlock notices, now one
+
+Unified into `W.announceAchievements()` in core.js. They had drifted into four
+timings (4000ms on 480+i*440, 4000 on 500+450, 4200 on 700+500, and Learn's
+4200 on 600+500) and only Learn played a sound or said what the achievement
+was for. **I picked Learn's**, because it was the fullest rather than because
+it was first: the sound marks the moment and the description says what you
+did. The notice now also says a badge unlocked, which is the point of the
+feature and which nothing else in the app would have told anyone.
+
+### Class tag glyphs: a separate set, and why
+
+`Cosmetics.tagGlyph(name)` returns the mark as an svg string, or **null** for
+a name it does not know. It never throws, for any input, including `'toString'`
+and other inherited property names. `Cosmetics.tagGlyphs` is the list a picker
+should be built from, so nobody hardcodes names that later disagree with this
+file. Both come from one object, so the list and the renderer cannot drift.
+
+**Eight names: globe, star, leaf, heart, book, pennant, mountain, shield.**
+Single lowercase words, so a picker can title-case them for a label without a
+second list to fall out of step with.
+
+**They are not the achievement marks, for two reasons.** Size: an achievement
+mark sits on an avatar at 24 to 32px and can afford three concentric circles
+or a map with internal lines; a tag sits beside four letters at about 12px in
+a leaderboard row, sometimes on a projector. Bullseye, region, clipboard,
+cards and orbit are mud at that size. Meaning: an achievement mark says "this
+person did this thing", a tag says "this is which class". One mark doing both
+would make a class logo read as something a student earned, which is the exact
+distinction the badge feature exists to draw.
+
+I rendered all of them at 12, 16 and 32px, in greyscale, and on dark, rather
+than assuming. The first pass failed its own test: leaf, rocket and anchor
+were unreadable at 12px. Anchor's ring came out under a pixel across, so it
+became a shield. **Rocket is deliberately absent**: every version I drew was a
+5px blob identifiable only by already knowing it was a rocket. It can come
+back if someone draws one that survives 12px.
+
+### Checked in a browser, not only in tests
+
+Ten badge tiles render, nine locked and one earned. A locked tile shows its
+glyph and what unlocks it and no price. Clicking a locked one opens no dialog,
+says "Not earned yet" with the description, and leaves diamonds at 150. The
+earned one equips and appears beside the avatar. No console errors.
+
+### Three of my own tests were wrong before they were right
+
+A glyph check that missed the `<svg>` wrapper; a toast check that stubbed the
+exported `toast` when the announcer calls core's internal one; and a straggler
+case in round 4. Recording them under the standing rule: each one turned an
+assumption into something checked.
+
+
 ## Round 4: an empty room is a valid game (measured 2026-09-12)
 
 **No code changed. `assets/js/geolive.js` is byte-identical to the merged copy;

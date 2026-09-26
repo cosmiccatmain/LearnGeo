@@ -286,6 +286,19 @@
     }
   }
 
+  /* A class tag beside a name on the podium. WornTag renders nothing for a
+     row that carries no tag, which is every row until the column exists, so
+     this costs nothing and lights up on its own when it does. Deliberately
+     WornTag and not ClassTag: ClassTag is the live file that owns the tag
+     markup, and this is the student's side of it. */
+  function tagMark(subject) {
+    var T = global.WornTag;
+    if (T && typeof T.mark === 'function') {
+      try { return T.mark(subject); } catch (e) { /* no tag */ }
+    }
+    return '';
+  }
+
   function cloudFn(name) {
     var C = global.GeoLiveCloud;
     return (C && typeof C[name] === 'function') ? C[name].bind(C) : null;
@@ -878,7 +891,7 @@
               var me = String(t.id) === String(S.playerId) ? ' is-me' : '';
               return '<div class="gl-podium__place ' + RANKS[i] + me + '">' +
                 '<span class="gl-podium__medal" aria-hidden="true">' + MEDALS[i] + '</span>' +
-                '<span class="gl-podium__name">' + esc(t.name) + '</span>' +
+                '<span class="gl-podium__name">' + esc(t.name) + '</span>' + tagMark(t) +
                 '<span class="gl-podium__score">' + num(t.score, 0) + '</span>' +
               '</div>';
             }).join('') + '</div>'

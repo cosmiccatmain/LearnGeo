@@ -304,7 +304,31 @@
        already in is still theirs */
     C.joinClass(code, name).then(function (klass) {
       pending = '';
-      if (e.classId) C.leaveClass().catch(function () {});
+      /* A leave that fails used to be swallowed here, which left a student
+         believing they had left a class they were still a member of: still
+         on that teacher's roster, still counted, still a member for any
+         rule that asks. Nobody found out, because nothing said so.
+
+         The join stays first on purpose, see the comment above: if the new
+         code turns out not to work, the class they are already in is still
+         theirs. Only the silence is being fixed. */
+      if (e.classId) {
+        var leftBehind = e.className || 'your old class';
+        var stillThere = function () {
+          W.toast('Still in ' + leftBehind,
+                  'You are in ' + klass.name + ' now, but leaving ' + leftBehind +
+                  ' did not go through. That teacher can still see you, so tell them.',
+                  I.info, 7000);
+        };
+        /* Two ways it can fail to leave and only one of them is a rejection.
+           leaveClass() returns a resolved promise when the connection is not
+           ready, so it reports success for something it never attempted, and
+           a catch alone would still say nothing. Checked here rather than
+           waited for. cloud.js is oy-03's; the honest fix is for leaveClass
+           to say whether it left, and then this check can go. */
+        if (!C.ready) stillThere();
+        else C.leaveClass().catch(stillThere);
+      }
       W.state.inbox = inbox().filter(function (a) { return a.done || a.classCode !== e.code; });
       enroll({ code: klass.code, className: klass.name, name: name, classId: klass.id }, [],
              'Your classwork will show up here');

@@ -536,3 +536,340 @@ a whole link: nobody has run a single god-mode answer through a real game and
 read that row back. Until someone does, the two halves are joined by reasoning
 rather than by one observation. It is a minute of work for whoever next opens a
 real game.
+
+## Round 6: class tags, the student side. Measured 2026-09-25.
+
+224 checks pass: 90 behaviour, 14 integration, 77 rounds 3 to 5, 43 for tags.
+
+### A student can only be in one class, so this is a toggle, not a picker
+
+`core.js:125` is `enrolled: null, /* { code, className, name, classId? } once
+joined */`. A single object or null. `cloud.js`'s `leaveClass()` takes no
+argument because there is only ever one to leave, and a repo-wide search finds
+no list of a student's classes anywhere.
+
+So "if a student is in three classes they pick one or none" describes a state
+this app cannot currently produce. The student side of the feature is: wear
+your class's tag, or do not. Building a one-of-several picker would add a
+branch no student can reach, which is the thing ruling 4 forbids.
+
+I have built it so that becoming a list later changes one function,
+`enrolled()`, and nothing else. The worn value is stored as a class id rather
+than a boolean for the same reason.
+
+### Every dependency is unbuilt, verified rather than assumed
+
+No `tag_class_id` anywhere, no `0005` in `supabase/deployed/`, no cloud call,
+and `cosmetics.js` has badge glyphs for shop items but nothing for tags. So
+there is no tag data in this app today and nothing I write can be exercised
+against real values yet.
+
+That is fine for the half I built, because the correct behaviour with no data
+is to render nothing, and that is testable now.
+
+### What is in: `assets/js/classtag.js`, a new file
+
+`ClassTag.mark(subject, size)` follows `verifiedMark(profile, size)`: markup or
+an empty string, never anything between. Plus `adopt`, `drop`, `wear`,
+`wearing`, `available`, `worn`, `clean`.
+
+Against the four rulings:
+
+- **Four letters, A to Z, upper case.** `clean()` refuses everything else.
+  Lower case from a teacher is tidied rather than refused, since that should
+  not be the reason a tag vanishes.
+- **Never guess.** An unknown, malformed or absent tag renders as the empty
+  string. No placeholder, no box, no spinner. A person object with no tag of
+  its own renders nothing and never borrows the viewer's tag.
+- **A tag is not a name.** Its own `<span class="ctag">` with
+  `aria-label="Class tag GEOG"`, letters in their own child span, glyph marked
+  `aria-hidden`. The name is never inside it.
+- **Costs nothing when off.** Rendering and reading make no request and no
+  save. With no class tag, which is the shipping case, the whole file is inert.
+
+**Dropping is tested before adopting**, as instructed. Dropping twice does not
+double-save, dropping when already bare does nothing, a drop reaches the
+network as an explicit `null` rather than as a missing call, and a drop whose
+network call fails still drops locally. Adopt and drop share one function so
+the less-used path cannot rot.
+
+### Seams I need named rather than invented
+
+1. `CloudTag.setWornTag(classIdOrNull)`, oy-03's. Called if present, skipped if
+   not, and the choice still lives in the student's own save either way.
+2. `Cosmetics.tagGlyph()`, oy-02's, since the glyph names are not mine. Absent,
+   a tag renders as four letters, which reads fine.
+3. The class's tag has to arrive on `state.enrolled.tag`. Nothing puts it there
+   yet.
+4. `.ctag`, `.ctag__t` and `.ctag__g` need rules, and with oy-06 gone I do not
+   know who owns the stylesheets now.
+
+### What I have deliberately not done
+
+I have not edited `classroom.js` or `ui.js` yet. With `0005` unapplied and no
+tag data anywhere, wiring them now would add dead code to files that are live
+and in front of real students, to render something that cannot yet exist. The
+wiring is small and I would rather do it when there is a tag to show. I did
+wire `geolive-student.js`, because that file is mine either way and the call
+costs nothing: podium names ask for a tag and get an empty string today.
+
+### A note on where the harnesses live
+
+The scratchpad was wiped between sessions and took every test harness with it.
+They survived only because they are also in `tools/`, which is where they
+should be run from. Earlier notes pointing at a scratchpad path are stale.
+
+### The adopt control, and why I cannot build its list reliably yet
+
+242 checks pass: 90 behaviour, 14 integration, 77 rounds 3 to 5, 61 for tags.
+
+The control is built from `ClassTag.choices()`, which is the student's own
+memberships with "none" as the first entry and a real choice rather than an
+escape hatch bolted on the end. `wear()` validates against the same list, so
+the guard and the offer cannot disagree, and nothing outside it ever reaches
+the network for the profiles policy to refuse. A class with no tag is left out
+rather than shown greyed, because there is nothing to wear.
+
+**But `state.enrolled` is not a reliable membership list, and here is the
+mechanism.** `classroom.js:305` switches class by joining the new one and then
+calling `leaveClass()`:
+
+```js
+if (e.classId) C.leaveClass().catch(function () {});
+```
+
+Fire and forget, with an empty catch. A leave that fails is swallowed, nothing
+retries it, and the student is left a member of both classes in the database
+while `state.enrolled` records only the new one. 0005's policy will happily let
+them wear either tag, because they really are a member of both. My list would
+show one.
+
+That is exactly the failure named in the brief: a picker that silently shows
+fewer classes than a student is in. So per the instruction I am routing it
+rather than guessing: **oy-03 should expose the membership list**, and I read
+it through `CloudTag.myClasses()` when it exists, tested with two memberships.
+It needs to be a plain array read from already-loaded state rather than a
+promise, so the control stays free when nobody is wearing a tag.
+
+Until that lands the fallback is `state.enrolled`, which is correct for a
+student in one class, which is every student who has never had a leave fail.
+I would rather ship that than block, but it is a known under-report and not a
+guess I am comfortable leaving unlabelled.
+
+**Not fixed by me:** the swallowed `leaveClass()` is a real bug in its own
+right, older than tags and nothing to do with them. A student who thinks they
+left a class is still in it, still visible to that teacher, and still counted.
+I have not touched it because it is live in front of students and changing
+class membership behaviour is not what this round is for, but somebody should
+own it.
+
+## Round 6, corrected: the tag already exists. Measured 2026-09-25.
+
+241 checks pass: 90 behaviour, 14 integration, 77 rounds 3 to 5, 60 for wearing.
+Integration now runs against the live `assets/js/geolive.js`, because
+`agents/oy-02/` has been cleared.
+
+### `global.ClassTag` was already taken, by another file in the shared tree
+
+`assets/js/class-tag.js` exists on disk. It owns the teacher's control,
+the four letter rule, the markup, and exports:
+
+```js
+global.ClassTag = { mount, clean, length, html(text, mark) }
+```
+
+`html` is commented "so whoever renders a tag beside a name can use the same
+markup". That is the seam, already built and already named, and I was about to
+write a second one.
+
+My file also defined `global.ClassTag`. Two scripts defining one global means
+whichever loads second silently erases the other: either the teacher's control
+stops mounting, or my wearing logic disappears, and neither throws. Renamed to
+`WornTag`, which is what it actually is.
+
+Three more things already existed that the brief told me to create:
+
+- `assets/css/class-tag.css`, with `.ct-tag`, `.ct-tag__txt`, `.ct-tag__mark`.
+  I was told to create `assets/css/classtag.css` and emit `.ctag`. Different
+  names, so my tag would have rendered completely unstyled beside children's
+  names. I did not create it.
+- The `<link>` in `index.html`, already at line 18. I did not add one.
+- The four letter rule. I now call `ClassTag.clean` when it is there rather
+  than keeping a second copy.
+
+So this file is only the half that genuinely did not exist: the student's
+side. Wearing, adopting, dropping, and handing the shared renderer the right
+text. It renders nothing at all when `class-tag.js` is absent, because
+unstyled markup beside a child's name is worse than no tag.
+
+### The seams, as actually built rather than as described
+
+`Cloud.wearTag(classIdOrNull)`, `Cloud.myTag()` and `Cloud.classTag.read()`
+exist in `agents/oy-03/assets/js/cloud.js`, not yet merged. Names confirmed by
+reading them. `wearTag` **rejects** rather than resolving when offline, so both
+outcomes are handled and neither changes what the student sees.
+
+`state.enrolled.tag` is populated by oy-03's `applyEnrolledTag`, whose comment
+names this file. Confirmed.
+
+**But `applyEnrolledTag` keeps only `e.tag` and throws the glyph away**, while
+`readClassTag` returns `{ tag, glyph }`. So a glyph can never reach a rendered
+tag until oy-03 also caches `e.tagGlyph`. I read that key already, so it starts
+working the day they add it. Letters only until then, which the brief says is
+the permanent fallback anyway.
+
+`Cosmetics.tagGlyph(name)` does not exist and I no longer call it. The live
+`class-tag.js` owns the glyph set and resolves the mark itself, so a second
+glyph source would be a second thing to drift.
+
+### It is a toggle
+
+Confirmed with Master: a student is in one class. `memberships()` is a list of
+one and is the single function that changes if that ever stops being true. No
+picker. `toggle()` is one call in both directions so the drop path cannot get
+less use than the adopt path.
+
+### Still not wired, deliberately
+
+`classroom.js` and `ui.js` are untouched. 0005 is unapplied, so there is no tag
+to show, and adding dead code to files running in front of real students is
+worse than waiting. `geolive-student.js` is wired because it is mine anyway and
+the call costs nothing. This gap is a decision, not an oversight.
+
+## The leave bug, as its own item. Fixed 2026-09-25.
+
+249 checks pass: 90 behaviour, 14 integration, 77 rounds 3 to 5, 68 for wearing.
+
+### What was wrong
+
+`classroom.js`, the class switch path:
+
+```js
+if (e.classId) C.leaveClass().catch(function () {});
+```
+
+A leave that failed was swallowed. The student believed they had switched, and
+was still a member of the old class: still on that teacher's roster, still
+counted, still a member for any rule that asks. Nothing said so, so nobody
+found out.
+
+### There were two silent paths, not one
+
+The empty catch was the obvious one. The other is in `cloud.js`:
+
+```js
+function leaveClass() {
+  var e = W.state.enrolled;
+  if (!ready() || !e || !e.classId) return Promise.resolve();
+  ...
+}
+```
+
+It **resolves** when the connection is not ready. It reports success for
+something it never attempted, so removing the catch alone would still have
+left that path silent. Both are closed here: the rejection is reported, and
+`C.ready` is checked before calling rather than waited on afterwards.
+
+`cloud.js` is oy-03's. The honest fix is for `leaveClass()` to say whether it
+actually left, and then the readiness check here can go. Routed.
+
+### What I did not change
+
+The join-first order stays, and the comment above it is still right: if the
+new code turns out not to work, the class they are already in is still theirs.
+No retry was added, because a retry that also gives up quietly is the same bug
+with more code. Only the silence changed.
+
+Scope check: the deliberate "leave class" path at `classroom.js:549` already
+toasted on failure. Only the switch path was silent, so only the switch path
+was touched.
+
+### Namespace
+
+Master's ruling crossed my turn. There are no `CloudTag` references: the file
+is `worntag.js` now, exports `WornTag`, and calls `Cloud.wearTag`,
+`Cloud.myTag` and `Cloud.myClasses`. `Cloud.myClasses()` is wired and tested
+with two memberships; `state.enrolled` remains the labelled fallback until it
+lands.
+
+### One of my own tests was wrong
+
+`{ tag: 'nope' }` as an example of an unusable tag. It uppercases to `NOPE`,
+which is four letters A to Z and perfectly valid, so the test was asserting
+the opposite of what it claimed. The failure was the code being right. Using
+`GEOGRAPHY`, `GE0G`, `AB` and `null` instead.
+
+## Correction: what I called live was not live. 2026-09-25.
+
+I wrote that `assets/js/class-tag.js` and `assets/css/class-tag.css` were
+merged and live. They are not. `origin/main` is `ad0287e` and contains
+neither, and `index.html` is modified on disk and unmodified on main. They are
+oy-04's in-flight work, written into the shared tree rather than into
+`agents/oy-04/`.
+
+I read files in a tree nine sessions share and inferred from their presence
+that they had shipped. A file on disk in a shared tree has no state you can
+infer from it being there: it is not main, it is not reviewed, and it may be
+half-typed. Presence is not merge.
+
+**What still stands**, and none of it depended on the file being merged:
+
+- The `global.ClassTag` collision. Two files defining one global means
+  whichever loads second silently erases the other, with no error anywhere.
+  `WornTag` stays.
+- The class name mismatch. oy-04 styles `.ct-tag`, `.ct-tag__mark`,
+  `.ct-mark` and `.ct-tag--empty`; I was emitting `.ctag`. Unstyled markup
+  beside a child's name.
+- Not claiming `index.html` and not writing a second stylesheet.
+
+**What was wrong, beyond the premise.** I concluded that `class-tag.js` owned
+the glyph set, so a `Cosmetics` source would be a second thing to drift, and
+recommended dropping that instruction. The file does the opposite, and says so
+at line 43: "Built from Cosmetics.tagGlyphs, never from a copy of it." It
+delegates the list and the mark to oy-02 deliberately. So there is exactly one
+glyph source, it is oy-02's, and `Cosmetics.tagGlyph` exists with tests in
+`agents/oy-02/`, correctly inside its own folder. The instruction should
+stand and I was wrong to say otherwise.
+
+No code changed for any of this. This file passes a glyph **name** through to
+the shared renderer and never resolves one itself, which is right whichever
+file owns the glyph set. Only my reasoning about it was wrong, and only the
+notes needed fixing.
+
+## classroom.js is no longer untouched
+
+Worth stating plainly because two messages crossed: the leave fix above is in
+`assets/js/classroom.js`, which was assigned to me as its own item. The tag
+wiring in `classroom.js` and `ui.js` is still deliberately not done, which is
+a different thing, and that is what "untouched on purpose" refers to.
+
+## Correction: the leave fix is 26 lines, not 363. Measured 2026-09-25.
+
+I wrote that `classroom.js` was 363 lines ahead with other sessions'
+uncommitted work in it. That was wrong, and if the Organizer had believed it,
+it would have held a clean 26-line fix while investigating something that does
+not exist.
+
+Measured properly:
+
+```
+HEAD         ade3a48   32 commits behind
+origin/main  ad0287e
+disk vs origin/main    25 insertions, 1 deletion, one hunk
+disk vs HEAD          363 insertions, 35 deletions
+```
+
+The one hunk against `origin/main` is my leave fix and nothing else. The
+`liveStudent` teardown handle and the `ClassFeatures` gating I mistook for
+other people's work in progress are **already on main**, merged in `87349bd`,
+which is my own round-5 teardown. They only looked uncommitted because this
+clone's HEAD predates them by 32 commits.
+
+**In this repo HEAD means nothing and `origin/main` is the only reference
+point that does.** Any session diffing against HEAD here will see thirty-two
+commits of shipped work as if it were uncommitted changes.
+
+This is the same mistake as reading `class-tag.js` as merged, one layer along:
+there I inferred shipped from present, here I inferred uncommitted from
+differs-against-HEAD. Both times the fix was to check against `origin/main`
+rather than against what was in front of me.

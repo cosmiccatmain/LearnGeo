@@ -515,3 +515,215 @@ behind, rollback honoured by a probe first):
 **The honest limit, also written in the file:** this records the app's own god
 mode being used. Someone editing the JavaScript can decline to send the
 marker. It catches what a student would actually reach for, not a forger.
+
+## 0005: class tags (round 6) — WRITTEN AND TESTED, NOT APPLIED
+
+`supabase/deployed/0005_class_tags.sql`. Run against the live database inside a
+transaction that was rolled back on purpose. Nothing in it has run for real, and
+I re-checked afterwards: no columns, constraints, triggers or functions left
+behind, `profiles_touch` back on the shared `touch_updated_at`, the profiles
+policy back to its original check, counts still 2 classes / 9 members / 20
+profiles / 11 answers, the test rows and keys all gone.
+
+This is the second version. Master made two rulings after oy-03 found that the
+first one, though it enforced every rule correctly, produced a tag **nobody
+could see**: `profiles` is readable only by its owner and `classes` only by that
+class's teacher and members. Both rulings are in.
+
+### What it adds
+
+| Thing | Where | Notes |
+| --- | --- | --- |
+| `tag` | `classes` | text, nullable, exactly `^[A-Z]{4}$`, stored upper case |
+| `tag_glyph` | `classes` | text, nullable, glyph NAME, `^[A-Za-z0-9_-]{1,40}$` |
+| `tag_class_id` | `profiles` | uuid, nullable, FK `classes(id)` `on delete set null` — the student's own single source of truth |
+| `tag_class_id` | `class_members` | the same value mirrored onto every roster the student is on. Nullable, no default. Written by the database only |
+| `class_tag(p_class uuid)` | RPC | one class id in, `(id, tag, tag_glyph)` out |
+
+**The glyph column is `tag_glyph`, not `tag_icon`.** The first brief said
+`tag_icon` and my first draft used it, but oy-03's `TAG_COLS` and oy-05's
+`worntag.js` are both already written against `tag_glyph`. Two built layers beat
+one name. It is also 40 characters, not 32, because that is oy-03's own slice
+length in `writeClassTag()`, and the case is left **exactly as sent** — my first
+draft lower-cased it, which was an unrequested change to a vocabulary that
+belongs to the files that draw the glyph.
+
+### The five rules and where each one lives
+
+1. **Only the teacher sets the tag.** Already true: `classes` UPDATE is
+   teacher-only and the new columns inherit it. No new policy.
+2. **A student may only wear the tag of a class they are in.** The `profiles`
+   UPDATE policy's WITH CHECK, as specified — and the INSERT policy too, since a
+   PostgREST upsert is an insert with a fallback and both policies get a say.
+   `cloud.js push()` is an upsert, so without that it was half enforced.
+3. **Leaving takes the tag off.** An `after delete` trigger on `class_members`.
+   `on delete set null` only covers a *deleted class*; it does nothing for the
+   common case of a student leaving or being removed.
+4. **The worn tag is mirrored onto `class_members`** by the database, the way
+   0004 carries `assisted` to `live_players`. The client never writes it and has
+   no policy that would let it.
+5. **The four letters resolve outside the class that issued them**, through one
+   function that answers about one class id.
+
+### Why rule 3 is the load-bearing one
+
+A WITH CHECK is evaluated against the **whole new row on every update**, not
+only the update that sets the tag. A student left wearing the tag of a class
+they are no longer in fails that check on their *next save* — and their save is
+their profile row. They would stop syncing altogether over four cosmetic
+letters. The `class_members` trigger closes the path that causes it, and
+`private.clear_stale_tag()` is the backstop: a stale tag comes off quietly on
+the next write instead of locking anyone out. It only ever writes null, only
+acts when the tag is *not* the value being changed (so wearing a tag you are not
+entitled to still errors rather than silently no-opping), and only acts on the
+signed-in student's own row.
+
+### The one that would have cost people their progress
+
+`cloud.js adopt()` picks between the cloud save and the device's cached save by
+comparing `profiles.updated_at` against the `syncedAt` the device recorded, and
+**there is no merge on that path — the loser is dropped.** `touch_updated_at`
+bumps `updated_at` on every update, so *any* write to a tag column moves the
+sync clock without changing the save, and a student with unpushed offline
+progress loses it at the next sign-in. Choosing a tag would do it. My own
+cleanup trigger would do it.
+
+So a tag-only change now leaves the clock alone; everything else still bumps it,
+including a save and a tag changed together. It is a **profiles-only copy** of
+the touch function with `profiles_touch` repointed at it, because
+`touch_updated_at` is shared with `assignments`, `announcements` and
+`live_sessions` and a reference to `new.tag_class_id` inside it would fail at
+runtime on all three — plpgsql resolves that field when the trigger fires, not
+when it is written.
+
+This also means the UI can write `tag_class_id` with a plain `.update()` and
+nobody has to remember to refresh `W.state.meta.syncedAt`.
+
+### The trap in the mirror
+
+`profiles_tag_mirror` is deliberately **not** `after update of tag_class_id`.
+That clause fires on the columns named in the UPDATE statement, not on what the
+row ended up holding. A plain save that the self-heal trigger quietly cleaned
+would not have fired it, and the roster would have kept pointing at a class the
+student had left — a stale tag visible to the whole class, from the one path
+designed to prevent stale tags. A `when (new.tag_class_id is distinct from
+old.tag_class_id)` clause is read *after* the BEFORE triggers run, so it catches
+it. Test T14b is that exact case.
+
+### What `class_tag()` exposes, and why it is narrower than the ruling
+
+The ruling allowed "any signed-in user may ask about any class id". I went
+narrower, which the ruling invited: you get an answer only if **you could
+already read that class**, or if **somebody you can actually see is wearing it**
+— sharing a class being the whole of "see", which is exactly the set of people
+whose names can turn up beside a tag on your screen, on a roster, a leaderboard
+or in a live game. A tag worn into another class therefore resolves for that
+class's students, which is the point of rule 5, and a class you have no contact
+with stays four letters you cannot read.
+
+It returns `id`, `tag` and `tag_glyph`. Never the name, the code, the teacher,
+the roster or the feature switches. It is **not enumerable**: it answers about
+one id you already hold, and nothing here lists classes. That is the property to
+keep if anyone widens this.
+
+A class you are in that has chosen no tag returns one row with `tag` null, so
+oy-03's layer can tell "definitely none" from "could not tell".
+
+### oy-03 has to change one line, and it is not optional
+
+`readClassTag()` currently does `sb.from('classes').select('*').eq('id', id)`.
+That can **never** return a travelling tag: for a class you are not in, the
+policy returns no row and the layer correctly reports `absent`. Making that call
+work would mean opening the whole `classes` row — code, teacher, switches — to
+every signed-in user, which is exactly what ruling 5 said not to do. A view
+cannot fix it either, because a view can be listed and enumerability is the one
+thing that must not leak; only a function can demand an argument.
+
+So the read becomes:
+
+```js
+sb.rpc('class_tag', { p_class: classId }).maybeSingle()
+```
+
+Everything else in that function still works, including the `'tag' in r` test
+for 0005 not being applied — with one thing to check: a missing *function* comes
+back as `PGRST202` / `42883`, not the missing-column code, so `missingBit()`
+needs to count those as absent or an unapplied 0005 will read as `refused`.
+
+### Deviations from the brief, all reversible
+
+- **A teacher may wear their own class's tag.** A teacher is not in
+  `class_members` of their own class, so without this the person who owns the
+  tag is the only one who cannot wear it. The clause only admits a class you
+  already own; one line in each policy.
+- **Tags are not unique across classes.** Two classes may both pick `MATH`. Not
+  asked for either way. Uniqueness turns four letters into a land grab and gives
+  teachers a confusing failure. One partial unique index if Owen ever wants it.
+- **A glyph with no tag is allowed.** It draws nothing, and forbidding it breaks
+  a UI that saves the two fields in separate calls.
+- **`class_tag()` is narrower than the ruling permitted**, as above.
+
+### Test log — 24 checks, all as real uids, rolled back
+
+Probe first: made a table, forced the error, confirmed it was gone.
+
+```
+B-member f2cba2aa (in the other class, not in class A)   stranger 56cd225a (in no class at all)
+T1   teacher sets ' math '/'Globe' -> MATH/Globe, glyph case kept   PASS
+T2   the OTHER teacher tags class A -> 0 rows                       PASS
+T3   MATHS, M4TH, '<img src=x>', 41-char glyph -> all 23514         PASS
+     40-char glyph accepted; emptied box -> null not ''             PASS
+T4   member wears it -> profile set AND roster mirrored             PASS
+T5   NON-MEMBER wears it -> refused 42501                           PASS
+T6   teacher wears own class tag -> allowed (the deviation)         PASS
+T7   save bumps the clock; tag-only change does not     REDONE, see below
+T8   cloud.js upsert while wearing a tag -> allowed                 PASS
+T9   joins a second class -> tag carried onto that roster too       PASS
+T10  TRAVELLING: a member of class B resolves class A's MATH        PASS
+T11  a stranger sharing no class -> 0 rows                          PASS
+T12  own class with no tag -> 1 row, tag null (known, none)         PASS
+T13  removed from A -> profile null, other roster null, clock still PASS
+T14  save with a stale tag forced on -> not locked out              PASS
+T14b the self-heal reached the mirror as well                       PASS
+T15  class deleted -> wearer's tag null                             PASS
+T16  outsider reading that profile row -> still 0                   PASS
+```
+
+T15 used a throwaway class created inside the transaction, so no real class was
+ever pointed at a delete.
+
+**To apply:** run the file as it stands, it is idempotent. The one thing to know
+is that it repoints `profiles_touch` at a profiles-only function; the shared
+`touch_updated_at` stays where it is for the other three tables.
+
+### The clock check, redone: the first one could not fail
+
+Master caught this and it applies to my own test as well. `now()` is fixed for
+an entire transaction, so once the first bump inside my test had set
+`updated_at` to the transaction timestamp, a later update that *did* bump would
+land on the identical value. T7b as I first wrote it compared two timestamps
+that would have been equal either way. It passed, but it could not have failed,
+which makes it worth nothing.
+
+Redone properly by parking the clock in 1999 first, with `profiles_touch`
+disabled for the parking write only — with the trigger live it overwrites the
+parked value, which is the second way to get a meaningless answer here:
+
+```
+0  parked at            1999
+A  tag only             1999    frozen  PASS
+B  save + tag together  2026    bumps   PASS
+C  save only            2026    bumps   PASS
+```
+
+So the fix does what it claims: a tag-only change leaves the save clock alone,
+and anything touching the save still moves it. Rolled back, and re-checked that
+`profiles_touch` is enabled and back on the shared `touch_updated_at`, that the
+student's real clock still reads 2026-09-26 rather than 1999, and that no test
+keys survived.
+
+**The lesson, again, and it is the same one as the RLS recursion:** a check that
+cannot fail is not a check. Structural ones ("the column is there", "the two
+values match") pass on a broken build just as happily as on a working one. Both
+times the real answer needed the thing driven under conditions where a wrong
+result would have been visible.

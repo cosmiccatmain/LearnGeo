@@ -1166,3 +1166,131 @@ catches the path.
 `unmount()` since round 2, and `mount()` opens by calling `unmount()` so it
 self-cleans on redraw. `ClassLeaderboard` holds no interval, subscription or
 listener, so it has nothing to take down.
+
+---
+
+# Round 6: class tags and wearable badges
+
+Merged onto `ad0287e`. Fifteen files from five agents. The clone trap is gone:
+HEAD is `origin/main` for the first time in this project's history, so this was
+built normally rather than through a temporary index.
+
+## Read this first
+
+**`0005` is not applied and does not go out with this.** It ships as a file at
+`supabase/deployed/0005_class_tags.sql`. Until Owen runs it there are no tag
+columns, so no class has a tag and no student can wear one. Every screen was
+required to treat that as "no tag", quietly, and that was tested rather than
+assumed (below).
+
+## What I added that nobody owned
+
+**`worntag.js` was not loaded by anything.**
+
+oy-05 wrote it. oy-04 owns `index.html` and added script tags for its own new
+file, `class-tag.js`, and its stylesheet. Nothing added one for `worntag.js`.
+Neither session was wrong from where it stood, and the merge is the only place
+both folders are visible at once.
+
+Without the tag, `global.WornTag` is undefined and `geolive-student.js` reads
+it three times to render a tag beside a name. Every one of those would have
+silently rendered nothing, and the whole student half of the round, adopting a
+tag, dropping it, and showing it next to names, would have shipped inert.
+
+I added the one line, after `class-tag.js`, because `worntag.js` reads
+`global.ClassTag`. Verified at runtime after merging: `WornTag` is an object,
+not `undefined`.
+
+**This is the fifth time the same shape has appeared:** `announcements` reading
+a table nothing created, `geolive.css` naming classes the screens did not
+render, `class-features.css` linked by nothing, a banner button bound outside
+the element `wirePanel` searches, and now a file nothing loads. Every one
+passed its own file's checks. Every one needed somebody looking across two
+folders at once.
+
+## The four ranked checks, all passing
+
+**1. The glyph chain.** `cosmetics.js` defines eight glyphs: globe, star, leaf,
+heart, book, pennant, mountain, shield. Neither `class-tag.js` nor
+`worntag.js` contains a single hardcoded glyph name, measured rather than read:
+zero glyph-name string literals in either. `class-tag.js` builds its picker
+from `Cosmetics.tagGlyphs` and resolves through `Cosmetics.tagGlyph`;
+`worntag.js` passes names through and never resolves one itself. Confirmed
+running: eight glyphs, and `tagGlyph('globe')` returns SVG.
+
+**2. The global collision.** `class-tag.js` defines `global.ClassTag`,
+`worntag.js` defines `global.WornTag`, and `worntag.js` only ever reads
+`ClassTag`. Confirmed running that the two are different objects.
+
+**3. The column name.** `tag_glyph` throughout. `tag_icon` appears nowhere in
+any code, only in two NOTES paragraphs explaining why the name changed.
+
+**4. The RPC.** `cloud.js:915` calls
+`sb.rpc('class_tag', { p_class: classId })`, not a `select('*')`. Landed.
+
+**And one that was not on the list.** `class-tag.js` reads
+`global.ClassTagStore`, which is exactly the shape that was dead in round 3
+when `ClassFeatureStore` existed nowhere. It is fine here: `Cloud.classTag` is
+defined by oy-03's `cloud.js` and is the primary path, with `ClassTagStore` as
+an optional second. Confirmed running that `Cloud.classTag.read`,
+`Cloud.wearTag` and `Cloud.myTag` all exist.
+
+## Degradation with 0005 missing, tested rather than trusted
+
+Every tag entry point called in a browser against a database with no tag
+columns and nobody signed in:
+
+    WornTag.memberships()      []                          not a throw
+    WornTag.available()        null
+    WornTag.worn()             null
+    WornTag.mark(null)         ''
+    Cloud.classTag.read(id)    { known: false, why: 'offline' }
+    Cloud.myTag()              { known: false, why: 'offline' }
+
+Nothing threw, and the two cloud calls answer "I do not know" rather than
+guessing a tag. That last part is oy-03's and it is the right shape: a refusal
+and an empty answer are different things.
+
+## Who guards the membership rule
+
+A student may only wear a tag of a class they are in. I checked where that is
+enforced, because a rule held only in the UI is not held.
+
+`adopt()` with no argument builds from `memberships()`, which comes from
+`Cloud.myClasses()`, so the control only ever offers classes the student is
+actually in. `adopt(classId)` with an explicit id goes straight to `wear()` and
+relies on the `profiles` UPDATE policy in 0005 to refuse.
+
+That is the right division rather than a gap: the UI guides and the database
+enforces. It is only sound because the policy exists, which is another reason
+0005 matters and is not cosmetic.
+
+## A correction to the brief
+
+I was asked to fix a paragraph in oy-01's NOTES claiming `class_members` has no
+tag column, contradicting its own SQL.
+
+**That paragraph is not in oy-01's NOTES.** oy-01 documents the column
+correctly: its table lists `tag_class_id` on `class_members` as "the same value
+mirrored onto every roster the student is on, written by the database only",
+and rule 4 describes `mirror_worn_tag()` doing it.
+
+The stale sentence is **oy-03's**, at "as things stand today a worn tag is
+visible to nobody except its wearer". That was true when written, before 0005
+added the mirror. oy-03 records the resolution itself sixty lines later, so a
+reader who finishes the file is not misled.
+
+I have not edited either session's NOTES. Both sessions are live and their
+accounts are theirs. The correction is recorded here instead.
+
+## One false positive in my own check, worth naming
+
+My CSS coverage check flagged `ct-tag__txt` as rendered with no rule. It is not
+a defect: `.ct-tag` is `inline-flex` and sets the font, weight, letter-spacing,
+colour and family, so the text span inherits everything and needs no rule of
+its own.
+
+The check has a known blind spot: a semantic child class whose parent styles
+it. That is different from round 4's `class-features.css`, where nine rendered
+classes had no rules anywhere and the panel really was unstyled. A flagged
+class is a question, not a verdict.

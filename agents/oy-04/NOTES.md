@@ -304,6 +304,127 @@ them.
 It uses `gl__note`, which is already in oy-06's vocabulary. No new class name
 was invented for it.
 
+## Where this round's files are, and how to merge them
+
+Everything is under `agents/oy-04/` mirroring its real path. Nothing of mine is
+in the shared tree: I had put `class-tag.js`, `class-tag.css` and the two hooks
+in the repo root, oy-05 read them there, concluded they were merged and live,
+and rewrote its own work around that. A file in the root announces itself as
+shipped and that is a real cost to another session, so the files moved and the
+root was put back to `origin/main` byte for byte.
+
+- `assets/js/class-tag.js`, `assets/css/class-tag.css` — new, all mine.
+- `assets/js/teacher.js` and `index.html` — copies of `origin/main` at ad0287e
+  plus exactly the lines below. **If either file has moved on by merge time,
+  apply these lines rather than my copy**, because a copy taken at ad0287e
+  silently reverts anything committed after it.
+
+`teacher.js`, five lines, next to where `ClassFeatures` mounts:
+
+```
+    var tagHost = document.getElementById('cr-classtag');
+    if (tagHost && global.ClassTag && global.ClassTag.mount) {
+      global.ClassTag.mount(tagHost, { classId: cls().cloudId || '' });
+    }
+```
+
+and one line in `settingsPanel()`, right after the class name field:
+
+```
+        '<div id="cr-classtag"></div>' +
+```
+
+`index.html`, two lines: `assets/css/class-tag.css` with the other stylesheets,
+and `assets/js/class-tag.js` immediately before `teacher.js`, since the mount
+reads `global.ClassTag`.
+
+Both hooks sit inside `#cr-body`, so the banner binding trap does not apply.
+
+## Round 6: the class tag, measured 2026-09-25
+
+Built as `assets/js/class-tag.js` plus `assets/css/class-tag.css`, with the
+control mounted into the Class card in Settings, beside the class name, because
+they are the same kind of decision.
+
+**Where it went, and why not into this folder.** I inherited `teacher.js`, an
+existing file at the top of the repo. Copying 1357 lines of a live file into
+`agents/oy-04/` and letting it be merged back is the whole-file rewrite that
+loses whatever changed in between, which is the exact failure this project has
+been bitten by. So the feature is a new file of its own and the hook into
+`teacher.js` is five lines, following the pattern `ClassFeatures` already uses.
+Measured against `origin/main`: 5 added lines in `teacher.js`, 2 in
+`index.html`, and two new files. Nothing committed and nothing pushed.
+
+**What it does, all verified in a browser:**
+
+- A teacher types `math` and the field shows `MATH`. A digit or a punctuation
+  mark never lands at all, rather than landing and being told off afterwards.
+  Paste goes through the same rule.
+- Four is four. At three characters Save is off and the hint says "You have 3
+  of 4". No error, just not ready yet.
+- The preview shows the tag next to a name, as it will be worn, rather than a
+  sentence describing it.
+- The marks are read from `Cosmetics.decorations`, so the picker offers Laurel,
+  Compass Rose, Sakura and Summit Crown, which are the badges the app already
+  has. Nothing was invented here, and a published `ClassTagGlyphs` list wins if
+  one ever appears.
+- Removing the tag says "Removing the tag takes it off every student wearing
+  it." once, plainly, with Remove it and Keep it, and only then removes it.
+- With the column missing, which is where 0005 stands, the card renders, the
+  class simply has no tag, and nothing throws. Checked with a read that
+  rejects: zero uncaught errors.
+- With nowhere to save at all, it still previews and says saving is waiting on
+  the class being online, rather than pretending to save.
+
+### The glyph picker, rebuilt on the seam, 2026-09-25
+
+Built by iterating `Cosmetics.tagGlyphs`, with `Cosmetics.tagGlyph(name)` doing
+the drawing. No glyph name appears in this file: `grep -c "globe\|pennant\|
+mountain" assets/js/class-tag.js` returns 0. Labels are the word title-cased,
+so there is no second list of pretty names to fall out of step.
+
+The achievement badges are no longer offered. My first version read
+`Cosmetics.decorations` filtered to badges, which was the wrong set: an earned
+mark says a student did a thing and a tag says which class this is, and the two
+should not be confusable. That fallback is gone rather than reordered.
+
+Checked: the picker offers exactly the eight from the list in list order, every
+one draws an svg, zero achievement badges appear, `tagGlyph('rocket')` is null,
+`tagGlyph('GLOBE')` is null because it is case sensitive, and null, 7 and {}
+all return null without throwing.
+
+**A flaw this turned up.** A stored glyph the set does not know drew nothing,
+correctly, but left every picker button unselected, so a teacher could not tell
+what state they were in. It now shows None, and saving normalises the stored
+value to empty. Only when there is a set to judge against: with no seam loaded
+every name is unrenderable, and normalising then would throw away a perfectly
+good stored glyph the first time anyone pressed Save. Verified with a row
+carrying `mark: 'rocket'`, which reads as HIST with None selected and saves as
+`{tag: 'HIST', mark: ''}`.
+
+**Legibility at the size I render, which oy-02 asked about.** The tag draws its
+mark at 13px and the picker at 18px. All eight survive 13px: globe, star, leaf,
+heart, book, pennant, mountain, shield, checked magnified against the real
+rendering rather than by eye at size. The globe is the densest of them, its
+meridians nearly touching, but it still reads. Nothing here needs redrawing.
+
+**The seam is not in the app yet.** It lives in
+`agents/oy-02/assets/js/cosmetics.js` and in `agents/merged/`, and the live
+`assets/js/cosmetics.js` has no `tagGlyph` at all, measured 2026-09-25. So in
+the app as it stands the picker is empty and every tag is letters only, which is
+a supported state rather than a break, but the picker does not appear for a
+teacher until that file is merged. Tested against oy-02's copy to prove the
+picker works the moment it lands.
+
+**Still not mine:** the column is oy-01's 0005, the cloud read and write are
+oy-03's, and a student adopting a tag and wearing it beside their name is
+oy-05's. The store is looked for as `Cloud.classTag` then `ClassTagStore`, each
+with `read(classId)` and `write(classId, {tag, mark})`.
+
+**One thing I did not change.** `teacher.js` has an em dash in the Data card
+copy, which breaks the house rule on copy. It is not this round's work and it
+is one character, so it is flagged rather than quietly edited.
+
 ## Do not overwrite
 
 - **The seat key.** Rows are tracked by `seat`, never by account id, because

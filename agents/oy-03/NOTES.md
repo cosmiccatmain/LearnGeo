@@ -786,3 +786,331 @@ Worth doing only if it actually comes up.
 - My clone is 24 commits behind `origin/main`; I worked from
   `origin/main:assets/js/cloud-geolive.js`, which is byte-identical to my folder
   copy (sha 64d0b9e1).
+
+# Round 6 — class tags in the cloud layer
+
+All timestamps UTC, 2026-09-25. I now own `cloud.js` as well as
+`cloud-geolive.js`. Accepted, with one note: `cloud.js` is the whole app's
+sync, not a feature, so everything below is additive, sits in its own call, and
+stays out of `payload()`. Adding a new column to the profile upsert is how a
+student's entire save stops syncing, which is the round-3 lesson.
+
+## What I added
+
+- **`Cloud.classTag.read(classId)`** -> one of:
+  - `{ known: true, tag: 'GEOG', glyph: 'globe' }` it has one
+  - `{ known: true, tag: null }` it definitely has none
+  - `{ known: false, why: 'absent' | 'refused' | 'offline', code }` we could
+    not tell
+- **`Cloud.classTag.write(classId, tag, glyph)`** teacher sets it. Four
+  letters, uppercased here rather than trusted from a screen. `''` or null
+  clears the tag and the glyph together, because half a tag is not a tag.
+- **`Cloud.wearTag(classId | null)`** the student's own choice, one at a time.
+- **`Cloud.myTag()`** what this student is wearing, same three-way answer.
+- **`Cloud.classMembers()`** now carries `tagClassId` per member, but only when
+  the column is actually visible.
+
+## The two rules this round was really about
+
+**An uncertain read must not sink a certain one.** Every tag read is its own
+query, never joined to the class sync, and 0005 not being applied reads as
+`{ known: false, why: 'absent' }` rather than an error. Verified: with none of
+the columns present, the roster still returns its members and the class still
+loads.
+
+**A refusal and an absence must not look the same.** This is the round-4
+finding about my own file, applied here. Three different answers, and a screen
+can act on each: a class that has chosen no tag says so as a fact; a column
+that does not exist yet says `absent`; a policy saying no says `refused` and
+carries the code. `null` for all three is what makes a screen invent a story.
+
+**Writes say what they mean.** A tag that is not four letters is rejected here
+without touching the network. A refusal from the database is passed straight
+on: a student who has left a class and tries to keep wearing its tag gets the
+real `42501`, not a quiet nothing that leaves them wearing something that is
+not there. This layer does not enforce membership and does not pretend to; that
+is 0005's job and it should stay there.
+
+## Tested 16:05 to 16:12, driving the real module
+
+Not around it: the stand-in client is installed as `supabase.createClient`, and
+`cloud.js` is driven through an actual sign-in so its own `ready()` is true.
+
+- Before the columns exist: `classTag.read` and `myTag` both say
+  `{known: false, why: 'absent'}`, the roster still returns its members, and it
+  omits `tagClassId` entirely rather than reporting "wears none" as a fact.
+- With the columns: `GEOG`/`globe`, the student's worn class id, and a roster
+  carrying `tagClassId` per member (`c1` for one, `null` for the other).
+- The three states are distinguishable: chosen-no-tag is `known: true` with a
+  null tag; `PGRST204` is `absent`; `42501` is `refused`, with the code.
+- Writes: `geog` is stored as `GEOG`; `AB` is rejected **without touching the
+  network**; `AB1D` is rejected; clearing sets both columns null; wearing sets
+  `tag_class_id`; taking it off sets null.
+- A refused wear comes back as `42501: new row violates row-level security
+  policy`, not a swallowed success.
+
+## Two things 0005 has to decide, and my layer cannot paper over
+
+Both are the same shape as the blocker I found in round 3 for level and xp.
+
+**1. Who can see who is wearing a tag.** `profiles` is read-own-only on the
+live database. A teacher cannot read a student's `profiles.tag_class_id`, and
+nor can a classmate. So `class_members.tag_class_id` has to be mirrored, the
+way `level` and `xp` were, or nobody but the wearer can see the tag. My roster
+read is already written for the mirrored column and degrades quietly without
+it, so either choice works, but **as things stand today a worn tag is visible
+to nobody except its wearer.**
+
+**2. Reading a tag that belongs to another class.** A student wears one tag
+everywhere, Discord-style. Rendering it next to their name inside a different
+class means that class's viewers must read the owning class's four letters and
+glyph, and `classes` is readable only by its own teacher and its own members.
+So a tag worn into another class is unreadable there, and my `classTag.read`
+will honestly answer `{ known: false, why: 'refused' }` rather than guess.
+
+If tags are meant to travel, 0005 needs those two columns readable beyond the
+owning class: a small view or a function returning only `id`, `tag`,
+`tag_glyph`, which leaks nothing a class code does not. If tags are only ever
+shown inside the class that owns them, this is fine as it is, and that is
+worth writing down deliberately rather than discovering later.
+
+## Not mine, and not done here
+
+The database rules are oy-01's 0005. The teacher's setting screen is oy-04's.
+The student's adopt control and the rendering next to names are oy-05's. If a
+call needs a different shape, route it through Master.
+
+## Seam 3: state.enrolled.tag (2026-09-25, 16:40)
+
+`applyEnrolledTag()` fills it during the student class sync.
+
+**It is a plain four-letter string, or null.** Not an object. I checked oy-05's
+renderer rather than guessing the shape: `classtag.js` does
+`String(raw).trim().toUpperCase()` and tests it against a four-letter pattern,
+so an object would stringify, fail the test and render nothing at all, silently.
+The glyph does not travel with it; oy-05 takes that from `Cosmetics.tagGlyph()`.
+
+**Its own query.** The class select in `studentSync` names its columns
+(`id, code, name`), so widening it with `tag` would mean an unapplied 0005
+errors the select that carries the class itself. That is the announcements
+outage exactly. Verified in the test: two separate queries go out, the class
+one unchanged.
+
+**Three states, as asked:**
+
+- absent: not loaded. On a first sync with no column, the key never appears.
+- present and null: the class has chosen no tag. A real answer.
+- present and a string: the tag.
+
+A read that cannot tell leaves whatever is already there, rather than inventing
+either answer. On a first load that keeps the key absent; later it means a
+moment offline does not blank a tag that is really there.
+
+Tested 16:36 to 16:40, driving the real module through a sign-in:
+
+- Tag set: `enrolled.tag === 'GEOG'`, a string, and what oy-05 would render is
+  `GEOG`. Two queries: `id, code, name` then `*`.
+- Class chose none: key present, value null.
+- Column not there yet: key absent, **sync still succeeded, class name still
+  arrived**.
+- Tag read refused (42501): sync still succeeded, the previously known tag was
+  kept rather than blanked, class name intact.
+- Teacher set then cleared: `GEOG` then null, key still present.
+
+## Rulings noted
+
+My call names stand and oy-05 moves to them: `Cloud.wearTag`, `Cloud.myTag`,
+`Cloud.classTag.read/write`. Both 0005 findings became rulings:
+`class_members.tag_class_id` will be mirrored by the database, and tags travel
+beyond the owning class through a narrow definer function exposing only id, tag
+and glyph. My roster read already expects the first and degrades without it;
+`classTag.read` answering `refused` rather than guessing is what surfaced the
+second.
+
+One correction I am glad of: a student can only be in one class, so there is no
+multi-class case. `wearTag(classId | null)` is unaffected, since a toggle is
+just the one-class instance of it.
+
+## Seam 4: Cloud.myClasses(), and half of the switching bug (2026-09-25, 17:10)
+
+**`Cloud.myClasses()` is a plain array, never a promise and never a request.**
+The adopt control redraws whenever the classroom does, and a control that costs
+a round trip to render is one nobody leaves on screen. Verified: calling it
+twice makes zero requests.
+
+Shape, matching what oy-05 reads: `[{ classId, className, tag }]`, `tag`
+present only when it is a real four-letter tag. Entries without one are
+filtered out by oy-05's own `clean()`, so a class with no tag simply offers
+nothing to wear.
+
+`refreshMyClasses()` fills it from the database during the student class sync:
+`class_members` for this student, then those classes read with `select('*')`,
+because naming `tag` would fail the read until 0005 is in. It rides alongside
+the class sync and cannot affect it. A refusal keeps whatever was already
+known rather than claiming the student is in none.
+
+**Why it cannot come from `state.enrolled`, confirmed on origin/main:**
+`classroom.js:306` switches class by joining the new one and then firing
+`C.leaveClass().catch(function () {})`. A leave that fails is swallowed and
+never retried, so the student stays a member of both in the database while
+local state records only the newest. A picker built on `enrolled` would offer
+fewer classes than the student is actually entitled to wear.
+
+Tested 16:55 to 17:10, driving the real module through a sign-in:
+
+- A student stuck in both classes: before the sync the list holds only the
+  enrolled one; after it, both, with `MAPS` and `GEOG`. The stale membership is
+  visible rather than hidden.
+- Drawing it twice costs zero requests and returns the same thing.
+- No memberships readable, or the read refused: an empty array or whatever was
+  already known, the sync still succeeds, and nothing throws.
+- Before the tag column exists: entries carry no `tag` at all rather than a
+  false one.
+
+**A bug my own test caught, in my code.** The first version deduplicated by
+first-wins, so when the same class arrived from both local state and the
+database, whichever came first won. Local state often has the class name before
+the tag has loaded, so a student would have been offered their own class
+*without* its tag and could not have worn it. Entries now fill each other in.
+
+### The half of the switching bug that is mine, and the half that is not
+
+`leaveClass()` now takes a class id, defaulting to the enrolled one so the
+existing call site is unchanged. Without it there was no way to leave a class
+you are a member of but no longer enrolled in locally, which is exactly the
+state a failed leave leaves behind. It still rejects on failure: a caller that
+wants to retry or tell somebody can, and one that swallows it is choosing to,
+visibly, rather than being forced into it.
+
+**The rest is not mine and I agree it should not be rushed.** `myClasses()` now
+makes the stale membership visible, which is the part that was missing. What to
+do about it is a product decision, and the two options are not equal:
+
+- Tell the student, and let them leave the stale class themselves. Honest, and
+  it cannot remove somebody from a class they are meant to be in.
+- Reconcile automatically on the next sync, leaving any class that is not the
+  enrolled one. Tidier, and it quietly removes a student from a class a teacher
+  may have put them in. With only one class possible today it is defensible,
+  but it is a silent deletion of a membership and should be chosen on purpose.
+
+I would take the first. Either way the empty catch should go: a leave that
+fails should be known about, not retried somewhere that hides it again.
+
+## The harnesses, and the test pattern worth keeping (2026-09-25, 17:40)
+
+Both live in `agents/oy-03/tools/` now, not in a scratchpad that clears. Node,
+no server, no browser:
+
+    node agents/oy-03/tools/cloudtags.js     agents/oy-03/assets/js/cloud.js
+    node agents/oy-03/tools/geolivecloud.js  agents/oy-03/assets/js/cloud-geolive.js
+
+18 checks and 14 checks, all passing. They run the real file in a vm with a
+stand-in Supabase client, and `cloudtags.js` drives `cloud.js` through an actual
+sign-in so its own `ready()` is true. Testing the module rather than around it
+is the point: every bug this round lived in the gap between two files, not
+inside one.
+
+### MAKE THE TWO SOURCES DISAGREE
+
+This is the pattern, and it is worth more than any single fix it found.
+
+When a value can come from two places, the test that matters is the one where
+the two places know **different things**. A fixture where they agree proves
+nothing, because every wrong merge strategy passes it: first-wins, last-wins,
+either-one, a coin toss.
+
+`myClasses()` reads local state and the database. My first version
+deduplicated first-wins. With a fixture where both sources carried the same
+class, complete, it passed. The real world does not look like that: local state
+usually has the class **name** before the tag has loaded, and the database has
+the **tag** before local state catches up. So the fixture became
+
+    enrolled:  { classId: 'c1', className: 'Period 3' }        // name, no tag
+    database:  { id: 'c1', name: 'Period 3', tag: 'GEOG' }     // tag
+
+and the bug fell out immediately: a student offered their own class with no
+tag, unable to wear it. Present, correct, connected to nothing, which is the
+sixth time this project has shipped that shape.
+
+Concretely, when writing one of these:
+
+1. Find every value with more than one source. Here: local save versus
+   database, host device versus student device, the device clock versus the
+   server clock.
+2. Give each source a **different** piece of the truth, never the same piece.
+3. Assert the result carries **both**, not just that it is non-empty. "It
+   returned something" is how first-wins passed.
+4. Then take one source away entirely, and check the answer degrades to
+   something honest rather than to a confident wrong one.
+
+The same shape is already in the other harness: the god-mode tests give the
+device a flag the database does not have yet, and the fault-channel tests give
+the database an opinion (42P17) the client has no way to guess.
+
+### The other rule these encode
+
+Every claim I have made in a report this round is a named test now, so if it
+stops being true somebody finds out from a failing line rather than from a
+lesson. "Off means off" counts network calls rather than trusting the switch.
+"A refusal is not an absence" asserts three different statuses from three
+different errors. "An assisted game is dropped whole" checks points, streak and
+accuracy separately, because dropping the points and keeping the streak would
+still be wrong and would still look fine.
+
+## oy-05's rename checked, nothing changes for me
+
+`classtag.js` is now `worntag.js` and holds no Cloud calls of its own. I read
+it rather than taking the summary: it calls `C.wearTag(next)` and `C.myTag()`
+by my names, and it consumes `myTag()` exactly as built, branching on
+`got.known` and `got.classId`, with `known: false` explicitly not a reason to
+change what a student is wearing. The renderer takes `subject.tag` as a string,
+which is what `enrolled.tag` carries. Nothing for me to change.
+
+## Round 6, final three (2026-09-25, 18:20)
+
+**1. `readClassTag` goes through `class_tag(p_class)`, not a select on
+`classes`.** A tag travels with the student wearing it, so it has to be
+readable from a class you are not in, and the classes policy correctly refuses
+that. Opening the table would expose every class row to every signed-in user,
+and a view would be enumerable, which is the one property a tag set must not
+have. Only a function can demand an argument.
+
+**One thing that changed with it, and it is not cosmetic.** Through the
+function, "no row" no longer means "no tag". Anyone entitled to see a tag gets
+a row, including when the class has chosen none. No row means we are **not
+entitled**, so it answers `refused`. Reading that as `absent` would tell a
+screen "this class has no tag" about a class whose tag we were simply not
+shown, which is the same conflation this whole round has been about. I read
+oy-01's function rather than the brief to establish that: it returns
+`table (id, tag, tag_glyph)`, zero rows for anyone outside the permitted set.
+
+**2. `leaveClass` no longer reports success for something it never sent.** It
+used to resolve when the connection was not ready, so a student leaving a class
+on bad school wifi was told it worked while their membership stayed where it
+was, and `classroom.js:525` called `done()` on that. Three outcomes now:
+
+- reject: could not try, or the delete failed
+- `resolve(false)`: there was nothing to leave
+- `resolve(true)`: they are out
+
+Both existing call sites were checked before changing it: `classroom.js:307`
+catches, and `:525` already has a rejection handler that toasts "Couldn't
+leave". So the change makes that message start telling the truth rather than
+introducing an unhandled rejection. oy-05 can drop its readiness check.
+
+**3. `e.tagGlyph` is cached beside `e.tag`.** `readClassTag` returned a glyph
+and `applyEnrolledTag` dropped it, so half my own return value went nowhere and
+a glyph could never reach a rendered tag.
+
+Harness now 25 checks, all passing, including `a class whose tag we may not see
+is refused, not absent`, `a tag worn in from another class reads through the
+function`, `not connected rejects rather than claiming success`, and `nothing
+to leave resolves false`.
+
+### Noted from oy-01 rather than assumed
+
+The migration moved to the code on names: `tag_glyph` over `tag_icon`, the
+40-character slice from my own `writeClassTag`, and the glyph case passed
+through exactly as sent because oy-05 hands it straight to a renderer. Worth
+recording that the right way round happened here: two built layers beat one
+instruction.

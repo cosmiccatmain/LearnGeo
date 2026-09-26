@@ -129,6 +129,37 @@ making the same mistake is one mistake, twice. What answers the question is
 whether the branch's own added lines are present in the target, or a virtual
 merge with `git merge-tree`, and that is the check to run first.
 
+**To test a value with two sources, make the two sources disagree.** Where
+they agree, every wrong merge strategy passes: first-wins, last-wins,
+either-one, a coin toss. A fixture where both sides know the same thing proves
+only that something came back.
+
+In round 6 a session wrote a list built from local state and from the
+database. Its first version was first-wins. Local state carries a class name
+before its tag has loaded, so a student would have been offered their own
+class with no tag and could not have worn it. The fixture that caught it gave
+one source the NAME and the other the TAG, which is exactly how the two differ
+in life.
+
+Four steps. Find every value with more than one source. Give each source a
+different piece of the truth. Assert the result carries BOTH, not merely that
+it is non-empty, because "it returned something" is precisely how first-wins
+passed. Then take one source away and check it degrades honestly rather than
+confidently.
+
+**A file on disk in a shared tree has no state you can infer.** It is not
+`main`, it is not reviewed, and it may be half-typed. Two sessions read the
+same repo wrongly in round 6: one saw another's in-progress module sitting in
+the repo root, concluded it had shipped, rebuilt its own work around that and
+asked for a live instruction to be cancelled; the same session then read a
+file as carrying other people's uncommitted work when the difference was
+entirely an artefact of this clone's stale `HEAD`.
+
+`HEAD` here means nothing. It sits many commits behind and diffs against a
+tree from before half the app existed. `origin/main` is the only reference
+point that means anything, and work in progress belongs in `agents/oy-NN/`
+precisely so that where a file sits tells the next reader what it is.
+
 **Nobody deploys, and promoting counts as deploying.** Only `main` reaches
 production, and only Owen or aj promotes it. Promoting a deployment is a
 write, not a read: it is not a git command, so "read-only git is fine" does

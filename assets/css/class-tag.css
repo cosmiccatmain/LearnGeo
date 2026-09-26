@@ -1,0 +1,48 @@
+/* ============================ CLASS TAG =============================
+   The four letter tag a teacher gives their class, and the control in
+   Settings where they choose it. Its own file so app.css keeps its own
+   rules, the same way brand.css does. */
+
+.ct__row { display: flex; gap: 8px; align-items: center; }
+.ct__input {
+  flex: 0 0 8.5em;
+  text-transform: uppercase;
+  letter-spacing: .22em;
+  font-weight: 620;
+  text-align: center;
+}
+
+/* what the teacher is actually choosing */
+.ct__preview {
+  display: flex; align-items: center; gap: 10px;
+  margin-top: 12px; padding: 10px 12px;
+  background: var(--paper, #f7f8fa);
+  border-radius: 10px;
+}
+.ct__preview-label { font-size: 12px; color: var(--muted); }
+.ct__sample { display: inline-flex; align-items: center; gap: 8px; }
+.ct__name { font-weight: 560; }
+
+.ct-tag {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 8px; border-radius: 7px;
+  background: var(--ink); color: #fff;
+  font-size: 12px; font-weight: 700; letter-spacing: .08em;
+  font-family: var(--mono, ui-monospace, Menlo, monospace);
+}
+.ct-tag--empty { background: transparent; color: var(--muted); border: 1px dashed var(--line); }
+.ct-tag__mark { display: inline-grid; place-items: center; width: 13px; height: 13px; }
+.ct-tag__mark svg { width: 13px; height: 13px; }
+
+.ct__marks { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.ct-mark {
+  font: inherit; font-size: 12px; cursor: pointer;
+  min-width: 34px; height: 34px; padding: 0 8px;
+  display: inline-grid; place-items: center;
+  border: 1px solid var(--line); border-radius: 9px; background: #fff;
+}
+.ct-mark svg { width: 18px; height: 18px; }
+.ct-mark.is-on { border-color: var(--accent); background: var(--accent-soft, #eff4ff); }
+
+.ct__clear { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 12px; }
+.ct__warn { font-size: 13px; color: var(--ink-2, #444); flex: 1 1 auto; }
