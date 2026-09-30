@@ -98,7 +98,8 @@
         '<div class="portal__avatar">' + W.avatarHtml(s.profile) + '</div>' +
         '<div class="home-hero__hello grow">' +
           '<h1>' + greeting() + ', ' + W.escapeHtml(s.profile.displayName || 'Explorer') + '.' +
-            W.verifiedMark(s.profile, 20) + '</h1>' +
+            W.verifiedMark(s.profile, 20) +
+            (global.Badges ? global.Badges.markup(null, 17) : '') + '</h1>' +
           '<p>' + subtitle(st, mastered, total) + '</p>' +
         '</div>' +
         '<div class="home-hero__score">' +

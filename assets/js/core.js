@@ -92,8 +92,11 @@
         banner: 'plain',
         theme: 'default',
         status: 'online',
-        verified: false        /* granted from the admin panel, never earned */
+        verified: false,       /* granted from the admin panel, never earned */
+        badgeSlots: null       /* which badges show beside the name; null = auto */
       },
+      badges: [],              /* badge ids held, earned or granted */
+      flags: {},               /* one-off marks badges read, e.g. answered before 7am */
       owned: {
         avatars: ['globe', 'map', 'compass', 'mountain'],
         decorations: ['none', 'ring-slate'],
@@ -373,6 +376,14 @@
   }
 
   /* -------------------------- achievements ------------------------- */
+  /* Badges ride the achievement beat rather than their own, so a badge and
+     the achievement that implies it never land one answer apart. */
+  function checkBadges() {
+    if (!global.Badges) return [];
+    global.Badges.noteAnswerTime();
+    return global.Badges.evaluate();
+  }
+
   function checkAchievements() {
     var C = global.Cosmetics.achievements;
     var unlocked = [];
@@ -385,6 +396,13 @@
       }
     });
     if (unlocked.length) { save(); }
+
+    /* Badges are checked and announced from here rather than from each mode,
+       so all six existing callers pick them up without being edited, and a
+       badge can never land a beat behind the achievement that implies it. */
+    var freshBadges = checkBadges();
+    if (freshBadges.length && global.Badges) global.Badges.announce(freshBadges);
+
     return unlocked;
 
     function test(id) {
@@ -757,6 +775,7 @@
     comboMultiplier: comboMultiplier,
     masteredCount: masteredCount,
     checkAchievements: checkAchievements, announceAchievements: announceAchievements,
+    checkBadges: checkBadges,
     touchDaily: touchDaily,
     Sound: Sound,
     confetti: confetti, floatGain: floatGain, burstFrom: burstFrom, toast: toast,

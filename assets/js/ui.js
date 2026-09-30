@@ -190,7 +190,8 @@
         '<div style="width:40px;height:40px;flex:none">' + W.avatarHtml(s.profile) + '</div>' +
         '<div class="grow" style="min-width:0">' +
           '<div class="menu__name">' + W.escapeHtml(s.profile.displayName || 'Explorer') +
-            W.verifiedMark(s.profile, 13) + '</div>' +
+            W.verifiedMark(s.profile, 13) +
+            (global.Badges ? global.Badges.markup(null, 12) : '') + '</div>' +
           '<div class="menu__meta">Lv ' + s.economy.level + ' · ' + lp.have + '/' + lp.need + ' XP · ' +
             s.economy.diamonds.toLocaleString() + ' 💎</div>' +
         '</div>' +
@@ -199,6 +200,7 @@
       item('settings', I.gear, 'Settings') +
       item('custom', I.palette, 'Customization') +
       item('achievements', I.trophy, 'Achievements') +
+      item('badges', I.shield, 'Badges') +
       '<div class="menu__sep"></div>' +
       (signedIn()
         ? item('signout', I.logout, 'Sign out')
@@ -221,6 +223,7 @@
         if (go === 'settings') openSettings();
         else if (go === 'custom') openCustomization();
         else if (go === 'achievements') openAchievements();
+        else if (go === 'badges') global.Badges.openCase();
         else if (go === 'signin') openAuth('signin');
         else if (go === 'signout') signOut();
       });
@@ -745,7 +748,8 @@
       '<div class="profile-card__body" style="' + themeBody(theme) + '">' +
         '<div class="profile-card__avatar">' + W.avatarHtml(p) + '</div>' +
         '<div class="profile-card__name" style="background:' + plate.css + ';color:' + plate.text + '">' +
-          W.escapeHtml(name) + W.verifiedMark(p, 15) + '</div>' +
+          W.escapeHtml(name) + W.verifiedMark(p, 15) +
+          (global.Badges ? global.Badges.markup(null, 13) : '') + '</div>' +
         '<div class="profile-card__tag" style="' + themeInk(theme, 'DE') + '">Level ' +
           s.economy.level + ' · ' + s.economy.diamonds.toLocaleString() + ' 💎</div>' +
         (pron ? '<div class="profile-card__pronouns" style="' + themeInk(theme, 'D9') + '">' +

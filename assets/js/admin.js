@@ -146,7 +146,8 @@
         '<div class="adm-who">' +
           '<div style="width:44px;height:44px;flex:none">' + W.avatarHtml(p) + '</div>' +
           '<div class="grow" style="min-width:0">' +
-            '<b id="adm-name">' + W.escapeHtml(p.displayName || 'Explorer') + W.verifiedMark(p, 14) + '</b>' +
+            '<b id="adm-name">' + W.escapeHtml(p.displayName || 'Explorer') + W.verifiedMark(p, 14) +
+              (global.Badges ? global.Badges.markup(null, 13) : '') + '</b>' +
             '<span>Level ' + W.state.economy.level + ' · this device’s save</span>' +
           '</div>' +
           '<span class="chip chip--gem mono" id="adm-gems">' +
@@ -178,6 +179,14 @@
           '<button class="mini-btn mini-btn--take adm-empty" id="adm-empty">Empty the balance</button>' +
           '<div class="field__hint">Taking stops at zero. Give with a negative amount ' +
             'does the same thing.</div>' +
+        '</div>' +
+
+        '<div class="field">' +
+          '<label class="field__label">Badges</label>' +
+          '<div class="adm-bdg" id="adm-badges"></div>' +
+          '<div class="field__hint">Only the given badges can be switched here. ' +
+            'Earned ones are shown so you can see what this save holds, and they ' +
+            'have no switch because the rule owns them.</div>' +
         '</div>' +
 
         '<div class="field" id="adm-god"></div>' +
@@ -214,6 +223,8 @@
            teacher's device, and that lives in cloud-geolive.js, not here. Until
            it lands, a god-moded game does show up in those columns. Do not read
            this comment as saying it is handled. */
+        mountBadges(root);
+
         var god = W.$('#adm-god', root);
         if (god && global.GodMode && global.GodMode.mountToggle) {
           global.GodMode.mountToggle(god);
@@ -226,8 +237,7 @@
           W.saveNow();
           sw.classList.toggle('is-on', on);
           sw.setAttribute('aria-checked', on ? 'true' : 'false');
-          W.$('#adm-name', root).innerHTML =
-            W.escapeHtml(W.state.profile.displayName || 'Explorer') + W.verifiedMark(W.state.profile, 14);
+          redrawName(root);
           say(root, on ? 'Verified seal granted.' : 'Verified seal removed.');
           refresh();
         });
@@ -305,6 +315,54 @@
   }
 
   /* Anything already on screen that shows a name or a balance. */
+  /* Every badge in one list. Given badges get a switch; earned ones are
+     read-only, because the rule that grants them is the only thing allowed
+     to, and a switch there would be a lie about what the panel controls. */
+  function mountBadges(root) {
+    var host = W.$('#adm-badges', root);
+    if (!host || !global.Badges) return;
+    var B = global.Badges;
+
+    host.innerHTML = B.all().map(function (b) {
+      var held = B.has(b.id);
+      var given = B.granted(b);
+      return '<div class="adm-bdg__row' + (held ? ' is-on' : '') + ' bdg--' + b.tone +
+        '" data-badge="' + b.id + '">' +
+        '<span class="adm-bdg__plate">' + B.svg(b, 17) + '</span>' +
+        '<span class="adm-bdg__t"><b>' + W.escapeHtml(b.name) + '</b>' +
+          '<span>' + W.escapeHtml(b.desc) + '</span></span>' +
+        (given
+          ? '<button class="switch' + (held ? ' is-on' : '') + '" data-toggle="' + b.id +
+            '" role="switch" aria-checked="' + (held ? 'true' : 'false') +
+            '" aria-label="' + W.escapeHtml(b.name) + '"></button>'
+          : '<span class="adm-bdg__earned">' + (held ? 'earned' : 'locked') + '</span>') +
+      '</div>';
+    }).join('');
+
+    W.$$('[data-toggle]', host).forEach(function (sw) {
+      sw.addEventListener('click', function () {
+        var id = sw.dataset.toggle;
+        var on = global.Badges.has(id)
+          ? !global.Badges.revoke(id)
+          : global.Badges.grant(id);
+        sw.classList.toggle('is-on', on);
+        sw.setAttribute('aria-checked', on ? 'true' : 'false');
+        sw.closest('.adm-bdg__row').classList.toggle('is-on', on);
+        redrawName(root);
+        say(root, (on ? 'Granted ' : 'Removed ') + global.Badges.find(id).name + '.');
+        refresh();
+      });
+    });
+  }
+
+  function redrawName(root) {
+    var el = W.$('#adm-name', root);
+    if (!el) return;
+    el.innerHTML = W.escapeHtml(W.state.profile.displayName || 'Explorer') +
+      W.verifiedMark(W.state.profile, 14) +
+      (global.Badges ? global.Badges.markup(null, 13) : '');
+  }
+
   function refresh() {
     global.UI.refreshHud();
     var p = document.getElementById('view-portal');

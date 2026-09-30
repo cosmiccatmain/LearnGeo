@@ -1,0 +1,111 @@
+/* ==================================================================
+   LearnGeo — badges
+
+   Two sizes only: the chip that sits beside a name, and the plate in
+   the badge case. Both take their colour from one tone class, so a new
+   badge needs a tone and nothing else.
+   ================================================================== */
+
+/* ------------------------------ tones ---------------------------- */
+.bdg--admin  { --bdg-fg: #B91C1C; --bdg-bg: #FEE9E9; --bdg-ring: #F5C2C2; }
+.bdg--staff  { --bdg-fg: #1B4DFF; --bdg-bg: #EAEFFF; --bdg-ring: #C3D0FF; }
+.bdg--teach  { --bdg-fg: #0F766E; --bdg-bg: #E4F6F4; --bdg-ring: #B6E2DD; }
+.bdg--gold   { --bdg-fg: #A16207; --bdg-bg: #FDF4E0; --bdg-ring: #EED9A8; }
+.bdg--beta   { --bdg-fg: #7C3AED; --bdg-bg: #F2ECFE; --bdg-ring: #DCCBFA; }
+.bdg--slate  { --bdg-fg: #475569; --bdg-bg: #EFF2F6; --bdg-ring: #D3DBE5; }
+.bdg--blue   { --bdg-fg: #1D4ED8; --bdg-bg: #E9EFFE; --bdg-ring: #C2D2FB; }
+.bdg--violet { --bdg-fg: #6D28D9; --bdg-bg: #F1ECFD; --bdg-ring: #D9C9F8; }
+.bdg--green  { --bdg-fg: #047857; --bdg-bg: #E3F6EE; --bdg-ring: #B2E3D1; }
+.bdg--amber  { --bdg-fg: #B45309; --bdg-bg: #FEF2E0; --bdg-ring: #F3D6AC; }
+.bdg--red    { --bdg-fg: #BE123C; --bdg-bg: #FEE9EF; --bdg-ring: #F7C3D2; }
+.bdg--teal   { --bdg-fg: #0E7490; --bdg-bg: #E2F4F9; --bdg-ring: #B3E0EC; }
+.bdg--indigo { --bdg-fg: #4338CA; --bdg-bg: #EBEBFC; --bdg-ring: #CACAF6; }
+
+/* -------------------- the chip beside a name --------------------- */
+.bdg-row {
+  display: inline-flex; align-items: center; gap: 4px;
+  margin-left: 6px; vertical-align: middle;
+}
+.bdg {
+  display: inline-grid; place-items: center;
+  width: 1.55em; height: 1.55em; border-radius: 6px;
+  background: var(--bdg-bg); color: var(--bdg-fg);
+  box-shadow: inset 0 0 0 1px var(--bdg-ring);
+  flex: none; vertical-align: middle;
+  transition: transform .16s cubic-bezier(.34,1.4,.5,1);
+}
+.bdg:hover { transform: translateY(-1px); }
+.bdg__art { display: block; }
+
+/* The admin chip is the one that has to be unmistakable. */
+.bdg--admin {
+  background: linear-gradient(140deg, #FEE9E9, #FDD6D6);
+  box-shadow: inset 0 0 0 1px var(--bdg-ring), 0 1px 2px rgba(185,28,28,.18);
+}
+
+/* -------------------------- the case ----------------------------- */
+.bdg-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+}
+.bdg-card {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 4px;
+  padding: 14px; border: 1px solid var(--line); border-radius: 13px;
+  background: var(--white); text-align: left; min-width: 0;
+  transition: border-color .16s, box-shadow .18s, transform .16s, opacity .16s;
+}
+.bdg-card:hover { box-shadow: var(--shadow); transform: translateY(-2px); }
+.bdg-card b {
+  font-size: 13.5px; font-weight: 620; letter-spacing: -.012em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;
+}
+.bdg-card__desc {
+  font-size: 11.5px; color: var(--muted); line-height: 1.35;
+}
+.bdg-card__plate {
+  width: 44px; height: 44px; border-radius: 13px; margin-bottom: 6px;
+  display: grid; place-items: center;
+  background: var(--bdg-bg); color: var(--bdg-fg);
+  box-shadow: inset 0 0 0 1px var(--bdg-ring);
+}
+.bdg-card__state {
+  margin-top: 6px; font-family: var(--mono); font-size: 10.5px;
+  letter-spacing: .08em; text-transform: uppercase; color: var(--faint);
+}
+
+/* Locked reads as not-yet rather than broken: the art stays, drained. */
+.bdg-card:not(.is-held) { opacity: .62; }
+.bdg-card:not(.is-held) .bdg-card__plate { background: var(--line-soft); color: var(--faint); box-shadow: none; }
+.bdg-card:not(.is-held):hover { transform: none; box-shadow: none; }
+
+.bdg-card.is-shown { border-color: var(--bdg-fg, var(--accent)); }
+.bdg-card.is-shown .bdg-card__state { color: var(--bdg-fg, var(--accent)); font-weight: 620; }
+
+/* ------------------------ the admin panel ------------------------ */
+.adm-bdg { display: grid; gap: 6px; }
+.adm-bdg__row {
+  display: flex; align-items: center; gap: 11px;
+  padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px;
+  background: var(--white);
+}
+.adm-bdg__row.is-on { border-color: var(--bdg-ring); background: var(--bdg-bg); }
+.adm-bdg__plate {
+  width: 30px; height: 30px; border-radius: 9px; flex: none;
+  display: grid; place-items: center;
+  background: var(--bdg-bg); color: var(--bdg-fg);
+  box-shadow: inset 0 0 0 1px var(--bdg-ring);
+}
+.adm-bdg__t { flex: 1; min-width: 0; }
+.adm-bdg__t b { display: block; font-size: 13.5px; font-weight: 570; }
+.adm-bdg__t span { display: block; font-size: 11.5px; color: var(--muted); }
+.adm-bdg__earned {
+  font-family: var(--mono); font-size: 10.5px; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--faint); flex: none;
+}
+
+@media (max-width: 560px) {
+  .bdg-grid { grid-template-columns: 1fr 1fr; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bdg, .bdg-card { transition: none; }
+}
