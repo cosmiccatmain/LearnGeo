@@ -232,11 +232,15 @@
 
   /* A row of badges to sit beside a name. Returns '' when there is
      nothing to show, so callers can concatenate it unconditionally. */
-  function markup(ids, size, bare) {
+  /* `onPlate` is for a name sitting on a nameplate or a banner. The pastel
+     fills that read as emblems against white read as stickers against a
+     colour, so there they turn into frosted glass and keep only their ink. */
+  function markup(ids, size, bare, onPlate) {
     var list = (ids || shown()).map(find).filter(Boolean);
     if (!list.length) return '';
     var inner = list.map(function (b) {
-      return '<span class="bdg bdg--' + b.tone + '" title="' + W.escapeHtml(b.name + ' — ' + b.desc) +
+      return '<span class="bdg bdg--' + b.tone + (onPlate ? ' bdg--plate' : '') +
+        '" title="' + W.escapeHtml(b.name + ' — ' + b.desc) +
         '" role="img" aria-label="' + W.escapeHtml(b.name) + '">' + svg(b, size || 13) + '</span>';
     }).join('');
     return bare ? inner : '<span class="bdg-row">' + inner + '</span>';

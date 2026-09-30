@@ -1086,9 +1086,19 @@ textarea.input:focus { outline: none; border-color: var(--accent); box-shadow: 0
 }
 .profile-card__name {
   margin-top: 12px; font-size: 19px; font-weight: 640; letter-spacing: -.024em;
-  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-  padding: 4px 14px; border-radius: 9px; max-width: 100%;
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  padding: 5px 13px; border-radius: 10px; max-width: 100%;
 }
+/* The name shrinks and truncates; the marks never do. Without this the
+   marks steal width and the name breaks across two lines mid-person. */
+.profile-card__name .pc-name {
+  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.profile-card__name .pc-marks {
+  display: inline-flex; align-items: center; gap: 5px; flex: none;
+}
+.profile-card__name .pc-marks .verified { display: block; }
+.profile-card__name .bdg-row { margin-left: 0; }
 .profile-card__tag {
   font-size: 12.5px; color: var(--muted); font-family: var(--mono);
   margin-top: 6px; display: inline-flex; align-items: center; gap: 6px;

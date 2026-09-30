@@ -748,8 +748,10 @@
       '<div class="profile-card__body" style="' + themeBody(theme) + '">' +
         '<div class="profile-card__avatar">' + W.avatarHtml(p) + '</div>' +
         '<div class="profile-card__name" style="background:' + plate.css + ';color:' + plate.text + '">' +
-          W.escapeHtml(name) + W.verifiedMark(p, 15) +
-          (global.Badges ? global.Badges.markup(null, 13) : '') + '</div>' +
+          '<span class="pc-name">' + W.escapeHtml(name) + '</span>' +
+          '<span class="pc-marks">' + W.verifiedMark(p, 15) +
+            (global.Badges ? global.Badges.markup(null, 13, false, true) : '') + '</span>' +
+        '</div>' +
         '<div class="profile-card__tag" style="' + themeInk(theme, 'DE') + '">Level ' +
           s.economy.level + ' · ' + s.economy.diamonds.toLocaleString() + ' 💎</div>' +
         (pron ? '<div class="profile-card__pronouns" style="' + themeInk(theme, 'D9') + '">' +
