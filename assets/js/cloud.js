@@ -390,15 +390,73 @@
       });
   }
 
+  /* The class the teacher is looking at, not merely their first one.
+
+     This used to take whichever row came back first, which is why a
+     teacher only ever had one class: a second one could be created but
+     never synced, because the sync always resolved to row one. Now the
+     active record says which row it is — by id once it has synced, by
+     code if it was created on another device, and otherwise there is no
+     row yet and we make one. */
   function teacherClass() {
     var c = cls();
     return sb.from('classes').select('id, code, name').eq('teacher_id', user.id)
-      .order('created_at', { ascending: true }).limit(1)
+      .order('created_at', { ascending: true })
       .then(function (res) {
-        var rows = check(res);
-        if (rows.length) return { row: rows[0], created: false };
+        var rows = check(res) || [];
+        teacherRows = rows.slice();
+
+        var want = null;
+        if (c.cloudId) want = pick(rows, function (r) { return r.id === c.cloudId; });
+        if (!want && c.code) want = pick(rows, function (r) { return r.code === c.code; });
+
+        /* An unsynced local class claims a server row only when it is the
+           only class on both sides. Otherwise claiming "the first row" is
+           how two local classes end up pointing at one room. */
+        if (!want && rows.length === 1 && classCount() < 2) want = rows[0];
+
+        if (want) return { row: want, created: false };
         return createClass(c.code || proposeCode(), c.name || 'Your class', 0);
       });
+  }
+
+  function pick(rows, test) {
+    for (var i = 0; i < rows.length; i++) if (test(rows[i])) return rows[i];
+    return null;
+  }
+
+  function classCount() {
+    return (global.Classes && global.Classes.count()) || 1;
+  }
+
+  /* Every class row this teacher owns, from the last sync. The switcher
+     uses it to notice classes made on another computer. */
+  var teacherRows = [];
+  function teacherClasses() { return teacherRows.slice(); }
+
+  /* The class look. Its own call, and its own failure: the background
+     column is newer than some deployments, and a class whose colour will
+     not save is not a reason to fail the whole sync. */
+  /* What look a class was given, for the student who joined it. Selects
+     only the one column and answers null rather than throwing, so a
+     deployment whose classes table predates the column simply shows the
+     default instead of failing the student's whole sync. */
+  function fetchClassBackground(classId) {
+    if (!ready() || !classId) return Promise.resolve(null);
+    return sb.from('classes').select('background').eq('id', classId).maybeSingle()
+      .then(function (res) {
+        if (res.error || !res.data) return null;
+        return res.data.background || null;
+      })
+      .catch(function () { return null; });
+  }
+
+  function setClassBackground(bg) {
+    if (!teacherReady()) return Promise.resolve(false);
+    return sb.from('classes').update({ background: String(bg || 'default') })
+      .eq('id', cls().cloudId)
+      .then(function (res) { return !res.error; })
+      .catch(function () { return false; });
   }
 
   /* results has no natural key, so the same score sent twice becomes two
@@ -826,6 +884,15 @@
           return true;
         }
         e.className = klass.name;
+        /* The class look, asked for separately so an older classes table
+           costs the student their colour and not their classwork. */
+        fetchClassBackground(e.classId).then(function (bg) {
+          if (bg && bg !== e.background) {
+            e.background = bg;
+            W.save();
+            if (global.Classroom && global.Classroom.render) global.Classroom.render(true);
+          }
+        });
         mergeInbox(rows, e);
         W.state.stream = posts.map(rowToPost);
         W.save();
@@ -1078,6 +1145,8 @@
     push: push, onChange: onChange, friendly: friendly,
     teacherSync: teacherSync, saveAssignment: saveAssignment, deleteAssignment: deleteAssignment,
     renameClass: renameClass, recordResults: recordResults, clearResult: clearResult,
+    teacherClasses: teacherClasses, setClassBackground: setClassBackground,
+    fetchClassBackground: fetchClassBackground,
     postAnnouncement: postAnnouncement, deleteAnnouncement: deleteAnnouncement,
     pinAnnouncement: pinAnnouncement,
     setManualScore: setManualScore, removePerson: removePerson,

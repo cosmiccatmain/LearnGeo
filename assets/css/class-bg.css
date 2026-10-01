@@ -1,0 +1,126 @@
+/* ------------------------------------------------------------------
+   LearnGeo — the look of a class.
+
+   A teacher running period 3 and period 5 needs to know at a glance
+   which room is on screen, and a student should find their class
+   looking the same way the teacher set it up.
+
+   One class per look, set on the .cr container as .cr--bg-<key>. The
+   banner gradient is the whole of it: the page around it stays the
+   app's own colours, because a classroom that reskins the entire
+   interface stops looking like the rest of LearnGeo.
+
+   Keys are stored in the save and in the database, never the colours,
+   so this palette can be restyled without touching anyone's data. The
+   default matches what the banner looked like before any of this, so a
+   class that never picks one is unchanged.
+-------------------------------------------------------------------*/
+
+.cr--bg-default .cr-banner {
+  background: linear-gradient(120deg, #1B4DFF 0%, #3B6BFF 45%, #22D3EE 100%);
+}
+.cr--bg-slate .cr-banner {
+  background: linear-gradient(120deg, #334155 0%, #475569 45%, #94A3B8 100%);
+}
+.cr--bg-forest .cr-banner {
+  background: linear-gradient(120deg, #065F46 0%, #0F8A5F 45%, #6EE7B7 100%);
+}
+.cr--bg-sunset .cr-banner {
+  background: linear-gradient(120deg, #B91C1C 0%, #EA580C 45%, #FBBF24 100%);
+}
+.cr--bg-plum .cr-banner {
+  background: linear-gradient(120deg, #581C87 0%, #7E22CE 45%, #E879F9 100%);
+}
+.cr--bg-ocean .cr-banner {
+  background: linear-gradient(120deg, #0C4A6E 0%, #0369A1 45%, #38BDF8 100%);
+}
+.cr--bg-sand .cr-banner {
+  background: linear-gradient(120deg, #78350F 0%, #B45309 45%, #FCD34D 100%);
+}
+.cr--bg-ink .cr-banner {
+  background: linear-gradient(120deg, #0F172A 0%, #1E293B 45%, #475569 100%);
+}
+
+/* ============================ the picker ========================== */
+.bg-picker {
+  display: grid; gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+}
+.bg-swatch {
+  position: relative; display: block; width: 100%;
+  border: 2px solid transparent; border-radius: var(--r, 12px);
+  padding: 0; cursor: pointer; overflow: hidden;
+  background: none; text-align: left;
+}
+.bg-swatch__fill {
+  display: block; height: 46px; border-radius: inherit;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,.06);
+}
+.bg-swatch__name {
+  display: block; padding: 6px 2px 2px;
+  font-size: 12px; color: var(--muted);
+}
+.bg-swatch:hover .bg-swatch__fill { filter: brightness(1.06); }
+.bg-swatch.is-on { border-color: var(--accent); }
+.bg-swatch.is-on .bg-swatch__name { color: var(--ink); font-weight: 600; }
+
+.bg-swatch--default .bg-swatch__fill { background: linear-gradient(120deg, #1B4DFF, #3B6BFF 45%, #22D3EE); }
+.bg-swatch--slate   .bg-swatch__fill { background: linear-gradient(120deg, #334155, #475569 45%, #94A3B8); }
+.bg-swatch--forest  .bg-swatch__fill { background: linear-gradient(120deg, #065F46, #0F8A5F 45%, #6EE7B7); }
+.bg-swatch--sunset  .bg-swatch__fill { background: linear-gradient(120deg, #B91C1C, #EA580C 45%, #FBBF24); }
+.bg-swatch--plum    .bg-swatch__fill { background: linear-gradient(120deg, #581C87, #7E22CE 45%, #E879F9); }
+.bg-swatch--ocean   .bg-swatch__fill { background: linear-gradient(120deg, #0C4A6E, #0369A1 45%, #38BDF8); }
+.bg-swatch--sand    .bg-swatch__fill { background: linear-gradient(120deg, #78350F, #B45309 45%, #FCD34D); }
+.bg-swatch--ink     .bg-swatch__fill { background: linear-gradient(120deg, #0F172A, #1E293B 45%, #475569); }
+
+/* ========================== the class switcher ==================== */
+/* Sits in the banner beside the class name. Only appears at two
+   classes or more, so a teacher with one room never sees it. */
+.cr-switch { position: relative; }
+.cr-switch__btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  margin-top: 8px; padding: 5px 11px;
+  border: 1px solid rgba(255,255,255,.34); border-radius: 999px;
+  background: rgba(255,255,255,.14); color: #fff;
+  font: inherit; font-size: 13px; cursor: pointer;
+}
+.cr-switch__btn:hover { background: rgba(255,255,255,.24); }
+.cr-switch__btn svg { width: 14px; height: 14px; }
+
+/* Fixed, not absolute. The banner is overflow:hidden so its gradient
+   blobs stay inside the rounded corners, which also clips anything that
+   tries to hang below it — the menu was rendering correctly and being
+   cut away to nothing. Positioned from the button's own rect in JS. */
+.cr-switch__menu {
+  position: fixed; z-index: 60;
+  min-width: 232px; max-height: 320px; overflow-y: auto;
+  padding: 6px; border-radius: 12px;
+  background: var(--paper, #fff); color: var(--ink);
+  border: 1px solid var(--line); box-shadow: var(--sh-3, 0 12px 32px rgba(0,0,0,.16));
+}
+.cr-switch__item {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  padding: 8px 10px; border: 0; border-radius: 9px;
+  background: none; font: inherit; text-align: left; cursor: pointer;
+}
+.cr-switch__item:hover { background: var(--line-soft); }
+.cr-switch__item.is-on { background: var(--accent-soft); color: var(--accent-ink); }
+.cr-switch__dot {
+  flex: 0 0 auto; width: 14px; height: 14px; border-radius: 4px;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,.08);
+}
+.cr-switch__t { flex: 1 1 auto; min-width: 0; }
+.cr-switch__t b { display: block; font-size: 14px; font-weight: 600; }
+.cr-switch__t span { display: block; font-size: 12px; color: var(--muted); }
+.cr-switch__item.is-on .cr-switch__t span { color: inherit; opacity: .78; }
+.cr-switch__sep { height: 1px; margin: 6px 4px; background: var(--line); }
+.cr-switch__add { color: var(--accent); font-weight: 600; }
+
+.cr-switch__dot--default { background: linear-gradient(120deg, #1B4DFF, #22D3EE); }
+.cr-switch__dot--slate   { background: linear-gradient(120deg, #334155, #94A3B8); }
+.cr-switch__dot--forest  { background: linear-gradient(120deg, #065F46, #6EE7B7); }
+.cr-switch__dot--sunset  { background: linear-gradient(120deg, #B91C1C, #FBBF24); }
+.cr-switch__dot--plum    { background: linear-gradient(120deg, #581C87, #E879F9); }
+.cr-switch__dot--ocean   { background: linear-gradient(120deg, #0C4A6E, #38BDF8); }
+.cr-switch__dot--sand    { background: linear-gradient(120deg, #78350F, #FCD34D); }
+.cr-switch__dot--ink     { background: linear-gradient(120deg, #0F172A, #475569); }

@@ -109,7 +109,10 @@
     var join = param('join').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
     /* ?admin takes no value, so presence is the whole flag */
     var admin = /[?&]admin(=|&|$)/.test(global.location.search);
-    if (!role && !view && !join && !admin) return;
+    /* ?ultra is the second panel, behind its own code. Same shape as
+       ?admin, and deliberately not a value either. */
+    var ultra = /[?&]ultra(=|&|$)/.test(global.location.search);
+    if (!role && !view && !join && !admin && !ultra) return;
 
     /* the query has done its job; a refresh should not replay it */
     if (global.history && global.history.replaceState) {
@@ -118,6 +121,7 @@
 
     route(role, view, join);
     if (admin) openAdmin();
+    if (ultra) openUltra();
   }
 
   /* The panel edits this device's save, so the app has to be in front of it:
@@ -128,6 +132,15 @@
     var app = document.getElementById('app');
     if (app && !app.classList.contains('is-open')) global.UI.showApp('portal');
     setTimeout(global.Admin.open, 60);
+  }
+
+  /* Same reasoning as openAdmin: UltraAdmin lists this device's classes
+     and can wipe its save, so the app has to be in front of it. */
+  function openUltra() {
+    if (!global.UltraAdmin) return;
+    var app = document.getElementById('app');
+    if (app && !app.classList.contains('is-open')) global.UI.showApp('portal');
+    setTimeout(global.UltraAdmin.open, 60);
   }
 
   function route(role, view, join) {

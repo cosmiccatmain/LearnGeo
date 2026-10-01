@@ -84,6 +84,15 @@
       (e.classId ? C.status : 'off') + '"></span>' + label + '</div>';
   }
 
+  /* The look the teacher gave this class. Falls back to the default
+     rather than to nothing, so a class whose colour has not reached this
+     device yet looks like a class rather than like a broken one. */
+  function studentBg() {
+    if (global.Classes && global.Classes.studentBackground) return global.Classes.studentBackground();
+    var e = W.state.enrolled;
+    return (e && e.background) || 'default';
+  }
+
   function inbox() {
     if (!W.state.inbox) W.state.inbox = [];
     return W.state.inbox;
@@ -166,7 +175,7 @@
     var unread = unreadPosts();
 
     host.innerHTML =
-      '<div class="cr">' +
+      '<div class="cr cr--bg-' + studentBg() + '">' +
         '<div class="cr-banner">' +
           '<div>' +
             '<h1>' + W.escapeHtml(name || 'Classroom') + '</h1>' +

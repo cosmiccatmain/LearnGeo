@@ -19,21 +19,44 @@
   var CODE_LEN = 4;
   var NO_CHECK = 'Can’t check the code right now. Try again when you’re online.';
   var unlocked = false;          /* survives until the tab is closed */
+  var scope = '';                /* which code opened it: 'gems' or 'ultra' */
 
-  /* ============================ number pad ========================== */
-  function open() {
-    if (unlocked) return panel();
-    lock();
+  /* What the code that was typed is allowed to reach. Everything that
+     gates on an admin code asks this rather than reading `unlocked`,
+     so the gems code cannot walk into UltraAdmin. */
+  function can(perm) {
+    if (!unlocked) return false;
+    var P = global.AdminPin;
+    if (!P || !P.covers) return perm === 'gems';
+    return P.covers(scope, perm);
   }
 
-  function lock() {
+  /* ============================ number pad ========================== */
+  /* open() is the gems panel. unlock(want, then) is the same number pad
+     for anything else that needs a code — UltraAdmin uses it — so there
+     is one pad, one check and one place the scope is decided.
+
+     Already holding a code that covers what is being asked for goes
+     straight through. Holding the other one does not: it asks again,
+     because the whole point of two codes is that one is not the other. */
+  function open() { unlock('gems', panel); }
+
+  function unlock(want, then) {
+    want = want || 'gems';
+    if (unlocked && can(want)) return then ? then(scope) : panel();
+    lock(want, then);
+  }
+
+  function lock(want, onPass) {
+    want = want || 'gems';
     var typed = '';
     var keyHandler = null;       /* removed when the dialog closes, however it closes */
 
     var m = global.UI.modal({
-      title: 'Admin', icon: I.lock,
+      title: want === 'ultra' ? 'UltraAdmin' : 'Admin', icon: I.lock,
       body:
-        '<p class="t-muted t-sm" style="margin:-4px 0 18px">Enter the four-digit code.</p>' +
+        '<p class="t-muted t-sm" style="margin:-4px 0 18px">Enter the four-digit code' +
+          (want === 'ultra' ? ' for UltraAdmin' : '') + '.</p>' +
         '<div class="pad-dots" id="pad-dots">' + dots('') + '</div>' +
         '<div class="pad" id="pad">' +
           [1, 2, 3, 4, 5, 6, 7, 8, 9].map(key).join('') +
@@ -78,21 +101,35 @@
         /* Supabase answers yes or no without the page ever holding the
            codes (assets/js/admin-pin.js). If it cannot answer, nothing
            opens: there is no code built into this file to fall back on. */
+        /* Supabase answers which panel the code opens, without the page
+           ever holding the codes (assets/js/admin-pin.js). If it cannot
+           answer, nothing opens: there is no code built into this file
+           to fall back on. */
         function check(mine) {
           var asking = global.AdminPin && global.AdminPin.verify(typed);
           if (!asking) return fail(NO_CHECK);
           errEl.textContent = 'Checking…';
-          asking.then(function (ok) {
+          asking.then(function (got) {
             if (mine !== checkId || !document.body.contains(root)) return;
-            if (ok === true) pass();
-            else fail(ok === null ? NO_CHECK : '');
+            if (got === null) return fail(NO_CHECK);
+            if (!got) return fail('');
+            /* A real code, but for the other panel. Say so rather than
+               calling it wrong: a teacher who typed the UltraAdmin code
+               here has not made a mistake, they are in the wrong place. */
+            if (!global.AdminPin.covers(got, want)) {
+              unlocked = true; scope = got;
+              return fail('That code does not open this panel.');
+            }
+            pass(got);
           });
         }
 
-        function pass() {
+        function pass(got) {
           unlocked = true;
+          scope = got || 'gems';
           close();
-          panel();
+          if (typeof onPass === 'function') onPass(scope);
+          else panel();
         }
 
         function fail(why) {
@@ -369,5 +406,9 @@
     if (p && !p.classList.contains('hidden') && global.Portal) global.Portal.render();
   }
 
-  global.Admin = { open: open, get unlocked() { return unlocked; } };
+  global.Admin = {
+    open: open, unlock: unlock, can: can,
+    get unlocked() { return unlocked; },
+    get scope() { return scope; }
+  };
 })(window);

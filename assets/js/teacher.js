@@ -83,7 +83,146 @@
       '<button class="btn btn--accent btn--sm" id="tm-signin">Sign in</button></div>';
   }
 
+  /* The several-classes module. Guarded because a teacher page that
+     throws at load is worse than one without a switcher. */
+  function CL() {
+    return global.Classes || {
+      all: function () { return [W.state.classroom]; },
+      active: function () { return W.state.classroom; },
+      activeId: function () { return ''; },
+      count: function () { return 1; },
+      background: function () { return 'default'; },
+      setBackground: function () { return 'default'; },
+      switchTo: function () {}, create: function () {}, remove: function () { return false; },
+      validBg: function () { return 'default'; },
+      BACKGROUNDS: [{ key: 'default', name: 'Blue' }]
+    };
+  }
+
+  /* Only shown from two classes up. One class and a switcher is a
+     control that does nothing, sitting where a teacher reads the name. */
+  function switcher() {
+    var list = CL().all();
+    if (list.length < 2) return '';
+    var here = CL().active();
+    return '<div class="cr-switch">' +
+      '<button class="cr-switch__btn" id="tm-switch" aria-haspopup="true" aria-expanded="false">' +
+        I.layers + '<span>' + W.escapeHtml(named(here.name) ? here.name : 'This class') + '</span>' +
+        '<b>' + list.length + ' classes</b>' +
+      '</button></div>';
+  }
+
+  function openSwitcher(btn) {
+    var open = document.querySelector('.cr-switch__menu');
+    if (open) { open.remove(); btn.setAttribute('aria-expanded', 'false'); return; }
+
+    var here = CL().activeId();
+    var menu = W.el('div', 'cr-switch__menu');
+    menu.innerHTML =
+      CL().all().map(function (row) {
+        var n = (row.results || []).length;
+        return '<button class="cr-switch__item' + (row.lid === here ? ' is-on' : '') +
+          '" data-lid="' + W.escapeHtml(row.lid) + '">' +
+          '<span class="cr-switch__dot cr-switch__dot--' + CL().validBg(row.background) + '"></span>' +
+          '<span class="cr-switch__t"><b>' + W.escapeHtml(named(row.name) ? row.name : 'Unnamed class') + '</b>' +
+            '<span>' + ((row.assignments || []).length) + ' set · ' + n + ' in' +
+            (row.code ? ' · ' + W.escapeHtml(row.code) : '') + '</span></span>' +
+        '</button>';
+      }).join('') +
+      '<div class="cr-switch__sep"></div>' +
+      '<button class="cr-switch__item cr-switch__add" data-newclass>' + I.plus + ' New class</button>';
+
+    /* Placed against the button's own rect, because the menu is fixed:
+       the banner clips anything absolute that hangs below it. */
+    document.body.appendChild(menu);
+    var r = btn.getBoundingClientRect();
+    menu.style.left = Math.round(Math.max(8, Math.min(r.left, window.innerWidth - 248))) + 'px';
+    menu.style.top = Math.round(r.bottom + 6) + 'px';
+    btn.setAttribute('aria-expanded', 'true');
+
+    function shut() {
+      if (menu.parentNode) menu.parentNode.removeChild(menu);
+      btn.setAttribute('aria-expanded', 'false');
+    }
+
+    W.$$('[data-lid]', menu).forEach(function (b) {
+      b.addEventListener('click', function () {
+        shut();
+        CL().switchTo(b.dataset.lid);
+        tab = 'stream';
+        render();
+        /* The class name sits in the top bar too, outside anything
+           render() redraws, so it has to be told as well. */
+        if (global.UI && global.UI.refreshHud) global.UI.refreshHud();
+        if (online()) syncSoon(true);
+      });
+    });
+    W.$('[data-newclass]', menu).addEventListener('click', function () { shut(); newClass(); });
+
+    setTimeout(function () {
+      document.addEventListener('mousedown', function away(e) {
+        if (menu.contains(e.target) || btn.contains(e.target)) return;
+        menu.remove();
+        btn.setAttribute('aria-expanded', 'false');
+        document.removeEventListener('mousedown', away);
+      });
+    }, 0);
+  }
+
+  /* A new class is local until it is synced, exactly like the first one:
+     it gets its code from the server when the teacher is signed in. */
+  function newClass() {
+    global.UI.modal({
+      title: 'New class', icon: I.users,
+      body: '<div class="field"><label class="field__label">Class name</label>' +
+        '<input class="input" id="nc-name" maxlength="40" placeholder="e.g. Period 5 Geography"></div>' +
+        '<div class="field__hint">Each class keeps its own students, work and scores. ' +
+        'Sign in and it gets a code of its own that students can join with.</div>',
+      actions: [
+        { label: 'Cancel', cls: 'btn--ghost', close: true },
+        { label: 'Create', cls: 'btn--accent', close: true, onClick: function (root) {
+            var nm = W.$('#nc-name', root).value.trim().slice(0, 40);
+            CL().create(nm);
+            tab = 'stream';
+            render();
+            if (global.UI && global.UI.refreshHud) global.UI.refreshHud();
+            W.toast('Class created', nm || 'Name it when you are ready', I.check);
+            if (online()) syncSoon(true);
+          } }
+      ],
+      onMount: function (root) { setTimeout(function () { W.$('#nc-name', root).focus(); }, 60); }
+    });
+  }
+
+  /* Local only. The class row in Supabase stays, because a class with
+     students in it is not one device's to destroy, and the teacher can
+     pick it up again on any computer they sign in on. */
+  function deleteClass() {
+    var here = CL().active();
+    global.UI.modal({
+      title: 'Remove ' + (named(here.name) ? here.name : 'this class') + '?', icon: I.close,
+      body: '<p class="t-muted">This takes the class off the list on this device. ' +
+        (here.cloudId
+          ? 'It stays on your account, so signing in anywhere brings it back, and your students ' +
+            'keep their work.'
+          : 'It was never put online, so this is the only copy and it will be gone.') + '</p>',
+      actions: [
+        { label: 'Keep it', cls: 'btn--ghost', close: true },
+        { label: 'Remove', cls: 'btn--primary', close: true, onClick: function () {
+            if (CL().remove(here.lid)) {
+              tab = 'stream';
+              render();
+              if (global.UI && global.UI.refreshHud) global.UI.refreshHud();
+              W.toast('Removed', 'Now showing ' + (named(CL().active().name)
+                ? CL().active().name : 'your other class'), I.check);
+            }
+          } }
+      ]
+    });
+  }
+
   function cls() {
+    if (global.Classes) global.Classes.ensure();
     var c = W.state.classroom;
     if (!c.roster) c.roster = [];
     if (!c.assignments) c.assignments = [];
@@ -270,7 +409,7 @@
     };
 
     host.innerHTML =
-      '<div class="cr">' +
+      '<div class="cr cr--bg-' + CL().background() + '">' +
         '<div class="cr-banner">' +
           '<div>' +
             /* Unnamed classes get the offer in the title itself, which is
@@ -283,6 +422,7 @@
             '<p>' + c.assignments.length + ' assignment' + (c.assignments.length === 1 ? '' : 's') +
               ' · ' + roster.length + ' student' + (roster.length === 1 ? '' : 's') +
               ' · ' + c.results.length + ' result' + (c.results.length === 1 ? '' : 's') + ' in</p>' +
+            switcher() +
             syncLine() +
           '</div>' +
           (classCode()
@@ -323,6 +463,8 @@
        banner buttons are bound here too. */
     var nameBtn = document.getElementById('tm-nameit');
     if (nameBtn) nameBtn.addEventListener('click', askName);
+    var swBtn = document.getElementById('tm-switch');
+    if (swBtn) swBtn.addEventListener('click', function () { openSwitcher(swBtn); });
     wirePanel();
 
     function crTab(id, icon, label, n) {
@@ -476,6 +618,18 @@
 
     bind('#tm-leave', leaveTeacher);
     bind('#tm-signin', function () { global.UI.openAuth('signin'); });
+    bind('#tm-newclass', newClass);
+
+    W.$$('[data-bg]', host).forEach(function (b) {
+      b.addEventListener('click', function () {
+        CL().setBackground(b.dataset.bg);
+        render();
+        if (online() && global.Cloud.setClassBackground) {
+          global.Cloud.setClassBackground(CL().background()).catch(function () {});
+        }
+      });
+    });
+    bind('#tm-delclass', deleteClass);
     var nameEl = W.$('#tm-name', host);
     if (nameEl) nameEl.addEventListener('change', function () {
       cls().name = nameEl.value.trim().slice(0, 40); W.saveNow(); render();
@@ -887,6 +1041,17 @@
           '<input class="input" id="tm-name" maxlength="40" placeholder="e.g. Period 3 Geography" ' +
             'value="' + W.escapeHtml(c.name) + '"></div>' +
         '<div id="cr-classtag"></div>' +
+        '<div class="field"><label class="field__label">Background</label>' +
+          '<div class="bg-picker">' +
+            CL().BACKGROUNDS.map(function (b) {
+              return '<button type="button" class="bg-swatch bg-swatch--' + b.key +
+                (CL().background() === b.key ? ' is-on' : '') + '" data-bg="' + b.key + '">' +
+                '<span class="bg-swatch__fill"></span>' +
+                '<span class="bg-swatch__name">' + W.escapeHtml(b.name) + '</span></button>';
+            }).join('') +
+          '</div>' +
+          '<div class="field__hint">Your students see this too, so each class looks ' +
+            'like itself.</div></div>' +
         '<div class="field"><label class="field__label">Class code</label>' +
           (classCode()
             ? '<div class="code-chip">' + classCode() +
@@ -904,6 +1069,12 @@
           : 'Everything is saved in this browser only. Export the gradebook if you want a copy ' +
             'somewhere else — or sign in, and your class follows you between computers.') + '</p>' +
         '<button class="btn btn--ghost btn--block" id="tm-export">Export gradebook CSV</button>' +
+        '<button class="btn btn--ghost btn--block" id="tm-newclass" style="margin-top:8px">' +
+          'Add another class</button>' +
+        (CL().count() > 1
+          ? '<button class="btn btn--ghost btn--block" id="tm-delclass" style="margin-top:8px">' +
+              'Remove this class from my list</button>'
+          : '') +
         '<button class="btn btn--ghost btn--block" id="tm-leave" style="margin-top:8px">' +
           'Switch to a student account</button>' +
         '<div class="field__hint" style="margin-top:8px">Your class, assignments and results will still be ' +

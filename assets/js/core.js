@@ -113,8 +113,16 @@
       achievements: [],
       role: 'student',            /* 'student' | 'teacher' */
       roleChosen: false,          /* asked once, on first entry */
+      /* Every class this teacher runs. state.classroom below is the one
+         they are looking at, and is the same object as its entry here,
+         so the cls() helpers all over the app keep working unchanged.
+         assets/js/classes.js owns the list and the switching. */
+      classes: [],
+      activeClassId: '',
       classroom: {
+        lid: '',                  /* local id, stable before the class is online */
         name: '', code: '',       /* teacher's own class */
+        background: 'default',    /* which look, so several classes are tellable apart */
         cloudId: '',              /* the row id in Supabase once the class is live */
         roster: [],               /* names the teacher tracks locally */
         members: [],              /* students who joined with the code: { id, name } */

@@ -37,11 +37,19 @@
 
   /* ------------------------------------------------------------ the gate */
 
-  /* Admin.unlocked is set by the Supabase-checked PIN and lives until the tab
+  /* God mode is UltraAdmin's, not the gems panel's. Both are opened by a
+     Supabase-checked PIN, but they are different codes with different
+     reach, and a code handed to somebody so they can award diamonds
+     should not also turn every answer green. can() falls back to the old
+     behaviour on a build without scopes, so this never locks itself out.
+
+     Admin.unlocked is set by the Supabase-checked PIN and lives until the tab
      closes. God mode borrows exactly that lifetime: it does not persist, and
      there is nothing in storage to flip. A reload turns it off. */
   function available() {
-    return !!(global.Admin && global.Admin.unlocked);
+    var A = global.Admin;
+    if (!A) return false;
+    return A.can ? A.can('ultra') : !!A.unlocked;
   }
 
   /* --------------------------------------------------- inside a live game */
