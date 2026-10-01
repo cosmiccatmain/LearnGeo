@@ -21,7 +21,11 @@
   var W = global.WW, I = W.Icons;
 
   /* ============================== lookup ============================ */
+  /* Through Classes first: state.classroom is repointed on load and on
+     a class switch, so a reference taken before that is a copy nothing
+     renders. See the note in classes.js. */
   function cls() {
+    if (global.Classes) global.Classes.ensure();
     var c = W.state.classroom || {};
     if (!c.results) c.results = [];
     if (!c.roster) c.roster = [];

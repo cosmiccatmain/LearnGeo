@@ -87,6 +87,21 @@
     if (!s.classes.length) {
       s.classes.push(s.classroom);
     } else {
+      /* Loading splits the one class in two. It is saved under both
+         `classroom` and `classes[0]`, and JSON.parse has no idea they
+         were the same object, so it returns two — and core's merge()
+         then rebuilds `classroom` again from the defaults while the
+         array is taken wholesale. Repointing `classroom` at the list
+         entry below is what re-joins them.
+
+         That repoint has to happen before any module reads
+         state.classroom, or it reads the copy about to be orphaned and
+         writes into it forever after. cloud.js did exactly that: the
+         class sync wrote the server id, the code and the name into a
+         copy nothing rendered, so a teacher could not change the name,
+         the tag or the colour and saw no error. Hence the ensure() call
+         at the bottom of this file, which runs at load, and cloud.js
+         resolving through here rather than reaching for the field. */
       s.classes = s.classes.map(fill);
       /* Point the list entry and state.classroom at one object. If the
          active id has gone (a class deleted on another device), fall
@@ -216,6 +231,10 @@
   function emit() {
     listeners.forEach(function (f) { try { f(W.state.classroom); } catch (e) {} });
   }
+
+  /* At load, before cloud.js or anything else can take a reference.
+     This file is loaded straight after core.js for that reason. */
+  ensure();
 
   global.Classes = {
     BACKGROUNDS: BACKGROUNDS,

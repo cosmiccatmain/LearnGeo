@@ -362,7 +362,15 @@
     };
   }
 
-  function cls() { return W.state.classroom; }
+  /* Through Classes, not straight at the field. state.classroom is
+     repointed when a save is loaded and when a teacher switches class,
+     and a reference taken before that happens is a copy the screen will
+     never show. Resolving every time is what keeps the sync writing
+     into the class the teacher is actually looking at. */
+  function cls() {
+    if (global.Classes) global.Classes.ensure();
+    return W.state.classroom;
+  }
   function teacherReady() { return ready() && W.state.role === 'teacher' && !!cls().cloudId; }
 
   /* Six characters with no I, O, zero or one, so nothing in a code can be

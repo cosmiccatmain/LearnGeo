@@ -55,7 +55,10 @@
     return r.studentId || ('name:' + r.name);
   }
 
+  /* Through Classes first, for the reason in classes.js: the field is
+     repointed on load and on a class switch. */
   function cls() {
+    if (global.Classes) global.Classes.ensure();
     var s = W && W.state;
     return (s && s.classroom) || null;
   }
