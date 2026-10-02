@@ -478,12 +478,28 @@
       .catch(function () { return null; });
   }
 
+  /* Answers whether the colour actually reached the class row.
+
+     It used to swallow the answer, which is how a teacher could pick
+     green, see green, and have every student still see blue: the write
+     had failed and nothing said so. The caller reports it now. */
   function setClassBackground(bg) {
-    if (!teacherReady()) return Promise.resolve(false);
+    if (!teacherReady()) {
+      return Promise.resolve({ ok: false, why: 'offline' });
+    }
     return sb.from('classes').update({ background: String(bg || 'default') })
       .eq('id', cls().cloudId)
-      .then(function (res) { return !res.error; })
-      .catch(function () { return false; });
+      .then(function (res) {
+        if (!res.error) return { ok: true };
+        /* The column arrives with migration 0005. Until that is run the
+           colour is this device's own, which is worth saying plainly
+           rather than reporting as a failure the teacher caused. */
+        return { ok: false, why: missingBit(res.error) ? 'absent' : 'refused',
+                 message: (res.error && res.error.message) || '' };
+      })
+      .catch(function (err) {
+        return { ok: false, why: 'refused', message: (err && err.message) || '' };
+      });
   }
 
   /* results has no natural key, so the same score sent twice becomes two

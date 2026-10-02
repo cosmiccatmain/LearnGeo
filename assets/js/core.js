@@ -133,7 +133,11 @@
       inbox: [],                  /* assignments a student has loaded by code */
       stream: [],                 /* the teacher's announcements, as a student sees them */
       streamSeen: 0,              /* newest announcement this student has read */
-      enrolled: null,             /* { code, className, name, classId? } once joined */
+      /* Every class this student has joined. state.enrolled below is the
+         one they are looking at, and is the same object as its entry
+         here. assets/js/classes.js owns the list. */
+      enrolments: [],
+      enrolled: null,             /* { code, className, name, classId?, background? } */
       customSets: [],             /* saved lists of hand-picked countries */
       settings: {
         sound: true,

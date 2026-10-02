@@ -663,9 +663,20 @@
       b.addEventListener('click', function () {
         CL().setBackground(b.dataset.bg);
         render();
-        if (online() && global.Cloud.setClassBackground) {
-          global.Cloud.setClassBackground(CL().background()).catch(function () {});
-        }
+        if (!online() || !global.Cloud.setClassBackground) return;
+        /* Say so when it does not reach the class. A colour that only
+           exists on this device looks identical to one that reached
+           everybody, which is exactly how a teacher ends up seeing green
+           while their class sees blue. */
+        global.Cloud.setClassBackground(CL().background()).then(function (res) {
+          if (res && res.ok) return;
+          var why = res && res.why;
+          W.toast('Only you can see that colour',
+                  why === 'absent'
+                    ? 'Your class is on an older database that has no colour yet.'
+                    : 'It did not reach your class. Try again in a moment.',
+                  I.info, 5200);
+        }, function () {});
       });
     });
     bind('#tm-delclass', deleteClass);

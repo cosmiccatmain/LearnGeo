@@ -225,6 +225,98 @@
     el.className = keep.join(' ');
   }
 
+  /* ======================= the student's side ======================
+     A student can be in more than one class too. Same shape as the
+     teacher's list and the same identity rule: state.enrolled is the
+     class on screen AND the matching entry in state.enrolments, one
+     object, so a reference taken anywhere stays live. The key is the
+     class code, which is unique and always present.
+  ================================================================= */
+  function indexOfEnrol(code) {
+    var list = W.state.enrolments || [];
+    for (var i = 0; i < list.length; i++) {
+      if (list[i] && list[i].code === code) return i;
+    }
+    return -1;
+  }
+
+  function ensureEnrolments() {
+    var s = W.state;
+    if (!Array.isArray(s.enrolments)) s.enrolments = [];
+
+    /* an older save has the one class under `enrolled` and no list */
+    if (s.enrolled && s.enrolled.code && indexOfEnrol(s.enrolled.code) === -1) {
+      s.enrolments.push(s.enrolled);
+    }
+    if (s.enrolments.length) {
+      var i = s.enrolled && s.enrolled.code ? indexOfEnrol(s.enrolled.code) : 0;
+      if (i === -1) i = 0;
+      s.enrolled = s.enrolments[i];      /* rejoin the two after a load */
+    } else {
+      s.enrolled = null;
+    }
+    return s.enrolments;
+  }
+
+  function enrolments() { ensureEnrolments(); return W.state.enrolments; }
+  function enrolment() { ensureEnrolments(); return W.state.enrolled; }
+  function enrolCount() { return enrolments().length; }
+
+  function addEnrolment(e) {
+    ensureEnrolments();
+    if (!e || !e.code) return null;
+    var i = indexOfEnrol(e.code);
+    if (i !== -1) {
+      /* already in it: refresh what we know rather than add a second */
+      var row = W.state.enrolments[i];
+      if (e.className) row.className = e.className;
+      if (e.classId) row.classId = e.classId;
+      if (e.name) row.name = e.name;
+      W.state.enrolled = row;
+    } else {
+      W.state.enrolments.push(e);
+      W.state.enrolled = e;
+    }
+    W.saveNow();
+    emit();
+    return W.state.enrolled;
+  }
+
+  function switchEnrolment(code) {
+    ensureEnrolments();
+    var i = indexOfEnrol(code);
+    if (i === -1) return W.state.enrolled;
+    W.state.enrolled = W.state.enrolments[i];
+    W.saveNow();
+    emit();
+    return W.state.enrolled;
+  }
+
+  /* Leaving takes the class off this device's list. The classwork for it
+     goes with it, except anything already handed in, which is the
+     student's own record of what they did. */
+  function removeEnrolment(code) {
+    ensureEnrolments();
+    var i = indexOfEnrol(code);
+    if (i === -1) return false;
+    W.state.enrolments.splice(i, 1);
+    W.state.inbox = (W.state.inbox || []).filter(function (a) {
+      return a.done || a.classCode !== code;
+    });
+    var next = W.state.enrolments[Math.min(i, W.state.enrolments.length - 1)];
+    W.state.enrolled = next || null;
+    W.saveNow();
+    emit();
+    return true;
+  }
+
+  /* The classwork belonging to one class. The inbox is one flat list
+     across every class a student is in, so every screen that shows work
+     has to say which class it means. */
+  function workFor(code) {
+    return (W.state.inbox || []).filter(function (a) { return a.classCode === code; });
+  }
+
   /* ------------------------------ listeners ----------------------- */
   var listeners = [];
   function onChange(fn) { if (typeof fn === 'function') listeners.push(fn); }
@@ -235,6 +327,7 @@
   /* At load, before cloud.js or anything else can take a reference.
      This file is loaded straight after core.js for that reason. */
   ensure();
+  ensureEnrolments();
 
   global.Classes = {
     BACKGROUNDS: BACKGROUNDS,
@@ -242,6 +335,10 @@
     byId: byId, switchTo: switchTo, create: create, remove: remove, rename: rename,
     background: background, setBackground: setBackground,
     studentBackground: studentBackground, paint: paint,
-    validBg: validBg, onChange: onChange
+    validBg: validBg, onChange: onChange,
+    ensureEnrolments: ensureEnrolments, enrolments: enrolments,
+    enrolment: enrolment, enrolCount: enrolCount, addEnrolment: addEnrolment,
+    switchEnrolment: switchEnrolment, removeEnrolment: removeEnrolment,
+    workFor: workFor
   };
 })(window);

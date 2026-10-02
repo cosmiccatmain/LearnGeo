@@ -93,9 +93,21 @@
     return (e && e.background) || 'default';
   }
 
-  function inbox() {
+  /* Everything, across every class. Use it only where a class makes no
+     difference — pruning, or looking an assignment up by id. */
+  function allWork() {
     if (!W.state.inbox) W.state.inbox = [];
     return W.state.inbox;
+  }
+
+  /* The work for the class on screen. A student can be in several, and
+     the storage is one flat list, so every screen that shows work has to
+     say which class it means or it shows a jumble of all of them. */
+  function inbox() {
+    allWork();
+    var code = classCode();
+    if (!code) return W.state.inbox;
+    return W.state.inbox.filter(function (a) { return a.classCode === code; });
   }
 
   /* Announcements from the teacher. Read-only here: the Stream is one
@@ -131,7 +143,100 @@
     catch (e) { return ''; }
   }
 
-  function enrolled() { return W.state.enrolled || null; }
+  function CL() { return global.Classes; }
+
+  /* Shown from two classes up, like the teacher's. One class and a
+     switcher is a control that does nothing, sitting where a student
+     reads which room they are in. */
+  function switcher() {
+    if (!CL() || !CL().enrolments) return '';
+    var list = CL().enrolments();
+    if (!list.length) return '';
+    var here = enrolled();
+    /* Shown even with one class, because this menu is the only way to
+       join a second and a student who cannot find it cannot join one. */
+    return '<div class="cr-switch">' +
+      '<button class="cr-switch__btn" id="cl-classpick" aria-haspopup="true" aria-expanded="false">' +
+        I.layers + '<span>' + W.escapeHtml((here && here.className) || 'This class') + '</span>' +
+        '<b>' + (list.length > 1 ? list.length + ' classes' : 'Join another') + '</b>' +
+      '</button></div>';
+  }
+
+  function openSwitcher(btn) {
+    var open = document.querySelector('.cr-switch__menu');
+    if (open) { open.remove(); btn.setAttribute('aria-expanded', 'false'); return; }
+
+    var here = enrolled();
+    var menu = W.el('div', 'cr-switch__menu');
+    menu.innerHTML =
+      CL().enrolments().map(function (row) {
+        var work = CL().workFor(row.code);
+        var todo = work.filter(function (a) { return !a.done; }).length;
+        return '<button class="cr-switch__item' +
+          (here && row.code === here.code ? ' is-on' : '') +
+          '" data-code="' + W.escapeHtml(row.code) + '">' +
+          '<span class="cr-switch__dot cr-switch__dot--' +
+            CL().validBg(row.background) + '"></span>' +
+          '<span class="cr-switch__t"><b>' +
+            W.escapeHtml(row.className || 'Your class') + '</b>' +
+            '<span>' + (todo ? todo + ' to do' : 'nothing to do') +
+            ' · ' + W.escapeHtml(row.code) + '</span></span>' +
+        '</button>';
+      }).join('') +
+      '<div class="cr-switch__sep"></div>' +
+      '<button class="cr-switch__item cr-switch__add" data-addclass>' + I.plus + ' Join another class</button>';
+
+    document.body.appendChild(menu);
+    var r = btn.getBoundingClientRect();
+    menu.style.left = Math.round(Math.max(8, Math.min(r.left, window.innerWidth - 248))) + 'px';
+    menu.style.top = Math.round(r.bottom + 6) + 'px';
+    btn.setAttribute('aria-expanded', 'true');
+
+    function shut() {
+      if (menu.parentNode) menu.parentNode.removeChild(menu);
+      btn.setAttribute('aria-expanded', 'false');
+    }
+
+    W.$$('[data-code]', menu).forEach(function (b) {
+      b.addEventListener('click', function () {
+        shut();
+        CL().switchEnrolment(b.dataset.code);
+        tab = 'classwork';
+        render();
+        if (global.UI && global.UI.refreshHud) global.UI.refreshHud();
+        syncSoon(true);
+      });
+    });
+    W.$('[data-addclass]', menu).addEventListener('click', function () { shut(); addClass(); });
+
+    setTimeout(function () {
+      document.addEventListener('mousedown', function away(e) {
+        if (menu.contains(e.target) || btn.contains(e.target)) return;
+        shut();
+        document.removeEventListener('mousedown', away);
+      });
+    }, 0);
+  }
+
+  /* Joining a second class, from inside the app. Same screen as the
+     first join, which is renderJoin below — it adds to the list now
+     rather than replacing what is there. */
+  var joiningAnother = false;
+
+  function addClass() {
+    joiningAnother = true;
+    render();
+  }
+
+  function cancelAddClass() {
+    joiningAnother = false;
+    render();
+  }
+
+  function enrolled() {
+    if (CL() && CL().ensureEnrolments) CL().ensureEnrolments();
+    return W.state.enrolled || null;
+  }
   function className() { return enrolled() ? enrolled().className : ''; }
   function classCode() { return enrolled() ? enrolled().code : ''; }
 
@@ -157,7 +262,7 @@
   function render(fromSync) {
     var host = document.getElementById('view-classroom');
     if (!host) return;
-    if (!enrolled()) return renderJoin(host);
+    if (!enrolled() || joiningAnother) return renderJoin(host);
     if (fromSync !== true) syncSoon(false);
 
     wireFeatures();
@@ -182,6 +287,7 @@
             '<p>' + (box.length
               ? todo.length + ' to do · ' + done.length + ' handed in'
               : 'Nothing here yet. Add a code from your teacher to get started.') + '</p>' +
+            switcher() +
             syncLine() +
           '</div>' +
           (code
@@ -338,7 +444,7 @@
         if (!C.ready) stillThere();
         else C.leaveClass().catch(stillThere);
       }
-      W.state.inbox = inbox().filter(function (a) { return a.done || a.classCode !== e.code; });
+      W.state.inbox = allWork().filter(function (a) { return a.done || a.classCode !== e.code; });
       enroll({ code: klass.code, className: klass.name, name: name, classId: klass.id }, [],
              'Your classwork will show up here');
       C.studentSync().then(function () { render(true); }, function () {});
@@ -355,8 +461,10 @@
       '<div class="cr" style="max-width:620px">' +
         '<div class="join-card">' +
           '<div class="join-card__i">' + I.users + '</div>' +
-          '<h2>Join your class</h2>' +
-          '<p>Type the class code your teacher gave you. You only have to do this once.</p>' +
+          '<h2>' + (joiningAnother ? 'Join another class' : 'Join your class') + '</h2>' +
+          '<p>Type the class code your teacher gave you.' +
+            (joiningAnother ? ' You will stay in the classes you are already in.'
+                            : ' You only have to do this once.') + '</p>' +
 
           (signedIn ? '' :
             '<div class="signin-hint" style="margin:18px 0 0">' + I.info +
@@ -381,6 +489,12 @@
           '<div id="j-err"></div>' +
           '<button class="btn btn--accent btn--lg btn--block" id="j-go" style="margin-top:8px">' +
             'Join class</button>' +
+          /* Only when there is something to go back to. A student with no
+             class at all has nowhere to cancel to. */
+          (joiningAnother
+            ? '<button class="btn btn--ghost btn--block" id="j-cancel" style="margin-top:8px">' +
+                'Back to ' + W.escapeHtml(className() || 'my class') + '</button>'
+            : '') +
         '</div>' +
       '</div>';
 
@@ -389,6 +503,8 @@
       codeEl.value = codeEl.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
     });
     W.$('#j-go', host).addEventListener('click', function () { join(host); });
+    var cancel = W.$('#j-cancel', host);
+    if (cancel) cancel.addEventListener('click', cancelAddClass);
     W.$$('#j-code, #j-name', host).forEach(function (el) {
       el.addEventListener('keydown', function (e) { if (e.key === 'Enter') join(host); });
     });
@@ -519,7 +635,12 @@
 
 
   function enroll(e, assignments, note) {
-    W.state.enrolled = e;
+    /* Added to the list, not put in place of it. Joining a second class
+       used to replace the first, which left a student in one room with
+       another room's classwork still on the list. */
+    if (CL() && CL().addEnrolment) CL().addEnrolment(e);
+    else W.state.enrolled = e;
+    joiningAnother = false;
     W.state.profile.displayName = e.name;
     if (!W.state.inbox) W.state.inbox = [];
     var have = {};
@@ -529,7 +650,7 @@
     });
     W.saveNow();
     W.confetti({ count: 70, power: 240 });
-    W.toast('Joined ' + e.className, note, I.check);
+    W.toast('Joined ' + (e.className || 'your class'), note, I.check);
     global.UI.refreshHud();
     tab = 'classwork';
     render(true);
@@ -547,12 +668,22 @@
         { label: 'Leave class', cls: 'btn--primary', close: true, onClick: function () {
             var C = global.Cloud;
             var done = function () {
-              W.state.inbox = inbox().filter(function (a) { return a.done || a.classCode !== e.code; });
-              W.state.enrolled = null;
+              /* Leaves one class, not every class. removeEnrolment takes
+                 this one off the list, drops its unfinished work and
+                 moves to whatever class is left — or to the join screen
+                 if that was the only one. */
+              if (CL() && CL().removeEnrolment) CL().removeEnrolment(e.code);
+              else {
+                W.state.inbox = allWork().filter(function (a) { return a.done || a.classCode !== e.code; });
+                W.state.enrolled = null;
+              }
               W.state.stream = [];
               W.saveNow();
               render(true);
-              W.toast('You left ' + (e.className || 'the class'), '', I.check);
+              if (global.UI && global.UI.refreshHud) global.UI.refreshHud();
+              var now = enrolled();
+              W.toast('You left ' + (e.className || 'the class'),
+                      now ? 'Now showing ' + (now.className || 'your other class') : '', I.check);
             };
             if (C && C.ready && e.classId) {
               C.leaveClass().then(done, function (err) { W.toast('Couldn’t leave',C.friendly(err), I.info); });
@@ -635,10 +766,15 @@
     });
     var swap = W.$('#cl-switch', host);
     if (swap) swap.addEventListener('click', switchClass);
+
+    /* The banner sits outside #cl-body, so it is reached from the
+       document rather than the panel host. */
+    var pick = document.getElementById('cl-classpick');
+    if (pick) pick.addEventListener('click', function () { openSwitcher(pick); });
   }
 
   function byId(id) {
-    var box = inbox();
+    var box = allWork();
     for (var i = 0; i < box.length; i++) if (box[i] && box[i].id === id) return box[i];
     return null;
   }
@@ -829,7 +965,7 @@
       actions: [
         { label: 'Keep it', cls: 'btn--ghost', close: true },
         { label: 'Remove', cls: 'btn--primary', close: true, onClick: function () {
-            W.state.inbox = inbox().filter(function (x) { return x.id !== a.id; });
+            W.state.inbox = allWork().filter(function (x) { return x.id !== a.id; });
             W.saveNow(); render();
           } }
       ]
