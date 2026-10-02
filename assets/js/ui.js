@@ -22,6 +22,7 @@
   }
 
   function endPreview() {
+    if (global.Masquerade && global.Masquerade.active) global.Masquerade.stop();
     previewing = false;
     var bar = document.getElementById('preview-bar');
     if (bar) bar.classList.add('hidden');
@@ -1196,7 +1197,10 @@
        a student cannot reach the teacher's class by any other path. */
     var isTeacher = W.state.role === 'teacher';
     if (view === 'teacher' && !isTeacher) view = 'classroom';
-    if (view === 'classroom' && isTeacher) view = 'teacher';
+    /* previewing covers both a teacher trying an assignment and a
+       teacher looking at their class as a student; neither should be
+       bounced back out of the view they just asked for. */
+    if (view === 'classroom' && isTeacher && !previewing) view = 'teacher';
     if (isTeacher && !previewing && ['portal', 'learn', 'test', 'quiz', 'cards'].indexOf(view) !== -1) {
       view = 'teacher';
     }
@@ -1206,6 +1210,9 @@
       var bar = document.getElementById('preview-bar');
       if (bar) bar.classList.add('hidden');
       document.body.classList.remove('is-previewing');
+      /* and puts a masquerading teacher back in their own state, before
+         the teacher view renders anything from it */
+      if (global.Masquerade && global.Masquerade.active) global.Masquerade.stop();
     }
 
     currentView = view;

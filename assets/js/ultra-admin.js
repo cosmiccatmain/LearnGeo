@@ -46,6 +46,8 @@
       title: 'UltraAdmin', icon: I.shield, wide: true,
       body:
         whoCard() +
+        roleCard() +
+        masqueradeCard() +
         godCard() +
         classesCard() +
         dangerCard(),
@@ -78,6 +80,50 @@
       row('Level', s.economy.level) +
       row('Diamonds', s.economy.diamonds) +
       row('Countries seen', Object.keys(s.mastery || {}).length));
+  }
+
+  /* ------------------------------- role ---------------------------
+     Switching to a student account is a one-way door everywhere else.
+     The URL that sets a role is ignored once you are signed in — on
+     purpose, so a link cannot flip somebody — and nothing in the app
+     offered the way back, so a teacher who switched was simply stuck.
+
+     Nothing is lost by switching. The classes stay in the save and on
+     the account; only which screens you get changes.
+  ---------------------------------------------------------------- */
+  function roleCard() {
+    var teacher = W.state.role === 'teacher';
+    var mine = (global.Classes && global.Classes.count()) || 0;
+    return card('Account',
+      '<button class="btn btn--' + (teacher ? 'ghost' : 'accent') + ' btn--block" id="ua-role">' +
+        (teacher ? 'Switch to a student account' : 'Switch back to a teacher account') + '</button>',
+      teacher
+        ? 'You are a teacher. Switching gives you the student screens; your ' +
+          (mine === 1 ? 'class stays' : mine + ' classes stay') + ' where they are.'
+        : 'You are a student. Switching back gives you your class again — ' +
+          (mine ? (mine === 1 ? 'one is' : mine + ' are') + ' still on this device'
+                : 'anything on your account comes back when it next syncs') + '.');
+  }
+
+  /* ---------------------------- masquerade ------------------------
+     What a teacher cannot otherwise see: their own class through a
+     student's eyes. Everything a student would be shown is built from
+     the class the teacher is looking at, nothing is written down, and
+     leaving puts the teacher back exactly where they were.
+  ---------------------------------------------------------------- */
+  function masqueradeCard() {
+    if (W.state.role !== 'teacher') return '';
+    var M = global.Masquerade;
+    if (!M) return '';
+    var c = global.Classes && global.Classes.active();
+    var work = c ? (c.assignments || []).length : 0;
+    return card('See it as a student',
+      '<button class="btn btn--accent btn--block" id="ua-asstudent">' +
+        'Open my class as a student</button>',
+      'Shows the Classroom exactly as the people in ' +
+        W.escapeHtml((c && c.name) || 'your class') + ' see it, with the ' +
+        (work === 1 ? 'one assignment' : work + ' assignments') +
+        ' you have set. Nothing is saved and nothing is handed in.');
   }
 
   /* ------------------------------ god mode ------------------------ */
@@ -131,6 +177,34 @@
 
   /* ------------------------------- wiring ------------------------- */
   function wire(root, close) {
+    var role = W.$('#ua-role', root);
+    if (role) role.addEventListener('click', function () {
+      var toTeacher = W.state.role !== 'teacher';
+      close();
+      W.state.role = toTeacher ? 'teacher' : 'student';
+      W.state.roleChosen = true;
+      W.saveNow();
+      global.UI.refreshTabs();
+      global.UI.go(toTeacher ? 'teacher' : 'portal');
+      global.UI.refreshHud();
+      if (toTeacher) {
+        var n = (global.Classes && global.Classes.count()) || 0;
+        W.toast('You are a teacher again',
+                n ? (n === 1 ? 'Your class is here' : 'Your ' + n + ' classes are here') : '',
+                I.check);
+        /* pull down anything that only exists on the account */
+        if (global.Teacher && global.Teacher.render) global.Teacher.render();
+      } else {
+        W.toast('Now a student account', 'UltraAdmin can switch you back', I.check);
+      }
+    });
+
+    var asStudent = W.$('#ua-asstudent', root);
+    if (asStudent) asStudent.addEventListener('click', function () {
+      close();
+      if (global.Masquerade) global.Masquerade.start();
+    });
+
     var god = W.$('#ua-god', root);
     if (god) god.addEventListener('click', function () {
       var G = global.GodMode;

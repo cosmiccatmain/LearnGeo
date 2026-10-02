@@ -60,6 +60,9 @@
   /* Signed in: new work from the teacher shows up by itself. Throttled,
      since Home and Classroom both ask whenever they redraw. */
   function syncSoon(force) {
+    /* A masquerading teacher is not a member of this class, so there is
+       nothing to sync and plenty to break by trying. */
+    if (global.Masquerade && global.Masquerade.active) return;
     var C = global.Cloud;
     if (!C || !C.ready || !enrolled()) return;
     if (!force && Date.now() - lastSync < 15000) return;
