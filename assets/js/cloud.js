@@ -418,10 +418,29 @@
         if (c.cloudId) want = pick(rows, function (r) { return r.id === c.cloudId; });
         if (!want && c.code) want = pick(rows, function (r) { return r.code === c.code; });
 
-        /* An unsynced local class claims a server row only when it is the
-           only class on both sides. Otherwise claiming "the first row" is
-           how two local classes end up pointing at one room. */
-        if (!want && rows.length === 1 && classCount() < 2) want = rows[0];
+        /* Nothing matched by id or code, so adopt a server row that no
+           other local class has already claimed.
+
+           The rule this replaces only adopted when there was exactly one
+           class on each side, and fell through to createClass otherwise.
+           That turned out to be a trap: a class that lost its id — which
+           the orphaned-copy bug did to every teacher who loaded the page
+           between the two releases — would match nothing, fail the
+           one-and-one test the moment a second class existed, and mint a
+           brand new empty room on the server every single sync. The
+           teacher's own class then had no id the tag could save against,
+           and the name came back from whichever row the sync had landed
+           on.
+
+           Creating is now the last resort it should always have been: a
+           teacher whose server already holds rows gets one of those. */
+        if (!want) {
+          var claimed = {};
+          (W.state.classes || []).forEach(function (other) {
+            if (other !== c && other.cloudId) claimed[other.cloudId] = 1;
+          });
+          want = pick(rows, function (r) { return !claimed[r.id]; });
+        }
 
         if (want) return { row: want, created: false };
         return createClass(c.code || proposeCode(), c.name || 'Your class', 0);
@@ -537,6 +556,11 @@
   }
 
   var teacherBusy = null;
+
+  /* Set while a rename is travelling, so a sync that overlaps it does
+     not write the old server name back over the new local one. */
+  var pendingRename = 0;
+
   function teacherSync() {
     if (!ready() || W.state.role !== 'teacher') return Promise.resolve(false);
     if (teacherBusy) return teacherBusy;
@@ -557,7 +581,12 @@
         }
         c.code = got.row.code;
         if (got.created) return uploadLocal(got.row.id).then(function () { return got.row; });
-        c.name = got.row.name;
+        /* The server's name wins, except over one the teacher has just
+           typed. Renaming re-renders, re-rendering can start a sync, and
+           that sync reads the old name from the server and writes it
+           back — so the field appeared to refuse the edit. While a
+           rename is in the air the local name is the newer one. */
+        if (!pendingRename) c.name = got.row.name;
         return got.row;
       })
       .then(function (row) {
@@ -650,8 +679,12 @@
 
   function renameClass(name) {
     if (!teacherReady()) return Promise.resolve();
+    pendingRename += 1;
     return sb.from('classes').update({ name: String(name || 'Your class').slice(0, 60) || 'Your class' })
-      .eq('id', cls().cloudId).then(check);
+      .eq('id', cls().cloudId)
+      .then(check)
+      .then(function (v) { pendingRename -= 1; return v; },
+            function (e) { pendingRename -= 1; throw e; });
   }
   function recordResults(list) {
     if (!teacherReady() || !list.length) return Promise.resolve();
