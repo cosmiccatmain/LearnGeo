@@ -386,9 +386,48 @@
   }
 
   /* ============================== shell ============================= */
+  /* Is someone typing inside the panel right now? */
+  function typingIn(host) {
+    var el = document.activeElement;
+    if (!el || !host.contains(el)) return false;
+    var tag = el.tagName;
+    return tag === 'INPUT' || tag === 'TEXTAREA' || el.isContentEditable;
+  }
+
+  var deferredRedraw = false;
+
   function render(fromSync) {
     var host = document.getElementById('view-teacher');
     if (!host) return;
+
+    /* Never rebuild the panel under someone's hands.
+
+       render() replaces the whole view with innerHTML, so a redraw that
+       arrives while a teacher is typing throws away the field, the text
+       in it and the caret. Clicking a tab or a swatch is the teacher's
+       own doing and redraws immediately; a redraw that comes from a sync
+       or a subscription waits for the field to be let go.
+
+       This is what "I can't type" was. The class id was changing on
+       every sync, the class-features subscription re-fires on a new id,
+       and its callback redraws — so the field was being destroyed
+       between keystrokes. The id churn is fixed in cloud.js, but a
+       background redraw should never have been able to do this, and now
+       it cannot. */
+    if (fromSync === true && typingIn(host)) {
+      if (!deferredRedraw) {
+        deferredRedraw = true;
+        var el = document.activeElement;
+        el.addEventListener('blur', function once() {
+          el.removeEventListener('blur', once);
+          deferredRedraw = false;
+          render(true);
+        });
+      }
+      return;
+    }
+    deferredRedraw = false;
+
     if (fromSync !== true) syncSoon(false);
 
     wireFeatures();
