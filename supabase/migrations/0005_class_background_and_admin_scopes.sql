@@ -87,23 +87,27 @@ alter table public.admin_pins
 create unique index if not exists admin_pins_one_per_scope
   on public.admin_pins (scope);
 
-/* The two codes aj asked for, 2026-09-30: 4135 opens the gems panel,
-   1357 opens UltraAdmin. Written as an upsert on scope so re-running
-   this changes the code rather than adding a second one.
+/* Two rows, one per panel, as an upsert on scope so re-running this
+   changes a code rather than adding a second one.
 
-   crypt() with gen_salt('bf') is the same bcrypt the existing rows use.
-   The digits appear here in plain text because a migration has to carry
-   them once to hash them; they are not stored this way, and this file
-   is in a public repo, so change both codes from the dashboard after
-   running it if that matters. */
+   The codes are NOT here any more, and the note that used to stand in
+   this spot was wrong about why that was acceptable. It said the
+   digits had to appear once in order to be hashed, and that the repo
+   being public only mattered "if that matters". It mattered: this file
+   published the live UltraAdmin code for eight days, and a bcrypt hash
+   whose input is committed next to it protects nothing.
+
+   Both codes below are placeholders. Set the real ones by hand, in the
+   SQL editor, and keep them in a password manager — see PART 1 of
+   0006 for the two statements and the check that they took. */
 insert into public.admin_pins (label, pin_hash, scope)
-values ('Gems panel', crypt('4135', gen_salt('bf')), 'gems')
+values ('Gems panel', crypt('CHANGE-ME', gen_salt('bf')), 'gems')
 on conflict (scope) do update
   set pin_hash = excluded.pin_hash,
       label = excluded.label;
 
 insert into public.admin_pins (label, pin_hash, scope)
-values ('UltraAdmin', crypt('1357', gen_salt('bf')), 'ultra')
+values ('UltraAdmin', crypt('CHANGE-ME-TOO', gen_salt('bf')), 'ultra')
 on conflict (scope) do update
   set pin_hash = excluded.pin_hash,
       label = excluded.label;
@@ -111,8 +115,9 @@ on conflict (scope) do update
 /* Note what the first of those does to a project that already has a
    code. Any existing row took scope 'gems' from the default above, so
    the upsert lands on it and replaces its hash: the old code stops
-   working and 4135 takes over. That is the intent, but it is worth
-   knowing before running it rather than after. */
+   working and the placeholder takes over. On a database already in
+   use that is a lockout, not a setup step — run the update in 0006
+   PART 1 straight after, or instead. */
 
 /* A SECOND function, under a new name, rather than changing the old one.
 
@@ -158,7 +163,7 @@ revoke execute on function public.verify_admin_pin_scope(text) from public;
 grant execute on function public.verify_admin_pin_scope(text) to anon, authenticated;
 
 /* One thing to know until the new page is live: the old function says
-   yes to any code in the table, so 1357 will open the gems panel on the
-   current site. That stops the moment the new page ships, which checks
-   the scope. Nothing is exposed by it — the gems panel was already what
-   the one existing code opened. */
+   yes to any code in the table, so the UltraAdmin code will open the
+   gems panel on the current site too. That stops the moment the new
+   page ships, which checks the scope. Nothing is exposed by it — the
+   gems panel was already what the one existing code opened. */

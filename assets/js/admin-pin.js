@@ -105,5 +105,67 @@
     return /could not find|does not exist|schema cache/i.test(String(err.message || ''));
   }
 
-  global.AdminPin = { verify: verify, covers: covers, clean: clean, SCOPES: SCOPES };
+  /* ================= who the gems panel opens for =================
+     A right code stopped being enough. admin_allow names the accounts,
+     and admin_may_open is the only way to ask about it: the table has
+     row-level security on with no policies, so the publishable key can
+     neither list the names nor add one.
+
+     This is asked of the server rather than read from the save, because
+     a list kept on the device is a list that device can edit, and the
+     device wanting in is exactly the one with a reason to.
+
+       true   named, and the panel may open
+       false  not named, or the question failed, so nothing opens
+       null   this database predates admin_may_open
+
+     null is the only answer that hands the decision back to the caller.
+     A failure answers false: a check that could not run must not open
+     a panel, and the code check above already needed the network, so
+     an offline browser never reaches this line anyway. */
+  function mayOpen(email) {
+    var sb = global.Cloud && global.Cloud.sb;
+    if (!sb) return Promise.resolve(null);
+    var who = String(email || '').trim();
+    if (!who) return Promise.resolve(false);   /* a guest is on no list */
+
+    return sb.rpc('admin_may_open', { p_email: who })
+      .then(function (res) {
+        if (!res.error) return res.data === true;
+        if (missing(res.error)) return null;   /* database behind the page */
+        return false;
+      })
+      .catch(function () { return false; });
+  }
+
+  /* ===================== the grant log ============================
+     admin_grants takes inserts and nothing else, not even from the
+     account that wrote the row, so a grant recorded here cannot be
+     edited away afterwards. The copy in the save can be, which is why
+     both are written and only this one settles an argument.
+
+     Signed out there is no row to write: the insert policy checks
+     account = auth.uid(), so an anonymous insert is refused by the
+     database rather than quietly accepted. Say so by answering false
+     instead of pretending it landed. */
+  function logGrant(d) {
+    var sb = global.Cloud && global.Cloud.sb;
+    var u  = global.Cloud && global.Cloud.user;
+    if (!sb || !u || !u.id) return Promise.resolve(false);
+
+    return sb.from('admin_grants').insert({
+      account:       u.id,
+      email:         u.email || null,
+      amount:        Math.round(Number(d && d.amount) || 0),
+      balance_after: (d && typeof d.balanceAfter === 'number') ? Math.round(d.balanceAfter) : null,
+      scope:         (d && d.scope) || null
+    })
+      .then(function (res) { return !res.error; })
+      .catch(function () { return false; });
+  }
+
+  global.AdminPin = {
+    verify: verify, covers: covers, clean: clean, SCOPES: SCOPES,
+    mayOpen: mayOpen, logGrant: logGrant
+  };
 })(window);

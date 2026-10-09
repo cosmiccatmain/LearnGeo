@@ -42,10 +42,11 @@
   }
 
   /* ======================= who may open this =======================
-     UltraAdmin names the accounts the gems panel will open for. The
-     list is kept on the UltraAdmin holder's own save and mirrored into
-     admin_allow in Supabase, which is the copy that counts: a list read
-     from this device is a list this device can edit.
+     UltraAdmin names the accounts the gems panel will open for, and
+     admin_allow in Supabase is the copy that counts: a list read from
+     this device is a list this device can edit. The gate in lock()
+     asks the server, and what is below is only the fallback for a
+     database too old to answer.
 
      Empty means nobody has been named yet, and an unnamed list opens
      for the UltraAdmin holder alone rather than for everybody, because
@@ -149,10 +150,32 @@
             }
             /* A correct code is not the end of it. The gems panel is
                limited to accounts UltraAdmin has named, so a right code
-               on an unlisted account still opens nothing. */
-            if (want === 'gems' && !allowed(got)) {
-              return fail('This account is not on the admin list.');
+               on an unlisted account still opens nothing.
+
+               UltraAdmin is not on the list and does not need to be:
+               the account that decides who may open the small panel
+               cannot be shut out of it by its own answer. */
+            if (want !== 'gems' || global.AdminPin.covers(got, 'ultra')) {
+              tries = 0; lockedUntil = 0;
+              return pass(got);
             }
+            errEl.textContent = 'Checking the admin list\u2026';
+            gate(got, mine);
+          });
+        }
+
+        /* The list that counts is admin_allow in Supabase, not the copy
+           in this save. Only a database too old to have admin_may_open
+           falls back to the local one, and a question that fails is a
+           no: at this point the code was right, so the alternative is
+           opening the panel on a check that never ran. */
+        function gate(got, mine) {
+          var P = global.AdminPin;
+          var ask = (P && P.mayOpen) ? P.mayOpen(whoAmI()) : Promise.resolve(null);
+          ask.then(function (ans) {
+            if (mine !== checkId || !document.body.contains(root)) return;
+            var ok = (ans === null) ? allowed(got) : ans;
+            if (!ok) return fail('This account is not on the admin list.');
             tries = 0; lockedUntil = 0;
             pass(got);
           });
@@ -366,6 +389,14 @@
        ever find again, which is the hole this closes. */
     if (moved !== 0 && global.AdminLedger) {
       global.AdminLedger.record('grant', { amount: moved, scope: scope });
+    }
+    /* And again where this device cannot reach it. admin_grants is
+       insert-only, so the line above can be edited out of the save and
+       this one cannot be edited at all. Nothing waits on it: a grant
+       the server never heard about is still a grant, and the balance
+       has already moved. */
+    if (moved !== 0 && global.AdminPin && global.AdminPin.logGrant) {
+      global.AdminPin.logGrant({ amount: moved, balanceAfter: e.diamonds, scope: scope });
     }
     refresh();
 
