@@ -16,7 +16,17 @@
   'use strict';
   var W = global.WW, I = W.Icons;
 
-  var CODE_LEN = 4;
+  /* The code is a passphrase now, not four digits. A ten thousand wide
+     keyspace is guessable by hand in an afternoon; letters are not, and
+     nothing about the check needed to change to allow them — only this
+     field, which used to be a number pad that could not type one. */
+  var MIN_LEN = 4;
+  var MAX_LEN = 64;
+
+  /* Guessing costs time. Five wrong tries and this device waits, which
+     is the only brake available on a check that runs over the network. */
+  var tries = 0, lockedUntil = 0;
+  var BACKOFF = [0, 0, 0, 5e3, 15e3, 60e3];
   var NO_CHECK = 'Can’t check the code right now. Try again when you’re online.';
   var unlocked = false;          /* survives until the tab is closed */
   var scope = '';                /* which code opened it: 'gems' or 'ultra' */
@@ -29,6 +39,35 @@
     var P = global.AdminPin;
     if (!P || !P.covers) return perm === 'gems';
     return P.covers(scope, perm);
+  }
+
+  /* ======================= who may open this =======================
+     UltraAdmin names the accounts the gems panel will open for. The
+     list is kept on the UltraAdmin holder's own save and mirrored into
+     admin_allow in Supabase, which is the copy that counts: a list read
+     from this device is a list this device can edit.
+
+     Empty means nobody has been named yet, and an unnamed list opens
+     for the UltraAdmin holder alone rather than for everybody, because
+     the failure that matters is the one that opens too much.
+  ------------------------------------------------------------------ */
+  function allowList() {
+    var s = W.state.adminAllow;
+    return Array.isArray(s) ? s : [];
+  }
+
+  function whoAmI() {
+    var a = W.state.account;
+    return (a && (a.email || a.id)) || '';
+  }
+
+  function allowed(got) {
+    if (global.AdminPin && global.AdminPin.covers(got, 'ultra')) return true;  /* ultra always */
+    var list = allowList();
+    if (!list.length) return false;
+    var me = String(whoAmI()).toLowerCase();
+    if (!me) return false;
+    return list.some(function (x) { return String(x).toLowerCase() === me; });
   }
 
   /* ============================ number pad ========================== */
@@ -55,52 +94,43 @@
     var m = global.UI.modal({
       title: want === 'ultra' ? 'UltraAdmin' : 'Admin', icon: I.lock,
       body:
-        '<p class="t-muted t-sm" style="margin:-4px 0 18px">Enter the four-digit code' +
+        '<p class="t-muted t-sm" style="margin:-4px 0 16px">Enter the code' +
           (want === 'ultra' ? ' for UltraAdmin' : '') + '.</p>' +
-        '<div class="pad-dots" id="pad-dots">' + dots('') + '</div>' +
-        '<div class="pad" id="pad">' +
-          [1, 2, 3, 4, 5, 6, 7, 8, 9].map(key).join('') +
-          '<button class="pad__key pad__key--soft" data-k="clear">Clear</button>' +
-          key(0) +
-          '<button class="pad__key pad__key--soft" data-k="back" aria-label="Delete">' + I.arrowL + '</button>' +
+        '<div class="field">' +
+          '<input class="input code-field" id="pad-code" type="password" ' +
+            'autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" ' +
+            'maxlength="' + MAX_LEN + '" placeholder="code">' +
         '</div>' +
         '<div id="pad-err" class="pad-err"></div>',
       actions: [{ label: 'Cancel', cls: 'btn--ghost', close: true }],
       onMount: function (root, close) {
-        var dotsEl = W.$('#pad-dots', root);
+        var input = W.$('#pad-code', root);
         var errEl = W.$('#pad-err', root);
-
-        W.$$('.pad__key', root).forEach(function (b) {
-          b.addEventListener('click', function () { press(b.dataset.k); });
-        });
-        document.addEventListener('keydown', onKey);
-        keyHandler = onKey;
-
-        function onKey(e) {
-          if (/^[0-9]$/.test(e.key)) { e.preventDefault(); press(e.key); }
-          else if (e.key === 'Backspace') { e.preventDefault(); press('back'); }
-        }
-
-        /* Every keypress makes a check that is still in the air stale, so a
-           yes for a code that has since been retyped cannot unlock the panel. */
         var checkId = 0;
 
-        function press(k) {
-          checkId += 1;
-          errEl.textContent = '';
-          if (k === 'clear') typed = '';
-          else if (k === 'back') typed = typed.slice(0, -1);
-          else if (typed.length < CODE_LEN) typed += k;
-          dotsEl.innerHTML = dots(typed);
-          if (typed.length === CODE_LEN) {
-            var mine = checkId;
-            setTimeout(function () { if (mine === checkId) check(mine); }, 120);
+        setTimeout(function () { input.focus(); }, 60);
+        input.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter') { e.preventDefault(); submit(); }
+        });
+        input.addEventListener('input', function () { errEl.textContent = ''; });
+
+        function submit() {
+          var wait = lockedUntil - Date.now();
+          if (wait > 0) {
+            return fail('Too many tries. Wait ' + Math.ceil(wait / 1000) + 's.');
           }
+          typed = input.value;
+          /* Too short never reaches the database, so it is not a wrong
+             code and must not be counted as one: saying so would both
+             mislead and spend one of the five tries on a typo. */
+          if (typed.length < MIN_LEN) {
+            errEl.textContent = 'That is too short to be a code.';
+            return;
+          }
+          checkId += 1;
+          check(checkId);
         }
 
-        /* Supabase answers yes or no without the page ever holding the
-           codes (assets/js/admin-pin.js). If it cannot answer, nothing
-           opens: there is no code built into this file to fall back on. */
         /* Supabase answers which panel the code opens, without the page
            ever holding the codes (assets/js/admin-pin.js). If it cannot
            answer, nothing opens: there is no code built into this file
@@ -112,16 +142,26 @@
           asking.then(function (got) {
             if (mine !== checkId || !document.body.contains(root)) return;
             if (got === null) return fail(NO_CHECK);
-            if (!got) return fail('');
-            /* A real code, but for the other panel. Say so rather than
-               calling it wrong: a teacher who typed the UltraAdmin code
-               here has not made a mistake, they are in the wrong place. */
+            if (!got) { bump(); return fail(''); }
             if (!global.AdminPin.covers(got, want)) {
               unlocked = true; scope = got;
               return fail('That code does not open this panel.');
             }
+            /* A correct code is not the end of it. The gems panel is
+               limited to accounts UltraAdmin has named, so a right code
+               on an unlisted account still opens nothing. */
+            if (want === 'gems' && !allowed(got)) {
+              return fail('This account is not on the admin list.');
+            }
+            tries = 0; lockedUntil = 0;
             pass(got);
           });
+        }
+
+        function bump() {
+          tries += 1;
+          var w = BACKOFF[Math.min(tries, BACKOFF.length - 1)];
+          if (w) lockedUntil = Date.now() + w;
         }
 
         function pass(got) {
@@ -134,10 +174,11 @@
 
         function fail(why) {
           typed = '';
-          dotsEl.innerHTML = dots('');
-          dotsEl.classList.remove('is-wrong');
-          void dotsEl.offsetWidth;                 /* restart the shake */
-          dotsEl.classList.add('is-wrong');
+          input.value = '';
+          input.classList.remove('is-wrong');
+          void input.offsetWidth;                  /* restart the shake */
+          input.classList.add('is-wrong');
+          input.focus();
           errEl.textContent = why || 'Wrong code.';
           W.Sound.wrong();
         }
@@ -148,17 +189,6 @@
     });
     return m;
 
-    function key(n) {
-      return '<button class="pad__key" data-k="' + n + '">' + n + '</button>';
-    }
-  }
-
-  function dots(typed) {
-    var out = '';
-    for (var i = 0; i < CODE_LEN; i++) {
-      out += '<i class="' + (i < typed.length ? 'is-on' : '') + '"></i>';
-    }
-    return out;
   }
 
   /* ============================== panel ============================= */
@@ -220,10 +250,9 @@
 
         '<div class="field">' +
           '<label class="field__label">Badges</label>' +
-          '<div class="adm-bdg" id="adm-badges"></div>' +
-          '<div class="field__hint">Only the given badges can be switched here. ' +
-            'Earned ones are shown so you can see what this save holds, and they ' +
-            'have no switch because the rule owns them.</div>' +
+          '<div class="field__hint">Badges moved to UltraAdmin. Handing out a badge ' +
+            'that says somebody runs this is a bigger job than handing out diamonds, ' +
+            'so it now needs the bigger code.</div>' +
         '</div>' +
 
         '<div class="field" id="adm-god"></div>' +
@@ -260,8 +289,6 @@
            teacher's device, and that lives in cloud-geolive.js, not here. Until
            it lands, a god-moded game does show up in those columns. Do not read
            this comment as saying it is handled. */
-        mountBadges(root);
-
         var god = W.$('#adm-god', root);
         if (god && global.GodMode && global.GodMode.mountToggle) {
           global.GodMode.mountToggle(god);
@@ -333,6 +360,13 @@
     e.diamonds = Math.max(0, before + n);
     var moved = e.diamonds - before;
     W.saveNow();
+
+    /* Recorded before anything else happens. The penalty reads this log,
+       so a grant that lands without a line here is a grant nothing can
+       ever find again, which is the hole this closes. */
+    if (moved !== 0 && global.AdminLedger) {
+      global.AdminLedger.record('grant', { amount: moved, scope: scope });
+    }
     refresh();
 
     W.$('#adm-gems', root).innerHTML = e.diamonds.toLocaleString() + ' 💎';
@@ -352,46 +386,6 @@
   }
 
   /* Anything already on screen that shows a name or a balance. */
-  /* Every badge in one list. Given badges get a switch; earned ones are
-     read-only, because the rule that grants them is the only thing allowed
-     to, and a switch there would be a lie about what the panel controls. */
-  function mountBadges(root) {
-    var host = W.$('#adm-badges', root);
-    if (!host || !global.Badges) return;
-    var B = global.Badges;
-
-    host.innerHTML = B.all().map(function (b) {
-      var held = B.has(b.id);
-      var given = B.granted(b);
-      return '<div class="adm-bdg__row' + (held ? ' is-on' : '') + ' bdg--' + b.tone +
-        '" data-badge="' + b.id + '">' +
-        '<span class="adm-bdg__plate">' + B.svg(b, 17) + '</span>' +
-        '<span class="adm-bdg__t"><b>' + W.escapeHtml(b.name) + '</b>' +
-          '<span>' + W.escapeHtml(b.desc) + '</span></span>' +
-        (given
-          ? '<button class="switch' + (held ? ' is-on' : '') + '" data-toggle="' + b.id +
-            '" role="switch" aria-checked="' + (held ? 'true' : 'false') +
-            '" aria-label="' + W.escapeHtml(b.name) + '"></button>'
-          : '<span class="adm-bdg__earned">' + (held ? 'earned' : 'locked') + '</span>') +
-      '</div>';
-    }).join('');
-
-    W.$$('[data-toggle]', host).forEach(function (sw) {
-      sw.addEventListener('click', function () {
-        var id = sw.dataset.toggle;
-        var on = global.Badges.has(id)
-          ? !global.Badges.revoke(id)
-          : global.Badges.grant(id);
-        sw.classList.toggle('is-on', on);
-        sw.setAttribute('aria-checked', on ? 'true' : 'false');
-        sw.closest('.adm-bdg__row').classList.toggle('is-on', on);
-        redrawName(root);
-        say(root, (on ? 'Granted ' : 'Removed ') + global.Badges.find(id).name + '.');
-        refresh();
-      });
-    });
-  }
-
   function redrawName(root) {
     var el = W.$('#adm-name', root);
     if (!el) return;

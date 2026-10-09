@@ -96,6 +96,8 @@
         badgeSlots: null       /* which badges show beside the name; null = auto */
       },
       badges: [],              /* badge ids held, earned or granted */
+      adminAllow: [],          /* accounts UltraAdmin lets into the gems panel */
+      enforcement: null,       /* admin-ledger.js owns the shape */
       flags: {},               /* one-off marks badges read, e.g. answered before 7am */
       owned: {
         avatars: ['globe', 'map', 'compass', 'mountain'],

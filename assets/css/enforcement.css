@@ -1,0 +1,69 @@
+/* ==================================================================
+   LearnGeo — the penalty banner, the appeal, and the code field
+   ================================================================== */
+
+.enforce {
+  flex: none; display: flex; align-items: center; gap: 12px;
+  padding: 11px 18px; font-size: 13.5px; position: relative; z-index: 25;
+  border-bottom: 1px solid transparent;
+}
+.enforce--warn { background: #FEF2F2; color: #7F1D1D; border-bottom-color: #F7C9C9; }
+.enforce--wait { background: #FFFBEB; color: #78350F; border-bottom-color: #F3DFAE; }
+.enforce--done { background: var(--paper); color: var(--ink-2); border-bottom-color: var(--line); }
+
+.enforce__i { flex: none; display: grid; place-items: center; }
+.enforce__i svg { width: 18px; height: 18px; }
+.enforce__t { flex: 1; min-width: 0; }
+.enforce__t b { display: block; font-size: 13.5px; font-weight: 620; }
+.enforce__t span { display: block; font-size: 12.5px; opacity: .85; margin-top: 1px; }
+
+.enforce .btn { flex: none; }
+.enforce--warn .btn { background: rgba(127, 29, 29, .08); color: #7F1D1D; }
+.enforce--warn .btn:hover { background: rgba(127, 29, 29, .16); }
+.enforce--warn .btn--accent { background: #B91C1C; color: #fff; }
+.enforce--warn .btn--accent:hover { background: #991B1B; }
+
+/* the what-happened table */
+.enf-rows { border: 1px solid var(--line); border-radius: 11px; overflow: hidden; }
+.enf-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 14px;
+  padding: 10px 13px; border-bottom: 1px solid var(--line-soft); font-size: 13.5px;
+}
+.enf-row:last-child { border-bottom: none; }
+.enf-row:nth-child(odd) { background: var(--paper); }
+.enf-row span { color: var(--muted); }
+
+/* the code field replaced a number pad, so it carries the same weight */
+.code-field {
+  height: 48px; font-family: var(--mono); font-size: 16px; letter-spacing: .08em;
+  text-align: center;
+}
+
+/* UltraAdmin's new cards */
+.ua-allow { display: grid; gap: 6px; }
+.ua-allow__row {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 7px 10px; border: 1px solid var(--line); border-radius: 9px;
+  background: var(--white); font-size: 13px;
+}
+.ua-enf { border: 1px solid var(--line); border-radius: 11px; overflow: hidden; }
+.ua-enf .row { padding: 8px 12px; }
+.ua-enf .row:nth-child(odd) { background: var(--paper); }
+
+@media (max-width: 640px) {
+  .enforce { flex-wrap: wrap; }
+  .enforce__t { flex-basis: 100%; }
+}
+
+/* the wrong-code shake moved from the dots to the field */
+.code-field.is-wrong {
+  border-color: var(--danger);
+  animation: codeShake .34s cubic-bezier(.22,.61,.36,1);
+}
+@keyframes codeShake {
+  0%,100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(5px); }
+  60% { transform: translateX(-3px); }
+  80% { transform: translateX(2px); }
+}

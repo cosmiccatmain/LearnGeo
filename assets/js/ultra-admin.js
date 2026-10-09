@@ -49,6 +49,9 @@
         roleCard() +
         masqueradeCard() +
         godCard() +
+        badgeCard() +
+        accessCard() +
+        enforceCard() +
         classesCard() +
         dangerCard(),
       actions: [{ label: 'Close', cls: 'btn--ghost', close: true }],
@@ -140,6 +143,94 @@
   }
 
   /* ------------------------------ classes ------------------------- */
+  /* ----------------------------- badges ---------------------------
+     Moved here from the gems panel. A badge saying somebody runs this
+     is a claim about who they are, which outlasts any number of
+     diamonds, so it belongs behind the larger code.
+  ----------------------------------------------------------------- */
+  function badgeCard() {
+    var B = global.Badges;
+    if (!B) return card('Badges', '<div class="t-sm t-muted">badges.js is not loaded.</div>');
+    return card('Badges',
+      '<div class="adm-bdg" id="ua-badges">' +
+        B.all().map(function (b) {
+          var held = B.has(b.id), given = B.granted(b);
+          return '<div class="adm-bdg__row' + (held ? ' is-on' : '') + ' bdg--' + b.tone + '">' +
+            '<span class="adm-bdg__plate">' + B.svg(b, 17) + '</span>' +
+            '<span class="adm-bdg__t"><b>' + W.escapeHtml(b.name) + '</b>' +
+              '<span>' + W.escapeHtml(b.desc) + '</span></span>' +
+            (given
+              ? '<button class="switch' + (held ? ' is-on' : '') + '" data-ua-badge="' + b.id +
+                '" role="switch" aria-checked="' + (held ? 'true' : 'false') + '"></button>'
+              : '<span class="adm-bdg__earned">' + (held ? 'earned' : 'locked') + '</span>') +
+          '</div>';
+        }).join('') +
+      '</div>',
+      'Earned badges have no switch. The rule that grants them is the only thing that may.');
+  }
+
+  /* ---------------------------- who gets admin --------------------- */
+  function accessCard() {
+    var list = Array.isArray(W.state.adminAllow) ? W.state.adminAllow : [];
+    return card('Who may open the admin panel',
+      '<div class="ua-allow" id="ua-allow">' +
+        (list.length
+          ? list.map(function (who, i) {
+              return '<div class="ua-allow__row">' +
+                '<span class="mono">' + W.escapeHtml(who) + '</span>' +
+                '<button class="icon-btn" data-ua-drop="' + i + '" title="Remove">' +
+                  I.close + '</button></div>';
+            }).join('')
+          : '<div class="t-sm t-muted">Nobody yet. While this list is empty the gems ' +
+            'panel opens for the UltraAdmin holder and for no one else.</div>') +
+      '</div>' +
+      '<div class="row" style="gap:8px;margin-top:10px">' +
+        '<input class="input mono" id="ua-allow-add" placeholder="email on the account" ' +
+          'style="flex:1;min-width:0" autocapitalize="off" spellcheck="false">' +
+        '<button class="btn btn--accent btn--sm" id="ua-allow-go">Add</button>' +
+      '</div>',
+      'The gems code alone is no longer enough: the account has to be named here too.');
+  }
+
+  /* -------------------------- penalties and appeals ---------------- */
+  function enforceCard() {
+    var L = global.AdminLedger;
+    if (!L) return '';
+    var p = L.current();
+    var grants = L.recentGrants(L.windowHours);
+
+    var body =
+      '<div class="ua-enf">' +
+        row('Grants logged in the last ' + L.windowHours + 'h', String(grants.length)) +
+        row('Log began', new Date(L.blindBefore()).toLocaleString()) +
+        (p
+          ? row('Penalty', p.status + ' \u00b7 ' + p.taken.toLocaleString() + ' taken')
+          : row('Penalty', 'none on this device')) +
+      '</div>';
+
+    if (p && p.status === 'appealed') {
+      body +=
+        '<div class="feedback" style="background:var(--accent-soft);margin-top:12px">' + I.inbox +
+          '<div><b style="color:var(--accent-ink)">Appeal waiting</b>' +
+          '<p>' + W.escapeHtml(p.appeal.text) + '</p></div></div>' +
+        '<div class="row" style="gap:8px;margin-top:10px">' +
+          '<button class="btn btn--accent btn--sm" id="ua-appeal-ok">Give it back</button>' +
+          '<button class="btn btn--ghost btn--sm" id="ua-appeal-no">Refuse</button>' +
+        '</div>';
+    } else if (p && p.status === 'applied') {
+      body += '<button class="btn btn--ghost btn--sm" id="ua-appeal-ok" style="margin-top:10px">' +
+why() + '</button>';
+    }
+
+    return card('Diamond enforcement', body,
+      L.windowIsPartial()
+        ? 'The log starts when this build shipped, so anything granted before that ' +
+          'cannot be seen and was never charged for.'
+        : '');
+
+    function why() { return 'Reverse the penalty'; }
+  }
+
   function classesCard() {
     if (!CL()) return card('Classes', '<p class="t-sm t-muted">Not loaded on this page.</p>');
     var list = CL().all();
@@ -177,6 +268,10 @@
 
   /* ------------------------------- wiring ------------------------- */
   function wire(root, close) {
+    wireBadges(root);
+    wireAccess(root, close);
+    wireEnforce(root);
+
     var role = W.$('#ua-role', root);
     if (role) role.addEventListener('click', function () {
       var toTeacher = W.state.role !== 'teacher';
@@ -246,6 +341,64 @@
             } }
         ]
       });
+    });
+  }
+
+  function wireBadges(root) {
+    var B = global.Badges;
+    if (!B) return;
+    W.$$('[data-ua-badge]', root).forEach(function (sw) {
+      sw.addEventListener('click', function () {
+        var id = sw.dataset.uaBadge;
+        var on = B.has(id) ? !B.revoke(id) : B.grant(id);
+        sw.classList.toggle('is-on', on);
+        sw.setAttribute('aria-checked', on ? 'true' : 'false');
+        sw.closest('.adm-bdg__row').classList.toggle('is-on', on);
+        if (global.AdminLedger) {
+          global.AdminLedger.record('badge', { note: (on ? 'granted ' : 'revoked ') + id });
+        }
+        global.UI.refreshHud();
+      });
+    });
+  }
+
+  function wireAccess(root, close) {
+    var add = W.$('#ua-allow-go', root), box = W.$('#ua-allow-add', root);
+    if (add) add.addEventListener('click', function () {
+      var who = (box.value || '').trim().toLowerCase();
+      if (!who) return;
+      if (!Array.isArray(W.state.adminAllow)) W.state.adminAllow = [];
+      if (W.state.adminAllow.indexOf(who) === -1) W.state.adminAllow.push(who);
+      W.saveNow();
+      if (global.AdminLedger) global.AdminLedger.record('allow', { note: 'added ' + who });
+      close(); open();
+    });
+    W.$$('[data-ua-drop]', root).forEach(function (b) {
+      b.addEventListener('click', function () {
+        var i = +b.dataset.uaDrop;
+        var gone = W.state.adminAllow[i];
+        W.state.adminAllow.splice(i, 1);
+        W.saveNow();
+        if (global.AdminLedger) global.AdminLedger.record('allow', { note: 'removed ' + gone });
+        close(); open();
+      });
+    });
+  }
+
+  function wireEnforce(root) {
+    var L = global.AdminLedger;
+    if (!L) return;
+    var ok = W.$('#ua-appeal-ok', root), no = W.$('#ua-appeal-no', root);
+    if (ok) ok.addEventListener('click', function () {
+      L.reverse();
+      if (global.Enforcement) global.Enforcement.render();
+      global.UI.refreshHud();
+      W.toast('Put back', 'The diamonds were returned', I.check);
+    });
+    if (no) no.addEventListener('click', function () {
+      L.uphold();
+      if (global.Enforcement) global.Enforcement.render();
+      W.toast('Appeal refused', '', I.info);
     });
   }
 

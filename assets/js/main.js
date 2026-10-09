@@ -24,6 +24,11 @@
     /* ---- mode switcher, built for the current role ---- */
     global.UI.refreshTabs();
 
+    /* A penalty is decided on open, so somebody who was granted diamonds
+       and closed the tab meets it the next time they come back rather
+       than never. */
+    if (global.Enforcement) global.Enforcement.check();
+
     var pex = document.getElementById('preview-exit');
     if (pex) pex.addEventListener('click', global.UI.endPreview);
 
