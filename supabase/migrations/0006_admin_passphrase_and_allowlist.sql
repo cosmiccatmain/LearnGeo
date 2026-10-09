@@ -99,3 +99,18 @@ create policy admin_grants_insert_self
 
 create index if not exists admin_grants_recent
   on public.admin_grants (account, created_at desc);
+
+/* ------------------------------------------------------------------
+   Not yet run as of this commit.
+
+   Everything in the client ships ahead of this file, deliberately: the
+   page keeps honouring whatever code is already in admin_pins until
+   part 1 is applied, so nothing breaks while this waits. What does NOT
+   work until then is the new code itself. `thisisnotthecode` opens
+   nothing while the old row is still in place.
+
+   Parts 2 and 3 are the half that makes the allowlist and the penalty
+   real rather than advisory. Until they are applied, both are enforced
+   only on the device doing the enforcing, which is the device with the
+   motive to edit them.
+-------------------------------------------------------------------*/
