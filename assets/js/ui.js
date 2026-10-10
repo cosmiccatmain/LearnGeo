@@ -257,6 +257,13 @@
 
     var general =
       '<div data-panel="general">' +
+        '<div class="field"><label class="field__label">Use LearnGeo as</label>' +
+          '<div class="seg" id="set-role">' +
+            '<button data-v="student" class="' + (W.state.role !== 'teacher' ? 'is-active' : '') + '">Student</button>' +
+            '<button data-v="teacher" class="' + (W.state.role === 'teacher' ? 'is-active' : '') + '">Teacher</button>' +
+          '</div>' +
+          '<div class="field__hint">Switch between study tools and your teacher workspace. Your progress and classes stay saved.</div></div>' +
+        '<div class="divider"></div>' +
         row('Sound effects', 'Plays a little sound when you answer.', sw('set-sound', s.sound)) +
         row('Reward animations', 'Shows confetti, floating XP and profile effects.', sw('set-effects', s.effects)) +
         row('Show capital pins in Learn', 'Puts a pin on the capital as soon as you answer.', sw('set-pins', s.showCapitalPins)) +
@@ -356,8 +363,20 @@
       s2.showCapitalPins = W.$('#set-pins', root).classList.contains('is-on');
       var goal = W.$('#set-goal .is-active', root);
       if (goal) W.state.daily.goal = parseInt(goal.dataset.v, 10);
+      var role = W.$('#set-role .is-active', root);
+      var nextRole = role && role.dataset.v === 'teacher' ? 'teacher' : 'student';
+      var roleChanged = nextRole !== W.state.role;
+      W.state.role = nextRole;
+      W.state.roleChosen = true;
       W.saveNow();
       refreshHud();
+      if (!roleChanged) return;
+      if (nextRole === 'teacher' && global.Teacher) global.Teacher.becomeTeacher();
+      else if (global.Teacher) global.Teacher.leaveTeacher();
+      else {
+        refreshTabs();
+        go(nextRole === 'teacher' ? 'teacher' : 'portal');
+      }
     }
 
     function row(t, sub, right) {
