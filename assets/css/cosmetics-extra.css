@@ -1,0 +1,83 @@
+/* ------------------------------------------------------------------
+   LearnGeo — particle shapes for the three newest profile effects.
+
+   A separate file from app.css on purpose. The six original .fx-*
+   shapes live there and are not touched; several sessions edit that
+   file at once, and three rules appended to the end of it is three
+   chances at a conflict for no benefit.
+
+   Each shape is one element, positioned and coloured by ui.js:
+   runEffect() sets `background` from the effect's colour list and
+   leaves everything else here. Anything a colour cannot express —
+   a bone, the pips on a die — is drawn in ::after, which inherits
+   the falling animation from its parent and needs no JavaScript.
+-------------------------------------------------------------------*/
+
+/* Chicken wing. The pale nub on the left is the bone: without it the
+   shape reads as a leaf at this size, which is already taken. */
+.fx-wing {
+  width: 11px; height: 8px;
+  border-radius: 10px 11px 5px 9px / 9px 8px 4px 8px;
+  box-shadow: inset -1px -1px 0 rgba(0, 0, 0, .14);
+}
+.fx-wing::after {
+  content: ''; position: absolute;
+  left: -3px; top: 50%; transform: translateY(-50%);
+  width: 5px; height: 3.2px; border-radius: 3px;
+  background: #F7EEDC;
+  box-shadow: 0 0 0 .5px rgba(0, 0, 0, .12);
+}
+
+/* A die. The face colour comes from the effect's list, so the pips
+   are drawn over it in a fixed dark ink rather than being punched
+   out of it — a transparent pip would show the profile card through
+   the die and stop reading as a dot. */
+.fx-dice {
+  width: 12px; height: 12px; border-radius: 3px;
+  box-shadow: inset 0 0 0 .5px rgba(10, 10, 11, .18);
+}
+/* Three pips on a 12px face, not on a 10px one, and at .95px rather
+   than 1.15px. The first pass used both of the smaller numbers and the
+   pips ate the face: what fell was a dark speck, and the one thing a
+   die has to do at this size is read as WHITE with marks on it. */
+.fx-dice::after {
+  content: ''; position: absolute; inset: 0; border-radius: 3px;
+  background:
+    radial-gradient(circle at 28% 28%, #1C1F26 0 .95px, transparent 1.05px),
+    radial-gradient(circle at 50% 50%, #1C1F26 0 .95px, transparent 1.05px),
+    radial-gradient(circle at 72% 72%, #1C1F26 0 .95px, transparent 1.05px);
+}
+
+/* The staff spark: a four-pointed star with concave sides, which is
+   the LearnGeo mark's own geometry rather than a generic sparkle. */
+.fx-crest {
+  width: 10px; height: 10px;
+  clip-path: polygon(50% 0%, 60% 40%, 100% 50%, 60% 60%, 50% 100%, 40% 60%, 0% 50%, 40% 40%);
+}
+
+/* ------------------------------------------------------------------
+   The staff tile does not say "earned".
+
+   ui.js prints "earned" under any owned item carrying an `earn`, and
+   the staff effect carries one so that buy() refuses to sell it. The
+   word is wrong for this item in the way that matters: it tells a
+   reader there is something they could go and do to get it, and there
+   is not. It is handed out on the Administrator page or not at all.
+
+   Done here rather than in ui.js on purpose. That file is 62KB and
+   several sessions edit it at once; one word is not worth a conflict
+   in it, and the tile already carries the two attributes needed to
+   find it. If the label ever moves out of a .shop-item__owned span
+   this rule stops applying and the tile goes back to saying "earned",
+   which is wrong but not broken.
+-------------------------------------------------------------------*/
+.shop-item[data-kind="effects"][data-id="staff"][data-owned="1"] .shop-item__owned {
+  font-size: 0;
+}
+.shop-item[data-kind="effects"][data-id="staff"][data-owned="1"] .shop-item__owned::after {
+  content: 'staff';
+  font-size: 11px;
+  color: var(--ink);
+  font-weight: 600;
+  letter-spacing: .04em;
+}

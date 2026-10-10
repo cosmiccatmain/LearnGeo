@@ -113,7 +113,24 @@
     { id: 'leaves', name: 'Drifting Leaves', price: 800, shape: 'leaf', colors: ['#16A34A', '#84CC16', '#CA8A04'] },
     { id: 'bubbles', name: 'Deep Current', price: 1200, shape: 'ring', colors: ['#0EA5E9', '#22D3EE'] },
     { id: 'rain', name: 'Monsoon', price: 1200, shape: 'drop', colors: ['#38BDF8', '#0284C7'] },
-    { id: 'embers', name: 'Embers', price: 1800, shape: 'dot', colors: ['#F97316', '#DC2626', '#F5B301'] }
+    { id: 'embers', name: 'Embers', price: 1800, shape: 'dot', colors: ['#F97316', '#DC2626', '#F5B301'] },
+    { id: 'wings', name: 'Chicken Wings', price: 900, shape: 'wing',
+      colors: ['#B45309', '#D97706', '#92400E', '#C2410C'] },
+    { id: 'gambling', name: 'Gambling', price: 1500, shape: 'dice',
+      colors: ['#FFFFFF', '#FEF3C7', '#F1F5F9'] },
+
+    /* ---------------------- the one with no price -------------------
+       Not for sale, and not earnable either. It carries `earn` so the
+       shop routes it through ownsEarned and refuses to sell it — the
+       same two locks the achievement badges use — and `staff`, which
+       is what ownsEarned actually looks at for this one.
+
+       `earn` is deliberately a string no achievement uses. If one ever
+       did, holding that achievement would hand out the staff effect. */
+    { id: 'staff', name: 'LearnGeo Staff', price: 0, shape: 'crest',
+      colors: ['#1B4DFF', '#F5B301', '#22D3EE'],
+      earn: 'staff-grant', staff: true,
+      blurb: 'Brand-mark sparks in LearnGeo blue and gold. Granted from the Administrator page and nowhere else.' }
   ];
 
   /* Nameplates — the bar the display name sits on. */
@@ -168,7 +185,8 @@
     { id: 'camel', art: 'camel', color: '#A16207', price: 600 },
     { id: 'sailboat', art: 'sailboat', color: '#0369A1', price: 600 },
     { id: 'aurora', art: 'aurora', color: '#8B5CF6', price: 600 },
-    { id: 'trophy', art: 'trophy', color: '#F5B301', price: 1200 }
+    { id: 'trophy', art: 'trophy', color: '#F5B301', price: 1200 },
+    { id: 'chicken', art: 'chicken', color: '#B45309', price: 450 }
   ];
 
   var STATUSES = [
@@ -213,16 +231,42 @@
        `state.owned`, so a badge cannot be wearable a moment before it is
        earned and cannot survive a reset that clears the achievement. */
     ownsEarned: function (item, achievements) {
-      if (!item || !item.earn) return false;
+      if (!item) return false;
+      /* A staff item is held by the mark on the save, not by anything in
+         the achievement list. Checked FIRST so a staff item never falls
+         through to a lookup that would answer no for the wrong reason.
+
+         state is read here rather than passed in because the shop calls
+         this with the achievement list and nothing else, and widening
+         that call means editing ui.js, which several sessions share. */
+      if (item.staff) {
+        var s = global.WW && global.WW.state;
+        return !!(s && s.flags && s.flags.staff);
+      }
+      if (!item.earn) return false;
       return (achievements || []).indexOf(item.earn) !== -1;
     },
 
-    /* The achievement a badge comes from, for showing what unlocks it. */
+    /* The achievement a badge comes from, for showing what unlocks it.
+       A staff item has no achievement, so it answers a line of its own
+       in the same shape: the shop prints `.desc` under a locked tile and
+       the toast reads it when somebody taps one. */
     unlockedBy: function (item) {
       if (!item || !item.earn) return null;
+      if (item.staff) {
+        return { id: 'staff-grant', name: 'LearnGeo Staff',
+                 desc: 'Granted to LearnGeo staff — not for sale', reward: 0 };
+      }
       for (var i = 0; i < ACHIEVEMENTS.length; i++) {
         if (ACHIEVEMENTS[i].id === item.earn) return ACHIEVEMENTS[i];
       }
+      return null;
+    },
+
+    /* The Administrator page shows the staff item's name and blurb, and
+       should not have to know its id to do it. */
+    get staffEffect() {
+      for (var i = 0; i < EFFECTS.length; i++) { if (EFFECTS[i].staff) return EFFECTS[i]; }
       return null;
     },
 

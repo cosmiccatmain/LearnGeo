@@ -45,6 +45,7 @@
     global.UI.modal({
       title: 'UltraAdmin', icon: I.shield, wide: true,
       body:
+        adminPageCard() +
         whoCard() +
         roleCard() +
         masqueradeCard() +
@@ -70,6 +71,19 @@
       '<div class="cr-card__head"><h3>' + W.escapeHtml(title) + '</h3></div>' +
       (note ? '<p class="t-sm t-muted" style="margin:-6px 0 12px">' + note + '</p>' : '') +
       body + '</div>';
+  }
+
+  /* -------------------------- administrator ----------------------
+     First in the panel, because it is the only card here that reaches
+     past this device, and a thing that can empty somebody's balance
+     should not be the eighth item down.
+  ------------------------------------------------------------------ */
+  function adminPageCard() {
+    return card('Administrator',
+      '<p class="t-sm t-muted" style="margin:-4px 0 12px">Every account on the server: search them, ' +
+        'move their diamonds, grant the staff effect, and read what other admins have done. ' +
+        'Needs <code>0007_administrator.sql</code> on the database.</p>' +
+      '<button class="btn btn--primary" id="ua-adminp">Open the Administrator page</button>');
   }
 
   /* ------------------------------- who ---------------------------- */
@@ -268,6 +282,19 @@ why() + '</button>';
 
   /* ------------------------------- wiring ------------------------- */
   function wire(root, close) {
+    var ap = W.$('#ua-adminp', root);
+    if (ap) ap.addEventListener('click', function () {
+      if (!global.Administrator) {
+        W.toast('Not loaded', 'administrator.js did not load.', I.info, 3600);
+        return;
+      }
+      /* Close this dialog first. The page sits BELOW .overlay so that
+         its own confirms land on top, which also means leaving this
+         one open would bury the page underneath it. */
+      close();
+      global.Administrator.open();
+    });
+
     wireBadges(root);
     wireAccess(root, close);
     wireEnforce(root);

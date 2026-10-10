@@ -190,6 +190,19 @@
         function pass(got) {
           unlocked = true;
           scope = got || 'gems';
+          /* The only place the passphrase is handed on, and it is handed
+             to the server in exchange for a 30-minute token rather than
+             kept anywhere. Reaching another account needs proof the
+             server can check, and `unlocked` above is not that: it is a
+             boolean in this tab's memory.
+
+             Not awaited. The exchange takes a round trip and the panel
+             should open now; AdminOps makes the first call that needs a
+             token wait on the same promise. */
+          if (got === 'ultra' && global.AdminOps && global.AdminOps.connect) {
+            try { global.AdminOps.connect(typed, got); } catch (e) { /* never block the unlock */ }
+          }
+          typed = '';
           close();
           if (typeof onPass === 'function') onPass(scope);
           else panel();

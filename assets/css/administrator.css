@@ -1,0 +1,173 @@
+/* ------------------------------------------------------------------
+   LearnGeo — the Administrator page.
+
+   z-index 190 is chosen, not inherited. .overlay (modals) is 200 and
+   the toast stack is 320, so a confirm dialog opened from this page
+   lands above it and a toast lands above both. Raising this past 200
+   puts the page over its own dialogs.
+-------------------------------------------------------------------*/
+
+.adminp {
+  position: fixed; inset: 0; z-index: 190;
+  background: var(--paper);
+  display: flex; flex-direction: column;
+  animation: apIn .18s var(--ease);
+}
+@keyframes apIn { from { opacity: 0; transform: translateY(6px); } }
+
+.adminp__bar {
+  flex: none; display: flex; align-items: center; gap: 10px;
+  padding: 0 16px; height: var(--topbar-h);
+  background: var(--white); border-bottom: 1px solid var(--line);
+}
+.adminp__title { display: flex; align-items: center; gap: 9px; font-size: 15px; }
+.adminp__title svg { width: 18px; height: 18px; color: var(--muted); }
+
+.adminp__pill {
+  font-family: var(--mono); font-size: 11px; padding: 3px 8px;
+  border-radius: 999px; background: var(--line-soft); color: var(--faint);
+  /* "27 min left" wraps to two lines at 375px and pushes the bar taller */
+  white-space: nowrap; flex: none;
+}
+.adminp__pill.is-live { background: var(--success-soft); color: var(--success); }
+
+.adminp__scroll { flex: 1; overflow-y: auto; padding: 18px 16px 64px; }
+.adminp__scroll > * { max-width: 1100px; margin-left: auto; margin-right: auto; }
+
+/* ------------------------------- warning ------------------------- */
+.adminp__warn {
+  border: 1px solid var(--line); border-radius: var(--r);
+  padding: 13px 15px; margin-bottom: 16px;
+  background: var(--white);
+}
+.adminp__warn svg { width: 18px; height: 18px; flex: none; margin-top: 1px; }
+.adminp__warn code {
+  font-family: var(--mono); font-size: 12px;
+  background: var(--line-soft); padding: 1.5px 5px; border-radius: var(--r-sm);
+}
+.adminp__warn--nomigration { background: #FFFBEB; border-color: #FDE68A; color: #78350F; }
+.adminp__warn--expired     { background: var(--accent-soft); border-color: #C7D2FE; color: var(--accent-ink); }
+.adminp__warn--error,
+.adminp__warn--notready    { background: var(--danger-soft); border-color: #FBD5D5; color: #9B1C1C; }
+
+/* -------------------------------- stats -------------------------- */
+.adminp__grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px; margin-bottom: 22px;
+}
+.adminp__tile {
+  background: var(--white); border: 1px solid var(--line);
+  border-radius: var(--r); padding: 13px 14px;
+}
+.adminp__tile b {
+  display: block; font-family: var(--mono); font-size: 21px;
+  font-weight: 620; letter-spacing: -.02em;
+}
+.adminp__tile span { display: block; font-size: 11.5px; color: var(--faint); margin-top: 3px; }
+
+/* ------------------------------ sections ------------------------- */
+.adminp__sec {
+  background: var(--white); border: 1px solid var(--line);
+  border-radius: var(--r-lg); padding: 18px; margin-bottom: 16px;
+}
+.adminp__sec h3 { font-size: 14.5px; margin: 0 0 4px; }
+.adminp__sec > .t-sm { margin: 0 0 14px; }
+.adminp__sec code {
+  font-family: var(--mono); font-size: 12px;
+  background: var(--line-soft); padding: 1.5px 5px; border-radius: var(--r-sm);
+}
+
+.adminp__search { display: flex; gap: 8px; margin-bottom: 12px; }
+.adminp__search .input { flex: 1; }
+
+/* -------------------------------- rows --------------------------- */
+.adminp__rows { border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; }
+
+.adminp__row {
+  display: grid; grid-template-columns: 1.4fr 1.8fr .7fr .6fr .8fr .8fr;
+  gap: 10px; align-items: center; width: 100%;
+  padding: 10px 13px; font-size: 13px; text-align: left;
+  background: var(--white); border: 0; border-bottom: 1px solid var(--line-soft);
+  cursor: pointer; font-family: inherit; color: inherit;
+}
+.adminp__row:last-child { border-bottom: 0; }
+.adminp__row:hover { background: var(--paper); }
+.adminp__row.is-picked { background: var(--accent-soft); }
+.adminp__row .num { text-align: right; }
+.adminp__row span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.adminp__row--head {
+  cursor: default; background: var(--paper);
+  font-size: 11px; text-transform: uppercase; letter-spacing: .06em;
+  color: var(--faint); font-weight: 600;
+}
+.adminp__row--head:hover { background: var(--paper); }
+
+.adminp__nm { display: flex; align-items: center; gap: 6px; font-weight: 560; }
+.adminp__staff {
+  font-family: var(--mono); font-style: normal; font-size: 9px; letter-spacing: .06em;
+  padding: 1.5px 4px; border-radius: 4px; flex: none;
+  background: var(--ink); color: var(--white);
+}
+
+.adminp__empty { padding: 22px; text-align: center; color: var(--faint); font-size: 13px; }
+
+/* ---------------------------- the selected ----------------------- */
+.adminp__who {
+  display: flex; align-items: center; gap: 12px;
+  padding: 13px 15px; border: 1px solid var(--line);
+  border-radius: var(--r); background: var(--paper); margin-bottom: 12px;
+}
+.adminp__bal { text-align: right; }
+.adminp__bal b { font-size: 19px; display: block; }
+.adminp__bal span { font-size: 11px; color: var(--faint); }
+
+.adminp__act {
+  display: flex; align-items: center; gap: 7px;
+  flex-wrap: wrap; margin-bottom: 9px;
+}
+.adminp__act .eyebrow { width: 52px; flex: none; }
+
+/* Taking somebody's diamonds should not look like any other button. */
+.adminp__danger:not(.btn--primary) {
+  border-color: #FBD5D5; color: #9B1C1C; background: var(--danger-soft);
+}
+.adminp__danger:not(.btn--primary):hover { background: #FBD5D5; }
+
+/* ------------------------------ console -------------------------- */
+.adminp__out {
+  font-family: var(--mono); font-size: 12px; line-height: 1.55;
+  background: var(--ink); color: #D6DAE3;
+  border-radius: var(--r); padding: 12px 14px; margin: 0;
+  max-height: 230px; overflow: auto; white-space: pre-wrap; word-break: break-word;
+}
+
+/* -------------------------------- log ---------------------------- */
+.adminp__logrow {
+  display: flex; gap: 10px; align-items: baseline;
+  padding: 9px 13px; font-size: 12.5px;
+  border-bottom: 1px solid var(--line-soft);
+}
+.adminp__logrow:last-child { border-bottom: 0; }
+.adminp__logrow span:first-child { width: 72px; flex: none; font-family: var(--mono); font-size: 11px; }
+
+/* ------------------------------- phones -------------------------- */
+@media (max-width: 760px) {
+  .adminp__scroll { padding: 14px 12px 56px; }
+  .adminp__sec { padding: 14px; border-radius: var(--r); }
+  .adminp__grid { grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 8px; }
+  .adminp__tile b { font-size: 18px; }
+
+  /* The table stops being a table. Six columns inside 360px is six
+     columns of ellipsis, so each row becomes two lines with the
+     numbers on the right where they can still be compared. */
+  .adminp__row { grid-template-columns: 1fr auto; gap: 2px 10px; padding: 11px 12px; }
+  .adminp__row--head { display: none; }
+  .adminp__row span:nth-child(2) { grid-column: 1; font-size: 11.5px; }
+  .adminp__row span:nth-child(3) { grid-column: 1; font-size: 11px; color: var(--faint); }
+  .adminp__row span:nth-child(4) { grid-row: 1; grid-column: 2; text-align: right; }
+  .adminp__row span:nth-child(5) { grid-row: 2; grid-column: 2; text-align: right; font-weight: 600; }
+  .adminp__row span:nth-child(6) { grid-row: 3; grid-column: 2; text-align: right; font-size: 11px; }
+  .adminp__act .eyebrow { width: 100%; }
+  .adminp__logrow { flex-wrap: wrap; gap: 4px 8px; }
+}

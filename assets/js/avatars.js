@@ -31,7 +31,27 @@
     camel:      '<path d="M4 18v-3c0-2 1.5-3 3-4.5C8.6 9 9.5 7 12 7s3.4 2 5 3.5c1.5 1.5 3 2.5 3 4.5v3"/><path d="M8 18v-3M16 18v-3M20 15V9.5c0-1.2-1-1.8-1.8-1.2"/>',
     sailboat:   '<path d="M4 17h16l-2.5 4h-11z"/><path d="M12 15V3L5.5 15zM13.5 15h5L13.5 7z"/>',
     aurora:     '<path d="M3 16c3-5 6-5 9 0s6 5 9 0"/><path d="M3 11c3-5 6-5 9 0s6 5 9 0"/><path d="M3 20.5c3-4 6-4 9 0"/>',
-    trophy:     '<path d="M7 5h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H5a2.5 2.5 0 0 0 2.5 4M17 6h2a2.5 2.5 0 0 1-2.5 4"/><path d="M12 15v3M9 21h6"/>'
+    trophy:     '<path d="M7 5h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H5a2.5 2.5 0 0 0 2.5 4M17 6h2a2.5 2.5 0 0 1-2.5 4"/><path d="M12 15v3M9 21h6"/>',
+    /* A drumstick, and the only FILLED glyph in this set.
+
+       Every other avatar here is monoline and this one started that
+       way too. It did not work: an outlined lump is a ring, and at
+       36px the thing read as a magnifying glass. Four outline
+       attempts — plain circle, teardrop, fat lobe, wing — all did,
+       because the shapes that survive this size as outlines are the
+       ones with internal detail (the owl's eyes, the fox's snout) and
+       a lump of meat has none to give.
+
+       Filling it fixes it, because then the silhouette IS the glyph:
+       oval meat, a bar for the bone, two overlapping lobes for the
+       knuckle. Checked at 66px and at 30px, which is where it sits on
+       a leaderboard row. The oval is rotated -38 degrees rather than
+       left as a circle; a circle on a stick is a lollipop. */
+    chicken:    '<g fill="currentColor" stroke="none">' +
+                  '<ellipse cx="15.6" cy="8.4" rx="5.6" ry="4.8" transform="rotate(-38 15.6 8.4)"/>' +
+                  '<circle cx="7.3" cy="15.3" r="2.1"/><circle cx="9.2" cy="17.2" r="2.1"/>' +
+                '</g>' +
+                '<path stroke="currentColor" stroke-width="2.4" d="m12.5 11.5-3.8 3.8"/>'
   };
 
   /* Decoration badges pinned to the avatar's top-right corner. */
