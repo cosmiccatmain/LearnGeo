@@ -21,6 +21,9 @@
 
   var map = null, layer = null, markers = [], hostId = null, sizeWatch = null;
   var guarded = false, bordersLayer = null;
+  var keyboardHost = null, keyboardHandler = null, keyboardEntry = null;
+  var keyboardFocusHandler = null, keyboardBlurHandler = null;
+  var keyboardStatus = null, keyboardHelp = null;
 
 
   function ensure(hostEl) {
@@ -30,11 +33,15 @@
       invalidate();
       return map;
     }
-    if (map) { map.remove(); map = null; markers = []; shapeLayers = []; bordersLayer = null; }
+    if (map) {
+      unwireKeyboard();
+      map.remove(); map = null; markers = []; shapeLayers = []; bordersLayer = null;
+    }
 
     hostId = hostEl.id;
     map = global.L.map(hostEl, {
       zoomControl: false,
+      keyboard: false,
       worldCopyJump: true,
       minZoom: 1.6,
       maxBounds: [[-89, -240], [89, 240]],
@@ -43,7 +50,16 @@
     }).setView([22, 12], 2);
 
     /* top-right, so it never sits on top of the answer badge in the corner */
-    global.L.control.zoom({ position: 'topright' }).addTo(map);
+    global.L.control.zoom({
+      position: 'topright',
+      zoomInTitle: 'Zoom in',
+      zoomOutTitle: 'Zoom out'
+    }).addTo(map);
+    var zoomIn = hostEl.querySelector('.leaflet-control-zoom-in');
+    var zoomOut = hostEl.querySelector('.leaflet-control-zoom-out');
+    if (zoomIn) zoomIn.setAttribute('aria-label', 'Zoom in');
+    if (zoomOut) zoomOut.setAttribute('aria-label', 'Zoom out');
+    wireKeyboard(hostEl);
 
     /* sharp outlines drawn over the blurred tiles; below the clickable shapes */
     var bp = map.createPane('lg-borders');
@@ -195,6 +211,175 @@
     dim:    { color: '#9CA3AF', weight: 0.8, opacity: 0.5,  fillColor: '#9CA3AF', fillOpacity: 0.12 }
   };
 
+  /* ----------------------- keyboard navigation ----------------------
+     Leaflet normally uses arrow keys to pan the canvas. For a geography
+     question the useful keyboard action is choosing a country, so clickable
+     countries form a spatial graph instead: each arrow moves to the nearest
+     option in that direction and Enter or Space picks it. Zoom remains on
+     the visible map controls, which work with mouse, touch and Tab. */
+  function wireKeyboard(host) {
+    unwireKeyboard();
+    keyboardHost = host;
+    host.tabIndex = 0;
+    host.setAttribute('role', 'group');
+    host.setAttribute('aria-label', 'Interactive map');
+
+    keyboardStatus = document.createElement('span');
+    keyboardStatus.className = 'map-kbd-status';
+    keyboardStatus.setAttribute('aria-live', 'polite');
+    keyboardStatus.setAttribute('aria-atomic', 'true');
+    host.appendChild(keyboardStatus);
+
+    keyboardHelp = document.createElement('span');
+    keyboardHelp.className = 'map-kbd-help';
+    keyboardHelp.textContent = 'Arrow keys move between countries · Enter selects · Esc resets map';
+    host.appendChild(keyboardHelp);
+
+    keyboardHandler = function (e) {
+      var arrows = { ArrowLeft: true, ArrowRight: true, ArrowUp: true, ArrowDown: true };
+      if (arrows[e.key]) {
+        if (!interactiveEntries().length) return;
+        e.preventDefault();
+        e.stopPropagation();
+        moveKeyboardFocus(e.key);
+      } else if ((e.key === 'Enter' || e.key === ' ') && keyboardEntry) {
+        e.preventDefault();
+        e.stopPropagation();
+        keyboardEntry.onClick(keyboardEntry.country, keyboardEntry.layer);
+      } else if (e.key === 'Escape' && interactiveEntries().length) {
+        e.preventDefault();
+        e.stopPropagation();
+        setKeyboardFocus(null);
+        reset();
+        announce('Map reset');
+      }
+    };
+    host.addEventListener('keydown', keyboardHandler);
+    keyboardFocusHandler = function () {
+      host.classList.add('is-keyboard-focus');
+      updateKeyboardAvailability();
+    };
+    keyboardBlurHandler = function () {
+      host.classList.remove('is-keyboard-focus');
+    };
+    host.addEventListener('focus', keyboardFocusHandler);
+    host.addEventListener('blur', keyboardBlurHandler);
+  }
+
+  function unwireKeyboard() {
+    if (keyboardHost && keyboardHandler) keyboardHost.removeEventListener('keydown', keyboardHandler);
+    if (keyboardHost && keyboardFocusHandler) keyboardHost.removeEventListener('focus', keyboardFocusHandler);
+    if (keyboardHost && keyboardBlurHandler) keyboardHost.removeEventListener('blur', keyboardBlurHandler);
+    if (keyboardHost) {
+      keyboardHost.classList.remove('is-keyboard-focus', 'has-keyboard-countries');
+      keyboardHost.removeAttribute('role');
+      keyboardHost.removeAttribute('aria-label');
+      keyboardHost.removeAttribute('tabindex');
+    }
+    keyboardHost = null;
+    keyboardHandler = null;
+    keyboardFocusHandler = null;
+    keyboardBlurHandler = null;
+    keyboardEntry = null;
+    keyboardStatus = null;
+    keyboardHelp = null;
+  }
+
+  function interactiveEntries() {
+    return shapeLayers.filter(function (entry) { return !!entry.onClick && finite(entry.country); });
+  }
+
+  function updateKeyboardAvailability() {
+    if (!keyboardHost) return;
+    var available = interactiveEntries().length > 0;
+    keyboardHost.classList.toggle('has-keyboard-countries', available);
+    keyboardHost.setAttribute('aria-label', available
+      ? 'Interactive country map. Use arrow keys to move between countries, Enter to select, and Escape to reset.'
+      : 'Interactive map. Use the on-map plus and minus buttons to zoom.');
+  }
+
+  function announce(text) {
+    if (!keyboardStatus) return;
+    keyboardStatus.textContent = '';
+    setTimeout(function () {
+      if (keyboardStatus) keyboardStatus.textContent = text;
+    }, 0);
+  }
+
+  function keyboardStyle(entry) {
+    var cur = STYLES[entry.layer._lgState] || STYLES.base;
+    return {
+      color: '#1B4DFF',
+      weight: 3.2,
+      opacity: 1,
+      dashArray: '5 3',
+      fillColor: cur.fillColor,
+      fillOpacity: Math.max(0.36, cur.fillOpacity || 0)
+    };
+  }
+
+  function setKeyboardFocus(entry) {
+    if (keyboardEntry && keyboardEntry.layer) {
+      setStyle(keyboardEntry.layer, STYLES[keyboardEntry.layer._lgState] || STYLES.base);
+    }
+    keyboardEntry = entry || null;
+    if (!keyboardEntry) return;
+    setStyle(keyboardEntry.layer, keyboardStyle(keyboardEntry));
+    announce(keyboardEntry.country.name + ' focused. Press Enter to select.');
+  }
+
+  function moveKeyboardFocus(key) {
+    var entries = interactiveEntries();
+    if (!entries.length) return;
+    if (!keyboardEntry || entries.indexOf(keyboardEntry) === -1) {
+      var centre = map && map.getCenter ? map.getCenter() : { lat: 0, lng: 0 };
+      var first = entries.slice().sort(function (a, b) {
+        return distanceFrom(a.country, centre.lat, centre.lng) -
+          distanceFrom(b.country, centre.lat, centre.lng);
+      })[0];
+      setKeyboardFocus(first);
+      return;
+    }
+
+    var from = keyboardEntry.country;
+    var candidates = entries.filter(function (entry) {
+      if (entry === keyboardEntry) return false;
+      var d = offset(from, entry.country);
+      if (key === 'ArrowLeft') return d.x < 0;
+      if (key === 'ArrowRight') return d.x > 0;
+      if (key === 'ArrowUp') return d.y > 0;
+      return d.y < 0;
+    });
+    if (!candidates.length) {
+      announce('No country further ' + key.replace('Arrow', '').toLowerCase());
+      return;
+    }
+    candidates.sort(function (a, b) {
+      return directionScore(from, a.country, key) - directionScore(from, b.country, key);
+    });
+    setKeyboardFocus(candidates[0]);
+  }
+
+  function offset(from, to) {
+    var x = Number(to.lon) - Number(from.lon);
+    if (x > 180) x -= 360;
+    if (x < -180) x += 360;
+    x *= Math.cos((Number(from.lat) || 0) * Math.PI / 180);
+    return { x: x, y: Number(to.lat) - Number(from.lat) };
+  }
+
+  function directionScore(from, to, key) {
+    var d = offset(from, to);
+    var forward = /Left|Right/.test(key) ? Math.abs(d.x) : Math.abs(d.y);
+    var across = /Left|Right/.test(key) ? Math.abs(d.y) : Math.abs(d.x);
+    return Math.sqrt(d.x * d.x + d.y * d.y) + across * 2 - forward * 0.05;
+  }
+
+  function distanceFrom(country, lat, lon) {
+    var d = offset({ lat: lat, lon: lon }, country);
+    return d.x * d.x + d.y * d.y;
+  }
+
   /* Draw one country. Falls back to a circle when there is no polygon. */
   function drawCountry(country, state, onClick, tooltip) {
     if (!map) return null;
@@ -217,18 +402,25 @@
 
     layer.addTo(map);
     layer._lgState = state;
+    var entry = { country: country, layer: layer, state: state, onClick: onClick || null };
     if (tooltip) layer.bindTooltip(tooltip, { sticky: true });
     if (onClick) {
-      layer.on('click', function () { onClick(country, layer); });
+      layer.on('click', function () {
+        setKeyboardFocus(entry);
+        onClick(country, layer);
+      });
       /* hover and un-hover work from whatever state the shape is in now, so
          a country marked right or wrong keeps its colour when the mouse leaves */
       layer.on('mouseover', function () {
         var cur = STYLES[layer._lgState] || STYLES.base;
         setStyle(layer, { weight: 2.4, fillOpacity: Math.min(0.6, (cur.fillOpacity || 0.2) + 0.18) });
       });
-      layer.on('mouseout', function () { setStyle(layer, STYLES[layer._lgState] || STYLES.base); });
+      layer.on('mouseout', function () {
+        setStyle(layer, keyboardEntry === entry ? keyboardStyle(entry) : (STYLES[layer._lgState] || STYLES.base));
+      });
     }
-    shapeLayers.push({ country: country, layer: layer, state: state });
+    shapeLayers.push(entry);
+    updateKeyboardAvailability();
     return layer;
   }
 
@@ -239,7 +431,9 @@
   function setCountryState(layer, state) {
     if (!layer) return;
     layer._lgState = state;
-    setStyle(layer, STYLES[state] || STYLES.base);
+    var entry = null;
+    shapeLayers.forEach(function (s) { if (s.layer === layer) entry = s; });
+    setStyle(layer, keyboardEntry === entry ? keyboardStyle(entry) : (STYLES[state] || STYLES.base));
   }
 
   /* A fixed name label in the middle of a country's largest landmass. Used
@@ -269,8 +463,10 @@
   }
 
   function clearShapes() {
+    setKeyboardFocus(null);
     shapeLayers.forEach(function (s) { if (map) map.removeLayer(s.layer); });
     shapeLayers = [];
+    updateKeyboardAvailability();
   }
 
   function boundsOf(country) {
