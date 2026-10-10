@@ -908,9 +908,9 @@
         (signup ? 'new-password" placeholder="At least 6 characters"' : 'current-password"') + '></div>' +
       (signup
         ? '<div class="field"><label class="field__label">I’m a</label><div class="seg" id="au-role">' +
-            '<button data-v="student" class="' + (W.state.role !== 'teacher' ? 'is-active' : '') + '">Student</button>' +
-            '<button data-v="teacher" class="' + (W.state.role === 'teacher' ? 'is-active' : '') + '">Teacher</button>' +
-          '</div></div>'
+            '<button data-v="student">Student</button>' +
+            '<button data-v="teacher">Teacher</button>' +
+          '</div><div class="field__hint">This controls which tools you see. You can change it anytime in Settings.</div></div>'
         : '') +
       '<div id="au-msg"></div>' +
       '<div class="auth-switch">' +
@@ -925,6 +925,17 @@
       actions: [{ label: label, cls: 'btn--accent', onClick: function (root) { submit(root); return false; } }],
       onMount: function (root, close) {
         wireSeg(root);
+        if (signup) {
+          var create = root.querySelector('.modal__foot .btn--accent');
+          if (create) create.disabled = true;
+          W.$$('#au-role button', root).forEach(function (b) {
+            b.addEventListener('click', function () {
+              if (create) create.disabled = false;
+              var msg = W.$('#au-msg', root);
+              if (msg) msg.innerHTML = '';
+            });
+          });
+        }
         W.$$('[data-switch]', root).forEach(function (b) {
           b.addEventListener('click', function () { close(); openAuth(b.dataset.switch); });
         });
@@ -988,6 +999,8 @@
       var name = W.$('#au-name', root).value.trim();
       if (!name) return authMsg(root, 'wrong', 'Add your name', 'Teachers see it next to your scores.');
       var roleBtn = W.$('#au-role .is-active', root);
+      if (!roleBtn) return authMsg(root, 'wrong', 'Choose Student or Teacher',
+        'You can change this anytime in Settings.');
       var role = roleBtn && roleBtn.dataset.v === 'teacher' ? 'teacher' : 'student';
       /* Picking Teacher here is the answer to the role question, so record it
          on this device too. Without this a teacher lands in student mode with
