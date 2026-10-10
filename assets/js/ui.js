@@ -184,6 +184,8 @@
   function toggleMenu() {
     if (menuEl) return closeMenu();
     var s = W.state, lp = W.levelProgress();
+    var roleLabel = (s.role === 'teacher' ? 'Teacher' : 'Student') +
+      (signedIn() ? ' account' : ' mode');
 
     menuEl = W.el('div', 'menu');
     menuEl.innerHTML =
@@ -193,7 +195,7 @@
           '<div class="menu__name">' + W.escapeHtml(s.profile.displayName || 'Explorer') +
             W.verifiedMark(s.profile, 13) +
             (global.Badges ? global.Badges.markup(null, 12) : '') + '</div>' +
-          '<div class="menu__meta">Lv ' + s.economy.level + ' · ' + lp.have + '/' + lp.need + ' XP · ' +
+          '<div class="menu__meta">' + roleLabel + ' · Lv ' + s.economy.level + ' · ' + lp.have + '/' + lp.need + ' XP · ' +
             s.economy.diamonds.toLocaleString() + ' 💎</div>' +
         '</div>' +
       '</div>' +
