@@ -356,6 +356,7 @@
     var d = W.state.daily;
     var pct = Math.min(1, d.answered / Math.max(1, d.goal));
     var circ = 2 * Math.PI * 19;
+    var study = studySetLabel();
     foot.innerHTML =
       '<div class="goal">' +
         '<div class="goal__ring">' +
@@ -369,32 +370,63 @@
         '</div>' +
         '<div class="goal__t grow"><b>Daily goal</b>' +
           '<span>' + d.answered + ' of ' + d.goal + ' questions' +
-          (d.dayStreak > 1 ? ' · ' + d.dayStreak + '-day streak' : '') + '</span></div>' +
+          (d.dayStreak > 1 ? ' · ' + d.dayStreak + '-day streak' : '') + '</span>' +
+          '<span style="display:block">Studying: ' + W.escapeHtml(study) + '</span></div>' +
         '<button class="btn btn--ghost btn--sm" id="learn-config">Filters</button>' +
       '</div>';
     document.getElementById('learn-config').addEventListener('click', openConfig);
   }
 
+  function studySetLabel() {
+    if (cfg.countries && cfg.countries.length) {
+      return cfg.countries.length + (cfg.countries.length === 1 ? ' picked country' : ' picked countries');
+    }
+    var n = global.Quiz.pool({ regions: cfg.regions, scope: cfg.scope }).length;
+    if (cfg.regions.length === 1) return cfg.regions[0] + ' · ' + n + ' places';
+    if (cfg.regions.length > 1) return cfg.regions.length + ' regions · ' + n + ' places';
+    if (cfg.scope === 'un') return 'UN members · ' + n + ' countries';
+    if (cfg.scope === 'un-plus') return 'UN + observers · ' + n + ' places';
+    return 'All ' + n + ' places';
+  }
+
   function openConfig() {
     var regions = global.GeoData.regions;
+    var choosing = cfg.countries && cfg.countries.length ? 'custom' : 'auto';
+    var pickerApi = null;
     var body =
-      '<div class="field"><label class="field__label">Scope</label>' +
-        '<div class="seg" id="cfg-scope">' +
-          seg('un', 'UN members', cfg.scope) +
-          seg('un-plus', '+ Observers', cfg.scope) +
-          seg('all', 'All 213', cfg.scope) +
+      '<div class="field"><label class="field__label">How to choose</label>' +
+        '<div class="seg" id="cfg-choose">' +
+          seg('auto', 'By region', choosing) +
+          seg('custom', 'Pick countries', choosing) +
         '</div>' +
-        '<div class="field__hint">193 UN members, 2 permanent observers and 18 territories.</div>' +
       '</div>' +
-      '<div class="field"><label class="field__label">Regions</label>' +
-        '<div class="check-grid" id="cfg-regions">' +
-          regions.map(function (r) {
-            var on = !cfg.regions.length || cfg.regions.indexOf(r) !== -1;
-            return check(r, r, on);
-          }).join('') +
+      '<div id="cfg-auto">' +
+        '<div class="field"><label class="field__label">Scope</label>' +
+          '<div class="seg" id="cfg-scope">' +
+            seg('un', 'UN members', cfg.scope) +
+            seg('un-plus', '+ Observers', cfg.scope) +
+            seg('all', 'All 213', cfg.scope) +
+          '</div>' +
+          '<div class="field__hint">193 UN members, 2 permanent observers and 18 territories.</div>' +
         '</div>' +
-        '<div class="field__hint">Leave all selected to study the whole world.</div>' +
+        '<div class="field"><label class="field__label">Regions</label>' +
+          '<div class="check-grid" id="cfg-regions">' +
+            regions.map(function (r) {
+              var on = !cfg.regions.length || cfg.regions.indexOf(r) !== -1;
+              return check(r, r, on);
+            }).join('') +
+          '</div>' +
+          '<div class="field__hint">Leave all selected to study the whole world.</div>' +
+        '</div>' +
       '</div>' +
+      '<div id="cfg-custom" class="' + (choosing === 'custom' ? '' : 'hidden') + '">' +
+        '<div class="field"><label class="field__label">Your countries</label>' +
+          '<div id="cfg-picker"></div>' +
+          '<div class="field__hint">Type a country or capital and press Enter. ' +
+            'The region buttons add a whole continent at once.</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="field__hint" id="cfg-count"></div>' +
       '<div class="field"><label class="field__label">Question types</label>' +
         '<div class="check-grid" id="cfg-types">' +
           Object.keys(global.Quiz.types).map(function (t) {
@@ -419,12 +451,53 @@
     global.UI.modal({
       title: 'Study filters',
       icon: I.layers,
+      wide: true,
       body: body,
       actions: [
         { label: 'Cancel', cls: 'btn--ghost', close: true },
-        { label: 'Apply', cls: 'btn--accent', close: true, onClick: applyConfig }
+        { label: 'Apply', cls: 'btn--accent', close: true,
+          onClick: function (m) { return applyConfig(m, pickerApi); } }
       ],
-      onMount: function (m) { global.UI.wireSeg(m); global.UI.wireCheck(m); }
+      onMount: function (m) {
+        global.UI.wireSeg(m);
+        global.UI.wireCheck(m);
+        pickerApi = global.Assignments.picker(W.$('#cfg-picker', m), {
+          initial: cfg.countries || [],
+          onChange: refreshCount
+        });
+        W.$$('#cfg-choose button', m).forEach(function (b) {
+          b.addEventListener('click', function () {
+            var custom = b.dataset.v === 'custom';
+            W.$('#cfg-auto', m).classList.toggle('hidden', custom);
+            W.$('#cfg-custom', m).classList.toggle('hidden', !custom);
+            refreshCount();
+            if (custom) pickerApi.focus();
+          });
+        });
+        W.$$('#cfg-scope button, #cfg-regions .check', m).forEach(function (b) {
+          b.addEventListener('click', function () { setTimeout(refreshCount, 0); });
+        });
+        W.$('#cfg-auto', m).classList.toggle('hidden', choosing === 'custom');
+        refreshCount();
+
+        function refreshCount() {
+          var mode = W.$('#cfg-choose .is-active', m);
+          var custom = mode && mode.dataset.v === 'custom';
+          var n;
+          if (custom) {
+            n = pickerApi ? pickerApi.value.length : (cfg.countries || []).length;
+          } else {
+            var scope = W.$('#cfg-scope .is-active', m);
+            var selected = W.$$('#cfg-regions .check.is-on', m).map(function (n2) { return n2.dataset.v; });
+            if (selected.length === regions.length) selected = [];
+            n = global.Quiz.pool({
+              scope: scope ? scope.dataset.v : 'all',
+              regions: selected
+            }).length;
+          }
+          W.$('#cfg-count', m).textContent = n + (n === 1 ? ' place' : ' places') + ' in your study set.';
+        }
+      }
     });
 
     function seg(v, label, cur) {
@@ -452,9 +525,17 @@
     next();
   }
 
-  function applyConfig(modalEl) {
-    cfg.countries = null;             /* hand-picked filters replace an assignment */
-    job = null;
+  function applyConfig(modalEl, pickerApi) {
+    var choose = W.$('#cfg-choose .is-active', modalEl);
+    var custom = choose && choose.dataset.v === 'custom';
+    var picked = custom && pickerApi ? pickerApi.value : [];
+    if (custom && !picked.length) {
+      W.toast('Pick at least one country', 'Search by country or capital, or add a region', I.info);
+      return false;
+    }
+
+    cfg.countries = custom ? picked : null;
+    job = null;                       /* hand-picked filters replace an assignment */
     var scope = W.$('#cfg-scope .is-active', modalEl);
     cfg.scope = scope ? scope.dataset.v : 'all';
 
