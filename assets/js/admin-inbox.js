@@ -38,6 +38,10 @@
   'use strict';
   var W = global.WW, I = W.Icons;
 
+  /* Same bounds as admin.js and 0007's ultra_adjust_gems. */
+  var CAP = 2000000000;
+  function clamp(n) { return Math.min(CAP, Math.max(0, Math.round(n))); }
+
   var EVERY = 120e3;        /* while the tab is visible */
   var MIN_GAP = 30e3;       /* never closer together than this */
 
@@ -113,6 +117,7 @@
 
     var before = s.economy.diamonds;
     var staffNow = null;
+    var wasSet = false;
 
     rows.forEach(function (r) {
       var d = r.detail || {};
@@ -121,10 +126,19 @@
            take or a give is a difference, applied to what this device
            has rather than to what the server had: anything earned here
            since the last sync is kept. */
+        /* A balance outside 0..CAP — 1.35e36 typed into the old unbounded
+           box, say — cannot take a difference: in floating point
+           1.35e36 - 100 IS 1.35e36, so the instruction would be silently
+           lost. The server already logs such an action as a set; this is
+           the second lock for an action logged before it did. */
+        var mine = s.economy.diamonds;
+        var sane = typeof mine === 'number' && isFinite(mine) && mine >= 0 && mine <= CAP;
         if (typeof d.set === 'number') {
-          s.economy.diamonds = Math.max(0, d.set);
+          s.economy.diamonds = clamp(d.set); wasSet = true;
+        } else if (!sane && typeof d.now === 'number') {
+          s.economy.diamonds = clamp(d.now); wasSet = true;
         } else if (typeof d.moved === 'number') {
-          s.economy.diamonds = Math.max(0, s.economy.diamonds + d.moved);
+          s.economy.diamonds = clamp((sane ? mine : 0) + d.moved);
         }
       } else if (r.action === 'staff') {
         s.flags.staff = !!d.on;
@@ -141,7 +155,10 @@
     if (global.Portal && global.Portal.render) { try { global.Portal.render(); } catch (e) {} }
 
     var moved = s.economy.diamonds - before;
-    if (moved !== 0) {
+    if (wasSet && moved !== 0) {
+      W.toast('An administrator set your diamonds',
+        'Balance now ' + s.economy.diamonds.toLocaleString() + ' 💎', I.gem, 6000);
+    } else if (moved !== 0) {
       W.toast('An administrator changed your diamonds',
         (moved > 0 ? '+' : '−') + Math.abs(moved).toLocaleString() + ' 💎 · balance now ' +
         s.economy.diamonds.toLocaleString(), I.gem, 6000);

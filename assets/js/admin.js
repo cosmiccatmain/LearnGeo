@@ -20,6 +20,14 @@
      keyspace is guessable by hand in an afternoon; letters are not, and
      nothing about the check needed to change to allow them — only this
      field, which used to be a number pad that could not type one. */
+  /* Diamond bounds, shared with the server (0007, ultra_adjust_gems)
+     and admin-inbox.js. 2,000,000,000 sits under Postgres' integer
+     ceiling of 2,147,483,647, so every integer column and parameter
+     between here and the database holds it; nobody reaches it by
+     playing. */
+  var MAX_BALANCE = 2000000000;
+  var MAX_GRANT = 1000000000;
+
   var MIN_LEN = 4;
   var MAX_LEN = 64;
 
@@ -275,6 +283,7 @@
           '<div class="adm-grants adm-grants--take">' + grantRow(-1) + '</div>' +
           '<div class="row" style="gap:8px;margin-top:10px">' +
             '<input class="input mono" id="adm-amount" type="number" step="1" ' +
+              'min="-' + MAX_GRANT + '" max="' + MAX_GRANT + '" ' +
               'placeholder="Any amount" style="flex:1;min-width:0">' +
             '<button class="btn btn--accent" id="adm-give">Give</button>' +
             '<button class="btn btn--ghost" id="adm-take">Take</button>' +
@@ -358,9 +367,19 @@
           if (e.key === 'Enter') W.$('#adm-give', root).click();
         });
 
+        /* Bounded. This box used to take any number at all, and somebody
+           typed one with 37 digits: 1.35e36, past where JavaScript counts
+           whole numbers exactly and far past what the server's integer
+           columns hold, so the Administrator page read it back as 0.
+           Number() rather than parseInt(), which reads "1e9" as 1. */
         function withAmount(run) {
-          var n = parseInt(amt.value, 10);
-          if (!n) return say(root, 'Type an amount first.', true);
+          var raw = String(amt.value || '').trim();
+          if (!raw) return say(root, 'Type an amount first.', true);
+          var n = Number(raw);
+          if (!Number.isInteger(n) || n === 0) return say(root, 'Use a whole number, like 500.', true);
+          if (Math.abs(n) > MAX_GRANT) {
+            return say(root, 'At most ' + MAX_GRANT.toLocaleString() + ' at a time.', true);
+          }
           amt.value = '';
           run(n);
         }
@@ -393,8 +412,17 @@
   function give(root, n) {
     var e = W.state.economy;
     var before = e.diamonds;
-    e.diamonds = Math.max(0, before + n);
-    var moved = e.diamonds - before;
+    /* A balance already past the cap — anything from before the box was
+       bounded — is treated as the cap, so taking 100 from 1.35e36 gives
+       1,999,999,900 rather than the same 1.35e36: in floating point,
+       1.35e36 - 100 is exactly 1.35e36. */
+    var base = (typeof before === 'number' && isFinite(before)) ? Math.min(Math.max(0, before), MAX_BALANCE) : 0;
+    e.diamonds = Math.min(MAX_BALANCE, Math.max(0, base + n));
+    /* Measured from the capped figure, not the raw one: from 1.35e36,
+       "took 1,350,000,…" is neither what happened in any useful sense
+       nor something admin_grants' integer column can hold. */
+    var moved = e.diamonds - base;
+    var wasOver = typeof before === 'number' && before > MAX_BALANCE;
     W.saveNow();
 
     /* Recorded before anything else happens. The penalty reads this log,
@@ -414,11 +442,23 @@
     refresh();
 
     W.$('#adm-gems', root).innerHTML = e.diamonds.toLocaleString() + ' 💎';
-    say(root, moved === 0
-      ? 'Nothing to take — the balance is already 0.'
-      : moved > 0
-        ? 'Gave ' + moved.toLocaleString() + '. Balance ' + e.diamonds.toLocaleString() + '.'
-        : 'Took ' + Math.abs(moved).toLocaleString() + '. Balance ' + e.diamonds.toLocaleString() + '.');
+    /* Built step by step rather than as one nested conditional: the
+       cap adds two cases the old three-way answer could not tell apart,
+       and "nothing to take, the balance is already 0" is the wrong thing
+       to say to somebody who just tried to GIVE at 2,000,000,000. */
+    var cap = MAX_BALANCE.toLocaleString();
+    var msg;
+    if (moved === 0) {
+      msg = n > 0 ? 'Already at the ' + cap + ' cap, so nothing was given.'
+                  : 'Nothing to take — the balance is already 0.';
+    } else if (moved > 0) {
+      msg = 'Gave ' + moved.toLocaleString() + '. Balance ' + e.diamonds.toLocaleString() + '.' +
+            (moved < n ? ' That is the ' + cap + ' cap.' : '');
+    } else {
+      msg = 'Took ' + Math.abs(moved).toLocaleString() + '. Balance ' + e.diamonds.toLocaleString() + '.';
+    }
+    if (wasOver) msg += ' The old balance was over the ' + cap + ' cap, so it was brought down to it first.';
+    say(root, msg);
     if (moved > 0) { W.Sound.gem(); W.confetti({ count: 26, power: 150 }); }
     else if (moved < 0) W.Sound.flip();
   }

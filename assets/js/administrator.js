@@ -48,7 +48,21 @@
   }
   function ops() { return global.AdminOps || DEAD; }
   function esc(s) { return W.escapeHtml(String(s == null ? '' : s)); }
-  function num(n) { return (Number(n) || 0).toLocaleString(); }
+  /* Same bounds as admin.js, admin-inbox.js and 0007. */
+  var CAP = 2000000000, MAX_STEP = 1000000000;
+
+  /* Past a quadrillion, a number written out in full is a row of digits
+     nobody can read and, past 2^53, partly invented: 1.35e36 prints as
+     1,350,000,000,000,000,800,000,… where the 8 is floating-point
+     residue, not a diamond. Shown as a power of ten instead. */
+  var SUP = '⁰¹²³⁴⁵⁶⁷⁸⁹';
+  function num(n) {
+    var v = Number(n) || 0;
+    if (Math.abs(v) < 1e15) return v.toLocaleString();
+    var parts = v.toExponential(2).split('e');
+    var exp = String(Math.abs(+parts[1])).replace(/[0-9]/g, function (d) { return SUP[+d]; });
+    return parts[0] + ' × 10' + (+parts[1] < 0 ? '⁻' : '') + exp;
+  }
 
   /* ============================== open ============================= */
   function open() {
@@ -361,6 +375,12 @@
         '<button class="btn btn--sm" data-do="allow" data-on="0">Remove from allowlist</button>' +
       '</div>' +
 
+      (Number(picked.diamonds) > CAP
+        ? '<div class="adminp__warn adminp__warn--nomigration" style="margin:4px 0 12px"><b>Over the cap.</b> ' +
+          '<div class="t-sm" style="margin-top:2px">This balance is above ' + num(CAP) + ', which no amount of ' +
+          'playing reaches: it came from a typed number. Any button here brings it back into range first, or ' +
+          'use <code>set</code> in the commands below for an exact figure.</div></div>'
+        : '') +
       '<p class="t-sm t-muted" style="margin:10px 0 0">If their app is open, it picks this up within about ' +
       'two minutes and tells them; if it is closed, the moment it next opens. A take is applied to whatever ' +
       'balance their device actually has, so diamonds they earned since their last sync are not wiped.</p>';
@@ -511,8 +531,19 @@
     var bits = line.split(/\s+/);
     var cmd = bits.shift().toLowerCase();
     var rest = bits.join(' ');
-    var n = parseInt(rest, 10);
-    var bad = 'Not a number. Try "take 500".';
+    /* Number(), not parseInt(): parseInt reads "1e9" as 1 and "500abc"
+       as 500, and a command that quietly acts on a different amount
+       than the one typed is worse than one that refuses. Commas are
+       allowed because people type them. */
+    var n = rest === '' ? NaN : Number(rest.replace(/,/g, ''));
+    var bad = 'Not a whole number. Try "take 500".';
+    if (!Number.isInteger(n)) n = NaN;
+    if ((cmd === 'take' || cmd === 'give') && !isNaN(n) && Math.abs(n) > MAX_STEP) {
+      return say('At most ' + num(MAX_STEP) + ' at a time.');
+    }
+    if (cmd === 'set' && !isNaN(n) && n > CAP) {
+      return say('The most a balance can be is ' + num(CAP) + '.');
+    }
 
     if (cmd === 'help') return say(HELP);
     if (cmd === 'stats') { refreshStats(); return say('Reloading the numbers…'); }

@@ -167,6 +167,15 @@ create index if not exists admin_actions_recent
    writes need no cast either way, because Postgres has an assignment
    cast between the two in both directions.
 
+   The first version of app_save_int only accepted one to nine digits,
+   to keep junk out of an integer cast. It kept the truth out with it:
+   a balance of 1,350,000,000,000,000,800,000,000,000,000,000,000 —
+   typed into the gems panel's unbounded "Any amount" box — has 37
+   digits, failed the pattern, and was shown on the Administrator page
+   as 0. app_save_num reads any JSON number exactly, as numeric, and
+   app_save_int is now only for things that are integers by nature,
+   such as a level, and still falls back rather than overflowing.
+
    A diamond count lives at save -> economy -> diamonds and is written
    by a browser, so it is whatever that browser last put there. A cast
    straight to int fails the WHOLE query on one malformed save, which
@@ -174,31 +183,53 @@ create index if not exists admin_actions_recent
    the cast instead of trusting it.
    ================================================================ */
 
+create or replace function public.app_save_num(p_save jsonb, p_key text, p_default numeric)
+returns numeric
+language sql
+immutable
+as $$
+  select case
+           when jsonb_typeof(p_save -> 'economy' -> p_key) = 'number'
+             then (p_save -> 'economy' ->> p_key)::numeric
+           when p_save -> 'economy' ->> p_key ~ '^\s*-?[0-9]+(\.[0-9]+)?\s*$'
+             then (p_save -> 'economy' ->> p_key)::numeric
+           else p_default
+         end
+$$;
+
 create or replace function public.app_save_int(p_save jsonb, p_key text, p_default integer)
 returns integer
 language sql
 immutable
 as $$
   select case
-           when p_save -> 'economy' ->> p_key ~ '^-?[0-9]{1,9}$'
-             then (p_save -> 'economy' ->> p_key)::integer
+           when v between -2147483648 and 2147483647 then floor(v)::integer
            else p_default
          end
+    from (select public.app_save_num(p_save, p_key, null) as v) x
 $$;
 
 /* ================================================================
    PART 4 — the Administrator page's four calls
    ================================================================ */
 
-/* Search by display name or email. Empty query lists the most
-   recently active accounts, which is what an empty box should show. */
-create or replace function public.ultra_find_accounts(p_token uuid, p_query text)
+/* Search by display name or email.
+
+   Dropped and recreated rather than replaced: diamonds changed from
+   integer to numeric so a balance too large for an integer is shown as
+   it is, and Postgres will not change a function's return type in
+   place.
+
+   An empty query lists the most recently active accounts, which is
+   what an empty box should show. */
+drop function if exists public.ultra_find_accounts(uuid, text);
+create function public.ultra_find_accounts(p_token uuid, p_query text)
 returns table (
   id           uuid,
   display_name text,
   email        text,
   role         text,
-  diamonds     integer,
+  diamonds     numeric,
   level        integer,
   staff        boolean,
   updated_at   timestamptz
@@ -219,7 +250,7 @@ begin
            p.display_name,
            u.email::text,
            p.role,
-           public.app_save_int(p.save::jsonb, 'diamonds', 0),
+           public.app_save_num(p.save::jsonb, 'diamonds', 0),
            public.app_save_int(p.save::jsonb, 'level', 1),
            coalesce((p.save::jsonb -> 'flags' ->> 'staff') = 'true', false),
            p.updated_at
@@ -235,7 +266,18 @@ $$;
 revoke execute on function public.ultra_find_accounts(uuid, text) from public, anon;
 grant  execute on function public.ultra_find_accounts(uuid, text) to authenticated;
 
-/* Move somebody's diamonds. Pass p_set for an absolute value, or
+/* Move somebody's diamonds.
+
+   Every balance this writes is between 0 and 2,000,000,000. That is
+   under Postgres' integer ceiling of 2,147,483,647, so the integer
+   parameters and return here always hold it, and nobody reaches it by
+   playing. A balance already above it — anything typed into the old
+   unbounded box — is treated as the cap, and the action is logged as
+   a SET to the exact result rather than a difference: adding -100 to
+   1.35e36 on a device does nothing at all in floating point, so a
+   relative instruction would be silently ignored there.
+
+   Pass p_set for an absolute value, or
    p_delta to add and subtract; p_set wins when both arrive. Never
    goes below zero, and answers the balance it left behind so the
    caller shows what happened rather than what it asked for. */
@@ -252,8 +294,10 @@ security definer
 set search_path = public
 as $$
 declare
+  cap    constant numeric := 2000000000;
   s      jsonb;
-  was    integer;
+  was    numeric;
+  base   numeric;
   now_   integer;
   t_mail text;
 begin
@@ -271,8 +315,9 @@ begin
       using errcode = '22023';
   end if;
 
-  was  := public.app_save_int(s, 'diamonds', 0);
-  now_ := greatest(0, coalesce(p_set, was + coalesce(p_delta, 0)));
+  was  := coalesce(public.app_save_num(s, 'diamonds', 0), 0);
+  base := least(greatest(was, 0), cap);
+  now_ := least(cap, greatest(0, coalesce(p_set, base + coalesce(p_delta, 0))))::integer;
 
   if jsonb_typeof(s -> 'economy') is distinct from 'object' then s := s || '{"economy":{}}'::jsonb; end if;
   if jsonb_typeof(s -> 'flags')   is distinct from 'object' then s := s || '{"flags":{}}'::jsonb;   end if;
@@ -288,8 +333,9 @@ begin
           (select u.email from auth.users u where u.id = auth.uid()),
           p_target, t_mail, 'gems',
           jsonb_build_object('was', was, 'now', now_,
-                             'moved', now_ - was,
-                             'set', p_set,
+                             'moved', now_ - base,
+                             'set', case when p_set is not null or was > cap or was < 0
+                                         then now_ end,
                              'reason', coalesce(p_reason, '')));
 
   return now_;
@@ -430,7 +476,7 @@ begin
     'students',  (select count(*) from public.profiles where role = 'student'),
     'active24',  (select count(*) from public.profiles where updated_at > now() - interval '1 day'),
     'active7',   (select count(*) from public.profiles where updated_at > now() - interval '7 days'),
-    'diamonds',  (select coalesce(sum(public.app_save_int(save::jsonb, 'diamonds', 0)), 0) from public.profiles),
+    'diamonds',  (select coalesce(sum(public.app_save_num(save::jsonb, 'diamonds', 0)), 0) from public.profiles),
     'classes',   (select count(*) from public.classes),
     'members',   (select count(*) from public.class_members),
     'allowed',   (select count(*) from public.admin_allow),
