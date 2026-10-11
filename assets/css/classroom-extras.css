@@ -1,0 +1,133 @@
+/* ------------------------------------------------------------------
+   LearnGeo — People, admin classrooms, co-teachers, Assign to class.
+   Pairs with assets/js/classroom-extras.js. Its own file so the
+   classroom stylesheet several sessions edit is not touched.
+-------------------------------------------------------------------*/
+
+/* ============================== People ============================ */
+.pp { padding: 4px 0 8px; }
+.pp-h {
+  margin: 18px 2px 10px; font-size: 12px; font-weight: 650;
+  letter-spacing: .1em; text-transform: uppercase; color: var(--faint);
+}
+.pp-h:first-child, .pp-adminbar + .pp-h { margin-top: 4px; }
+.pp-h span {
+  margin-left: 6px; font-family: var(--mono); letter-spacing: 0;
+  background: var(--line-soft); color: var(--muted); padding: 1px 7px; border-radius: 999px;
+}
+.pp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: 12px; }
+
+/* A small profile card: their banner, their avatar, their nameplate. */
+.pp-tile {
+  position: relative; display: flex; flex-direction: column; align-items: center;
+  background: var(--white); border: 1px solid var(--line); border-radius: 14px;
+  padding: 0 12px 14px; overflow: hidden; cursor: pointer; text-align: center;
+  font: inherit; color: inherit;
+  transition: transform .18s var(--ease), box-shadow .18s var(--ease), border-color .18s var(--ease);
+}
+.pp-tile:hover { transform: translateY(-2px); box-shadow: var(--shadow); border-color: #D5D9E0; }
+.pp-tile__banner { align-self: stretch; height: 46px; margin: 0 -12px; }
+.pp-tile__av {
+  width: 58px; height: 58px; margin-top: -29px; position: relative;
+  border-radius: 50%; background: var(--white); padding: 3px;
+}
+.pp-tile__name {
+  margin-top: 8px; max-width: 100%; padding: 3px 10px; border-radius: 999px;
+  font-size: 14px; font-weight: 640; letter-spacing: -.015em;
+  display: inline-flex; align-items: center; gap: 4px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.pp-tile__meta { margin-top: 6px; font-size: 12px; color: var(--muted); }
+.pp-tile__admin {
+  font-style: normal; color: #8A6A00; font-weight: 600;
+  display: inline-flex; align-items: center; gap: 3px;
+}
+.pp-tile__admin svg { width: 12px; height: 12px; }
+
+.pp-empty {
+  padding: 26px; text-align: center; color: var(--faint); font-size: 13.5px;
+  border: 1px dashed var(--line); border-radius: 12px;
+}
+.pp-full { display: flex; justify-content: center; }
+.pp-full .profile-card { width: 100%; max-width: 380px; }
+
+.pp-adminbar {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 16px;
+  padding: 13px 15px; border-radius: 12px;
+  background: linear-gradient(120deg, #0A0A0B, #2A2108); color: #F7E7B0;
+}
+.pp-adminbar > svg { width: 22px; height: 22px; flex: none; color: var(--gold); }
+.pp-adminbar b { display: block; color: #fff; }
+.pp-adminbar span { font-size: 12.5px; opacity: .85; }
+.pp-adminbar .btn { background: rgba(245,179,1,.18); color: #FDE68A; border-color: rgba(245,179,1,.4); }
+.pp-adminbar .btn:hover { background: rgba(245,179,1,.3); }
+
+/* The person card from person.js, with the real profile on top. */
+.pcard__real { display: flex; flex-direction: column; align-items: center; margin-bottom: 14px; }
+.pcard__real .profile-card { width: 100%; max-width: 380px; }
+.pcard__realrole { margin-top: 10px; }
+
+/* ========================= admin classrooms ======================= */
+/* Gold on black. Picked up from the badge the banner carries, so the
+   class views need no extra class name to opt in. */
+.cr:has(.cr-banner__code--admin) .cr-banner {
+  background: linear-gradient(120deg, #0A0A0B 0%, #1E1A0E 55%, #3D2E06 100%);
+}
+.cr:has(.cr-banner__code--admin) .cr-banner::after {
+  background-image:
+    radial-gradient(circle at 88% 18%, rgba(245,179,1,.22) 0 22%, transparent 23%),
+    radial-gradient(circle at 70% 85%, rgba(245,179,1,.10) 0 16%, transparent 17%);
+}
+.cr-banner__code--admin { border-color: rgba(245,179,1,.45); background: rgba(245,179,1,.12); }
+.cr-banner__code--admin span { color: #FDE68A; }
+.cr-banner__code--admin b { display: block; line-height: 0; margin-top: 4px; }
+.cr-banner__code--admin b svg { width: 26px; height: 26px; color: var(--gold); }
+
+.adm-join {
+  margin-top: 18px; padding: 15px; border-radius: 12px; text-align: left;
+  border: 1px solid #F1D98A; background: #FFFBEB;
+}
+.adm-join__t { display: flex; align-items: center; gap: 8px; color: #78350F; }
+.adm-join__t svg { width: 18px; height: 18px; }
+.adm-join p { font-size: 13px; color: #92400E; margin: 6px 0 12px; }
+
+/* UltraAdmin's list of classes */
+.ac-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 2px; border-bottom: 1px solid var(--line-soft);
+}
+.ac-row:last-child { border-bottom: 0; }
+.ac-row.is-admin b::after {
+  content: 'ADMIN'; margin-left: 8px; font-family: var(--mono); font-size: 9.5px;
+  letter-spacing: .08em; padding: 2px 5px; border-radius: 4px;
+  background: #0A0A0B; color: var(--gold); vertical-align: 2px;
+}
+
+/* ============================ co-teachers ========================= */
+.tch-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 0; border-bottom: 1px solid var(--line-soft);
+}
+.tch-row:last-child { border-bottom: 0; }
+
+/* ========================= assign to class ======================== */
+.preview-bar #preview-assign {
+  margin-left: auto; background: var(--gold); color: #1A1300; font-weight: 650;
+}
+.preview-bar #preview-assign:hover { background: #FFC933; }
+.preview-bar #preview-assign:not(.hidden) + .btn { margin-left: 0; }
+
+.as-list { display: grid; gap: 8px; }
+.as-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px;
+  background: var(--white); font: inherit; color: inherit; cursor: pointer; text-align: left;
+}
+.as-row:hover { border-color: var(--accent); }
+.as-row.is-on { border-color: var(--accent); background: var(--accent-soft); }
+.as-row span { font-size: 12.5px; color: var(--muted); }
+
+@media (max-width: 760px) {
+  .pp-grid { grid-template-columns: repeat(auto-fill, minmax(142px, 1fr)); gap: 10px; }
+  .pp-adminbar { flex-wrap: wrap; }
+}

@@ -47,6 +47,7 @@
       body:
         adminPageCard() +
         privateCard() +
+        adminClassCard() +
         whoCard() +
         roleCard() +
         masqueradeCard() +
@@ -154,6 +155,17 @@
         close(); open();
       });
     });
+  }
+
+  /* ------------------------ admin classrooms -----------------------
+     Which classes are admin classrooms (0010). The list and the switches
+     are drawn by classroom-extras.js, which owns everything else about
+     admin classrooms too.
+  ------------------------------------------------------------------ */
+  function adminClassCard() {
+    return card('Admin classrooms', '<div id="ua-adminclass"></div>',
+      'Joined with the UltraAdmin code, by accounts on the admin list only. Their own code is never ' +
+      'shown to the people in them, and lets nobody in.');
   }
 
   /* ------------------------------- who ---------------------------- */
@@ -363,6 +375,10 @@ why() + '</button>';
 
     wireBadges(root);
     wirePrivate(root, close);
+    var acHost = W.$('#ua-adminclass', root);
+    if (acHost && global.ClassExtras && global.ClassExtras.mountAdminClasses) {
+      global.ClassExtras.mountAdminClasses(acHost);
+    }
     wireAccess(root, close);
     wireEnforce(root);
 

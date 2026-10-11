@@ -183,7 +183,11 @@
                 '</div></div>'
             : '') +
         '</div>',
-      actions: [{ label: 'Close', cls: 'btn--ghost', close: true }]
+      actions: [{ label: 'Close', cls: 'btn--ghost', close: true }],
+      onMount: function (root) {
+        realProfile(root, id, isMe,
+          '<span class="pcard__role pcard__role--' + meta.tone + '">' + meta.label + '</span>');
+      }
     });
 
     function statGrid() {
@@ -212,6 +216,27 @@
         }).join('') +
       '</div>';
     }
+  }
+
+  /* The card a person designed, in place of their initials — the profile
+     they built, not the name on the class list. Mine is on this device;
+     anybody else's comes from class_roster (0010, classroom-extras.js),
+     which only answers somebody in the same class. Until it arrives, or
+     on a database without it, the initials stay: the card never waits. */
+  function realProfile(root, id, isMe, pill) {
+    var head = root.querySelector('.pcard__head');
+    if (!head || !global.UI || !global.UI.profileCard) return;
+    function put(who) {
+      if (!document.body.contains(head)) return;
+      var box = W.el('div', 'pcard__real');
+      box.innerHTML = global.UI.profileCard(null, who) + '<div class="pcard__realrole">' + pill + '</div>';
+      head.parentNode.replaceChild(box, head);
+      if (global.UI.runEffect) global.UI.runEffect(box);
+    }
+    if (isMe) return put(null);
+    var X = global.ClassExtras;
+    if (!X || !X.profileFor || !id) return;
+    X.profileFor(id).then(function (who) { if (who) put(who); });
   }
 
   /* ============================= delegation =========================

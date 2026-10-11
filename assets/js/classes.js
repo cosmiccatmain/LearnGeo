@@ -160,6 +160,29 @@
     return row;
   }
 
+  /* A class somebody else made and added this teacher to (0010,
+     class_teachers). Added to the list with its server id already set,
+     so the next sync finds its row by id and pulls the other teacher's
+     work in — it never adopts or creates. Does not switch to it: being
+     added to a class should not move a teacher out of the one they are
+     working in. Answers the record, new or already there. */
+  function addFromCloud(row) {
+    ensure();
+    if (!row || !row.id) return null;
+    var list = W.state.classes;
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].cloudId === row.id) return list[i];
+    }
+    var rec = fill(blank(row.name || ''));
+    rec.cloudId = row.id;
+    rec.code = row.code || '';
+    rec.shared = true;            /* co-taught: owned by another teacher */
+    list.push(rec);
+    W.saveNow();
+    emit();
+    return rec;
+  }
+
   /* Removing is local only. It takes the class off this teacher's list
      and does not delete the row in Supabase, because a class with
      students in it is not this device's to destroy. */
@@ -333,6 +356,7 @@
     BACKGROUNDS: BACKGROUNDS,
     ensure: ensure, all: all, active: active, activeId: activeId, count: count,
     byId: byId, switchTo: switchTo, create: create, remove: remove, rename: rename,
+    addFromCloud: addFromCloud,
     background: background, setBackground: setBackground,
     studentBackground: studentBackground, paint: paint,
     validBg: validBg, onChange: onChange,

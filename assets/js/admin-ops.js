@@ -303,6 +303,10 @@
        checks it again and its answer is the one that counts. */
     override: function (id, amount, why)  { return call('ultra_override_gems', { p_target: id, p_amount: amount, p_reason: why || 'override' }); },
 
+    /* Admin classrooms (0010). */
+    classes:  function (q)                { return call('ultra_list_classes', { p_query: q || '' }); },
+    setAdminClass: function (id, on)      { return call('ultra_set_admin_class', { p_class: id, p_on: !!on }); },
+
     hasPrivate: hasPrivate,
     openPrivate: openPrivate,
     setPrivate: setPrivate,

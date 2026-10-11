@@ -241,7 +241,11 @@
          that call means editing ui.js, which several sessions share. */
       if (item.staff) {
         var s = global.WW && global.WW.state;
-        return !!(s && s.flags && s.flags.staff);
+        if (s && s.flags && s.flags.staff) return true;
+        /* One of the admin classroom perks (0010): everybody in one wears
+           it while they are in it, and loses it when they leave. */
+        var X = global.ClassExtras;
+        return !!(X && X.inAdminClass && X.inAdminClass());
       }
       if (!item.earn) return false;
       return (achievements || []).indexOf(item.earn) !== -1;
@@ -255,7 +259,7 @@
       if (!item || !item.earn) return null;
       if (item.staff) {
         return { id: 'staff-grant', name: 'LearnGeo Staff',
-                 desc: 'Granted to LearnGeo staff — not for sale', reward: 0 };
+                 desc: 'For LearnGeo staff and admin classrooms — not for sale', reward: 0 };
       }
       for (var i = 0; i < ACHIEVEMENTS.length; i++) {
         if (ACHIEVEMENTS[i].id === item.earn) return ACHIEVEMENTS[i];

@@ -406,17 +406,53 @@
      active record says which row it is — by id once it has synced, by
      code if it was created on another device, and otherwise there is no
      row yet and we make one. */
+  /* Every class this teacher teaches: the ones they own, and since 0010
+     the ones another teacher added them to, each marked `owned`. A
+     database without my_teaching_classes answers the owner-only query
+     this used to run, so nothing changes until 0010 is applied. */
+  function teachingRows() {
+    return sb.rpc('my_teaching_classes').then(function (res) {
+      if (!res.error) {
+        return (res.data || []).map(function (r) {
+          return { id: r.id, code: r.code, name: r.name, owned: r.owned !== false, isAdmin: !!r.is_admin };
+        });
+      }
+      var e = res.error;
+      if (e.code === 'PGRST202' || /could not find the function/i.test(String(e.message || ''))) {
+        return sb.from('classes').select('id, code, name').eq('teacher_id', user.id)
+          .order('created_at', { ascending: true })
+          .then(function (r2) {
+            return (check(r2) || []).map(function (r) { r.owned = true; return r; });
+          });
+      }
+      throw e;
+    });
+  }
+
   function teacherClass() {
     var c = cls();
-    return sb.from('classes').select('id, code, name').eq('teacher_id', user.id)
-      .order('created_at', { ascending: true })
-      .then(function (res) {
-        var rows = check(res) || [];
-        teacherRows = rows.slice();
+    return teachingRows()
+      .then(function (all) {
+        /* Matching by id or code may land on a shared row; adopting may
+           not. Only a row this teacher OWNS can be claimed by a local class
+           that has lost its id, or a brand-new class could attach itself
+           to a colleague's room and start syncing over it. */
+        var rows = all.filter(function (r) { return r.owned; });
+        teacherRows = all.slice();
 
         var want = null;
-        if (c.cloudId) want = pick(rows, function (r) { return r.id === c.cloudId; });
-        if (!want && c.code) want = pick(rows, function (r) { return r.code === c.code; });
+        if (c.cloudId) want = pick(all, function (r) { return r.id === c.cloudId; });
+        if (!want && c.code) want = pick(all, function (r) { return r.code === c.code; });
+
+        /* A shared class this teacher is no longer on. Adopting or
+           creating here would turn somebody else's class into a new empty
+           one with its name; stop instead, and classroom-extras.js takes
+           the record off the list. */
+        if (!want && c.shared) {
+          var gone = new Error('You no longer teach this class.');
+          gone.code = 'not-teaching';
+          throw gone;
+        }
 
         /* Nothing matched by id or code, so adopt a server row that no
            other local class has already claimed.

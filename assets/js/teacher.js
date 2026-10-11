@@ -238,6 +238,12 @@
      something — is what made every join fail. If there is no code yet,
      there is no code, and the banner says so instead of making one up. */
   function classCode() { return cls().code || ''; }
+  /* An admin classroom (0010) is joined with the UltraAdmin code; its own
+     code lets nobody in, so it is not offered to be copied or shared. */
+  function adminClass() {
+    var X = global.ClassExtras;
+    return !!(X && X.isAdmin && X.isAdmin(cls().cloudId));
+  }
 
   function joinLink() {
     var c = classCode();
@@ -464,7 +470,10 @@
             switcher() +
             syncLine() +
           '</div>' +
-          (classCode()
+          (adminClass()
+            ? '<div class="cr-banner__code cr-banner__code--admin" title="Students on the admin list join with the UltraAdmin code">' +
+                '<span>Admin classroom</span><b>' + I.shield + '</b></div>'
+            : classCode()
             ? '<button class="cr-banner__code" id="tm-copycode" title="Copy class code">' +
                 '<span>Class code</span><b>' + classCode() + '</b>' +
               '</button>'
@@ -583,6 +592,11 @@
     var fxHost = document.getElementById('cr-features');
     if (fxHost && global.ClassFeatures && global.ClassFeatures.mount) {
       global.ClassFeatures.mount(fxHost, { classId: cls().cloudId || '' });
+    }
+
+    var tchHost = document.getElementById('cr-teachers');
+    if (tchHost && global.ClassExtras && global.ClassExtras.mountTeachers) {
+      global.ClassExtras.mountTeachers(tchHost, cls());
     }
 
     var tagHost = document.getElementById('cr-classtag');
@@ -1085,6 +1099,8 @@
       /* first, not third. A teacher opening Settings to look for a feature
          should not have to scroll past Class and Data to find out it exists. */
       '<div class="cr-card"><div id="cr-features"></div></div>' +
+      /* Co-teachers (0010). Filled by classroom-extras.js. */
+      '<div class="cr-card"><div id="cr-teachers"></div></div>' +
       '<div class="cr-card">' +
         '<div class="cr-card__head"><h3>Class</h3></div>' +
         '<div class="field"><label class="field__label">Class name</label>' +
@@ -1103,7 +1119,10 @@
           '<div class="field__hint">Your students see this too, so each class looks ' +
             'like itself.</div></div>' +
         '<div class="field"><label class="field__label">Class code</label>' +
-          (classCode()
+          (adminClass()
+            ? '<div class="field__hint">This is an admin classroom. Accounts on the admin list join with ' +
+                'the UltraAdmin code; this class&rsquo;s own code does not let anybody in.</div>'
+            : classCode()
             ? '<div class="code-chip">' + classCode() +
                 '<button data-copycode title="Copy class code">' + I.clip + '</button></div>' +
               '<div class="field__hint">Students type this once. It was issued when your class ' +
@@ -1336,11 +1355,14 @@
   }
 
   /* ============================= builder ============================ */
-  function openBuilder(existing) {
+  /* `seed` starts a NEW assignment from somewhere else — "Assign to class"
+     on a browse bar — with the mode already chosen. It is not `existing`:
+     the dialog still says New and Create, and a fresh id is made. */
+  function openBuilder(existing, seed) {
     var a = existing || {
       id: 'a' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36),
-      title: '', mode: 'test',
-      config: { countries: [], count: 20, types: ['capital', 'country'],
+      title: (seed && seed.title) || '', mode: (seed && seed.mode) || 'test',
+      config: { countries: (seed && seed.countries) || [], count: 20, types: ['capital', 'country'],
                 timed: false, instant: true, typed: false, fill: false }
     };
     var cfg = a.config;
@@ -1441,6 +1463,17 @@
   function shareInvite() {
     var c = cls();
     var code = classCode();
+
+    if (adminClass()) {
+      global.UI.modal({
+        title: 'Admin classroom', icon: I.shield,
+        body: '<p class="t-muted">There is no code to hand out. Somebody on the admin list joins from ' +
+              'Classroom &rarr; <b>Join an admin classroom</b>, with the UltraAdmin code. Nobody else ' +
+              'can get in, with this class&rsquo;s code or any other.</p>',
+        actions: [{ label: 'OK', cls: 'btn--primary', close: true }]
+      });
+      return;
+    }
 
     if (!code) {
       global.UI.modal({

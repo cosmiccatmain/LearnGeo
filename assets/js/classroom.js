@@ -183,7 +183,7 @@
           '<span class="cr-switch__t"><b>' +
             W.escapeHtml(row.className || 'Your class') + '</b>' +
             '<span>' + (todo ? todo + ' to do' : 'nothing to do') +
-            ' · ' + W.escapeHtml(row.code) + '</span></span>' +
+            (isAdminClass(row.classId) ? ' · admin' : ' · ' + W.escapeHtml(row.code)) + '</span></span>' +
         '</button>';
       }).join('') +
       '<div class="cr-switch__sep"></div>' +
@@ -241,6 +241,14 @@
     return W.state.enrolled || null;
   }
   function className() { return enrolled() ? enrolled().className : ''; }
+  /* An admin classroom (0010) is joined with the UltraAdmin code, so its
+     own code is never shown to the people in it — not that it would let
+     anybody in, but the screen should not suggest a way in that is not
+     one. classroom-extras.js knows which classes are admin ones. */
+  function isAdminClass(id) {
+    var X = global.ClassExtras;
+    return !!(X && X.isAdmin && X.isAdmin(id || (enrolled() && enrolled().classId)));
+  }
   function classCode() { return enrolled() ? enrolled().code : ''; }
 
   function avg(nums) {
@@ -293,7 +301,9 @@
             switcher() +
             syncLine() +
           '</div>' +
-          (code
+          (isAdminClass()
+            ? '<div class="cr-banner__code cr-banner__code--admin"><span>Admin classroom</span><b>' + I.shield + '</b></div>'
+            : code
             ? '<div class="cr-banner__code"><span>Class code</span><b>' + W.escapeHtml(code) + '</b></div>'
             : '') +
         '</div>' +
@@ -304,6 +314,7 @@
           crTab('grades', I.chart, 'Grades', done.length) +
           (geoliveOn() ? crTab('geolive', I.bolt, 'GeoLive') : '') +
           (leaderboardOn() ? crTab('leaderboard', I.trophy, 'Leaderboard') : '') +
+          crTab('people', I.users, 'People') +
         '</div>' +
 
         '<div id="cl-body">' + pendingNotice() + panel() + '</div>' +
@@ -326,6 +337,7 @@
     if (tab === 'grades') return gradesPanel();
     if (tab === 'geolive') return '<div id="cl-geolive"></div>';
     if (tab === 'leaderboard') return '<div id="cl-leaderboard"></div>';
+    if (tab === 'people') return '<div id="cl-people"></div>';
     return classworkPanel();
   }
 
@@ -498,6 +510,8 @@
             ? '<button class="btn btn--ghost btn--block" id="j-cancel" style="margin-top:8px">' +
                 'Back to ' + W.escapeHtml(className() || 'my class') + '</button>'
             : '') +
+          /* Filled only for an account on the admin list. */
+          '<div id="j-admin"></div>' +
         '</div>' +
       '</div>';
 
@@ -512,6 +526,21 @@
       el.addEventListener('keydown', function (e) { if (e.key === 'Enter') join(host); });
     });
     setTimeout(function () { (pending ? W.$('#j-name', host) : codeEl).focus(); }, 60);
+    var adminHost = W.$('#j-admin', host);
+    if (adminHost && global.ClassExtras && global.ClassExtras.mountAdminJoin) {
+      global.ClassExtras.mountAdminJoin(adminHost);
+    }
+  }
+
+  /* A class joined some other way than this screen's code box — the admin
+     classroom, joined with the UltraAdmin code. Same ending as finish(). */
+  function joinedElsewhere(klass, name, note) {
+    pending = '';
+    enroll({ code: klass.code, className: klass.name, name: name, classId: klass.id }, [],
+           note || 'Your classwork will show up here');
+    if (global.Cloud && global.Cloud.studentSync) {
+      global.Cloud.studentSync().then(function () { render(true); }, function () {});
+    }
   }
 
   function joinError(host, title, body) {
@@ -704,6 +733,13 @@
        actually open, never inside the class sync. An empty list is a real
        answer here: it means either nobody has joined or the policy will not
        show them, and the table says the same thing either way. */
+    /* Everybody in the class, with the profile each of them designed.
+       Fetched only while this tab is open (classroom-extras.js). */
+    var peHost = document.getElementById('cl-people');
+    if (peHost && global.ClassExtras && global.ClassExtras.mountPeople) {
+      global.ClassExtras.mountPeople(peHost, (W.state.enrolled || {}).classId || '');
+    }
+
     var lbHost = document.getElementById('cl-leaderboard');
     if (lbHost && leaderboardOn() && global.ClassLeaderboard && global.ClassLeaderboard.mount) {
       var en = W.state.enrolled || {};
@@ -982,6 +1018,7 @@
   global.Classroom = {
     render: render,
     checkForWork: checkForWork, prefill: prefill,
+    joinedElsewhere: joinedElsewhere,
     syncSoon: syncSoon,
     forget: function () { lastSync = 0; },
     get tab() { return tab; }, set tab(v) { tab = v; }

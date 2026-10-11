@@ -8,15 +8,22 @@
 
   var currentView = 'learn';
   var previewing = false;
+  var browsing = false;       /* a teacher looking round the study modes */
 
-  /* A teacher opening an assignment to check it. Study views are otherwise
-     closed to them, so this opens a door and puts a way back on screen. */
-  function startPreview(label) {
+  /* A teacher opening an assignment to check it, seeing their class as a
+     student, or — with opts.assign — browsing the study modes with an
+     "Assign to class" button on the bar. All three are previews: every
+     mode already hides its hand-in button while one is on, so a teacher
+     can look at anything and submit nothing. */
+  function startPreview(label, opts) {
     previewing = true;
+    browsing = !!(opts && opts.assign);
     var bar = document.getElementById('preview-bar');
     if (bar) {
       bar.classList.remove('hidden');
       bar.querySelector('[data-label]').textContent = label || 'Previewing an assignment';
+      var asg = bar.querySelector('#preview-assign');
+      if (asg) asg.classList.toggle('hidden', !browsing);
     }
     document.body.classList.add('is-previewing');
   }
@@ -24,8 +31,11 @@
   function endPreview() {
     if (global.Masquerade && global.Masquerade.active) global.Masquerade.stop();
     previewing = false;
+    browsing = false;
     var bar = document.getElementById('preview-bar');
     if (bar) bar.classList.add('hidden');
+    var asg = document.getElementById('preview-assign');
+    if (asg) asg.classList.add('hidden');
     document.body.classList.remove('is-previewing');
     go('teacher');
   }
@@ -755,12 +765,16 @@
      re-running the contrast check against the lightest theme. */
   function themeInk(t, a) { return 'color:' + t.c2 + a; }
 
-  function profileCard(live) {
-    var p = W.state.profile, s = W.state;
+  /* `who` draws somebody else's real profile — the card they designed,
+     not their class name — from class_roster (0010): { profile, level,
+     answered, correct, mastered, badges, name }. Their balance is not
+     part of it and is not shown. */
+  function profileCard(live, who) {
+    var p = who ? (who.profile || {}) : W.state.profile, s = W.state;
     var banner = Cos.find(Cos.banners, p.banner);
     var plate = Cos.find(Cos.nameplates, p.nameplate);
     var theme = Cos.find(Cos.themes, p.theme);
-    var name = (live && live.displayName) || p.displayName || 'Explorer';
+    var name = (live && live.displayName) || p.displayName || (who && who.name) || 'Explorer';
     var pron = (live && live.pronouns) || p.pronouns;
     var about = (live && live.about !== undefined) ? live.about : p.about;
 
@@ -772,20 +786,32 @@
         '<div class="profile-card__name" style="background:' + plate.css + ';color:' + plate.text + '">' +
           '<span class="pc-name">' + W.escapeHtml(name) + '</span>' +
           '<span class="pc-marks">' + W.verifiedMark(p, 15) +
-            (global.Badges ? global.Badges.markup(null, 13, false, true) : '') + '</span>' +
+            (global.Badges ? global.Badges.markup(who ? whoBadges(who) : null, 13, false, true) : '') + '</span>' +
         '</div>' +
         '<div class="profile-card__tag" style="' + themeInk(theme, 'DE') + '">Level ' +
-          s.economy.level + ' · ' + s.economy.diamonds.toLocaleString() + ' 💎</div>' +
+          (who ? (who.level || 1) : s.economy.level + ' · ' + s.economy.diamonds.toLocaleString() + ' 💎') + '</div>' +
         (pron ? '<div class="profile-card__pronouns" style="' + themeInk(theme, 'D9') + '">' +
           W.escapeHtml(pron) + '</div>' : '') +
         (about ? '<div class="profile-card__about" style="' + themeInk(theme, 'E6') +
           ';border-top-color:' + theme.c1 + '59">' + W.escapeHtml(about) + '</div>' : '') +
         '<div class="profile-card__stats" style="' + themeStats(theme) + '">' +
-          stat(s.stats.answered, 'answered') +
-          stat(s.stats.answered ? Math.round(s.stats.correct / s.stats.answered * 100) + '%' : '—', 'accuracy') +
-          stat(W.masteredCount(), 'mastered') +
+          (who
+            ? stat(who.answered || 0, 'answered') +
+              stat(who.answered ? Math.round((who.correct || 0) / who.answered * 100) + '%' : '—', 'accuracy') +
+              stat(who.mastered || 0, 'mastered')
+            : stat(s.stats.answered, 'answered') +
+              stat(s.stats.answered ? Math.round(s.stats.correct / s.stats.answered * 100) + '%' : '—', 'accuracy') +
+              stat(W.masteredCount(), 'mastered')) +
         '</div>' +
       '</div></div>';
+
+    /* Their chosen badges, or the first three they hold when they have
+       not chosen; same rule as their own card uses for itself. */
+    function whoBadges(w) {
+      var slots = w.profile && w.profile.badgeSlots;
+      if (Array.isArray(slots) && slots.length) return slots;
+      return (Array.isArray(w.badges) ? w.badges : []).slice(0, 3);
+    }
 
     function stat(v, l) {
       /* the label override is the point: var(--faint) is pinned in app.css and
@@ -1095,17 +1121,17 @@
   /* The switcher shows Classroom to students and Teacher to teachers, so
      teacher mode is a place you can leave and come back to rather than a
      one-way trip out of the menu. */
-  /* Teachers get their class and nothing else. XP, diamonds and streaks are
-     for the people being taught; a teacher previewing an assignment goes
-     through Classwork, which opens the mode in preview and comes back. */
+  /* Teachers see the study modes too, and open them as a browse (go()
+     below), so they can find something worth setting and assign it from
+     where they are. Home stays student-only. */
   var TAB_DEFS = [
     { view: 'portal',    icon: 'grid',   label: 'Home',          role: 'student' },
     { view: 'classroom', icon: 'users',  label: 'Classroom',     role: 'student' },
     { view: 'teacher',   icon: 'users',  label: 'My class',      role: 'teacher' },
-    { view: 'learn',     icon: 'book',   label: 'Learn',         role: 'student' },
-    { view: 'test',      icon: 'clip',   label: 'Practice test', role: 'student' },
-    { view: 'quiz',      icon: 'target', label: 'Class quiz',    role: 'student' },
-    { view: 'cards',     icon: 'cards',  label: 'Flashcards',    role: 'student' }
+    { view: 'learn',     icon: 'book',   label: 'Learn',         role: null },
+    { view: 'test',      icon: 'clip',   label: 'Practice test', role: null },
+    { view: 'quiz',      icon: 'target', label: 'Class quiz',    role: null },
+    { view: 'cards',     icon: 'cards',  label: 'Flashcards',    role: null }
   ];
 
   function refreshTabs() {
@@ -1235,14 +1261,21 @@
        teacher looking at their class as a student; neither should be
        bounced back out of the view they just asked for. */
     if (view === 'classroom' && isTeacher && !previewing) view = 'teacher';
-    if (isTeacher && !previewing && ['portal', 'learn', 'test', 'quiz', 'cards'].indexOf(view) !== -1) {
-      view = 'teacher';
+    if (isTeacher && !previewing && view === 'portal') view = 'teacher';
+    /* A teacher may look round Learn, Practice test, Class quiz and
+       Flashcards. It opens as a browse — a preview with an "Assign to
+       class" button — so nothing they do there is handed in. */
+    if (isTeacher && !previewing && ['learn', 'test', 'quiz', 'cards'].indexOf(view) !== -1) {
+      startPreview('Browsing as a teacher', { assign: true });
     }
     /* heading back to the class by any route ends a preview */
     if (view === 'teacher' && previewing) {
       previewing = false;
+      browsing = false;
       var bar = document.getElementById('preview-bar');
       if (bar) bar.classList.add('hidden');
+      var asg = document.getElementById('preview-assign');
+      if (asg) asg.classList.add('hidden');
       document.body.classList.remove('is-previewing');
       /* and puts a masquerading teacher back in their own state, before
          the teacher view renders anything from it */
@@ -1350,6 +1383,7 @@
     askRole: askRole, startPreview: startPreview, endPreview: endPreview,
     openAuth: openAuth, openNewPassword: openNewPassword,
     afterAccountChange: afterAccountChange, refreshLanding: refreshLanding,
-    get previewing() { return previewing; }
+    get previewing() { return previewing; },
+    get browsing() { return browsing; }
   };
 })(window);
