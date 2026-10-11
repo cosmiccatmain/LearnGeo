@@ -974,6 +974,9 @@ textarea.input:focus { outline: none; border-color: var(--accent); box-shadow: 0
   transition: all .14s var(--ease);
 }
 .fc-rate button:not(.btn):hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+.fc-rate button:not(.btn):disabled {
+  opacity: .48; cursor: wait; transform: none; box-shadow: none;
+}
 .fc-rate span { font-family: var(--mono); font-size: 10px; color: var(--faint); font-weight: 500; }
 .fc-rate .r-again:hover { border-color: var(--danger); color: var(--danger); }
 .fc-rate .r-hard:hover  { border-color: #B45309; color: #B45309; }
