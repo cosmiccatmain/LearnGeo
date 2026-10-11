@@ -1,8 +1,16 @@
 /* ------------------------------------------------------------------
    0007 — the Administrator page: reaching other accounts, safely.
 
-   NOT YET APPLIED as of this commit. The client ships ahead of it and
-   says so on screen rather than failing quietly.
+   APPLIED 2026-10-10 by aj, through the SQL editor, in three pastes
+   with the comments stripped. Checked afterwards from outside: all
+   twelve functions exist, and the four probed with the publishable
+   key while signed out (my_admin_actions, ultra_stats,
+   ultra_allow_set, admin_open_session) each answer 42501, permission
+   denied — so the revoke from anon took, not only the check inside
+   each body.
+
+   Every statement here is create-if-not-exists or create-or-replace,
+   so the whole file is safe to run again.
 
    Everything before this file kept an admin inside their own save.
    The gems panel edits one browser; UltraAdmin edits one device. This
