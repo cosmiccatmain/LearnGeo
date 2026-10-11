@@ -171,15 +171,115 @@
     }
   }
 
+  /* ============================ messages =============================
+     Sent from the Administrator page (0008). Pulled against their own
+     cursor, flags.adminMsgAt, NOT against flags.adminAt: the server
+     writes adminAt into the save with every balance change, so a device
+     that adopted a save stamped by a later change would ask for actions
+     after that stamp and skip clean past an unread message sent before
+     it. Only this file writes adminMsgAt, and only once a message has
+     been dismissed.
+
+     So a message stays until it is seen. Close the tab with it on
+     screen and it is back the next time the app opens.
+
+     Checked every 30 seconds while the tab is visible — more often than
+     balance changes, because a message is somebody waiting for a reply
+     and a balance is not. One small indexed query per check.
+  ------------------------------------------------------------------ */
+  var MSG_EVERY = 30e3;
+  var MSG_GAP = 10e3;
+  var msgLast = 0, msgBusy = false, msgDead = false, showing = false;
+
+  function msgStamp() {
+    var f = W.state.flags;
+    return (f && typeof f.adminMsgAt === 'string' && f.adminMsgAt) ? f.adminMsgAt : null;
+  }
+
+  function checkMessages(force) {
+    var cl = C();
+    if (msgDead || msgBusy || showing || !cl || !cl.ready || !cl.sb) return;
+    if (!force && Date.now() - msgLast < MSG_GAP) return;
+    msgLast = Date.now();
+    msgBusy = true;
+    var who = cl.user && cl.user.id;
+
+    cl.sb.rpc('my_admin_messages', { p_since: msgStamp() })
+      .then(function (res) {
+        if (!C() || !C().user || C().user.id !== who) return;
+        if (res.error) {
+          if (missing(res.error, 'my_admin_messages')) msgDead = true;   /* 0008 not run yet */
+          return;
+        }
+        var rows = (res.data || []).filter(function (m) { return m && m.body; });
+        if (rows.length) showMessages(rows, who);
+      })
+      .catch(function () { /* offline: the next check will get it */ })
+      .then(function () { msgBusy = false; });
+  }
+
+  function when(ts) {
+    var t = Date.parse(ts);
+    if (!t) return '';
+    var m = Math.round((Date.now() - t) / 60000);
+    if (m < 1) return 'just now';
+    if (m < 60) return m + ' min ago';
+    var h = Math.round(m / 60);
+    if (h < 24) return h + (h === 1 ? ' hour ago' : ' hours ago');
+    var d = Math.round(h / 24);
+    return d + (d === 1 ? ' day ago' : ' days ago');
+  }
+
+  function showMessages(rows, who) {
+    if (!global.UI || !global.UI.modal) return;
+    showing = true;
+    /* Escaped before the line breaks are put back: the text came from
+       another person, and it is going into HTML. */
+    var body = rows.map(function (m) {
+      return '<div class="admsg">' +
+        '<div class="admsg__text">' + W.escapeHtml(String(m.body)).replace(/\n/g, '<br>') + '</div>' +
+        '<div class="admsg__when">' + W.escapeHtml(when(m.created_at)) + '</div>' +
+      '</div>';
+    }).join('');
+
+    global.UI.modal({
+      title: rows.length === 1 ? 'A message from LearnGeo' : rows.length + ' messages from LearnGeo',
+      icon: I.inbox,
+      body: '<p class="t-sm t-muted" style="margin:-4px 0 12px">From a LearnGeo administrator.</p>' + body,
+      actions: [{ label: 'Got it', cls: 'btn--primary', close: true }],
+      onClose: function () {
+        showing = false;
+        /* Moved only now, and only for the account it was fetched for:
+           an account switch with this open must not mark messages read
+           in somebody else's save. */
+        if (!C() || !C().user || C().user.id !== who) return;
+        if (!W.state.flags || typeof W.state.flags !== 'object') W.state.flags = {};
+        W.state.flags.adminMsgAt = rows[rows.length - 1].created_at;
+        W.saveNow();
+        /* Twenty at a time; if there were more, show the next lot. */
+        if (rows.length >= 20) setTimeout(function () { checkMessages(true); }, 400);
+      }
+    });
+    if (W.Sound && W.Sound.gem) { try { W.Sound.gem(); } catch (e) {} }
+  }
+
   /* After every successful sync, which includes the one right after
      signing in, when the account has just been reconciled. */
   if (C() && C().onChange) {
-    C().onChange(function (status) { if (status === 'synced') check(false); });
+    C().onChange(function (status) {
+      if (status === 'synced') { check(false); checkMessages(false); }
+    });
   }
-  global.addEventListener('focus', function () { check(false); });
+  global.addEventListener('focus', function () { check(false); checkMessages(false); });
   setInterval(function () {
     if (document.visibilityState === 'visible') check(false);
   }, EVERY);
+  setInterval(function () {
+    if (document.visibilityState === 'visible') checkMessages(false);
+  }, MSG_EVERY);
 
-  global.AdminInbox = { check: function () { check(true); } };
+  global.AdminInbox = {
+    check: function () { check(true); },
+    checkMessages: function () { checkMessages(true); }
+  };
 })(window);

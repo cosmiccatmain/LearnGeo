@@ -171,3 +171,28 @@
   .adminp__act .eyebrow { width: 100%; }
   .adminp__logrow { flex-wrap: wrap; gap: 4px 8px; }
 }
+
+/* ------------------------------ messages ------------------------- */
+/* The box on the Administrator page. */
+.adminp__msg { margin: 14px 0 4px; padding-top: 14px; border-top: 1px solid var(--line-soft); }
+.adminp__msg .eyebrow { display: block; margin-bottom: 7px; }
+.adminp__msg textarea {
+  width: 100%; resize: vertical; min-height: 74px;
+  font: inherit; line-height: 1.45; padding: 10px 12px;
+}
+.adminp__msgfoot {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; margin-top: 8px;
+}
+
+/* What the recipient sees, inside an ordinary dialog. Pre-wrapped so a
+   message keeps the line breaks it was written with, and broken
+   anywhere so one long unbroken word cannot push the dialog wider than
+   a phone. */
+.admsg {
+  border: 1px solid var(--line); border-radius: var(--r);
+  background: var(--paper); padding: 13px 15px; margin-bottom: 10px;
+}
+.admsg:last-child { margin-bottom: 0; }
+.admsg__text { font-size: 15px; line-height: 1.5; color: var(--ink); overflow-wrap: anywhere; }
+.admsg__when { font-size: 11.5px; color: var(--faint); margin-top: 7px; font-family: var(--mono); }

@@ -41,7 +41,7 @@
     live: function () { return false; },
     minutesLeft: function () { return 0; },
     connect: no, disconnect: function () {},
-    stats: no, find: no, recent: no, gems: no, staff: no, allowList: no, allow: no
+    stats: no, find: no, recent: no, gems: no, staff: no, allowList: no, allow: no, message: no
   };
   function no() {
     return Promise.resolve({ ok: false, kind: 'error', message: 'admin-ops.js did not load.' });
@@ -50,6 +50,7 @@
   function esc(s) { return W.escapeHtml(String(s == null ? '' : s)); }
   /* Same bounds as admin.js, admin-inbox.js and 0007. */
   var CAP = 2000000000, MAX_STEP = 1000000000;
+  var MSG_MAX = 500;        /* the server refuses longer; 0008, ultra_send_message */
 
   /* Past a quadrillion, a number written out in full is a row of digits
      nobody can read and, past 2^53, partly invented: 1.35e36 prints as
@@ -174,6 +175,20 @@
       if (d.do === 'staff') return setStaff(d.on === '1');
       if (d.do === 'allow') return setAllow(d.on === '1');
       if (d.do === 'selfstaff') return selfStaff(d.on === '1');
+      if (d.do === 'msg') {
+        var box = W.$('#ap-msg-text', root);
+        return sendMessage(box ? box.value : '', box);
+      }
+    });
+
+    /* The counter under the message box. Delegated for the same reason
+       the clicks are: the box is rebuilt every time an account is
+       picked. */
+    root.addEventListener('input', function (e) {
+      if (e.target && e.target.id === 'ap-msg-text') {
+        var c = W.$('#ap-msg-count', root);
+        if (c) c.textContent = e.target.value.length + ' / ' + MSG_MAX;
+      }
     });
 
     document.addEventListener('keydown', onKey);
@@ -381,9 +396,19 @@
           'playing reaches: it came from a typed number. Any button here brings it back into range first, or ' +
           'use <code>set</code> in the commands below for an exact figure.</div></div>'
         : '') +
-      '<p class="t-sm t-muted" style="margin:10px 0 0">If their app is open, it picks this up within about ' +
-      'two minutes and tells them; if it is closed, the moment it next opens. A take is applied to whatever ' +
-      'balance their device actually has, so diamonds they earned since their last sync are not wiped.</p>';
+      '<p class="t-sm t-muted" style="margin:10px 0 0">A balance or staff change reaches their app within about ' +
+      'two minutes if it is open, and the moment it next opens if not. A take is applied to whatever ' +
+      'balance their device actually has, so diamonds they earned since their last sync are not wiped.</p>' +
+
+      '<div class="adminp__msg">' +
+        '<span class="eyebrow">Message</span>' +
+        '<textarea class="input" id="ap-msg-text" rows="3" maxlength="' + MSG_MAX + '" ' +
+          'placeholder="Shows up on their screen, from a LearnGeo administrator"></textarea>' +
+        '<div class="adminp__msgfoot">' +
+          '<span class="t-sm t-muted" id="ap-msg-count">0 / ' + MSG_MAX + '</span>' +
+          '<button class="btn btn--primary btn--sm" data-do="msg">Send message</button>' +
+        '</div>' +
+      '</div>';
   }
 
   /* =========================== the actions ========================= */
@@ -424,6 +449,31 @@
     });
   }
 
+  /* Sends to the selected account. The text is checked here only so a
+     mistake is caught before a round trip; the server checks it again
+     and its answer is the one that counts. */
+  function sendMessage(text, box) {
+    if (!needPicked()) return;
+    var body = String(text || '').trim();
+    if (!body) return say('Type a message first.');
+    if (body.length > MSG_MAX) return say('A message is at most ' + MSG_MAX + ' characters.');
+    var who = picked;
+    ops().message(who.id, body).then(function (r) {
+      guard(r, function () {
+        if (box && document.body.contains(box)) {
+          box.value = '';
+          var c = W.$('#ap-msg-count', root);
+          if (c) c.textContent = '0 / ' + MSG_MAX;
+        }
+        say('Message sent to ' + (who.display_name || who.email || 'that account') +
+            '. It appears on their screen within about 30 seconds if their app is open, ' +
+            'otherwise the next time it opens.');
+        W.toast('Message sent', (who.display_name || 'That account') + ' will see it on their screen.', I.check, 3600);
+        ops().recent(15).then(function (x) { guard(x, renderLog); });
+      });
+    });
+  }
+
   function setAllow(on) {
     if (!needPicked()) return;
     if (!picked.email) return say('That account has no email, so it cannot go on the allowlist.');
@@ -437,6 +487,11 @@
   }
 
   /* ============================ the log ============================ */
+  function trim(s, n) {
+    s = String(s || '');
+    return s.length > n ? s.slice(0, n - 1) + '…' : s;
+  }
+
   function renderLog(list) {
     var host = W.$('#ap-log', root);
     if (!host) return;
@@ -450,6 +505,7 @@
         ? (num(d.was) + ' → ' + num(d.now) + (d.reason ? ' · ' + esc(d.reason) : ''))
         : a.action === 'staff' ? (d.on ? 'staff effect granted' : 'staff effect removed')
         : a.action === 'allow' ? (d.on ? 'added to allowlist' : 'removed from allowlist')
+        : a.action === 'message' ? 'message: “' + esc(trim(d.text, 80)) + '”'
         : esc(a.action);
       return '<div class="adminp__logrow">' +
         '<span class="t-muted">' + esc(ago(a.created_at)) + '</span>' +
@@ -507,6 +563,7 @@
     'set <n>            set the balance to exactly n',
     'empty              set the balance to 0',
     'staff on|off       grant or remove the staff effect',
+    'msg <text>         send a message to their screen',
     'allow <email>      let that address open the gems panel',
     'unallow <email>    take it off the allowlist',
     'stats              reload the numbers at the top',
@@ -560,6 +617,10 @@
     if (cmd === 'give')  return isNaN(n) ? say(bad) : gems({ delta:  Math.abs(n) }, 'gave ' + Math.abs(n));
     if (cmd === 'set')   return isNaN(n) ? say(bad) : gems({ set: Math.max(0, n) }, 'set to ' + Math.max(0, n));
     if (cmd === 'empty') return gems({ set: 0 }, 'emptied');
+    if (cmd === 'msg' || cmd === 'message') {
+      if (!rest) return say('What should it say? Try "msg Great work this week!"');
+      return sendMessage(rest, null);
+    }
     if (cmd === 'staff') {
       if (rest !== 'on' && rest !== 'off') return say('Say "staff on" or "staff off".');
       return setStaff(rest === 'on');

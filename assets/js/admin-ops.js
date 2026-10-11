@@ -189,6 +189,7 @@
     },
 
     staff:    function (id, on)           { return call('ultra_set_staff', { p_target: id, p_on: !!on }); },
+    message:  function (id, text)         { return call('ultra_send_message', { p_target: id, p_text: String(text || '') }); },
     allowList: function ()                { return call('ultra_allow_list', {}); },
     allow:    function (email, on)        { return call('ultra_allow_set', { p_email: email, p_on: !!on }); }
   };
