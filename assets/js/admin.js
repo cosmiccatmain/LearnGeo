@@ -27,6 +27,11 @@
      playing. */
   var MAX_BALANCE = 2000000000;
   var MAX_GRANT = 1000000000;
+  /* The largest whole number a browser holds exactly. A balance between
+     the cap and this was set on purpose with override on the
+     Administrator page; past it, it is the junk the old unbounded box
+     made, which is not a number anybody can add to. */
+  var MAX_SAFE = 9007199254740991;
 
   var MIN_LEN = 4;
   var MAX_LEN = 64;
@@ -70,13 +75,10 @@
     return (a && (a.email || a.id)) || '';
   }
 
-  function allowed(got) {
-    if (global.AdminPin && global.AdminPin.covers(got, 'ultra')) return true;  /* ultra always */
-    var list = allowList();
-    if (!list.length) return false;
-    var me = String(whoAmI()).toLowerCase();
+  function allowedLocally(email) {
+    var me = String(email || whoAmI()).toLowerCase();
     if (!me) return false;
-    return list.some(function (x) { return String(x).toLowerCase() === me; });
+    return allowList().some(function (x) { return String(x).toLowerCase() === me; });
   }
 
   /* ============================ number pad ========================== */
@@ -92,23 +94,63 @@
   function unlock(want, then) {
     want = want || 'gems';
     if (unlocked && can(want)) return then ? then(scope) : panel();
-    lock(want, then);
+    gateFirst(function () { lock(want, then); });
+  }
+
+  /* ========================== who may even ask ======================
+     Before any code box appears. An account that is not on admin_allow
+     is told it does not have access and sees nothing else — not a code
+     field it could guess at. This used to come AFTER the code, and only
+     for the gems panel; the UltraAdmin code skipped the list entirely.
+
+     This is the friendly half. The server half is in 0009:
+     admin_open_session and admin_open_session_private refuse an
+     unlisted account whatever it types, and admin_scope_of re-reads the
+     list on every call. */
+  function myEmail() {
+    var C = global.Cloud;
+    return (C && C.user && C.user.email) || '';
+  }
+
+  function gateFirst(go) {
+    var email = myEmail();
+    if (!email) return noAccess('Admin is only for accounts on the admin list, so sign in first.');
+    var P = global.AdminPin;
+    if (!P || !P.mayOpen) return noAccess();
+    P.mayOpen(email).then(function (ans) {
+      if (ans === true) return go();
+      /* null only when the database has no admin_may_open at all. */
+      if (ans === null && allowedLocally(email)) return go();
+      noAccess();
+    });
+  }
+
+  function noAccess(why) {
+    W.Sound.wrong();
+    global.UI.modal({
+      title: 'No access', icon: I.lock,
+      body: '<p style="margin:0">You do not have access.</p>' +
+            (why ? '<p class="t-sm t-muted" style="margin:8px 0 0">' + W.escapeHtml(why) + '</p>' : ''),
+      actions: [{ label: 'OK', cls: 'btn--primary', close: true }]
+    });
   }
 
   function lock(want, onPass) {
     want = want || 'gems';
     var typed = '';
     var keyHandler = null;       /* removed when the dialog closes, however it closes */
+    var priv = !!(global.AdminOps && global.AdminOps.hasPrivate && global.AdminOps.hasPrivate());
 
     var m = global.UI.modal({
       title: want === 'ultra' ? 'UltraAdmin' : 'Admin', icon: I.lock,
       body:
-        '<p class="t-muted t-sm" style="margin:-4px 0 16px">Enter the code' +
-          (want === 'ultra' ? ' for UltraAdmin' : '') + '.</p>' +
+        '<p class="t-muted t-sm" style="margin:-4px 0 16px">' +
+          (priv ? 'Enter your Private Password, or the code.'
+                : 'Enter the code' + (want === 'ultra' ? ' for UltraAdmin' : '') + '.') + '</p>' +
         '<div class="field">' +
           '<input class="input code-field" id="pad-code" type="password" ' +
             'autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" ' +
-            'maxlength="' + MAX_LEN + '" placeholder="code">' +
+            'maxlength="' + MAX_LEN + '" placeholder="' + (priv ? 'Private Password or code' : 'code') + '">' +
         '</div>' +
         '<div id="pad-err" class="pad-err"></div>',
       actions: [{ label: 'Cancel', cls: 'btn--ghost', close: true }],
@@ -151,41 +193,32 @@
           asking.then(function (got) {
             if (mine !== checkId || !document.body.contains(root)) return;
             if (got === null) return fail(NO_CHECK);
-            if (!got) { bump(); return fail(''); }
+            if (!got) return tryPrivate(mine);
             if (!global.AdminPin.covers(got, want)) {
               unlocked = true; scope = got;
               return fail('That code does not open this panel.');
             }
-            /* A correct code is not the end of it. The gems panel is
-               limited to accounts UltraAdmin has named, so a right code
-               on an unlisted account still opens nothing.
-
-               UltraAdmin is not on the list and does not need to be:
-               the account that decides who may open the small panel
-               cannot be shut out of it by its own answer. */
-            if (want !== 'gems' || global.AdminPin.covers(got, 'ultra')) {
-              tries = 0; lockedUntil = 0;
-              return pass(got);
-            }
-            errEl.textContent = 'Checking the admin list\u2026';
-            gate(got, mine);
+            /* The list was checked before this box opened (gateFirst). */
+            tries = 0; lockedUntil = 0;
+            pass(got, false);
           });
         }
 
-        /* The list that counts is admin_allow in Supabase, not the copy
-           in this save. Only a database too old to have admin_may_open
-           falls back to the local one, and a question that fails is a
-           no: at this point the code was right, so the alternative is
-           opening the panel on a check that never ran. */
-        function gate(got, mine) {
-          var P = global.AdminPin;
-          var ask = (P && P.mayOpen) ? P.mayOpen(whoAmI()) : Promise.resolve(null);
-          ask.then(function (ans) {
+        /* Not a shared code. If this account set a Private Password on
+           this device, it may be that; the server decides, and counts
+           wrong tries itself, so this throttle is only the first line. */
+        function tryPrivate(mine) {
+          var O = global.AdminOps;
+          if (!priv || !O || !O.openPrivate) { bump(); return fail(''); }
+          O.openPrivate(typed).then(function (r) {
             if (mine !== checkId || !document.body.contains(root)) return;
-            var ok = (ans === null) ? allowed(got) : ans;
-            if (!ok) return fail('This account is not on the admin list.');
-            tries = 0; lockedUntil = 0;
-            pass(got);
+            if (r && r.ok) { tries = 0; lockedUntil = 0; return pass('ultra', true); }
+            if (r && r.kind === 'locked') {
+              var mins = Math.max(1, Math.ceil(((r.until || 0) - Date.now()) / 60000));
+              return fail('Too many wrong tries on this device. Try again in ' + mins + ' min, or use the code.');
+            }
+            if (r && (r.kind === 'nomigration' || r.kind === 'error' || r.kind === 'notready')) return fail(NO_CHECK);
+            bump(); fail('');
           });
         }
 
@@ -195,7 +228,7 @@
           if (w) lockedUntil = Date.now() + w;
         }
 
-        function pass(got) {
+        function pass(got, viaPrivate) {
           unlocked = true;
           scope = got || 'gems';
           /* The only place the passphrase is handed on, and it is handed
@@ -207,7 +240,7 @@
              Not awaited. The exchange takes a round trip and the panel
              should open now; AdminOps makes the first call that needs a
              token wait on the same promise. */
-          if (got === 'ultra' && global.AdminOps && global.AdminOps.connect) {
+          if (got === 'ultra' && !viaPrivate && global.AdminOps && global.AdminOps.connect) {
             try { global.AdminOps.connect(typed, got); } catch (e) { /* never block the unlock */ }
           }
           typed = '';
@@ -223,7 +256,7 @@
           void input.offsetWidth;                  /* restart the shake */
           input.classList.add('is-wrong');
           input.focus();
-          errEl.textContent = why || 'Wrong code.';
+          errEl.textContent = why || (priv ? 'Wrong code or Private Password.' : 'Wrong code.');
           W.Sound.wrong();
         }
       },
@@ -416,13 +449,18 @@
        bounded — is treated as the cap, so taking 100 from 1.35e36 gives
        1,999,999,900 rather than the same 1.35e36: in floating point,
        1.35e36 - 100 is exactly 1.35e36. */
-    var base = (typeof before === 'number' && isFinite(before)) ? Math.min(Math.max(0, before), MAX_BALANCE) : 0;
-    e.diamonds = Math.min(MAX_BALANCE, Math.max(0, base + n));
+    /* The panel never LIFTS a balance above the cap, and never DRAGS one
+       that override put above it back down either: taking 100 from
+       5,000,000,000 leaves 4,999,999,900. Same rule as the server. */
+    var base = (typeof before !== 'number' || !isFinite(before) || before < 0) ? 0
+             : before > MAX_SAFE ? MAX_BALANCE : Math.floor(before);
+    var top = Math.max(MAX_BALANCE, base);
+    e.diamonds = Math.min(top, Math.max(0, base + n));
     /* Measured from the capped figure, not the raw one: from 1.35e36,
        "took 1,350,000,…" is neither what happened in any useful sense
        nor something admin_grants' integer column can hold. */
     var moved = e.diamonds - base;
-    var wasOver = typeof before === 'number' && before > MAX_BALANCE;
+    var wasOver = typeof before === 'number' && before > MAX_SAFE;
     W.saveNow();
 
     /* Recorded before anything else happens. The penalty reads this log,
@@ -437,7 +475,11 @@
        the server never heard about is still a grant, and the balance
        has already moved. */
     if (moved !== 0 && global.AdminPin && global.AdminPin.logGrant) {
-      global.AdminPin.logGrant({ amount: moved, balanceAfter: e.diamonds, scope: scope });
+      /* Caught here as well as inside logGrant: a log that throws
+         synchronously would otherwise abort this function after the
+         balance moved and before the panel said so, leaving the
+         previous message on screen as if it described this one. */
+      try { global.AdminPin.logGrant({ amount: moved, balanceAfter: e.diamonds, scope: scope }); } catch (err) {}
     }
     refresh();
 
@@ -449,7 +491,9 @@
     var cap = MAX_BALANCE.toLocaleString();
     var msg;
     if (moved === 0) {
-      msg = n > 0 ? 'Already at the ' + cap + ' cap, so nothing was given.'
+      msg = n > 0 ? (base > MAX_BALANCE
+                       ? 'This balance is above the ' + cap + ' cap (set with override), so the panel cannot raise it.'
+                       : 'Already at the ' + cap + ' cap, so nothing was given.')
                   : 'Nothing to take — the balance is already 0.';
     } else if (moved > 0) {
       msg = 'Gave ' + moved.toLocaleString() + '. Balance ' + e.diamonds.toLocaleString() + '.' +
@@ -457,7 +501,7 @@
     } else {
       msg = 'Took ' + Math.abs(moved).toLocaleString() + '. Balance ' + e.diamonds.toLocaleString() + '.';
     }
-    if (wasOver) msg += ' The old balance was over the ' + cap + ' cap, so it was brought down to it first.';
+    if (wasOver) msg += ' The old balance was too large to count exactly, so it was brought down to the ' + cap + ' cap first.';
     say(root, msg);
     if (moved > 0) { W.Sound.gem(); W.confetti({ count: 26, power: 150 }); }
     else if (moved < 0) W.Sound.flip();

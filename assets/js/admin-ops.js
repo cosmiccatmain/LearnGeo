@@ -121,6 +121,114 @@
     return opening;
   }
 
+  /* ========================= this device ===========================
+     A Private Password works only on the device it was set on (0009).
+     What makes it this device is a random 256-bit id kept in this
+     browser's own storage — deliberately NOT in the save, because the
+     save syncs to the account and would carry the id to every device
+     the account signs in on, which is the opposite of the point.
+
+     Clearing site data loses the id, and with it the Private Password
+     here. The real code still works, and setting a new one is a minute.
+
+     `accounts` records which accounts set one on this device, so the
+     unlock dialog can say "your Private Password" only to somebody who
+     has one, and so two people sharing a laptop do not see each other's
+     state. It is a hint for the wording, never a permission: the server
+     decides whether a password opens anything.
+  ------------------------------------------------------------------ */
+  var DEVICE_KEY = 'learngeo.adminDevice.v1';
+
+  function readDevice() {
+    try {
+      var d = JSON.parse(global.localStorage.getItem(DEVICE_KEY) || 'null');
+      if (d && typeof d.id === 'string' && /^[0-9a-f]{64}$/.test(d.id)) {
+        if (!d.accounts || typeof d.accounts !== 'object') d.accounts = {};
+        return d;
+      }
+    } catch (e) { /* storage blocked or junk: treated as no device */ }
+    return null;
+  }
+
+  function writeDevice(d) {
+    try { global.localStorage.setItem(DEVICE_KEY, JSON.stringify(d)); return true; }
+    catch (e) { return false; }
+  }
+
+  function device(create) {
+    var d = readDevice();
+    if (d || !create) return d;
+    if (!global.crypto || !global.crypto.getRandomValues) return null;
+    var bytes = new Uint8Array(32);
+    global.crypto.getRandomValues(bytes);
+    var hex = '';
+    for (var i = 0; i < bytes.length; i++) hex += ('0' + bytes[i].toString(16)).slice(-2);
+    d = { id: hex, accounts: {} };
+    return writeDevice(d) ? d : null;
+  }
+
+  function me() { return (global.Cloud && global.Cloud.user && global.Cloud.user.id) || ''; }
+
+  function hasPrivate() {
+    var d = readDevice(), uid = me();
+    return !!(d && uid && d.accounts[uid]);
+  }
+
+  function markPrivate(on) {
+    var d = device(on), uid = me();
+    if (!d || !uid) return;
+    if (on) d.accounts[uid] = Date.now(); else delete d.accounts[uid];
+    writeDevice(d);
+  }
+
+  /* Open a session with a Private Password instead of a code. The server
+     answers a token, a lock, or null; null covers "not on the list", "no
+     Private Password on this device" and "wrong", on purpose. */
+  function openPrivate(password) {
+    var client = sb(), d = readDevice();
+    if (!client || !signedIn()) {
+      return Promise.resolve(fault('notready', 'Sign in first.'));
+    }
+    if (!d) return Promise.resolve(fault('wrong', 'Wrong code or Private Password.'));
+
+    opening = client.rpc('admin_open_session_private', { p_password: String(password || ''), p_device: d.id })
+      .then(function (res) {
+        if (res.error) {
+          if (missing(res.error, 'admin_open_session_private')) {
+            return fault('nomigration', 'Private Passwords need 0009, which has not been run yet.');
+          }
+          return fault('error', res.error.message || 'The server refused that.');
+        }
+        var r = res.data;
+        if (r && r.token) {
+          token = r.token; until = Date.now() + LIFE; scope = 'ultra';
+          return { ok: true };
+        }
+        if (r && r.locked_until) {
+          return { ok: false, kind: 'locked', until: Date.parse(r.locked_until),
+                   message: 'Too many wrong tries on this device.' };
+        }
+        return fault('wrong', 'Wrong code or Private Password.');
+      })
+      .catch(function (e) { return fault('error', String((e && e.message) || e)); })
+      .then(function (r) { opening = null; return r; });
+    return opening;
+  }
+
+  function setPrivate(password) {
+    var d = device(true);
+    if (!d) return Promise.resolve(fault('error', 'This browser will not store a device id, so a Private Password cannot be tied to it.'));
+    return call('admin_set_private_password', { p_device: d.id, p_password: String(password || '') })
+      .then(function (r) { if (r.ok) markPrivate(true); return r; });
+  }
+
+  function clearPrivate() {
+    var d = readDevice();
+    if (!d) { markPrivate(false); return Promise.resolve({ ok: true }); }
+    return call('admin_clear_private_password', { p_device: d.id })
+      .then(function (r) { if (r.ok) markPrivate(false); return r; });
+  }
+
   function disconnect() {
     var client = sb(), t = token;
     token = null; until = 0; scope = '';
@@ -190,6 +298,15 @@
 
     staff:    function (id, on)           { return call('ultra_set_staff', { p_target: id, p_on: !!on }); },
     message:  function (id, text)         { return call('ultra_send_message', { p_target: id, p_text: String(text || '') }); },
+    /* Past the 2,000,000,000 cap, up to the largest whole number a browser
+       holds exactly. The caller checks the range first; the server
+       checks it again and its answer is the one that counts. */
+    override: function (id, amount, why)  { return call('ultra_override_gems', { p_target: id, p_amount: amount, p_reason: why || 'override' }); },
+
+    hasPrivate: hasPrivate,
+    openPrivate: openPrivate,
+    setPrivate: setPrivate,
+    clearPrivate: clearPrivate,
     allowList: function ()                { return call('ultra_allow_list', {}); },
     allow:    function (email, on)        { return call('ultra_allow_set', { p_email: email, p_on: !!on }); }
   };

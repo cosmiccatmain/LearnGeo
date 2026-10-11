@@ -41,7 +41,7 @@
     live: function () { return false; },
     minutesLeft: function () { return 0; },
     connect: no, disconnect: function () {},
-    stats: no, find: no, recent: no, gems: no, staff: no, allowList: no, allow: no, message: no
+    stats: no, find: no, recent: no, gems: no, staff: no, allowList: no, allow: no, message: no, override: no
   };
   function no() {
     return Promise.resolve({ ok: false, kind: 'error', message: 'admin-ops.js did not load.' });
@@ -50,16 +50,18 @@
   function esc(s) { return W.escapeHtml(String(s == null ? '' : s)); }
   /* Same bounds as admin.js, admin-inbox.js and 0007. */
   var CAP = 2000000000, MAX_STEP = 1000000000;
+  var MAX_SAFE = 9007199254740991;   /* the most override can set: the largest whole number a browser holds exactly */
   var MSG_MAX = 500;        /* the server refuses longer; 0008, ultra_send_message */
 
-  /* Past a quadrillion, a number written out in full is a row of digits
-     nobody can read and, past 2^53, partly invented: 1.35e36 prints as
-     1,350,000,000,000,000,800,000,… where the 8 is floating-point
-     residue, not a diamond. Shown as a power of ten instead. */
+  /* Past 2^53 a number written out in full is partly invented: 1.35e36
+     prints as 1,350,000,000,000,000,800,000,… where the 8 is floating-
+     point residue, not a diamond. Those are shown as a power of ten.
+     Everything up to MAX_SAFE is exact and is shown in full, because
+     override can set it and the admin should see the figure they set. */
   var SUP = '⁰¹²³⁴⁵⁶⁷⁸⁹';
   function num(n) {
     var v = Number(n) || 0;
-    if (Math.abs(v) < 1e15) return v.toLocaleString();
+    if (Math.abs(v) <= MAX_SAFE) return v.toLocaleString();     /* exact, so shown in full */
     var parts = v.toExponential(2).split('e');
     var exp = String(Math.abs(+parts[1])).replace(/[0-9]/g, function (d) { return SUP[+d]; });
     return parts[0] + ' × 10' + (+parts[1] < 0 ? '⁻' : '') + exp;
@@ -277,7 +279,7 @@
     ['classes',   'Classes',         'Every class row. Production has no archived flag on a class.'],
     ['members',   'Class seats',     'Every class_members row. Production has no status column, so pending and joined are not told apart.'],
     ['diamonds',  'Diamonds in play','Every balance added together.'],
-    ['allowed',   'On the allowlist','Accounts the gems panel will open for.'],
+    ['allowed',   'Admin list',      'Accounts that may open the admin panels, with the code or their Private Password.'],
     ['staff',     'Staff marks',     'Accounts holding the staff cosmetic.'],
     ['grants24',  'Self-grants 24h', 'Gems-panel grants logged in the last day.'],
     ['actions24', 'Admin actions 24h','Cross-account actions in the last day.']
@@ -386,15 +388,19 @@
         '<span class="eyebrow">Marks</span>' +
         '<button class="btn btn--sm" data-do="staff" data-on="' + (picked.staff ? '0' : '1') + '">' +
           (picked.staff ? 'Remove staff effect' : 'Grant staff effect') + '</button>' +
-        '<button class="btn btn--sm" data-do="allow" data-on="1">Allow into gems panel</button>' +
-        '<button class="btn btn--sm" data-do="allow" data-on="0">Remove from allowlist</button>' +
+        '<button class="btn btn--sm" data-do="allow" data-on="1">Give admin access</button>' +
+        '<button class="btn btn--sm" data-do="allow" data-on="0">Remove admin access</button>' +
       '</div>' +
 
-      (Number(picked.diamonds) > CAP
-        ? '<div class="adminp__warn adminp__warn--nomigration" style="margin:4px 0 12px"><b>Over the cap.</b> ' +
-          '<div class="t-sm" style="margin-top:2px">This balance is above ' + num(CAP) + ', which no amount of ' +
-          'playing reaches: it came from a typed number. Any button here brings it back into range first, or ' +
-          'use <code>set</code> in the commands below for an exact figure.</div></div>'
+      (Number(picked.diamonds) > MAX_SAFE
+        ? '<div class="adminp__warn adminp__warn--nomigration" style="margin:4px 0 12px"><b>Too large to count.</b> ' +
+          '<div class="t-sm" style="margin-top:2px">This balance is past what a browser can hold as a whole ' +
+          'number, so it came from the old unbounded box, not from playing. Any button here brings it to ' +
+          num(CAP) + ' first, or use <code>set</code> or <code>override set</code> below for an exact figure.</div></div>'
+        : Number(picked.diamonds) > CAP
+        ? '<div class="adminp__warn adminp__warn--expired" style="margin:4px 0 12px"><b>Above the cap, set with override.</b> ' +
+          '<div class="t-sm" style="margin-top:2px">Take and Empty work as normal. Give cannot raise it any ' +
+          'further; use <code>override set</code> for that.</div></div>'
         : '') +
       '<p class="t-sm t-muted" style="margin:10px 0 0">A balance or staff change reaches their app within about ' +
       'two minutes if it is open, and the moment it next opens if not. A take is applied to whatever ' +
@@ -430,6 +436,24 @@
         say(esc(picked.display_name) + ': ' + num(was) + ' → ' + num(left) +
             ' (' + (left - was >= 0 ? '+' : '') + num(left - was) + ')');
         W.toast('Balance changed', (picked.display_name || 'That account') + ' now has ' + num(left) + ' 💎',
+          I.gem, 3600);
+        ops().recent(15).then(function (x) { guard(x, renderLog); });
+      });
+    });
+  }
+
+  function overrideGems(amount) {
+    if (!needPicked()) return;
+    var who = picked;
+    ops().override(who.id, amount, 'override to ' + amount).then(function (r) {
+      guard(r, function (left) {
+        var was = who.diamonds;
+        left = Number(left);
+        who.diamonds = left;
+        for (var i = 0; i < rows.length; i++) { if (rows[i].id === who.id) rows[i].diamonds = left; }
+        renderRows(); renderPicked();
+        say((who.display_name || 'That account') + ': ' + num(was) + ' → ' + num(left) + ' (override)');
+        W.toast('Balance overridden', (who.display_name || 'That account') + ' now has ' + num(left) + ' 💎',
           I.gem, 3600);
         ops().recent(15).then(function (x) { guard(x, renderLog); });
       });
@@ -479,7 +503,7 @@
     if (!picked.email) return say('That account has no email, so it cannot go on the allowlist.');
     ops().allow(picked.email, on).then(function (r) {
       guard(r, function () {
-        say(esc(picked.email) + (on ? ' may now open the gems panel' : ' removed from the allowlist'));
+        say(picked.email + (on ? ' now has admin access' : ' no longer has admin access'));
         ops().recent(15).then(function (x) { guard(x, renderLog); });
         ops().stats().then(function (x) { guard(x, function (d) { stats = d; renderStats(); }); });
       });
@@ -502,9 +526,10 @@
     host.innerHTML = list.map(function (a) {
       var d = a.detail || {};
       var what = a.action === 'gems'
-        ? (num(d.was) + ' → ' + num(d.now) + (d.reason ? ' · ' + esc(d.reason) : ''))
+        ? (num(d.was) + ' → ' + num(d.now) + (d.override ? ' · override' : d.reason ? ' · ' + esc(d.reason) : ''))
+        : a.action === 'private-password' ? (d.on ? 'set a Private Password on a device' : 'removed a Private Password from a device')
         : a.action === 'staff' ? (d.on ? 'staff effect granted' : 'staff effect removed')
-        : a.action === 'allow' ? (d.on ? 'added to allowlist' : 'removed from allowlist')
+        : a.action === 'allow' ? (d.on ? 'given admin access' : 'admin access removed')
         : a.action === 'message' ? 'message: “' + esc(trim(d.text, 80)) + '”'
         : esc(a.action);
       return '<div class="adminp__logrow">' +
@@ -564,8 +589,9 @@
     'empty              set the balance to 0',
     'staff on|off       grant or remove the staff effect',
     'msg <text>         send a message to their screen',
-    'allow <email>      let that address open the gems panel',
-    'unallow <email>    take it off the allowlist',
+    'override set <n>   set diamonds past the ' + num(CAP) + ' cap, up to ' + num(MAX_SAFE),
+    'allow <email>      give that address admin access',
+    'unallow <email>    take admin access away',
     'stats              reload the numbers at the top',
     'log                reload the action list',
     'who                show the selected account',
@@ -617,6 +643,20 @@
     if (cmd === 'give')  return isNaN(n) ? say(bad) : gems({ delta:  Math.abs(n) }, 'gave ' + Math.abs(n));
     if (cmd === 'set')   return isNaN(n) ? say(bad) : gems({ set: Math.max(0, n) }, 'set to ' + Math.max(0, n));
     if (cmd === 'empty') return gems({ set: 0 }, 'emptied');
+    /* `override set 5000000000`, or just `override 5000000000`. Read
+       with Number.isSafeInteger, so anything a browser would round —
+       9007199254740993 becomes …992 — is refused rather than quietly
+       changed into a different number. */
+    if (cmd === 'override') {
+      var parts = bits.slice();
+      if (parts[0] && parts[0].toLowerCase() === 'set') parts.shift();
+      var raw = parts.join('').replace(/,/g, '');
+      var amt = raw === '' ? NaN : Number(raw);
+      if (!Number.isSafeInteger(amt) || amt < 0) {
+        return say('override set <n> takes a whole number from 0 to ' + num(MAX_SAFE) + '.');
+      }
+      return overrideGems(amt);
+    }
     if (cmd === 'msg' || cmd === 'message') {
       if (!rest) return say('What should it say? Try "msg Great work this week!"');
       return sendMessage(rest, null);
@@ -629,7 +669,7 @@
       if (!rest) return say('Which address? Try "allow someone@example.com".');
       return ops().allow(rest, cmd === 'allow').then(function (r) {
         guard(r, function () {
-          say(rest + (cmd === 'allow' ? ' may now open the gems panel' : ' removed from the allowlist'));
+          say(rest + (cmd === 'allow' ? ' now has admin access' : ' no longer has admin access'));
           refreshStats();
         });
       });

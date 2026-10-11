@@ -46,6 +46,7 @@
       title: 'UltraAdmin', icon: I.shield, wide: true,
       body:
         adminPageCard() +
+        privateCard() +
         whoCard() +
         roleCard() +
         masqueradeCard() +
@@ -84,6 +85,75 @@
         'move their diamonds, grant the staff effect, and read what other admins have done. ' +
         'Needs <code>0007_administrator.sql</code> on the database.</p>' +
       '<button class="btn btn--primary" id="ua-adminp">Open the Administrator page</button>');
+  }
+
+  /* ------------------------ Private Password ----------------------
+     Changed here, inside the panel, so whoever sets one has already
+     opened UltraAdmin on this device with the real code or with the
+     Private Password they are now changing. It works on this device
+     only (admin-ops.js, 0009); the real code keeps working everywhere.
+  ------------------------------------------------------------------ */
+  function privateCard() {
+    var O = global.AdminOps;
+    var has = !!(O && O.hasPrivate && O.hasPrivate());
+    return card('Your Private Password',
+      '<p class="t-sm t-muted" style="margin:-4px 0 12px">' +
+        (has ? 'You have one on this device. Type it instead of the code to open the admin panels here.'
+             : 'Set one to open the admin panels on this device without the shared code. ' +
+               'It only works on this device; the shared code still works everywhere.') +
+      '</p>' +
+      '<div class="row" style="gap:8px;flex-wrap:wrap">' +
+        '<input class="input" id="ua-pp-1" type="password" autocomplete="new-password" maxlength="72" ' +
+          'placeholder="' + (has ? 'New Private Password' : 'Private Password') + '" style="flex:1;min-width:150px">' +
+        '<input class="input" id="ua-pp-2" type="password" autocomplete="new-password" maxlength="72" ' +
+          'placeholder="Type it again" style="flex:1;min-width:150px">' +
+        '<button class="btn btn--accent btn--sm" id="ua-pp-save">' + (has ? 'Change' : 'Set') + '</button>' +
+      '</div>' +
+      (has ? '<button class="mini-btn" id="ua-pp-clear" style="margin-top:10px">Remove it from this device</button>' : '') +
+      '<div class="t-sm" id="ua-pp-msg" style="margin-top:8px"></div>');
+  }
+
+  function wirePrivate(root, close) {
+    var O = global.AdminOps;
+    var msg = W.$('#ua-pp-msg', root);
+    function tell(t, bad) {
+      if (!msg) return;
+      msg.textContent = t;
+      msg.style.color = bad ? 'var(--danger)' : 'var(--muted)';
+    }
+    function why(r) {
+      if (r.kind === 'nomigration') return 'Private Passwords need 0009 on the database first.';
+      if (r.kind === 'expired') return 'The admin session ended. Close this and open UltraAdmin again.';
+      return r.message || 'That did not work.';
+    }
+
+    var save = W.$('#ua-pp-save', root);
+    if (save) save.addEventListener('click', function () {
+      var a = W.$('#ua-pp-1', root).value, b = W.$('#ua-pp-2', root).value;
+      if (a.length < 6) return tell('At least 6 characters.', true);
+      if (a !== b) return tell('The two do not match.', true);
+      if (!O || !O.setPrivate) return tell('admin-ops.js did not load.', true);
+      save.disabled = true;
+      tell('Saving…');
+      O.setPrivate(a).then(function (r) {
+        save.disabled = false;
+        if (!r.ok) return tell(why(r), true);
+        W.toast('Private Password set', 'It opens the admin panels on this device only.', I.key, 4200);
+        close(); open();
+      });
+    });
+
+    var clr = W.$('#ua-pp-clear', root);
+    if (clr) clr.addEventListener('click', function () {
+      if (!O || !O.clearPrivate) return;
+      clr.disabled = true;
+      O.clearPrivate().then(function (r) {
+        clr.disabled = false;
+        if (!r.ok) return tell(why(r), true);
+        W.toast('Private Password removed', 'Use the code on this device from now on.', I.key, 4200);
+        close(); open();
+      });
+    });
   }
 
   /* ------------------------------- who ---------------------------- */
@@ -184,26 +254,22 @@
   }
 
   /* ---------------------------- who gets admin --------------------- */
+  /* The list that decides, which lives on the server (admin_allow), not
+     the copy in this save that this card used to edit. That copy is
+     only consulted by a database too old to answer, so editing it here
+     changed nothing anybody would notice — which is the worst kind of
+     control to leave on screen. */
   function accessCard() {
-    var list = Array.isArray(W.state.adminAllow) ? W.state.adminAllow : [];
-    return card('Who may open the admin panel',
-      '<div class="ua-allow" id="ua-allow">' +
-        (list.length
-          ? list.map(function (who, i) {
-              return '<div class="ua-allow__row">' +
-                '<span class="mono">' + W.escapeHtml(who) + '</span>' +
-                '<button class="icon-btn" data-ua-drop="' + i + '" title="Remove">' +
-                  I.close + '</button></div>';
-            }).join('')
-          : '<div class="t-sm t-muted">Nobody yet. While this list is empty the gems ' +
-            'panel opens for the UltraAdmin holder and for no one else.</div>') +
-      '</div>' +
+    return card('Admin list',
+      '<div class="ua-allow" id="ua-allow"><div class="t-sm t-muted">Loading…</div></div>' +
       '<div class="row" style="gap:8px;margin-top:10px">' +
         '<input class="input mono" id="ua-allow-add" placeholder="email on the account" ' +
           'style="flex:1;min-width:0" autocapitalize="off" spellcheck="false">' +
         '<button class="btn btn--accent btn--sm" id="ua-allow-go">Add</button>' +
-      '</div>',
-      'The gems code alone is no longer enough: the account has to be named here too.');
+      '</div>' +
+      '<div class="t-sm" id="ua-allow-msg" style="margin-top:8px"></div>',
+      'Only these accounts can open the admin panels, with the code or their own Private Password. ' +
+      'Anyone else is told they do not have access.');
   }
 
   /* -------------------------- penalties and appeals ---------------- */
@@ -296,6 +362,7 @@ why() + '</button>';
     });
 
     wireBadges(root);
+    wirePrivate(root, close);
     wireAccess(root, close);
     wireEnforce(root);
 
@@ -389,27 +456,61 @@ why() + '</button>';
     });
   }
 
-  function wireAccess(root, close) {
-    var add = W.$('#ua-allow-go', root), box = W.$('#ua-allow-add', root);
-    if (add) add.addEventListener('click', function () {
-      var who = (box.value || '').trim().toLowerCase();
-      if (!who) return;
-      if (!Array.isArray(W.state.adminAllow)) W.state.adminAllow = [];
-      if (W.state.adminAllow.indexOf(who) === -1) W.state.adminAllow.push(who);
-      W.saveNow();
-      if (global.AdminLedger) global.AdminLedger.record('allow', { note: 'added ' + who });
-      close(); open();
-    });
-    W.$$('[data-ua-drop]', root).forEach(function (b) {
-      b.addEventListener('click', function () {
-        var i = +b.dataset.uaDrop;
-        var gone = W.state.adminAllow[i];
-        W.state.adminAllow.splice(i, 1);
-        W.saveNow();
-        if (global.AdminLedger) global.AdminLedger.record('allow', { note: 'removed ' + gone });
-        close(); open();
+  function wireAccess(root) {
+    var O = global.AdminOps;
+    var host = W.$('#ua-allow', root), msg = W.$('#ua-allow-msg', root);
+    var box = W.$('#ua-allow-add', root), add = W.$('#ua-allow-go', root);
+    if (!host) return;
+    var mine = String((global.Cloud && global.Cloud.user && global.Cloud.user.email) || '').toLowerCase();
+
+    function tell(t, bad) {
+      if (!msg) return;
+      msg.textContent = t;
+      msg.style.color = bad ? 'var(--danger)' : 'var(--muted)';
+    }
+    function load() {
+      if (!O || !O.allowList) { host.innerHTML = '<div class="t-sm t-muted">admin-ops.js did not load.</div>'; return; }
+      O.allowList().then(function (r) {
+        if (!document.body.contains(host)) return;
+        if (!r.ok) {
+          host.innerHTML = '<div class="t-sm t-muted">' + W.escapeHtml(r.message || 'Could not load the list.') + '</div>';
+          return;
+        }
+        var list = r.data || [];
+        host.innerHTML = list.length ? list.map(function (row) {
+          var email = String(row.email || '');
+          var self = email.toLowerCase() === mine;
+          return '<div class="ua-allow__row">' +
+            '<span class="mono">' + W.escapeHtml(email) + (self ? ' <span class="t-muted">(you)</span>' : '') + '</span>' +
+            (self ? '' : '<button class="icon-btn" data-ua-drop="' + W.escapeHtml(email) + '" title="Remove">' + I.close + '</button>') +
+            '</div>';
+        }).join('') : '<div class="t-sm t-muted">Nobody yet.</div>';
+      });
+    }
+
+    /* Not yourself, from here. Removing your own address ends your own
+       session on the next call, with nothing on this screen to undo it. */
+    host.addEventListener('click', function (e) {
+      var b = e.target.closest('[data-ua-drop]');
+      if (!b) return;
+      var who = b.getAttribute('data-ua-drop');
+      O.allow(who, false).then(function (r) {
+        if (!r.ok) return tell(r.message || 'That did not work.', true);
+        tell(who + ' no longer has admin access.');
+        load();
       });
     });
+    if (add) add.addEventListener('click', function () {
+      var who = String(box.value || '').trim().toLowerCase();
+      if (!who) return;
+      O.allow(who, true).then(function (r) {
+        if (!r.ok) return tell(r.message || 'That did not work.', true);
+        box.value = '';
+        tell(who + ' now has admin access.');
+        load();
+      });
+    });
+    load();
   }
 
   function wireEnforce(root) {

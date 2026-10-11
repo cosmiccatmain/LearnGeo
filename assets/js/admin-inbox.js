@@ -40,7 +40,8 @@
 
   /* Same bounds as admin.js and 0007's ultra_adjust_gems. */
   var CAP = 2000000000;
-  function clamp(n) { return Math.min(CAP, Math.max(0, Math.round(n))); }
+  var MAX_SAFE = 9007199254740991;   /* the largest whole number a browser holds exactly */
+  function clamp(n, top) { return Math.min(top, Math.max(0, Math.round(n))); }
 
   var EVERY = 120e3;        /* while the tab is visible */
   var MIN_GAP = 30e3;       /* never closer together than this */
@@ -131,14 +132,20 @@
            1.35e36 - 100 IS 1.35e36, so the instruction would be silently
            lost. The server already logs such an action as a set; this is
            the second lock for an action logged before it did. */
+        /* A set — ordinary or override — was range-checked by the server
+           and is followed exactly, up to MAX_SAFE. A difference never
+           lifts a balance above the cap, and never drags one an override
+           put above it back down: the server's rule, applied here to the
+           number this device actually has. */
         var mine = s.economy.diamonds;
-        var sane = typeof mine === 'number' && isFinite(mine) && mine >= 0 && mine <= CAP;
+        var sane = typeof mine === 'number' && isFinite(mine) && mine >= 0 && mine <= MAX_SAFE;
         if (typeof d.set === 'number') {
-          s.economy.diamonds = clamp(d.set); wasSet = true;
+          s.economy.diamonds = clamp(d.set, MAX_SAFE); wasSet = true;
         } else if (!sane && typeof d.now === 'number') {
-          s.economy.diamonds = clamp(d.now); wasSet = true;
+          s.economy.diamonds = clamp(d.now, MAX_SAFE); wasSet = true;
         } else if (typeof d.moved === 'number') {
-          s.economy.diamonds = clamp((sane ? mine : 0) + d.moved);
+          var base = sane ? Math.floor(mine) : 0;
+          s.economy.diamonds = clamp(base + d.moved, Math.max(CAP, base));
         }
       } else if (r.action === 'staff') {
         s.flags.staff = !!d.on;
