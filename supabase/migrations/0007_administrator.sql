@@ -1,6 +1,8 @@
 /* ------------------------------------------------------------------
    0007 — the Administrator page: reaching other accounts, safely.
 
+   ultra_stats was corrected the same day; see the note above it.
+
    APPLIED 2026-10-10 by aj, through the SQL editor, in three pastes
    with the comments stripped. Checked afterwards from outside: all
    twelve functions exist, and the four probed with the publishable
@@ -397,7 +399,18 @@ $$;
 revoke execute on function public.my_admin_actions(timestamptz) from public, anon;
 grant  execute on function public.my_admin_actions(timestamptz) to authenticated;
 
-/* Everything the stats row shows, in one round trip. */
+/* Everything the stats row shows, in one round trip.
+
+   Columns are PRODUCTION's, checked against the live database on
+   2026-10-10, not migrations/0001's. That file describes a schema the
+   live project never got: production has classes.teacher_id and
+   class_members.student_id where 0001 has owner_id and user_id, and has
+   neither classes.archived_at nor class_members.status at all. The
+   first version of this function counted "where archived_at is null"
+   and "where status = 'joined'", installed cleanly — plpgsql does not
+   check column names until a body runs — and then failed on every
+   call. supabase/deployed/ and cloud.js are the honest record of what
+   is live; read those, or probe the API, before naming a column. */
 create or replace function public.ultra_stats(p_token uuid)
 returns jsonb
 language plpgsql
@@ -418,8 +431,8 @@ begin
     'active24',  (select count(*) from public.profiles where updated_at > now() - interval '1 day'),
     'active7',   (select count(*) from public.profiles where updated_at > now() - interval '7 days'),
     'diamonds',  (select coalesce(sum(public.app_save_int(save::jsonb, 'diamonds', 0)), 0) from public.profiles),
-    'classes',   (select count(*) from public.classes where archived_at is null),
-    'members',   (select count(*) from public.class_members where status = 'joined'),
+    'classes',   (select count(*) from public.classes),
+    'members',   (select count(*) from public.class_members),
     'allowed',   (select count(*) from public.admin_allow),
     'staff',     (select count(*) from public.profiles where (save::jsonb -> 'flags' ->> 'staff') = 'true'),
     'grants24',  (select count(*) from public.admin_grants  where created_at > now() - interval '1 day'),

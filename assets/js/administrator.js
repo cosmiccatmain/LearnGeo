@@ -174,7 +174,16 @@
   /* Everything funnels through here so one failure is described once
      and a stale "Loading…" can never be left on screen. */
   function guard(res, after) {
-    if (res && res.ok) { setBanner(''); return after(res.data); }
+    /* A success clears only the problems a success disproves: a missing
+       migration, a lost session, being signed out. It does NOT clear a
+       real error from a different call. refresh() fires three calls at
+       once, and the search answering fine after the stats failed used
+       to wipe the stats' error off the screen, leaving a row of dashes
+       with no explanation. */
+    if (res && res.ok) {
+      if (banner === 'nomigration' || banner === 'expired' || banner === 'notready') setBanner('');
+      return after(res.data);
+    }
     var kind = (res && res.kind) || 'error';
     setBanner(kind, (res && res.message) || 'Something went wrong.');
     return null;
@@ -206,6 +215,7 @@
   }
 
   function refresh() {
+    setBanner('');
     sessionPill();
     var o = ops();
     if (!o) return setBanner('error', 'admin-ops.js did not load.');
@@ -235,8 +245,8 @@
     ['active7',   'Active this week','Profiles whose save changed in the last 7 days.'],
     ['students',  'Students',        'role = student.'],
     ['teachers',  'Teachers',        'role = teacher.'],
-    ['classes',   'Live classes',    'Classes that have not been archived.'],
-    ['members',   'Seats filled',    'Class memberships with status joined.'],
+    ['classes',   'Classes',         'Every class row. Production has no archived flag on a class.'],
+    ['members',   'Class seats',     'Every class_members row. Production has no status column, so pending and joined are not told apart.'],
     ['diamonds',  'Diamonds in play','Every balance added together.'],
     ['allowed',   'On the allowlist','Accounts the gems panel will open for.'],
     ['staff',     'Staff marks',     'Accounts holding the staff cosmetic.'],
@@ -262,7 +272,7 @@
     ops().find(q).then(function (r) {
       if (!root) return;
       if (!r.ok) { host.innerHTML = '<div class="adminp__empty">Nothing to show.</div>'; return guard(r, function () {}); }
-      setBanner('');
+      if (banner === 'nomigration' || banner === 'expired' || banner === 'notready') setBanner('');
       rows = r.data || [];
       renderRows();
     });

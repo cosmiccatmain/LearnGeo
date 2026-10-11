@@ -46,12 +46,31 @@
 
   function live() { return !!token && Date.now() < until; }
 
-  /* PostgREST says PGRST202 for a function it cannot find, and some
-     versions only say so in the message. Same shape as admin-pin.js. */
-  function missing(err) {
+  /* Is this the function itself being absent — the database not having
+     had the migration — rather than something going wrong inside it?
+
+     Decided by CODE, never by the message alone. The first version also
+     matched "does not exist" anywhere in the text, and that phrase is
+     how Postgres reports a missing COLUMN (42703) or TABLE (42P01) too.
+     So a function that existed and failed on a bad column was reported
+     as "the migration has not been run", which sent everybody to re-run
+     SQL that was already there. Worse, in admin-pin.js a null from
+     mayOpen hands the gems gate to the list kept on this device.
+
+       PGRST202  PostgREST cannot find the function at all
+       42883     undefined_function — but Postgres raises it for a missing
+                 OPERATOR inside a body too, so it counts only when the
+                 message names the function that was called
+
+     Anything else with a code is a real failure and is reported as one.
+     Only a codeless error falls back to the message. */
+  function missing(err, fn) {
     if (!err) return false;
-    if (err.code === 'PGRST202' || err.code === '42883') return true;
-    return /could not find|does not exist|schema cache/i.test(String(err.message || ''));
+    var msg = String(err.message || '');
+    if (err.code === 'PGRST202') return true;
+    if (err.code === '42883') return !!fn && msg.indexOf(fn) !== -1 && /function/i.test(msg);
+    if (err.code) return false;
+    return /could not find the function/i.test(msg);
   }
 
   function denied(err) {
@@ -80,7 +99,7 @@
     opening = client.rpc('admin_open_session', { p_code: String(code || '') })
       .then(function (res) {
         if (res.error) {
-          if (missing(res.error)) {
+          if (missing(res.error, 'admin_open_session')) {
             return fault('nomigration',
               'The database has not had 0007 run on it yet, so there is nothing to connect to.');
           }
@@ -135,7 +154,7 @@
 
       return client.rpc(fn, payload).then(function (res) {
         if (!res.error) return { ok: true, data: res.data };
-        if (missing(res.error)) {
+        if (missing(res.error, fn)) {
           return fault('nomigration', 'That needs 0007, which has not been run on the database yet.');
         }
         if (denied(res.error)) {

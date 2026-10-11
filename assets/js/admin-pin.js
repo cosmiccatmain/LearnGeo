@@ -87,7 +87,7 @@
         /* Not there yet: this database has not had the change run on it.
            Anything else wrong is a real failure and must not be read as
            a wrong code. */
-        if (missing(res.error)) {
+        if (missing(res.error, 'verify_admin_pin_scope')) {
           return sb.rpc('verify_admin_pin', { p_pin: pin })
             .then(function (r2) { return r2.error ? null : read(r2.data); })
             .catch(function () { return null; });
@@ -97,12 +97,31 @@
       .catch(function () { return null; });
   }
 
-  /* PostgREST answers PGRST202 for a function it cannot find, and some
-     versions say so only in the message. */
-  function missing(err) {
+  /* Is this the function itself being absent — the database not having
+     had the migration — rather than something going wrong inside it?
+
+     Decided by CODE, never by the message alone. The first version also
+     matched "does not exist" anywhere in the text, and that phrase is
+     how Postgres reports a missing COLUMN (42703) or TABLE (42P01) too.
+     So a function that existed and failed on a bad column was reported
+     as "the migration has not been run", which sent everybody to re-run
+     SQL that was already there. Worse, in admin-pin.js a null from
+     mayOpen hands the gems gate to the list kept on this device.
+
+       PGRST202  PostgREST cannot find the function at all
+       42883     undefined_function — but Postgres raises it for a missing
+                 OPERATOR inside a body too, so it counts only when the
+                 message names the function that was called
+
+     Anything else with a code is a real failure and is reported as one.
+     Only a codeless error falls back to the message. */
+  function missing(err, fn) {
     if (!err) return false;
-    if (err.code === 'PGRST202' || err.code === '42883') return true;
-    return /could not find|does not exist|schema cache/i.test(String(err.message || ''));
+    var msg = String(err.message || '');
+    if (err.code === 'PGRST202') return true;
+    if (err.code === '42883') return !!fn && msg.indexOf(fn) !== -1 && /function/i.test(msg);
+    if (err.code) return false;
+    return /could not find the function/i.test(msg);
   }
 
   /* ================= who the gems panel opens for =================
@@ -132,7 +151,7 @@
     return sb.rpc('admin_may_open', { p_email: who })
       .then(function (res) {
         if (!res.error) return res.data === true;
-        if (missing(res.error)) return null;   /* database behind the page */
+        if (missing(res.error, 'admin_may_open')) return null;   /* database behind the page */
         return false;
       })
       .catch(function () { return false; });

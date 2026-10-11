@@ -47,6 +47,33 @@
 
   function C() { return global.Cloud; }
 
+  /* Is this the function itself being absent — the database not having
+     had the migration — rather than something going wrong inside it?
+
+     Decided by CODE, never by the message alone. The first version also
+     matched "does not exist" anywhere in the text, and that phrase is
+     how Postgres reports a missing COLUMN (42703) or TABLE (42P01) too.
+     So a function that existed and failed on a bad column was reported
+     as "the migration has not been run", which sent everybody to re-run
+     SQL that was already there. Here it would stop this device asking
+     for the rest of the session over an error that was not that.
+
+       PGRST202  PostgREST cannot find the function at all
+       42883     undefined_function — but Postgres raises it for a missing
+                 OPERATOR inside a body too, so it counts only when the
+                 message names the function that was called
+
+     Anything else with a code is a real failure and is reported as one.
+     Only a codeless error falls back to the message. */
+  function missing(err, fn) {
+    if (!err) return false;
+    var msg = String(err.message || '');
+    if (err.code === 'PGRST202') return true;
+    if (err.code === '42883') return !!fn && msg.indexOf(fn) !== -1 && /function/i.test(msg);
+    if (err.code) return false;
+    return /could not find the function/i.test(msg);
+  }
+
   function stamp() {
     var f = W.state.flags;
     return (f && typeof f.adminAt === 'string' && f.adminAt) ? f.adminAt : null;
@@ -67,8 +94,7 @@
       .then(function (res) {
         if (!C() || !C().user || C().user.id !== who) return;
         if (res.error) {
-          var m = String(res.error.message || ''), c = res.error.code;
-          if (c === 'PGRST202' || c === '42883' || /could not find|does not exist|schema cache/i.test(m)) {
+          if (missing(res.error, 'my_admin_actions')) {
             dead = true;          /* 0007 not run; say nothing, ask again next load */
           }
           return;
