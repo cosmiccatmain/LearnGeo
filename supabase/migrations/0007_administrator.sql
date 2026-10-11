@@ -1,7 +1,20 @@
 /* ------------------------------------------------------------------
    0007 — the Administrator page: reaching other accounts, safely.
 
-   ultra_stats was corrected the same day; see the note above it.
+   Corrected twice the same day, both applied by aj and checked from
+   outside afterwards:
+     - ultra_stats named two columns production does not have (see
+       the note above it);
+     - balances: app_save_num added, ultra_find_accounts dropped and
+       recreated to return diamonds as numeric, ultra_adjust_gems
+       capped at 2,000,000,000. Probed live: app_save_num returns
+       1.35e36 exactly, and the three ultra_ functions still refuse a
+       signed-out caller with 42501.
+
+   Owen's flashcardsDaily (mode-cards.js) lives in the same
+   save -> flags object that these functions write staff and adminAt
+   into. They coexist: every write here sets its own key with jsonb_set
+   and never replaces the object.
 
    APPLIED 2026-10-10 by aj, through the SQL editor, in three pastes
    with the comments stripped. Checked afterwards from outside: all
