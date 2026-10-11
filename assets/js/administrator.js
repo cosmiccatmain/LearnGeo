@@ -351,9 +351,9 @@
         '<button class="btn btn--sm" data-do="allow" data-on="0">Remove from allowlist</button>' +
       '</div>' +
 
-      '<p class="t-sm t-muted" style="margin:10px 0 0">A change here lands on that person\'s device the ' +
-      'next time their app loads. Nothing is pushed into a session already open, so somebody mid-question ' +
-      'is not interrupted.</p>';
+      '<p class="t-sm t-muted" style="margin:10px 0 0">If their app is open, it picks this up within about ' +
+      'two minutes and tells them; if it is closed, the moment it next opens. A take is applied to whatever ' +
+      'balance their device actually has, so diamonds they earned since their last sync are not wiped.</p>';
   }
 
   /* =========================== the actions ========================= */
