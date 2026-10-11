@@ -13,6 +13,8 @@
   var deck = [], pos = 0, flipped = false, built = false, celebrated = false;
   var tally = { again: 0, hard: 0, good: 0, easy: 0, done: 0 };
   var job = null;   /* classwork: { meta, size, first: name -> first rating, item, pct } */
+  var RATE_DELAY = 1200;
+  var flippedAt = 0, grading = false, lastRewardNotice = 0;
 
   function side()  { return document.getElementById('cards-body'); }
   function head()  { return document.getElementById('cards-head'); }
@@ -34,7 +36,7 @@
     var list = global.Quiz.pool({ scope: cfg.scope, regions: cfg.regions, countries: cfg.countries, weakFirst: true });
     if (!list.length) list = global.Quiz.pool({ scope: 'all' });
     deck = list.slice(0, Math.min(cfg.size, list.length));
-    pos = 0; flipped = false; built = true; celebrated = false;
+    pos = 0; flipped = false; flippedAt = 0; grading = false; built = true; celebrated = false;
     tally = { again: 0, hard: 0, good: 0, easy: 0, done: 0 };
     if (job) { job.size = deck.length; job.first = {}; job.item = null; }
   }
@@ -53,6 +55,7 @@
     var frontTerm = askCountry ? c.name : c.capital;
     var backTerm  = askCountry ? c.capital : c.name;
     var pct = (tally.done / Math.max(1, tally.done + deck.length)) * 100;
+    var rateWait = flipped ? Math.max(0, RATE_DELAY - (Date.now() - flippedAt)) : 0;
 
     host.innerHTML =
       '<div class="fc-wrap">' +
@@ -86,10 +89,10 @@
         '<div class="fc-actions">' +
           (flipped
             ? '<div class="fc-rate" id="fc-rate">' +
-                rate('again', 'Again', 'soon', 'r-again') +
-                rate('hard',  'Hard',  'later', 'r-hard') +
-                rate('good',  'Good',  'done', 'r-good') +
-                rate('easy',  'Easy',  'done', 'r-easy') +
+                rate('again', 'Again', 'soon', 'r-again', rateWait) +
+                rate('hard',  'Hard',  'later', 'r-hard', rateWait) +
+                rate('good',  'Good',  'done', 'r-good', rateWait) +
+                rate('easy',  'Easy',  'done', 'r-easy', rateWait) +
               '</div>'
             : '<button class="btn btn--primary btn--block btn--lg" id="fc-flip">Flip card</button>') +
         '</div>' +
@@ -110,18 +113,31 @@
     W.$$('#fc-rate button').forEach(function (b) {
       b.addEventListener('click', function () { grade(b.dataset.r, b); });
     });
+    if (rateWait) {
+      var readyFor = flippedAt;
+      setTimeout(function () {
+        if (!flipped || flippedAt !== readyFor || current() !== c) return;
+        W.$$('#fc-rate button').forEach(function (b) {
+          b.disabled = false;
+          var sub = b.querySelector('span');
+          if (sub) sub.textContent = b.dataset.sub;
+        });
+      }, rateWait + 20);
+    }
 
     paintMap(flipped);
     renderSidebar();
 
-    function rate(id, label, sub, cls) {
-      return '<button class="' + cls + '" data-r="' + id + '">' + label + '<span>' + sub + '</span></button>';
+    function rate(id, label, sub, cls, wait) {
+      return '<button class="' + cls + '" data-r="' + id + '" data-sub="' + sub + '"' +
+        (wait ? ' disabled' : '') + '>' + label + '<span>' + (wait ? 'read…' : sub) + '</span></button>';
     }
   }
 
   function flip() {
     if (flipped) return;
     flipped = true;
+    flippedAt = Date.now();
     W.Sound.flip();
     var el = document.getElementById('fc-card');
     if (el) el.classList.add('is-flipped');
@@ -131,19 +147,27 @@
 
   function grade(r, node) {
     var c = current();
-    if (!c) return;
+    if (!c || grading) return;
+    if (!flipped || Date.now() - flippedAt < RATE_DELAY) {
+      W.toast('Take a moment to check the answer', 'Ratings unlock after the card has been visible.', I.info, 1800);
+      return;
+    }
+    grading = true;
+    W.$$('#fc-rate button').forEach(function (b) { b.disabled = true; });
     tally[r] += 1;
     if (job && !(c.name in job.first)) job.first[c.name] = r;
-    W.state.stats.cards += 1;
+    if (claimDaily(c.name, 'reviewed')) W.state.stats.cards += 1;
 
     var m = W.state.mastery[c.name] || { c: 0, w: 0, box: 0 };
     if (r === 'again')     { m.box = 0; m.w += 1; }
     else if (r === 'hard') { m.box = Math.max(0, m.box - 1); }
-    else if (r === 'good') { m.box = Math.min(5, m.box + 1); m.c += 1; }
-    else                   { m.box = Math.min(5, m.box + 2); m.c += 1; }
+    var reward = false;
+    if (r === 'good' || r === 'easy') reward = claimDaily(c.name, 'rewarded');
+    if (r === 'good' && reward) { m.box = Math.min(5, m.box + 1); m.c += 1; }
+    else if (r === 'easy' && reward) { m.box = Math.min(5, m.box + 2); m.c += 1; }
     W.state.mastery[c.name] = m;
 
-    if (r === 'good' || r === 'easy') {
+    if (reward) {
       var gains = W.award(true, { baseXp: r === 'easy' ? 5 : 7, baseGems: 2 });
       W.Sound.correct(W.state.streak.current);
       W.burstFrom(node, gains);
@@ -152,6 +176,14 @@
         W.confetti({ count: 90, power: 300, y: window.innerHeight * 0.4 });
         W.toast('Level ' + gains.level, 'Flashcards count toward your level too', I.bolt);
       }
+    } else if (r === 'good' || r === 'easy') {
+      W.Sound.correct(W.state.streak.current);
+      if (Date.now() - lastRewardNotice > 8000) {
+        lastRewardNotice = Date.now();
+        W.toast('Already rewarded today', c.name + ' can still be reviewed, but it won’t give extra XP or diamonds.', I.info, 3000);
+      }
+    }
+    if (r === 'good' || r === 'easy') {
       tally.done += 1;
       deck.splice(pos, 1);
       if (pos >= deck.length) pos = 0;
@@ -167,7 +199,29 @@
     W.announceAchievements(W.checkAchievements());
 
     flipped = false;
+    flippedAt = 0;
+    grading = false;
     renderCard();
+  }
+
+  /* A rebuilt deck or page refresh must not turn the same easy card into an
+     unlimited reward button. The ledger travels with the save, resets each
+     local calendar day and records review statistics and positive rewards
+     separately: learning a card after pressing Again can still earn its one
+     legitimate reward later that day. */
+  function claimDaily(name, kind) {
+    var d = new Date();
+    var today = d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
+    var flags = W.state.flags || (W.state.flags = {});
+    var log = flags.flashcardsDaily;
+    if (!log || log.date !== today) {
+      log = flags.flashcardsDaily = { date: today, reviewed: {}, rewarded: {} };
+    }
+    if (!log.reviewed || typeof log.reviewed !== 'object') log.reviewed = {};
+    if (!log.rewarded || typeof log.rewarded !== 'object') log.rewarded = {};
+    if (log[kind][name]) return false;
+    log[kind][name] = true;
+    return true;
   }
 
   /* Classwork score: the share of cards known on first sight (Good or Easy). */
@@ -250,6 +304,7 @@
         tile('Again', tally.again, 'var(--danger)') + tile('Hard', tally.hard, '#B45309') +
         tile('Good', tally.good, 'var(--accent)') + tile('Easy', tally.easy, 'var(--success)') +
       '</div>' +
+      '<div class="t-sm t-muted" style="margin-top:10px">XP, diamonds and review totals count once per country each day.</div>' +
 
       '<div class="divider"></div>' +
       '<button class="btn btn--ghost btn--block" id="fc-settings">' + I.layers + ' Deck settings</button>';

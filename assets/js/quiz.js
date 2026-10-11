@@ -95,6 +95,37 @@
     return uniq.slice(0, n);
   }
 
+  /* Harder map choices: keep the continent, then use physical proximity
+     instead of a random draw. The dataset coordinates are capitals rather
+     than country centroids, but they still give the useful result here:
+     Burundi is surrounded by Rwanda, Uganda, Tanzania and nearby neighbours
+     instead of being shown beside countries at the far ends of Africa. */
+  function nearbyDistractors(answer, all, n, key) {
+    var same = [], fallback = [];
+    all.forEach(function (c) {
+      if (clashes(c, answer, key)) return;
+      (c.region === answer.region ? same : fallback).push(c);
+    });
+    same.sort(byDistance);
+    fallback.sort(byDistance);
+    return same.concat(fallback).slice(0, n);
+
+    function byDistance(a, b) {
+      return distance(answer, a) - distance(answer, b);
+    }
+  }
+
+  function distance(a, b) {
+    var lat1 = Number(a.lat) * Math.PI / 180;
+    var lat2 = Number(b.lat) * Math.PI / 180;
+    var dLat = lat2 - lat1;
+    var dLon = (Number(b.lon) - Number(a.lon)) * Math.PI / 180;
+    var h = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1) * Math.cos(lat2) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    return 2 * Math.atan2(Math.sqrt(h), Math.sqrt(Math.max(0, 1 - h)));
+  }
+
   /* Not every country can take every question shape.
 
      Tuvalu and Gibraltar have no polygon in the shape file, so there is
@@ -165,7 +196,10 @@
       q.subject = answer.name;
       q.sub = 'Click the country itself';
       q.answerText = answer.name;      /* you click the country, so the answer is its name */
-      q.mapChoices = W.shuffle([answer].concat(distractors(answer, all, 4, 'name')));
+      var mapWrong = opts.nearbyMapChoices
+        ? nearbyDistractors(answer, all, 4, 'name')
+        : distractors(answer, all, 4, 'name');
+      q.mapChoices = W.shuffle([answer].concat(mapWrong));
     } else if (type === 'identify') {
       q.prompt = 'The shaded country on the map is';
       q.subject = 'Which country?';
@@ -215,7 +249,10 @@
     return picked.map(function (c, i) {
       var t = types[i % types.length];
       /* make() settles the final shape and whether it can be typed */
-      return make(t, c, all, { typed: config.typed });
+      return make(t, c, all, {
+        typed: config.typed,
+        nearbyMapChoices: !!config.nearbyMapChoices
+      });
     });
   }
 
@@ -226,6 +263,6 @@
 
   global.Quiz = {
     types: TYPES, pool: pool, make: make, generate: generate,
-    grade: grade, distractors: distractors
+    grade: grade, distractors: distractors, nearbyDistractors: nearbyDistractors
   };
 })(window);

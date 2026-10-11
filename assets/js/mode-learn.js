@@ -9,7 +9,7 @@
   var cfg = {
     regions: [], scope: 'all', countries: null,
     types: ['capital', 'country', 'locate', 'identify'],
-    weakFirst: true, typed: false
+    weakFirst: true, typed: false, nearbyMapChoices: false
   };
   var q = null, answered = false, session = { asked: 0, right: 0 };
   var pinRefs = [];
@@ -37,7 +37,8 @@
     /* a short hand-picked list cannot supply three wrong answers on its own */
     var choicesFrom = list.length >= 5 ? list : global.Quiz.pool({ scope: 'all' });
     q = global.Quiz.make(type, target, choicesFrom, {
-      typed: cfg.typed && (type === 'capital' || type === 'country')
+      typed: cfg.typed && (type === 'capital' || type === 'country'),
+      nearbyMapChoices: cfg.nearbyMapChoices
     });
     render();
     paintMap();
@@ -434,6 +435,13 @@
           }).join('') +
         '</div>' +
       '</div>' +
+      '<div class="field"><label class="field__label">Map choices</label>' +
+        '<div class="seg" id="cfg-map-choices">' +
+          seg('region', 'Across the region', cfg.nearbyMapChoices ? 'nearby' : 'region') +
+          seg('nearby', 'Nearby countries', cfg.nearbyMapChoices ? 'nearby' : 'region') +
+        '</div>' +
+        '<div class="field__hint">For Locate on map, nearby choices use the closest countries instead of spreading them across the region.</div>' +
+      '</div>' +
       '<div class="field"><label class="field__label">Answer style</label>' +
         '<div class="seg" id="cfg-typed">' +
           seg('choice', 'Multiple choice', cfg.typed ? 'typed' : 'choice') +
@@ -517,6 +525,7 @@
     cfg.scope = a.scope || 'all';
     if (a.types && a.types.length) cfg.types = a.types;
     cfg.typed = !!a.typed;
+    cfg.nearbyMapChoices = !!a.nearbyMapChoices;
     job = meta ? {
       meta: meta, asked: 0, right: 0, missed: {},
       target: Math.max(1, Math.min(100, a.count || (cfg.countries || []).length || 20))
@@ -544,6 +553,9 @@
 
     var types = W.$$('#cfg-types .check.is-on', modalEl).map(function (n) { return n.dataset.v; });
     cfg.types = types.length ? types : ['capital'];
+
+    var mapChoices = W.$('#cfg-map-choices .is-active', modalEl);
+    cfg.nearbyMapChoices = !!mapChoices && mapChoices.dataset.v === 'nearby';
 
     var typed = W.$('#cfg-typed .is-active', modalEl);
     cfg.typed = typed && typed.dataset.v === 'typed';
