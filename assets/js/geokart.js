@@ -383,14 +383,17 @@
     if (remaining <= 0 && !this.paused && !this.finishedAt) {
       this.updatePhysics(dt, now);
       this.updateBots(dt);
-      this.updateRace(now);
+      /* Starts and multiplayer deadlines are wall-clock timestamps. Keep race
+         timing in that same domain; `now` from requestAnimationFrame is only
+         suitable for frame deltas and short visual boost effects. */
+      this.updateRace(Date.now());
     }
     this.updateKartTransform(this.playerKart, this.progress, this.lateral, dt);
     this.bots.forEach(function (b) { self.updateKartTransform(b.mesh, b.progress, b.lateral, dt); });
     this.updateRemotes(dt);
     this.updateCamera(dt, now);
     this.updateSparks(dt);
-    this.updateHud(now);
+    this.updateHud(Date.now());
     this.renderer.render(this.scene, this.camera);
   };
 
