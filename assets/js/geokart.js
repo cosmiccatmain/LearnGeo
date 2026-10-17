@@ -38,11 +38,15 @@
     this.sparks = [];
     this.speed = 0;
     this.progress = 0;
+    this.trackU = 0;
     this.lateral = 0;
     this.lateralSpeed = 0;
     this.steerVisual = 0;
     this.drifting = false;
     this.driftMemory = 0;
+    this.heading = 0;
+    this.travelHeading = 0;
+    this.worldPosition = null;
     this.boosts = 0;
     this.boostUntil = 0;
     this.boostsUsed = 0;
@@ -112,6 +116,11 @@
     this.root.insertBefore(this.renderer.domElement, this.root.firstChild);
 
     this.buildWorld();
+    var startPoint = this.curve.getPointAt(0);
+    var startTangent = this.curve.getTangentAt(0).normalize();
+    this.worldPosition = startPoint.clone();
+    this.heading = Math.atan2(startTangent.x, startTangent.z);
+    this.travelHeading = this.heading;
     this.playerKart = this.makeKart(0xef4444);
     this.scene.add(this.playerKart);
     this.buildBots();
@@ -161,6 +170,15 @@
     ].map(function (p) { return new T.Vector3(p[0], p[1], p[2]); });
     this.curve = new T.CatmullRomCurve3(points, true, 'catmullrom', .28);
     this.trackLength = this.curve.getLength();
+    this.trackSamples = [];
+    for (var sample = 0; sample < 480; sample++) {
+      var sampleU = sample / 480;
+      this.trackSamples.push({
+        u: sampleU,
+        point: this.curve.getPointAt(sampleU),
+        tangent: this.curve.getTangentAt(sampleU).normalize()
+      });
+    }
 
     var ground = new T.Mesh(
       new T.PlaneGeometry(620, 620, 1, 1),
@@ -289,6 +307,29 @@
     return p.add(new T.Vector3(-tan.z * lateral, 0, tan.x * lateral));
   };
 
+  KartRace.prototype.nearestTrack = function (position) {
+    var best = this.trackSamples[0], bestDistance = Infinity;
+    for (var i = 0; i < this.trackSamples.length; i++) {
+      var sample = this.trackSamples[i];
+      var dx = position.x - sample.point.x;
+      var dz = position.z - sample.point.z;
+      var distance = dx * dx + dz * dz;
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        best = sample;
+      }
+    }
+    var offsetX = position.x - best.point.x;
+    var offsetZ = position.z - best.point.z;
+    return {
+      u: best.u,
+      point: best.point,
+      tangent: best.tangent,
+      distance: Math.sqrt(bestDistance),
+      signed: offsetX * -best.tangent.z + offsetZ * best.tangent.x
+    };
+  };
+
   KartRace.prototype.makeKart = function (color) {
     var T = global.THREE, g = new T.Group();
     var bodyMat = new T.MeshStandardMaterial({ color: color, roughness: .42, metalness: .08, emissive: 0x000000 });
@@ -392,7 +433,7 @@
          suitable for frame deltas and short visual boost effects. */
       this.updateRace(Date.now());
     }
-    this.updateKartTransform(this.playerKart, this.progress, this.lateral, dt);
+    this.updatePlayerTransform(dt);
     this.bots.forEach(function (b) { self.updateKartTransform(b.mesh, b.progress, b.lateral, dt); });
     this.updateRemotes(dt);
     this.updateCamera(dt, now);
@@ -413,9 +454,11 @@
   };
 
   KartRace.prototype.updatePhysics = function (dt, now) {
+    var T = global.THREE;
     var gas = this.input('gas'), brake = this.input('brake');
     var left = this.input('left'), right = this.input('right'), drift = this.input('drift');
-    var offroad = Math.abs(this.lateral) > ROAD_HALF - .8;
+    var nearest = this.nearestTrack(this.worldPosition);
+    var offroad = nearest.distance > ROAD_HALF - .8;
     var boosting = now < this.boostUntil;
     var max = boosting ? 52 : (offroad ? 17 : 38);
     if (gas) this.speed += (this.speed < 0 ? 28 : 17) * dt;
@@ -425,34 +468,36 @@
     if (boosting) this.speed += 23 * dt;
     this.speed = clamp(this.speed, -8, max);
 
-    /* Positive lateral follows the curve's LEFT normal. Keeping that sign
-       explicit avoids the old bug where A moved right and D moved left on
-       much of the circuit. Steering now has momentum instead of teleporting
-       sideways: normal steering settles quickly; drift keeps sliding after
-       the wheel comes back to centre. */
-    var steer = (left ? 1 : 0) - (right ? 1 : 0);
+    /* The kart now owns its heading and world position. The circuit no
+       longer turns it automatically; without steering it continues straight
+       and runs off the road. Positive yaw is right in the chase-camera view. */
+    var steer = (right ? 1 : 0) - (left ? 1 : 0);
     var direction = this.speed < -.2 ? -1 : 1;
     var speedRatio = clamp(Math.abs(this.speed) / 25, 0, 1);
-    /* No lateral movement while parked; steering authority builds quickly
-       once rolling and then tapers into a controllable high-speed response. */
-    var steerGrip = Math.pow(speedRatio, .65);
-    var targetSlide = steer * direction * steerGrip * (drift ? 13.5 : 9.2);
+    var steerGrip = Math.pow(speedRatio, .62);
     if (drift && Math.abs(this.speed) > 8) this.driftMemory = .5;
     else this.driftMemory = Math.max(0, this.driftMemory - dt);
     var sliding = drift || this.driftMemory > 0;
-    var response = sliding ? 2.4 : 10.5;
-    this.lateralSpeed += (targetSlide - this.lateralSpeed) * Math.min(1, response * dt);
-    if (!steer) {
-      this.lateralSpeed *= Math.pow(sliding ? .982 : .88, dt * 60);
-    }
-    this.lateral += this.lateralSpeed * dt;
+    var turnRate = steerGrip * (drift ? 1.95 : 1.5);
+    this.heading += steer * direction * turnRate * dt;
+    var follow = sliding ? 2.1 : 10.5;
+    var headingDelta = Math.atan2(
+      Math.sin(this.heading - this.travelHeading),
+      Math.cos(this.heading - this.travelHeading)
+    );
+    this.travelHeading += headingDelta * Math.min(1, follow * dt);
     var visibleSteer = steer * direction * clamp(speedRatio * 4, 0, 1);
     this.steerVisual += (visibleSteer - this.steerVisual) * Math.min(1, (drift ? 4 : 9) * dt);
     this.drifting = drift && Math.abs(this.speed) > 8 && Math.abs(steer) > 0;
-    this.lateral = clamp(this.lateral, -18, 18);
-    if (Math.abs(this.lateral) >= 17.95) this.lateralSpeed *= -.25;
-    this.progress += (this.speed * dt) / this.trackLength;
-    if (this.progress < -.01) this.progress = -.01;
+
+    var move = new T.Vector3(Math.sin(this.travelHeading), 0, Math.cos(this.travelHeading));
+    this.worldPosition.addScaledVector(move, this.speed * dt);
+    nearest = this.nearestTrack(this.worldPosition);
+    this.trackU = nearest.u;
+    this.lateral = nearest.signed;
+    this.worldPosition.y += (nearest.point.y - this.worldPosition.y) * Math.min(1, dt * 12);
+    var completedLaps = Math.floor((this.nextCheckpoint - 1) / CHECKPOINTS_PER_LAP);
+    this.progress = completedLaps + this.trackU;
 
     if (Math.abs(this.speed) < 1.2 && offroad && !gas && !brake) this.stuckFor += dt;
     else this.stuckFor = 0;
@@ -474,29 +519,31 @@
     });
   };
 
+  KartRace.prototype.updatePlayerTransform = function (dt) {
+    if (!this.playerKart || !this.worldPosition) return;
+    this.playerKart.position.lerp(this.worldPosition, clamp(dt * 16, 0, 1));
+    var current = this.playerKart.rotation.y;
+    var delta = Math.atan2(Math.sin(this.heading - current), Math.cos(this.heading - current));
+    this.playerKart.rotation.y += delta * clamp(dt * 15, 0, 1);
+    this.playerKart.rotation.z = clamp(-this.steerVisual * (this.drifting ? .15 : .08), -.16, .16);
+  };
+
   KartRace.prototype.updateKartTransform = function (kart, progress, lateral, dt) {
     if (!kart) return;
     var p = this.trackPoint(progress, lateral);
     var tan = this.curve.getTangentAt(mod(progress, 1)).normalize();
     kart.position.lerp(p, clamp(dt * 14, 0, 1));
     var yaw = Math.atan2(tan.x, tan.z);
-    if (kart === this.playerKart) {
-      /* Turn the nose into the corner; drift adds counter-steer and a larger
-         slip angle so the handling is readable from the chase camera. */
-      yaw -= this.steerVisual * (this.drifting ? .34 : .2);
-    }
     var current = kart.rotation.y;
     var delta = Math.atan2(Math.sin(yaw - current), Math.cos(yaw - current));
     kart.rotation.y += delta * clamp(dt * 12, 0, 1);
-    kart.rotation.z = kart === this.playerKart
-      ? clamp(this.steerVisual * (this.drifting ? .15 : .08), -.16, .16)
-      : 0;
+    kart.rotation.z = 0;
   };
 
   KartRace.prototype.updateCamera = function (dt, now) {
     if (!this.playerKart) return;
-    var T = global.THREE, u = mod(this.progress, 1);
-    var tangent = this.curve.getTangentAt(u).normalize();
+    var T = global.THREE;
+    var tangent = new T.Vector3(Math.sin(this.heading), 0, Math.cos(this.heading));
     var desired = this.playerKart.position.clone()
       .add(tangent.clone().multiplyScalar(-11.5))
       .add(new T.Vector3(0, 6.2, 0));
@@ -509,17 +556,22 @@
   };
 
   KartRace.prototype.updateRace = function (now) {
-    var sequence = Math.floor(Math.max(0, this.progress) * CHECKPOINTS_PER_LAP) + 1;
     var maxSequence = LAPS * CHECKPOINTS_PER_LAP;
-    while (this.nextCheckpoint <= Math.min(sequence, maxSequence)) {
+    if (this.nextCheckpoint <= maxSequence) {
+      var checkpointU = (this.nextCheckpoint % CHECKPOINTS_PER_LAP) / CHECKPOINTS_PER_LAP;
+      var checkpoint = this.curve.getPointAt(checkpointU);
+      var dx = this.worldPosition.x - checkpoint.x;
+      var dz = this.worldPosition.z - checkpoint.z;
+      if (dx * dx + dz * dz < 11 * 11) {
       var passed = this.nextCheckpoint++;
       if (this.mode === 'class' && passed > this.lastCheckpointSent) {
         this.lastCheckpointSent = passed;
         global.GeoKartCloud.checkpoint(this.opts.sessionId, passed).catch(function () {});
       }
+      }
     }
 
-    if (this.progress >= LAPS && !this.finishedAt) {
+    if (this.nextCheckpoint > maxSequence && !this.finishedAt) {
       if (this.mode === 'class') {
         var self = this;
         this.finishedAt = now;
@@ -543,7 +595,9 @@
       this.lastBroadcast = now;
       this.opts.sendPosition({
         userId: global.Cloud && global.Cloud.user && global.Cloud.user.id,
-        progress: this.progress, lateral: this.lateral, speed: this.speed, at: Date.now()
+        progress: this.progress, lateral: this.lateral,
+        x: this.worldPosition.x, y: this.worldPosition.y, z: this.worldPosition.z,
+        heading: this.heading, speed: this.speed, at: Date.now()
       });
     }
   };
@@ -555,7 +609,12 @@
     var time = this.host.querySelector('#kart-time');
     if (speed) speed.textContent = String(Math.round(Math.abs(this.speed) * 3.6));
     if (pos) pos.textContent = String(this.lastPlacement);
-    if (lap) lap.textContent = String(clamp(Math.floor(Math.max(0, this.progress)) + 1, 1, LAPS));
+    if (lap) {
+      lap.textContent = String(clamp(
+        Math.floor((this.nextCheckpoint - 1) / CHECKPOINTS_PER_LAP) + 1,
+        1, LAPS
+      ));
+    }
     if (time) time.textContent = fmt((this.finishedAt || now) - this.raceStartedAt);
     this.host.querySelectorAll('.kart-boost').forEach(function (el, i) {
       el.classList.toggle('is-full', i < this.boosts);
@@ -671,7 +730,9 @@
       new T.BoxGeometry(.12 + Math.random() * .18, .12, .5 + Math.random()),
       new T.MeshBasicMaterial({ color: Math.random() > .5 ? 0xfbbf24 : 0x38bdf8 })
     );
-    var tangent = this.curve.getTangentAt(mod(this.progress, 1)).normalize();
+    var tangent = new T.Vector3(
+      Math.sin(this.travelHeading), 0, Math.cos(this.travelHeading)
+    );
     mesh.position.copy(this.playerKart.position).add(tangent.multiplyScalar(-2.3));
     mesh.position.x += (Math.random() - .5) * 1.5;
     mesh.position.y += .4 + Math.random() * .5;
@@ -694,7 +755,12 @@
   };
 
   KartRace.prototype.recover = function () {
+    var nearest = this.nearestTrack(this.worldPosition);
+    this.worldPosition.copy(nearest.point);
+    this.heading = Math.atan2(nearest.tangent.x, nearest.tangent.z);
+    this.travelHeading = this.heading;
     this.lateral = 0;
+    this.lateralSpeed = 0;
     this.speed = 9;
     this.stuckFor = 0;
     this.message('Recovered to the track');
@@ -816,12 +882,19 @@
       remote = this.remotes[packet.userId] = {
         mesh: this.makeKart(colors[Object.keys(this.remotes).length % colors.length]),
         progress: Number(packet.progress) || 0, lateral: Number(packet.lateral) || 0,
-        targetProgress: Number(packet.progress) || 0, targetLateral: Number(packet.lateral) || 0, at: Date.now()
+        targetProgress: Number(packet.progress) || 0, targetLateral: Number(packet.lateral) || 0,
+        targetPosition: null, targetHeading: Number(packet.heading) || 0, at: Date.now()
       };
       this.scene.add(remote.mesh);
     }
     remote.targetProgress = Number(packet.progress) || 0;
     remote.targetLateral = Number(packet.lateral) || 0;
+    if (isFinite(packet.x) && isFinite(packet.z)) {
+      remote.targetPosition = new global.THREE.Vector3(
+        Number(packet.x), Number(packet.y) || 0, Number(packet.z)
+      );
+      remote.targetHeading = Number(packet.heading) || 0;
+    }
     remote.at = Date.now();
   };
 
@@ -832,7 +905,16 @@
       r.progress += (r.targetProgress - r.progress) * Math.min(1, dt * 9);
       r.lateral += (r.targetLateral - r.lateral) * Math.min(1, dt * 9);
       r.mesh.visible = Date.now() - r.at < 5000;
-      self.updateKartTransform(r.mesh, r.progress, r.lateral, dt);
+      if (r.targetPosition) {
+        r.mesh.position.lerp(r.targetPosition, Math.min(1, dt * 9));
+        var turn = Math.atan2(
+          Math.sin(r.targetHeading - r.mesh.rotation.y),
+          Math.cos(r.targetHeading - r.mesh.rotation.y)
+        );
+        r.mesh.rotation.y += turn * Math.min(1, dt * 9);
+      } else {
+        self.updateKartTransform(r.mesh, r.progress, r.lateral, dt);
+      }
     });
   };
 
@@ -848,6 +930,8 @@
     return {
       mode: this.mode, speed: this.speed, progress: this.progress, lateral: this.lateral,
       lateralSpeed: this.lateralSpeed, steer: this.steerVisual, drifting: this.drifting,
+      heading: this.heading, travelHeading: this.travelHeading, trackU: this.trackU,
+      x: this.worldPosition && this.worldPosition.x, z: this.worldPosition && this.worldPosition.z,
       boosts: this.boosts, answered: this.answered, correct: this.correct,
       nextCheckpoint: this.nextCheckpoint, paused: this.paused, finished: !!this.finishedAt
     };
