@@ -42,6 +42,7 @@
     this.lateralSpeed = 0;
     this.steerVisual = 0;
     this.drifting = false;
+    this.driftMemory = 0;
     this.boosts = 0;
     this.boostUntil = 0;
     this.boostsUsed = 0;
@@ -436,13 +437,17 @@
        once rolling and then tapers into a controllable high-speed response. */
     var steerGrip = Math.pow(speedRatio, .65);
     var targetSlide = steer * direction * steerGrip * (drift ? 13.5 : 9.2);
-    var response = drift ? 3.2 : 10.5;
+    if (drift && Math.abs(this.speed) > 8) this.driftMemory = .5;
+    else this.driftMemory = Math.max(0, this.driftMemory - dt);
+    var sliding = drift || this.driftMemory > 0;
+    var response = sliding ? 2.4 : 10.5;
     this.lateralSpeed += (targetSlide - this.lateralSpeed) * Math.min(1, response * dt);
     if (!steer) {
-      this.lateralSpeed *= Math.pow(drift ? .982 : .88, dt * 60);
+      this.lateralSpeed *= Math.pow(sliding ? .982 : .88, dt * 60);
     }
     this.lateral += this.lateralSpeed * dt;
-    this.steerVisual += (steer * direction - this.steerVisual) * Math.min(1, (drift ? 4 : 9) * dt);
+    var visibleSteer = steer * direction * clamp(speedRatio * 4, 0, 1);
+    this.steerVisual += (visibleSteer - this.steerVisual) * Math.min(1, (drift ? 4 : 9) * dt);
     this.drifting = drift && Math.abs(this.speed) > 8 && Math.abs(steer) > 0;
     this.lateral = clamp(this.lateral, -18, 18);
     if (Math.abs(this.lateral) >= 17.95) this.lateralSpeed *= -.25;
