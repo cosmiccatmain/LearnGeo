@@ -432,7 +432,9 @@
     var steer = (left ? 1 : 0) - (right ? 1 : 0);
     var direction = this.speed < -.2 ? -1 : 1;
     var speedRatio = clamp(Math.abs(this.speed) / 25, 0, 1);
-    var steerGrip = .18 + speedRatio * .82;
+    /* No lateral movement while parked; steering authority builds quickly
+       once rolling and then tapers into a controllable high-speed response. */
+    var steerGrip = Math.pow(speedRatio, .65);
     var targetSlide = steer * direction * steerGrip * (drift ? 13.5 : 9.2);
     var response = drift ? 3.2 : 10.5;
     this.lateralSpeed += (targetSlide - this.lateralSpeed) * Math.min(1, response * dt);
