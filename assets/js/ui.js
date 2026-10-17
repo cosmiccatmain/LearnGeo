@@ -1372,6 +1372,7 @@
 
   function showLanding() {
     closeMenu();
+    if (currentView === 'games' && global.Games) global.Games.stop();
     document.getElementById('app').classList.remove('is-open');
     document.getElementById('landing').classList.remove('hidden');
     /* only the view classes. no-scroll belongs to the modal stack and
