@@ -4,6 +4,28 @@ Everything the LearnGeo classroom needs on the server side. The app
 itself is a zero-build static site and stays that way — nothing here
 is compiled into it.
 
+## Live-site additive features
+
+The production-shaped additions in `deployed/` target the schema the
+current app actually uses (`classes.teacher_id` and the `private`
+membership helpers). They are separate from the original greenfield
+`migrations/` sequence above.
+
+Geo Kart solo mode needs no database. Authoritative class races require
+reviewing and applying:
+
+```text
+deployed/0006_geokart.sql
+```
+
+That migration is additive: it creates only `kart_*` tables, policies,
+helpers, RPCs and two Realtime publication entries. It does not seed,
+reset, delete or rewrite existing data. Until it is applied, the Games
+screen reports class racing as not configured and keeps solo racing
+available. After applying it, verify `select public.kart_now();` as an
+authenticated test user, then test with a teacher and student from an
+isolated class before enabling it for a real lesson.
+
 Solo study never touches this database. XP, diamonds, mastery,
 streaks and cosmetics stay in `localStorage`, so a signed-out visitor
 gets the whole trainer and loses nothing.

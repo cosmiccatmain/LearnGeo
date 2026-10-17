@@ -45,7 +45,8 @@
     close:  svg('<path d="M18 6 6 18M6 6l12 12"/>'),
     users:  svg('<circle cx="9" cy="8" r="3.2"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 5.2a3.2 3.2 0 0 1 0 5.9"/><path d="M18 14.4a6.2 6.2 0 0 1 3.5 5.6"/>'),
     plus:   svg('<path d="M12 5v14M5 12h14"/>'),
-    inbox:  svg('<path d="M3 12h5l2 3h4l2-3h5"/><path d="M5 5h14l2 7v7H3v-7z"/>')
+    inbox:  svg('<path d="M3 12h5l2 3h4l2-3h5"/><path d="M5 5h14l2 7v7H3v-7z"/>'),
+    gamepad: svg('<path d="M7 8h10a5 5 0 0 1 4.7 6.7l-1 2.8a2.2 2.2 0 0 1-3.7.8L15.8 17H8.2L7 18.3a2.2 2.2 0 0 1-3.7-.8l-1-2.8A5 5 0 0 1 7 8z"/><path d="M7 11v4M5 13h4"/><circle cx="16.5" cy="12" r=".7" fill="currentColor"/><circle cx="18.5" cy="14" r=".7" fill="currentColor"/>')
   };
 
   /* The verified seal. Solid rather than line art, because it has to read as

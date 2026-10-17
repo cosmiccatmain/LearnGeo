@@ -1,0 +1,199 @@
+/* LearnGeo Games / Geo Kart. The race surface is deliberately isolated from
+   the study-mode layout: Three.js owns the canvas; ordinary HTML owns every
+   control and question so keyboard, touch and screen readers still work. */
+.games-view {
+  flex: 1; min-height: 0; overflow: auto; position: relative;
+  background:
+    radial-gradient(circle at 18% 10%, rgba(45,212,191,.17), transparent 34%),
+    radial-gradient(circle at 86% 8%, rgba(251,191,36,.18), transparent 30%),
+    #f4f7f5;
+}
+.games-shell { width: min(1120px, calc(100% - 40px)); margin: 0 auto; padding: 44px 0 64px; }
+.games-head { display: flex; align-items: end; justify-content: space-between; gap: 20px; margin-bottom: 24px; }
+.games-head h1 { font-size: clamp(30px, 4vw, 48px); letter-spacing: -.05em; line-height: 1; }
+.games-head p { color: var(--muted); max-width: 560px; margin-top: 10px; }
+.games-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 20px; }
+.game-card {
+  overflow: hidden; text-align: left; border: 1px solid rgba(15,23,42,.1);
+  border-radius: 22px; background: var(--white); box-shadow: 0 18px 50px rgba(15,23,42,.08);
+}
+.game-card__art {
+  height: 250px; position: relative; overflow: hidden;
+  background: linear-gradient(#6ed5f7 0 55%, #56ae6b 55%);
+}
+.game-card__art::before {
+  content: ""; position: absolute; width: 150%; height: 180px; left: -25%; bottom: -85px;
+  border-radius: 50%; background: #30363d; box-shadow: inset 0 0 0 24px #f8fafc;
+  transform: rotate(-6deg);
+}
+.game-card__mountains {
+  position: absolute; inset: 36px -30px auto; height: 120px;
+  background: linear-gradient(140deg, transparent 0 25%, #4d8c78 26% 39%, transparent 40%),
+              linear-gradient(220deg, transparent 0 34%, #337762 35% 52%, transparent 53%);
+  opacity: .8;
+}
+.game-card__kart {
+  position: absolute; left: 50%; bottom: 32px; width: 94px; height: 48px;
+  transform: translateX(-50%) rotate(-5deg); border-radius: 16px 16px 8px 8px;
+  background: #ef4444; border: 5px solid #7f1d1d; box-shadow: -30px 17px 0 -12px #111827, 30px 17px 0 -12px #111827;
+}
+.game-card__kart::before {
+  content: ""; position: absolute; width: 38px; height: 32px; border-radius: 50% 50% 8px 8px;
+  background: #fbbf24; left: 23px; top: -27px; border: 5px solid #92400e;
+}
+.game-card__bolt {
+  position: absolute; right: 26px; top: 22px; font-size: 35px; filter: drop-shadow(0 4px 8px rgba(0,0,0,.25));
+}
+.game-card__body { padding: 24px; }
+.game-card__eyebrow, .kart-eyebrow { color: #087f68; font: 600 11px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; }
+.game-card h2 { font-size: 25px; margin: 9px 0 7px; letter-spacing: -.03em; }
+.game-card p { color: var(--muted); line-height: 1.55; min-height: 48px; }
+.game-card__foot { display: flex; gap: 10px; align-items: center; justify-content: space-between; margin-top: 20px; }
+.game-card__tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.game-card__tags span, .kart-chip {
+  padding: 5px 8px; border-radius: 999px; background: #ecfdf5; color: #047857;
+  font: 600 10px/1 var(--mono);
+}
+
+.kart-setup { max-width: 880px; margin: 0 auto; }
+.kart-back { margin-bottom: 18px; }
+.kart-setup-card {
+  border: 1px solid var(--line); border-radius: 22px; background: rgba(255,255,255,.94);
+  box-shadow: var(--shadow-lg); padding: clamp(22px, 4vw, 38px);
+}
+.kart-setup-card h1 { font-size: clamp(28px, 4vw, 42px); letter-spacing: -.045em; margin: 8px 0; }
+.kart-setup-card > p { color: var(--muted); }
+.kart-mode-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 24px 0; }
+.kart-mode-tab {
+  padding: 14px; border: 1px solid var(--line); border-radius: 13px; text-align: left; background: var(--white);
+}
+.kart-mode-tab b, .kart-mode-tab span { display: block; }
+.kart-mode-tab span { margin-top: 3px; color: var(--muted); font-size: 12px; }
+.kart-mode-tab.is-active { border-color: #0f766e; box-shadow: 0 0 0 2px rgba(15,118,110,.13); background: #f0fdfa; }
+.kart-options { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.kart-field { display: grid; gap: 7px; }
+.kart-field label { font-size: 12px; font-weight: 650; }
+.kart-field select, .kart-field input {
+  width: 100%; height: 42px; padding: 0 11px; border: 1px solid var(--line);
+  border-radius: 10px; background: var(--white); color: var(--ink);
+}
+.kart-controls {
+  margin: 22px 0; padding: 16px; border-radius: 14px; background: #f8fafc; border: 1px solid var(--line-soft);
+}
+.kart-controls h3 { font-size: 13px; margin-bottom: 10px; }
+.kart-control-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px 16px; color: var(--muted); font-size: 12px; }
+.kart-control-grid b { color: var(--ink); font-family: var(--mono); }
+.kart-start-row { display: flex; justify-content: flex-end; gap: 10px; align-items: center; }
+.kart-notice { padding: 13px 15px; border-radius: 11px; background: #fff7ed; color: #9a3412; font-size: 12px; line-height: 1.5; }
+
+.kart-lobby { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(240px, .7fr); gap: 18px; }
+.kart-lobby__main, .kart-lobby__side {
+  border: 1px solid var(--line); background: var(--white); border-radius: 18px; padding: 22px;
+}
+.kart-code { font: 700 clamp(30px, 6vw, 52px)/1 var(--mono); letter-spacing: .14em; margin: 12px 0; }
+.kart-roster { display: grid; gap: 8px; margin: 18px 0; }
+.kart-player-row { display: flex; align-items: center; gap: 10px; padding: 11px; border-radius: 10px; background: #f8fafc; }
+.kart-player-row i { width: 9px; height: 9px; border-radius: 50%; background: #cbd5e1; }
+.kart-player-row.is-ready i { background: #10b981; box-shadow: 0 0 0 4px #d1fae5; }
+.kart-player-row span { margin-left: auto; color: var(--muted); font-size: 11px; }
+
+/* Race canvas and overlays */
+.geokart { position: absolute; inset: 0; overflow: hidden; background: #7dd3fc; touch-action: none; color: #fff; }
+.geokart canvas { display: block; width: 100%; height: 100%; }
+.kart-hud { position: absolute; inset: 0; pointer-events: none; text-shadow: 0 2px 5px rgba(0,0,0,.55); }
+.kart-stats {
+  position: absolute; top: 16px; left: 16px; display: flex; flex-wrap: wrap; gap: 8px;
+}
+.kart-stat {
+  min-width: 76px; padding: 8px 11px; border-radius: 11px; background: rgba(3,7,18,.68);
+  border: 1px solid rgba(255,255,255,.18); backdrop-filter: blur(8px);
+}
+.kart-stat span { display: block; font: 600 9px/1 var(--mono); text-transform: uppercase; opacity: .7; letter-spacing: .08em; }
+.kart-stat b { display: block; margin-top: 4px; font: 700 18px/1 var(--mono); }
+.kart-boosts { display: flex; gap: 5px; margin-top: 5px; }
+.kart-boost { width: 19px; height: 8px; border-radius: 4px; background: rgba(255,255,255,.22); }
+.kart-boost.is-full { background: #fbbf24; box-shadow: 0 0 12px #f59e0b; }
+.kart-question {
+  pointer-events: auto; position: absolute; top: 14px; right: 14px; width: min(410px, calc(100% - 30px));
+  border-radius: 14px; background: rgba(3,7,18,.78); border: 1px solid rgba(255,255,255,.2);
+  padding: 13px; backdrop-filter: blur(10px); text-shadow: none;
+}
+.kart-question__prompt { font-size: 11px; color: #a7f3d0; font-weight: 650; }
+.kart-question__subject { font-size: 16px; font-weight: 720; margin: 3px 0 10px; }
+.kart-answers { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.kart-answer {
+  min-height: 34px; padding: 7px 8px; border-radius: 8px; text-align: left;
+  color: #f8fafc; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.12);
+  font-size: 11px; line-height: 1.25;
+}
+.kart-answer b { color: #fde68a; margin-right: 4px; font-family: var(--mono); }
+.kart-answer:hover { background: rgba(255,255,255,.18); }
+.kart-answer.is-right { background: rgba(16,185,129,.7); border-color: #6ee7b7; }
+.kart-answer.is-wrong { background: rgba(239,68,68,.68); border-color: #fca5a5; }
+.kart-countdown {
+  position: absolute; inset: 0; display: grid; place-items: center;
+  font: 900 clamp(72px, 16vw, 170px)/1 var(--mono); text-shadow: 0 8px 30px rgba(0,0,0,.55);
+}
+.kart-countdown small { display: block; font-size: 22px; text-align: center; letter-spacing: .08em; }
+.kart-message {
+  position: absolute; left: 50%; top: 25%; transform: translateX(-50%);
+  padding: 9px 15px; border-radius: 999px; background: rgba(3,7,18,.72); font-weight: 700;
+}
+.kart-menu-button {
+  pointer-events: auto; position: absolute; left: 16px; bottom: 16px; width: 42px; height: 42px;
+  border-radius: 12px; color: #fff; background: rgba(3,7,18,.65); border: 1px solid rgba(255,255,255,.2);
+}
+.kart-pause, .kart-results {
+  position: absolute; inset: 0; z-index: 8; display: grid; place-items: center; pointer-events: auto;
+  background: rgba(2,6,23,.66); backdrop-filter: blur(8px);
+}
+.kart-dialog {
+  width: min(470px, calc(100% - 28px)); max-height: calc(100% - 28px); overflow: auto;
+  color: var(--ink); text-shadow: none; background: var(--white); border-radius: 20px; padding: 26px;
+  box-shadow: 0 25px 70px rgba(0,0,0,.35);
+}
+.kart-dialog h2 { font-size: 27px; letter-spacing: -.04em; }
+.kart-dialog p { color: var(--muted); margin: 7px 0 18px; }
+.kart-result-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin: 18px 0; }
+.kart-result-grid div { padding: 12px; border-radius: 11px; background: #f1f5f9; }
+.kart-result-grid span { display: block; color: var(--muted); font-size: 10px; text-transform: uppercase; }
+.kart-result-grid b { display: block; margin-top: 4px; font: 700 18px/1 var(--mono); }
+.kart-dialog__actions { display: flex; justify-content: flex-end; gap: 9px; }
+
+.kart-touch { display: none; position: absolute; inset: auto 0 12px; padding: 0 12px; pointer-events: none; justify-content: space-between; }
+.kart-touch__steer, .kart-touch__pedals { display: grid; gap: 8px; pointer-events: auto; }
+.kart-touch__steer { grid-template-columns: repeat(2, 58px); }
+.kart-touch__pedals { grid-template-columns: repeat(2, 58px); }
+.kart-touch button {
+  width: 58px; height: 58px; border-radius: 17px; color: #fff; font-size: 21px; font-weight: 800;
+  background: rgba(3,7,18,.61); border: 1px solid rgba(255,255,255,.25); backdrop-filter: blur(6px);
+}
+.kart-touch button.is-held { background: rgba(13,148,136,.8); transform: scale(.96); }
+.kart-touch .kart-touch__boost { color: #fbbf24; }
+
+@media (pointer: coarse), (max-width: 760px) {
+  .kart-touch { display: flex; }
+  .kart-menu-button { bottom: 82px; }
+}
+@media (max-width: 760px) {
+  .games-shell { width: min(100% - 24px, 1120px); padding: 24px 0 40px; }
+  .games-head { align-items: start; flex-direction: column; }
+  .game-card__art { height: 190px; }
+  .kart-options, .kart-control-grid { grid-template-columns: 1fr; }
+  .kart-lobby { grid-template-columns: 1fr; }
+  .kart-question { top: 8px; right: 8px; width: calc(100% - 16px); padding: 9px; }
+  .kart-question__subject { font-size: 13px; margin-bottom: 6px; }
+  .kart-answer { min-height: 31px; padding: 5px 7px; font-size: 10px; }
+  .kart-stats { top: auto; bottom: 82px; left: 82px; right: 82px; justify-content: center; }
+  .kart-stat { min-width: 58px; padding: 6px 8px; }
+  .kart-stat b { font-size: 14px; }
+  .kart-stat--position { display: none; }
+}
+@media (max-width: 560px) {
+  .geokart { bottom: 57px; }
+  .kart-start-row { align-items: stretch; flex-direction: column-reverse; }
+  .kart-start-row .btn { width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .game-card__kart { transform: translateX(-50%); }
+}
