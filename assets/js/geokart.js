@@ -39,6 +39,9 @@
     this.speed = 0;
     this.progress = 0;
     this.lateral = 0;
+    this.lateralSpeed = 0;
+    this.steerVisual = 0;
+    this.drifting = false;
     this.boosts = 0;
     this.boostUntil = 0;
     this.boostsUsed = 0;
@@ -421,11 +424,26 @@
     if (boosting) this.speed += 23 * dt;
     this.speed = clamp(this.speed, -8, max);
 
-    var steer = (right ? 1 : 0) - (left ? 1 : 0);
-    var steerPower = (5.2 + Math.min(1, Math.abs(this.speed) / 20) * 5.6) * (drift ? 1.55 : 1);
-    this.lateral += steer * steerPower * dt * (this.speed >= 0 ? 1 : -1);
-    if (!steer && !drift) this.lateral *= Math.pow(.987, dt * 60);
+    /* Positive lateral follows the curve's LEFT normal. Keeping that sign
+       explicit avoids the old bug where A moved right and D moved left on
+       much of the circuit. Steering now has momentum instead of teleporting
+       sideways: normal steering settles quickly; drift keeps sliding after
+       the wheel comes back to centre. */
+    var steer = (left ? 1 : 0) - (right ? 1 : 0);
+    var direction = this.speed < -.2 ? -1 : 1;
+    var speedRatio = clamp(Math.abs(this.speed) / 25, 0, 1);
+    var steerGrip = .18 + speedRatio * .82;
+    var targetSlide = steer * direction * steerGrip * (drift ? 13.5 : 9.2);
+    var response = drift ? 3.2 : 10.5;
+    this.lateralSpeed += (targetSlide - this.lateralSpeed) * Math.min(1, response * dt);
+    if (!steer) {
+      this.lateralSpeed *= Math.pow(drift ? .982 : .88, dt * 60);
+    }
+    this.lateral += this.lateralSpeed * dt;
+    this.steerVisual += (steer * direction - this.steerVisual) * Math.min(1, (drift ? 4 : 9) * dt);
+    this.drifting = drift && Math.abs(this.speed) > 8 && Math.abs(steer) > 0;
     this.lateral = clamp(this.lateral, -18, 18);
+    if (Math.abs(this.lateral) >= 17.95) this.lateralSpeed *= -.25;
     this.progress += (this.speed * dt) / this.trackLength;
     if (this.progress < -.01) this.progress = -.01;
 
@@ -455,10 +473,17 @@
     var tan = this.curve.getTangentAt(mod(progress, 1)).normalize();
     kart.position.lerp(p, clamp(dt * 14, 0, 1));
     var yaw = Math.atan2(tan.x, tan.z);
+    if (kart === this.playerKart) {
+      /* Turn the nose into the corner; drift adds counter-steer and a larger
+         slip angle so the handling is readable from the chase camera. */
+      yaw -= this.steerVisual * (this.drifting ? .34 : .2);
+    }
     var current = kart.rotation.y;
     var delta = Math.atan2(Math.sin(yaw - current), Math.cos(yaw - current));
     kart.rotation.y += delta * clamp(dt * 12, 0, 1);
-    kart.rotation.z = clamp(-((this.input && kart === this.playerKart && (this.input('right') ? 1 : 0) - (this.input('left') ? 1 : 0)) || 0) * .09, -.12, .12);
+    kart.rotation.z = kart === this.playerKart
+      ? clamp(this.steerVisual * (this.drifting ? .15 : .08), -.16, .16)
+      : 0;
   };
 
   KartRace.prototype.updateCamera = function (dt, now) {
@@ -815,6 +840,7 @@
   KartRace.prototype.debug = function () {
     return {
       mode: this.mode, speed: this.speed, progress: this.progress, lateral: this.lateral,
+      lateralSpeed: this.lateralSpeed, steer: this.steerVisual, drifting: this.drifting,
       boosts: this.boosts, answered: this.answered, correct: this.correct,
       nextCheckpoint: this.nextCheckpoint, paused: this.paused, finished: !!this.finishedAt
     };
