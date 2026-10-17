@@ -22,7 +22,10 @@
       meta: 'Two marks each · no multiple choice' },
     { view: 'cards', icon: I.cards, title: 'Flashcards',
       blurb: 'Flip cards that keep track of how you’re doing. The ones you’re unsure about come back again before you finish.',
-      meta: 'Both directions · 10 – 100 cards' }
+      meta: 'Both directions · 10 – 100 cards' },
+    { view: 'games', icon: I.gamepad, title: 'Games',
+      blurb: 'Race, steer and drift while geography questions charge your kart’s boost. Play solo or start a live class race.',
+      meta: 'Geo Kart · solo and class races' }
   ];
 
   var recsCache = [];
