@@ -342,6 +342,17 @@
   }
 
   /* =============================== stream =========================== */
+  /* A class can have more than one teacher, so each post names the one who
+     wrote it. Older posts have no author on the server and say "Teacher". */
+  function postAuthor(p) {
+    var name = String(p.author || '').trim() || 'Teacher';
+    var ini = name.split(/\s+/).slice(0, 2)
+      .map(function (w) { return w[0]; }).join('').toUpperCase();
+    return '<div class="st-post__author">' +
+      '<span class="st-post__av" aria-hidden="true">' + W.escapeHtml(ini) + '</span>' +
+      '<span>Posted by <b>' + W.escapeHtml(name) + '</b></span></div>';
+  }
+
   function streamPanel() {
     var list = stream().slice().sort(function (a, b) {
       if (!!a.pinned !== !!b.pinned) return a.pinned ? -1 : 1;
@@ -363,6 +374,7 @@
                 (isNew ? ' st-post--new' : '') + '">' +
               '<div class="st-post__body">' +
                 W.escapeHtml(String(p.body || '')).replace(/\n/g, '<br>') + '</div>' +
+              postAuthor(p) +
               '<div class="st-post__foot">' +
                 '<span class="st-post__when">' +
                   (p.pinned ? I.flag + 'Pinned · ' : '') + agoLabel(p.at) + '</span>' +

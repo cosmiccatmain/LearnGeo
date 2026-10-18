@@ -707,10 +707,20 @@
      The Stream is the teacher talking to the class: notes about Friday's
      quiz, a reminder, a well done. Posts go out the same way assignments
      do and turn up in every student's Classroom. */
+  /* Several teachers can post to one class, so every post says whose it
+     is. Posts from before the server kept an author just say "Teacher". */
+  function postAuthor(p) {
+    var name = String(p.author || '').trim() || 'Teacher';
+    return '<div class="st-post__author">' +
+      '<span class="st-post__av" aria-hidden="true">' + W.escapeHtml(initials(name)) + '</span>' +
+      '<span>Posted by <b>' + W.escapeHtml(name) + '</b></span></div>';
+  }
+
   function postRow(p) {
     return '<div class="st-post' + (p.pinned ? ' st-post--pinned' : '') + '">' +
       '<div class="st-post__body">' +
         W.escapeHtml(String(p.body || '')).replace(/\n/g, '<br>') + '</div>' +
+      postAuthor(p) +
       '<div class="st-post__foot">' +
         '<span class="st-post__when">' +
           (p.pinned ? I.flag + 'Pinned · ' : '') + agoLabel(p.at) + '</span>' +
@@ -806,7 +816,8 @@
     if (!body) { ta.focus(); return; }
 
     var p = { id: 'p' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36),
-              body: body.slice(0, 2000), pinned: false, at: Date.now() };
+              body: body.slice(0, 2000), pinned: false, at: Date.now(),
+              author: String((W.state.profile && W.state.profile.displayName) || '').slice(0, 60) };
     cls().posts.unshift(p);
     W.saveNow();
     render();
@@ -817,7 +828,10 @@
     global.Cloud.postAnnouncement(p).then(function (saved) {
       if (!saved) return;
       cls().posts.forEach(function (x) {
-        if (x.id === p.id) { x.id = saved.id; x.at = saved.at; }
+        if (x.id === p.id) {
+          x.id = saved.id; x.at = saved.at;
+          if (saved.author) { x.author = saved.author; x.authorId = saved.authorId; }
+        }
       });
       W.saveNow();
     }, cloudErr);

@@ -349,9 +349,16 @@
     };
   }
 
+  /* author_name arrives with deployed/0007. Until then, and for posts made
+     before it, it is absent and the Stream says "Teacher". */
   function rowToPost(row) {
-    return { id: row.id, body: row.body, pinned: !!row.pinned, at: Date.parse(row.created_at) };
+    return { id: row.id, body: row.body, pinned: !!row.pinned, at: Date.parse(row.created_at),
+             author: row.author_name || '', authorId: row.author_id || null };
   }
+
+  /* select('*') for the same reason as class_members: naming author_name
+     before 0007 is in would error the whole class sync. */
+  var POST_COLS = '*';
 
   function rowToResult(row) {
     return {
@@ -651,7 +658,7 @@
                 results and announcements. That is the announcements outage
                 again, and this batch is the class sync, not a feature. */
              sb.from('class_members').select('*').eq('class_id', row.id).order('joined_at'),
-          sb.from('announcements').select('id, body, pinned, created_at').eq('class_id', row.id)
+          sb.from('announcements').select(POST_COLS).eq('class_id', row.id)
             .order('pinned', { ascending: false }).order('created_at', { ascending: false })
         ]).then(function (all) { return { id: row.id, all: all }; });
       })
@@ -717,7 +724,7 @@
   function postAnnouncement(p) {
     if (!teacherReady()) return Promise.resolve(null);
     return sb.from('announcements').insert(announcementRow(p, cls().cloudId))
-      .select('id, body, pinned, created_at').single().then(check).then(rowToPost);
+      .select(POST_COLS).single().then(check).then(rowToPost);
   }
   function deleteAnnouncement(id) {
     if (!teacherReady()) return Promise.resolve();
@@ -964,7 +971,7 @@
       return Promise.all([
         sb.from('classes').select('id, code, name').eq('id', e.classId).maybeSingle(),
         sb.from('assignments').select('id, title, mode, config, created_at').eq('class_id', e.classId).order('created_at'),
-        sb.from('announcements').select('id, body, pinned, created_at').eq('class_id', e.classId)
+        sb.from('announcements').select(POST_COLS).eq('class_id', e.classId)
           .order('pinned', { ascending: false }).order('created_at', { ascending: false })
       ]).then(function (all) {
         var klass = check(all[0]), rows = check(all[1]), posts = checkPosts(all[2]);
