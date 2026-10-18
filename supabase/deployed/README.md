@@ -19,7 +19,7 @@ This folder is for the live project — the one whose URL is in
 | `class_members` | `class_id`, `student_id`, `display_name` |
 | `assignments` | `id` (text), `class_id`, `title`, `mode`, `config` |
 | `results` | `class_id`, `assignment_id`, `student_id`, `student_name`, `pct`, `missed` |
-| `announcements` | `class_id`, `body`, `pinned` — added by `0001` here |
+| `announcements` | `class_id`, `body`, `pinned` — added by `0001` here; `author_id`, `author_name` by `0007` (not applied yet) |
 | `arcade_scores`, `admin_pins` | the arcade and the admin panel |
 
 Authorisation goes through two `security definer` helpers in the
