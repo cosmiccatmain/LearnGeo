@@ -8,7 +8,7 @@
 
   var cfg = {
     regions: [], scope: 'all', countries: null,
-    types: ['capital', 'country', 'locate', 'identify'],
+    types: ['capital', 'country', 'locate', 'identify', 'flag'],
     weakFirst: true, typed: false, nearbyMapChoices: false
   };
   var q = null, answered = false, session = { asked: 0, right: 0 };
@@ -37,7 +37,7 @@
     /* a short hand-picked list cannot supply three wrong answers on its own */
     var choicesFrom = list.length >= 5 ? list : global.Quiz.pool({ scope: 'all' });
     q = global.Quiz.make(type, target, choicesFrom, {
-      typed: cfg.typed && (type === 'capital' || type === 'country'),
+      typed: cfg.typed && global.Quiz.typeable(type),
       nearbyMapChoices: cfg.nearbyMapChoices
     });
     render();
@@ -62,7 +62,7 @@
       global.GeoMap.drawCountry(q.country, 'target');
       global.GeoMap.frame(q.country, 90);
       setHint('Which country is shaded?');
-    } else if (q.type === 'capital') {
+    } else if (q.type === 'capital' || q.type === 'flagpick') {
       /* the question already names the country, so shade and label it;
          the blur keeps its capital from being read off the tiles */
       global.GeoMap.drawCountry(q.country, 'target');
@@ -222,19 +222,18 @@
         '<span class="eyebrow">' + session.right + '/' + session.asked + ' this session</span>' +
       '</div>' +
       '<div class="qprompt">' + W.escapeHtml(q.prompt) + '</div>' +
-      '<div class="qsubject">' + W.escapeHtml(q.subject) +
-        '<small>' + W.escapeHtml(q.sub || '') + '</small></div>';
+      '<div class="qsubject">' + global.Quiz.subjectHtml(q) + '</div>';
 
     if (q.typed) {
       html += '<input class="answer-input" id="typed-answer" autocomplete="off" ' +
         'autocorrect="off" spellcheck="false" placeholder="Type your answer…">' +
         '<button class="btn btn--accent btn--block" id="typed-submit" style="margin-top:10px">Check answer</button>';
     } else if (q.choices) {
-      html += '<div class="options">';
+      html += '<div class="' + global.Quiz.optionsClass(q) + '">';
       q.choices.forEach(function (c, i) {
         html += '<button class="option" data-i="' + i + '">' +
           '<span class="option__key mono">' + (i + 1) + '</span>' +
-          '<span class="option__text">' + W.escapeHtml(c.text) + '</span>' +
+          '<span class="option__text">' + global.Quiz.choiceHtml(q, c) + '</span>' +
           '<span class="option__mark">' + I.check + '</span></button>';
       });
       html += '</div>';
@@ -275,10 +274,19 @@
         '</div>'
       : '';
 
+    var isFlag = q.type === 'flag' || q.type === 'flagpick';
     var detail = correct
-      ? '<p>' + W.escapeHtml(c.capital) + ' is the capital of ' + W.escapeHtml(c.name) + '.</p>'
+      ? (isFlag
+          ? '<p>That’s the flag of ' + W.escapeHtml(c.name) + '. Its capital is ' + W.escapeHtml(c.capital) + '.</p>'
+          : '<p>' + W.escapeHtml(c.capital) + ' is the capital of ' + W.escapeHtml(c.name) + '.</p>')
       : '<p>The answer is <b>' + W.escapeHtml(q.answerText) + '</b>' +
         (given && q.typed ? '. You wrote “' + W.escapeHtml(given) + '”.' : '.') + '</p>';
+    /* the options are pictures, so name the flag that was picked */
+    if (!correct && q.type === 'flagpick' && last && last.idx !== undefined) {
+      var chose = q.choices[last.idx].country;
+      detail += '<p class="t-sm t-muted" style="margin-top:4px">You picked the flag of ' +
+        W.escapeHtml(chose.name) + '.</p>';
+    }
 
     var note = c.note ? '<p style="margin-top:6px;color:var(--muted)">' + W.escapeHtml(c.note) + '</p>' : '';
 

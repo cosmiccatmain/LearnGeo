@@ -406,8 +406,7 @@
     var answered = T.given[T.i] !== null;
     var html = '<div class="qcard">' +
       '<div class="qprompt">' + W.escapeHtml(q.prompt) + '</div>' +
-      '<div class="qsubject">' + W.escapeHtml(q.subject) +
-        '<small>' + W.escapeHtml(q.sub || '') + '</small></div>';
+      '<div class="qsubject">' + global.Quiz.subjectHtml(q) + '</div>';
 
     var locked = answered && T.instant;
     if (q.typed) {
@@ -420,7 +419,7 @@
           (answered ? 'Update answer' : 'Submit answer') + '</button>';
       }
     } else if (q.choices) {
-      html += '<div class="options">';
+      html += '<div class="' + global.Quiz.optionsClass(q) + '">';
       q.choices.forEach(function (c, i) {
         var cls = 'option';
         if (T.given[T.i] === c.text) cls += T.instant && answered ? (c.correct ? ' is-right' : ' is-wrong') : ' is-selected';
@@ -428,7 +427,7 @@
         if (answered && T.instant) cls += ' is-locked';
         html += '<button class="' + cls + '" data-i="' + i + '">' +
           '<span class="option__key mono">' + (i + 1) + '</span>' +
-          '<span class="option__text">' + W.escapeHtml(c.text) + '</span>' +
+          '<span class="option__text">' + global.Quiz.choiceHtml(q, c) + '</span>' +
           '<span class="option__mark">' + I.check + '</span></button>';
       });
       html += '</div>';
@@ -506,7 +505,7 @@
       if (reveal) {
         global.GeoMap.drawCountry(q.country, 'right', null, q.country.name);
         global.GeoMap.frame(q.country, 80);
-      } else if (q.type === 'capital') {
+      } else if (q.type === 'capital' || q.type === 'flagpick') {
         /* the question names the country, so shade and label it */
         global.GeoMap.drawCountry(q.country, 'target');
         global.GeoMap.label(q.country, q.country.name);
@@ -703,7 +702,7 @@
               '<div class="review-item__i review-item__i--' + (ok ? 'right' : 'wrong') + ' mono">' + (i + 1) + '</div>' +
               '<div class="grow">' +
                 '<div class="review-item__q">' + W.escapeHtml(q.prompt) + ' ' +
-                  '<b>' + W.escapeHtml(q.subject) + '</b></div>' +
+                  global.Quiz.subjectInline(q) + '</div>' +
                 '<div class="review-item__a">' +
                   (ok ? '<b>' + W.escapeHtml(q.answerText) + '</b>'
                       : '<span class="bad">' + W.escapeHtml(T.given[i] === null ? 'skipped' : T.given[i]) + '</span>' +
@@ -794,9 +793,7 @@
     var all = global.Quiz.pool({ scope: 'all' });
     var qs = missed.map(function (c) {
       var t = W.pick(setup.types);
-      /* only the two capital questions have a typed form: a typed locate
-         question would print its own answer in the prompt */
-      return global.Quiz.make(t, c, all, { typed: setup.typed && (t === 'capital' || t === 'country') });
+      return global.Quiz.make(t, c, all, { typed: setup.typed && global.Quiz.typeable(t) });
     });
     T = {
       phase: 'running', qs: qs, i: 0,

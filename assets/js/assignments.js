@@ -214,7 +214,7 @@
       out.regions = c.regions.filter(function (r) { return global.GeoData.regions.indexOf(r) !== -1; });
     }
     if (['un', 'un-plus', 'all'].indexOf(c.scope) !== -1) out.scope = c.scope;
-    if (c.face === 'country' || c.face === 'capital') out.face = c.face;
+    if (c.face === 'country' || c.face === 'capital' || c.face === 'flag') out.face = c.face;
     return out;
   }
 

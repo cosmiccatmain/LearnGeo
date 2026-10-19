@@ -20,17 +20,29 @@ answers are accepted too.
 ## Modes
 
 - **Learn**: practice for as long as you want and find out right away if you got it. The
-  countries you're worst at come up first. There are four question types: country to capital,
-  capital to country, find the country on the map, and name the shaded country.
+  countries you're worst at come up first. There are six question types: country to capital,
+  capital to country, find the country on the map, name the shaded country, name the country
+  a flag belongs to, and pick a country's flag out of four.
 - **Practice test**: a fixed set of questions with a navigator, flags, an optional timer and an
   exam mode. At the end you get a report split up by region and question type.
 - **Class quiz**: works like the paper map quizzes from school. A country is shaded gold, you
   click it, then type its name and its capital from memory. Each question is worth two marks,
   there's no multiple choice, and you get a marked paper at the end.
-- **Flashcards**: country on one side, capital on the other. Rate each card Again, Hard, Good
-  or Easy, and the ones you struggled with come back before the deck is over.
+- **Flashcards**: country on one side, capital on the other, or a flag on the front with the
+  country and its capital on the back. Rate each card Again, Hard, Good or Easy, and the ones
+  you struggled with come back before the deck is over.
 
 All four modes save to the same mastery record, so the app knows what you keep getting wrong.
+
+## Flags
+
+The 213 flags in `assets/flags/` are the 4:3 SVGs from
+[flag-icons](https://github.com/lipis/flag-icons) 7.6.0 (MIT, licence alongside them), named
+by ISO 3166-1 alpha-2 code. Kosovo uses `xk`. The code for each place is in `FLAG_CODES` in
+`assets/js/data.js`. Each flag is loaded only when it is shown; the whole set is about 1.4 MB.
+
+Chad and Romania, and Indonesia and Monaco, have flags that look the same, so neither is ever
+offered as the wrong answer for the other.
 
 ## The map blur
 
@@ -204,7 +216,8 @@ assets/css/motion.css           button feedback and transitions
 assets/css/demo.css             landing page demo
 assets/css/auth.css             sign in, create account and password dialogs
 assets/css/brand.css            the LearnGeo mark
-assets/js/data.js               the 213 places: capitals, coordinates, notes, aliases
+assets/js/data.js               the 213 places: capitals, coordinates, notes, aliases, flag codes
+assets/flags/                   one 4:3 SVG flag per place, named by ISO alpha-2 code
 assets/js/cosmetics.js          avatars, decorations, effects, nameplates, banners, themes, achievements
 assets/js/avatars.js            inline SVG artwork for avatars (no emoji fonts needed)
 assets/js/core.js               icons, state, storage, economy, sound, reward effects

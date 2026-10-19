@@ -1,11 +1,13 @@
 /* ------------------------------------------------------------------
    LearnGeo — question generator
 
-   Four question shapes, all built from the same pool:
+   Six question shapes, all built from the same pool:
      capital   country -> capital
      country   capital -> country
      locate    click the named country on the map
      identify  a country is shaded -> which one is it?
+     flag      a flag is shown -> which country is it?
+     flagpick  a country is named -> which of four flags is its?
 -------------------------------------------------------------------*/
 (function (global) {
   'use strict';
@@ -15,8 +17,21 @@
     capital:  { id: 'capital',  label: 'Country → Capital',    icon: 'pin' },
     country:  { id: 'country',  label: 'Capital → Country',    icon: 'globe' },
     locate:   { id: 'locate',   label: 'Locate on map',        icon: 'target' },
-    identify: { id: 'identify', label: 'Identify the country', icon: 'layers' }
+    identify: { id: 'identify', label: 'Identify the country', icon: 'layers' },
+    flag:     { id: 'flag',     label: 'Flag → Country',       icon: 'flag' },
+    flagpick: { id: 'flagpick', label: 'Country → Flag',       icon: 'flag' }
   };
+
+  /* Only these can be answered by typing. A typed locate question would
+     print its own answer in the prompt, and a flag cannot be typed. */
+  function typeable(type) {
+    return type === 'capital' || type === 'country' || type === 'flag';
+  }
+
+  /* Pairs that are the same flag to the eye: Chad and Romania differ by a
+     shade of blue, Indonesia and Monaco only in proportions. Neither may be
+     offered as the wrong answer for the other. */
+  var FLAG_TWINS = { 'Chad': 'Romania', 'Romania': 'Chad', 'Indonesia': 'Monaco', 'Monaco': 'Indonesia' };
 
   /* Filter the dataset down to what the learner asked for. */
   function pool(opts) {
@@ -63,6 +78,7 @@
      marks typed answers, and look at the aliases on both sides. */
   function clashes(c, answer, key) {
     if (c.name === answer.name) return true;
+    if (key === 'flag') return FLAG_TWINS[answer.name] === c.name;
     var subject = W.tight(answer[key]);
     var cand = W.tight(c[key]);
     if (subject === cand) return true;
@@ -152,13 +168,15 @@
   function fits(type, c) {
     if (type === 'locate' || type === 'identify') return mappable(c);
     if (type === 'capital' || type === 'country') return !givesAway(c);
+    if (type === 'flag' || type === 'flagpick') return !!c.flag;
     return true;
   }
 
   function fitType(type, c) {
     if (fits(type, c)) return type;
     var alts = (type === 'locate' || type === 'identify')
-      ? ['capital', 'country'] : ['identify', 'locate'];
+      ? ['capital', 'country']
+      : (type === 'flag' || type === 'flagpick') ? ['identify', 'capital'] : ['identify', 'locate'];
     for (var i = 0; i < alts.length; i++) if (fits(alts[i], c)) return alts[i];
     /* Gibraltar is the one place that fails both tests: no outline, and its
        own capital. A question that gives the answer away still beats one that
@@ -173,7 +191,7 @@
       type: type,
       country: answer,
       note: answer.note,
-      typed: !!opts.typed && (type === 'capital' || type === 'country'),
+      typed: !!opts.typed && typeable(type),
       choices: null
     };
 
@@ -208,13 +226,31 @@
       q.aliases = answer.nameAliases;
       q.choices = build(answer, all, 'name');
       q.revealOnMap = true;
+    } else if (type === 'flag') {
+      q.prompt = 'Which country does this flag belong to?';
+      q.subject = 'Which country?';
+      q.sub = answer.region;
+      q.flag = answer.flag;
+      q.answerText = answer.name;
+      q.aliases = answer.nameAliases;
+      if (!q.typed) q.choices = build(answer, all, 'flag');
+    } else if (type === 'flagpick') {
+      q.prompt = 'Which is the flag of';
+      q.subject = answer.name;
+      q.sub = answer.region;
+      q.answerText = answer.name;
+      q.choices = build(answer, all, 'flag');
+      q.flagChoices = true;
     }
     return q;
 
+    /* The text of a choice is always what grade() compares, so a flag
+       choice carries the country's name and draws its flag instead. */
     function build(ans, allList, key) {
       var opts4 = W.shuffle([ans].concat(distractors(ans, allList, 3, key)));
       return opts4.map(function (c) {
-        return { text: c[key], correct: c.name === ans.name, country: c };
+        return { text: key === 'flag' ? c.name : c[key], flag: c.flag,
+                 correct: c.name === ans.name, country: c };
       });
     }
   }
@@ -261,8 +297,38 @@
     return given === q.answerText;
   }
 
+  /* ------------------------------ drawing ---------------------------
+     Shared by every mode that shows a question card, so a flag looks the
+     same in Learn as it does in a test. The alt text never names the
+     country: on these questions the name is the answer. */
+  function flagImg(src, cls) {
+    return '<img class="' + cls + '" src="' + W.escapeHtml(src) + '" alt="A flag" draggable="false">';
+  }
+
+  function subjectHtml(q) {
+    var head = q.flag
+      ? '<span class="qflag">' + flagImg(q.flag, 'qflag__img') + '</span>'
+      : W.escapeHtml(q.subject);
+    return head + '<small>' + W.escapeHtml(q.sub || '') + '</small>';
+  }
+
+  /* The subject on one line, for answer reviews. */
+  function subjectInline(q) {
+    return q.flag ? flagImg(q.flag, 'flag-inline') : '<b>' + W.escapeHtml(q.subject) + '</b>';
+  }
+
+  function optionsClass(q) {
+    return 'options' + (q.flagChoices ? ' options--flags' : '');
+  }
+
+  function choiceHtml(q, c) {
+    return q.flagChoices ? flagImg(c.flag, 'option__flag') : W.escapeHtml(c.text);
+  }
+
   global.Quiz = {
     types: TYPES, pool: pool, make: make, generate: generate,
-    grade: grade, distractors: distractors, nearbyDistractors: nearbyDistractors
+    grade: grade, distractors: distractors, nearbyDistractors: nearbyDistractors,
+    typeable: typeable, flagImg: flagImg, subjectHtml: subjectHtml,
+    subjectInline: subjectInline, optionsClass: optionsClass, choiceHtml: choiceHtml
   };
 })(window);

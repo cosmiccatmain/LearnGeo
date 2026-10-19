@@ -51,9 +51,17 @@
     if (!deck.length) return renderComplete();
 
     var c = current();
+    var askFlag = cfg.face === 'flag' && !!c.flag;
     var askCountry = cfg.face === 'country';
     var frontTerm = askCountry ? c.name : c.capital;
     var backTerm  = askCountry ? c.capital : c.name;
+    var front = askFlag
+      ? '<div class="fc-flag">' + global.Quiz.flagImg(c.flag, 'fc-flag__img') + '</div>'
+      : '<div class="fc-term">' + W.escapeHtml(frontTerm) + '</div>';
+    var back = askFlag
+      ? '<div class="fc-term">' + W.escapeHtml(c.name) + '</div>' +
+        '<div class="fc-sub">Capital: ' + W.escapeHtml(c.capital) + '</div>'
+      : '<div class="fc-term">' + W.escapeHtml(backTerm) + '</div>';
     var pct = (tally.done / Math.max(1, tally.done + deck.length)) * 100;
     var rateWait = flipped ? Math.max(0, RATE_DELAY - (Date.now() - flippedAt)) : 0;
 
@@ -65,20 +73,20 @@
 
             '<div class="fc-face">' +
               '<div class="fc-face__top">' +
-                '<span class="eyebrow">' + (askCountry ? 'Country' : 'Capital city') + '</span>' +
+                '<span class="eyebrow">' + (askFlag ? 'Flag' : askCountry ? 'Country' : 'Capital city') + '</span>' +
                 '<span class="eyebrow">' + W.escapeHtml(c.region) + '</span>' +
               '</div>' +
-              '<div class="fc-term">' + W.escapeHtml(frontTerm) + '</div>' +
-              '<div class="fc-sub">' + (askCountry ? 'What is its capital?' : 'Which country?') + '</div>' +
+              front +
+              '<div class="fc-sub">' + (askCountry && !askFlag ? 'What is its capital?' : 'Which country?') + '</div>' +
               '<div class="fc-flip-hint">Click the card or press Space to flip</div>' +
             '</div>' +
 
             '<div class="fc-face fc-face--back">' +
               '<div class="fc-face__top">' +
-                '<span class="eyebrow">' + (askCountry ? 'Capital city' : 'Country') + '</span>' +
+                '<span class="eyebrow">' + (askCountry && !askFlag ? 'Capital city' : 'Country') + '</span>' +
                 '<span class="eyebrow">' + W.escapeHtml(c.region) + '</span>' +
               '</div>' +
-              '<div class="fc-term">' + W.escapeHtml(backTerm) + '</div>' +
+              back +
               (c.note ? '<div class="fc-note">' + W.escapeHtml(c.note) + '</div>' : '') +
               '<div class="fc-coord mono">' + c.lat.toFixed(2) + '°, ' + c.lon.toFixed(2) + '°</div>' +
             '</div>' +
@@ -326,7 +334,8 @@
   function deckLabel() {
     var scope = { un: 'UN 193', 'un-plus': 'UN + observers', all: 'All 213' }[cfg.scope];
     var reg = cfg.regions.length ? cfg.regions.length + ' regions' : 'all regions';
-    return scope + ' · ' + reg + ' · ' + (cfg.face === 'country' ? 'country → capital' : 'capital → country');
+    var face = { country: 'country → capital', capital: 'capital → country', flag: 'flag → country' }[cfg.face];
+    return scope + ' · ' + reg + ' · ' + (face || 'country → capital');
   }
 
   /* Settings live in a modal so the sidebar never has to scroll. */
@@ -336,8 +345,9 @@
       title: 'Deck settings', icon: I.cards,
       body:
         '<div class="field"><label class="field__label">Card front</label>' +
-          '<div class="seg" id="fcs-face">' + sg('country', 'Country', cfg.face) + sg('capital', 'Capital', cfg.face) + '</div>' +
-          '<div class="field__hint">Switch this to practice the other way around.</div></div>' +
+          '<div class="seg" id="fcs-face">' + sg('country', 'Country', cfg.face) + sg('capital', 'Capital', cfg.face) +
+            sg('flag', 'Flag', cfg.face) + '</div>' +
+          '<div class="field__hint">Switch this to practice the other way around, or to learn flags.</div></div>' +
         '<div class="field"><label class="field__label">Set</label>' +
           '<div class="seg" id="fcs-scope">' + sg('un', 'UN 193', cfg.scope) + sg('un-plus', '+ Observers', cfg.scope) +
           sg('all', 'All 213', cfg.scope) + '</div></div>' +

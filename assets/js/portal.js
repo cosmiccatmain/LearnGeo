@@ -13,7 +13,7 @@
   var MODES = [
     { view: 'learn', icon: I.book, title: 'Learn',
       blurb: 'You find out right away if you got it, then move on to the next one. The map shades the country as soon as you answer.',
-      meta: 'Weakest-first · 4 question types' },
+      meta: 'Weakest-first · 6 question types' },
     { view: 'test', icon: I.clip, title: 'Practice test',
       blurb: 'Do a whole section and get a score at the end. You can flag questions to come back to later.',
       meta: '10 – 75 questions · timed' },
