@@ -330,6 +330,59 @@
     'Macau': "It's a Special Administrative Region of China."
   };
 
+  /* ISO 3166-1 alpha-2, which is how the files in assets/flags/ are named.
+     Kosovo has no official code and uses XK, the one in common use. */
+  var FLAG_CODES = {
+    'Algeria': 'dz', 'Angola': 'ao', 'Benin': 'bj', 'Botswana': 'bw', 'Burkina Faso': 'bf',
+    'Burundi': 'bi', 'Cabo Verde': 'cv', 'Cameroon': 'cm', 'Central African Republic': 'cf',
+    'Chad': 'td', 'Comoros': 'km', 'Democratic Republic of the Congo': 'cd',
+    'Republic of the Congo': 'cg', "Côte d'Ivoire": 'ci', 'Djibouti': 'dj', 'Egypt': 'eg',
+    'Equatorial Guinea': 'gq', 'Eritrea': 'er', 'Eswatini': 'sz', 'Ethiopia': 'et',
+    'Gabon': 'ga', 'Gambia': 'gm', 'Ghana': 'gh', 'Guinea': 'gn', 'Guinea-Bissau': 'gw',
+    'Kenya': 'ke', 'Lesotho': 'ls', 'Liberia': 'lr', 'Libya': 'ly', 'Madagascar': 'mg',
+    'Malawi': 'mw', 'Mali': 'ml', 'Mauritania': 'mr', 'Mauritius': 'mu', 'Morocco': 'ma',
+    'Mozambique': 'mz', 'Namibia': 'na', 'Niger': 'ne', 'Nigeria': 'ng', 'Rwanda': 'rw',
+    'São Tomé and Príncipe': 'st', 'Senegal': 'sn', 'Seychelles': 'sc', 'Sierra Leone': 'sl',
+    'Somalia': 'so', 'South Africa': 'za', 'South Sudan': 'ss', 'Sudan': 'sd', 'Tanzania': 'tz',
+    'Togo': 'tg', 'Tunisia': 'tn', 'Uganda': 'ug', 'Zambia': 'zm', 'Zimbabwe': 'zw',
+    'Afghanistan': 'af', 'Armenia': 'am', 'Azerbaijan': 'az', 'Bahrain': 'bh',
+    'Bangladesh': 'bd', 'Bhutan': 'bt', 'Brunei': 'bn', 'Cambodia': 'kh', 'China': 'cn',
+    'Cyprus': 'cy', 'Georgia': 'ge', 'India': 'in', 'Indonesia': 'id', 'Iran': 'ir',
+    'Iraq': 'iq', 'Israel': 'il', 'Japan': 'jp', 'Jordan': 'jo', 'Kazakhstan': 'kz',
+    'Kuwait': 'kw', 'Kyrgyzstan': 'kg', 'Laos': 'la', 'Lebanon': 'lb', 'Malaysia': 'my',
+    'Maldives': 'mv', 'Mongolia': 'mn', 'Myanmar': 'mm', 'Nepal': 'np', 'North Korea': 'kp',
+    'Oman': 'om', 'Pakistan': 'pk', 'Philippines': 'ph', 'Qatar': 'qa', 'Saudi Arabia': 'sa',
+    'Singapore': 'sg', 'South Korea': 'kr', 'Sri Lanka': 'lk', 'Syria': 'sy',
+    'Tajikistan': 'tj', 'Thailand': 'th', 'Timor-Leste': 'tl', 'Turkey': 'tr',
+    'Turkmenistan': 'tm', 'United Arab Emirates': 'ae', 'Uzbekistan': 'uz', 'Vietnam': 'vn',
+    'Yemen': 'ye', 'Albania': 'al', 'Andorra': 'ad', 'Austria': 'at', 'Belarus': 'by',
+    'Belgium': 'be', 'Bosnia and Herzegovina': 'ba', 'Bulgaria': 'bg', 'Croatia': 'hr',
+    'Czechia': 'cz', 'Denmark': 'dk', 'Estonia': 'ee', 'Finland': 'fi', 'France': 'fr',
+    'Germany': 'de', 'Greece': 'gr', 'Hungary': 'hu', 'Iceland': 'is', 'Ireland': 'ie',
+    'Italy': 'it', 'Latvia': 'lv', 'Liechtenstein': 'li', 'Lithuania': 'lt', 'Luxembourg': 'lu',
+    'Malta': 'mt', 'Moldova': 'md', 'Monaco': 'mc', 'Montenegro': 'me', 'Netherlands': 'nl',
+    'North Macedonia': 'mk', 'Norway': 'no', 'Poland': 'pl', 'Portugal': 'pt', 'Romania': 'ro',
+    'Russia': 'ru', 'San Marino': 'sm', 'Serbia': 'rs', 'Slovakia': 'sk', 'Slovenia': 'si',
+    'Spain': 'es', 'Sweden': 'se', 'Switzerland': 'ch', 'Ukraine': 'ua', 'United Kingdom': 'gb',
+    'Antigua and Barbuda': 'ag', 'Bahamas': 'bs', 'Barbados': 'bb', 'Belize': 'bz',
+    'Canada': 'ca', 'Costa Rica': 'cr', 'Cuba': 'cu', 'Dominica': 'dm',
+    'Dominican Republic': 'do', 'El Salvador': 'sv', 'Grenada': 'gd', 'Guatemala': 'gt',
+    'Haiti': 'ht', 'Honduras': 'hn', 'Jamaica': 'jm', 'Mexico': 'mx', 'Nicaragua': 'ni',
+    'Panama': 'pa', 'Saint Kitts and Nevis': 'kn', 'Saint Lucia': 'lc',
+    'Saint Vincent and the Grenadines': 'vc', 'Trinidad and Tobago': 'tt',
+    'United States': 'us', 'Argentina': 'ar', 'Bolivia': 'bo', 'Brazil': 'br', 'Chile': 'cl',
+    'Colombia': 'co', 'Ecuador': 'ec', 'Guyana': 'gy', 'Paraguay': 'py', 'Peru': 'pe',
+    'Suriname': 'sr', 'Uruguay': 'uy', 'Venezuela': 've', 'Australia': 'au', 'Fiji': 'fj',
+    'Kiribati': 'ki', 'Marshall Islands': 'mh', 'Micronesia': 'fm', 'Nauru': 'nr',
+    'New Zealand': 'nz', 'Palau': 'pw', 'Papua New Guinea': 'pg', 'Samoa': 'ws',
+    'Solomon Islands': 'sb', 'Tonga': 'to', 'Tuvalu': 'tv', 'Vanuatu': 'vu',
+    'Vatican City': 'va', 'Palestine': 'ps', 'Taiwan': 'tw', 'Hong Kong': 'hk', 'Macau': 'mo',
+    'Kosovo': 'xk', 'Faroe Islands': 'fo', 'Gibraltar': 'gi', 'Isle of Man': 'im',
+    'Western Sahara': 'eh', 'Greenland': 'gl', 'Puerto Rico': 'pr', 'Bermuda': 'bm',
+    'Cayman Islands': 'ky', 'Aruba': 'aw', 'Curaçao': 'cw', 'Guam': 'gu',
+    'French Polynesia': 'pf', 'New Caledonia': 'nc', 'Cook Islands': 'ck'
+  };
+
   var REGIONS = ['Africa', 'Asia', 'Europe', 'North America', 'South America', 'Oceania'];
 
   var COUNTRIES = RAW.map(function (r, i) {
@@ -343,7 +396,9 @@
       status: r[5],
       note: NOTES[r[0]] || '',
       nameAliases: COUNTRY_ALIASES[r[0]] || [],
-      capitalAliases: CAPITAL_ALIASES[r[0]] || []
+      capitalAliases: CAPITAL_ALIASES[r[0]] || [],
+      iso2: FLAG_CODES[r[0]] || '',
+      flag: FLAG_CODES[r[0]] ? 'assets/flags/' + FLAG_CODES[r[0]] + '.svg' : ''
     };
   });
 
