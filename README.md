@@ -32,7 +32,13 @@ answers are accepted too.
   country and its capital on the back. Rate each card Again, Hard, Good or Easy, and the ones
   you struggled with come back before the deck is over.
 
-All four modes save to the same mastery record, so the app knows what you keep getting wrong.
+- **Flags**: a section of its own in the top bar, with no map. Practice names the flag, finds
+  the flag or mixes both, by choice or typed, weakest first, and filters by region. "All flags"
+  shows every flag with its name and capital, with a search and a "Hide names" self-test. A flag
+  counts as learned once it has been answered right twice more often than wrong, kept in
+  `flagMastery` in the save.
+
+All the modes save to the same mastery record, so the app knows what you keep getting wrong.
 
 ## Flags
 
@@ -239,6 +245,7 @@ assets/js/mode-learn.js         Learn
 assets/js/mode-test.js          Practice test
 assets/js/mode-quiz.js          Class quiz
 assets/js/mode-cards.js         Flashcards
+assets/js/mode-flags.js         Flags: practice and the all-flags gallery
 assets/js/main.js               startup and routing
 assets/js/demo.js               the three-question demo on the landing page
 assets/js/demo-shapes.js        country outlines for the demo

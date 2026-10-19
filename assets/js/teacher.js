@@ -1376,7 +1376,8 @@
     var a = existing || {
       id: 'a' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36),
       title: (seed && seed.title) || '', mode: (seed && seed.mode) || 'test',
-      config: { countries: (seed && seed.countries) || [], count: 20, types: ['capital', 'country'],
+      config: { countries: (seed && seed.countries) || [], count: 20,
+                types: (seed && seed.types) || ['capital', 'country'],
                 timed: false, instant: true, typed: false, fill: false }
     };
     var cfg = a.config;

@@ -1559,6 +1559,7 @@ textarea.input:focus { outline: none; border-color: var(--accent); box-shadow: 0
   align-items: start; margin-top: 24px;
 }
 .home-modes { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.portal-mode--wide { grid-column: 1 / -1; }
 .home-side { display: grid; gap: 20px; }
 
 
@@ -2156,6 +2157,75 @@ textarea.input:focus { outline: none; border-color: var(--accent); box-shadow: 0
 }
 .empty-cta b { display: block; font-size: 15.5px; }
 .empty-cta p { font-size: 13.5px; color: var(--muted); margin-top: 5px; }
+
+/* ---- flags: the section of its own ---- */
+.fl-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; margin-bottom: 22px; }
+.fl-head h1 { font-size: clamp(26px, 3.4vw, 34px); letter-spacing: -.035em; margin-top: 4px; }
+.fl-head p { color: var(--muted); margin-top: 6px; font-size: 14.5px; max-width: 52ch; }
+.fl-learned {
+  flex: none; width: 240px; background: var(--white); border: 1px solid var(--line);
+  border-radius: 14px; padding: 14px 16px;
+}
+.fl-learned__n { display: flex; align-items: baseline; gap: 8px; margin-bottom: 9px; }
+.fl-learned__n b { font-size: 26px; font-weight: 650; letter-spacing: -.03em; }
+.fl-learned__n span { font-size: 13px; color: var(--muted); }
+
+.fl-bar { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 18px; }
+.fl-bar > .seg { flex: none; width: 230px; }
+.fl-regions { display: flex; gap: 6px; flex-wrap: wrap; }
+.fl-chip {
+  height: 32px; padding: 0 12px; border-radius: 999px; font-size: 13px; font-weight: 520;
+  border: 1px solid var(--line); background: var(--white); color: var(--muted);
+  transition: border-color .14s, background .14s, color .14s;
+}
+.fl-chip:hover { border-color: #C9CFD9; color: var(--ink); }
+.fl-chip.is-on { background: var(--ink); border-color: var(--ink); color: #fff; }
+
+.fl-practice { max-width: 620px; margin: 0 auto; }
+.fl-opts { display: grid; grid-template-columns: 1.5fr 1fr; gap: 10px; margin-bottom: 14px; }
+.fl-card {
+  background: var(--white); border: 1px solid var(--line); border-radius: 18px;
+  padding: 22px 24px 24px; box-shadow: var(--shadow-sm);
+}
+.fl-big { display: flex; justify-content: center; margin: 14px 0 4px; }
+.fl-big__img {
+  display: block; width: min(300px, 100%); aspect-ratio: 4 / 3; object-fit: cover;
+  border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 4px 14px rgba(15, 23, 42, .1);
+}
+.fl-names { grid-template-columns: 1fr 1fr; }
+.fl-card .options--flags .option { padding: 10px 12px; }
+.fl-card .option__flag { max-width: 168px; margin: 0 auto; }
+
+.fl-gallery__bar { display: flex; gap: 10px; align-items: center; }
+.fl-gallery__bar .input { flex: 1; max-width: 420px; }
+.fl-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+.fl-tile {
+  position: relative; display: flex; flex-direction: column; text-align: left;
+  background: var(--white); border: 1px solid var(--line); border-radius: 12px; overflow: hidden;
+  cursor: default; transition: border-color .14s, transform .14s var(--ease), box-shadow .14s;
+}
+.fl-tile.is-hidden { cursor: pointer; }
+.fl-tile.is-hidden:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: var(--shadow-sm); }
+.fl-tile__img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-bottom: 1px solid var(--line-soft); background: var(--paper); }
+.fl-tile__t { padding: 8px 10px 10px; min-width: 0; }
+.fl-tile__t b { display: block; font-size: 13.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fl-tile__t span { display: block; font-size: 12px; color: var(--faint); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fl-tile__ok {
+  position: absolute; top: 6px; right: 6px; width: 20px; height: 20px; border-radius: 50%;
+  display: grid; place-items: center; background: var(--success); color: #fff;
+}
+.fl-tile__ok svg { width: 12px; height: 12px; }
+
+@media (max-width: 720px) {
+  .fl-head { flex-direction: column; align-items: stretch; }
+  .fl-learned { width: auto; }
+  .fl-opts { grid-template-columns: 1fr; }
+  .fl-bar > .seg { width: 100%; }
+  .fl-card { padding: 18px 16px 20px; }
+}
+@media (max-width: 420px) {
+  .fl-names { grid-template-columns: 1fr; }
+}
 
 /* ---- stream: the teacher's posts, and the student's copy of them ---- */
 .st-compose { min-height: 80px; resize: vertical; line-height: 1.55; }

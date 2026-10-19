@@ -112,6 +112,7 @@
       daily: { date: '', answered: 0, goal: 20, dayStreak: 0, lastDay: '', lastHit: '', hit: false },
       stats: { answered: 0, correct: 0, tests: 0, cards: 0, perfectTests: 0 },
       mastery: {},          /* countryName -> { c: correctCount, w: wrongCount, box: 0..5 } */
+      flagMastery: {},      /* the same shape, for flags only; the Flags section writes it */
       achievements: [],
       role: 'student',            /* 'student' | 'teacher' */
       roleChosen: false,          /* asked once, on first entry */

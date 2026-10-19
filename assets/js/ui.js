@@ -1116,7 +1116,7 @@
   }
 
   /* ============================ NAVIGATION ========================== */
-  var VIEWS = ['portal', 'classroom', 'teacher', 'learn', 'test', 'quiz', 'cards'];
+  var VIEWS = ['portal', 'classroom', 'teacher', 'learn', 'test', 'quiz', 'cards', 'flags'];
 
   /* The switcher shows Classroom to students and Teacher to teachers, so
      teacher mode is a place you can leave and come back to rather than a
@@ -1131,7 +1131,8 @@
     { view: 'learn',     icon: 'book',   label: 'Learn',         role: null },
     { view: 'test',      icon: 'clip',   label: 'Practice test', role: null },
     { view: 'quiz',      icon: 'target', label: 'Class quiz',    role: null },
-    { view: 'cards',     icon: 'cards',  label: 'Flashcards',    role: null }
+    { view: 'cards',     icon: 'cards',  label: 'Flashcards',    role: null },
+    { view: 'flags',     icon: 'flag',   label: 'Flags',         role: null }
   ];
 
   function refreshTabs() {
@@ -1262,10 +1263,10 @@
        bounced back out of the view they just asked for. */
     if (view === 'classroom' && isTeacher && !previewing) view = 'teacher';
     if (isTeacher && !previewing && view === 'portal') view = 'teacher';
-    /* A teacher may look round Learn, Practice test, Class quiz and
-       Flashcards. It opens as a browse — a preview with an "Assign to
+    /* A teacher may look round Learn, Practice test, Class quiz,
+       Flashcards and Flags. It opens as a browse — a preview with an "Assign to
        class" button — so nothing they do there is handed in. */
-    if (isTeacher && !previewing && ['learn', 'test', 'quiz', 'cards'].indexOf(view) !== -1) {
+    if (isTeacher && !previewing && ['learn', 'test', 'quiz', 'cards', 'flags'].indexOf(view) !== -1) {
       startPreview('Browsing as a teacher', { assign: true });
     }
     /* heading back to the class by any route ends a preview */
@@ -1303,6 +1304,7 @@
     if (view === 'test') global.TestMode.start();
     if (view === 'quiz') global.QuizMode.start();
     if (view === 'cards') global.CardsMode.start();
+    if (view === 'flags') global.FlagsMode.start();
     settleThumb();                     /* correct for any reflow the mode caused */
     global.GeoMap.invalidate();
     refreshHud();

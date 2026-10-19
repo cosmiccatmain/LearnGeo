@@ -22,7 +22,10 @@
       meta: 'Two marks each · no multiple choice' },
     { view: 'cards', icon: I.cards, title: 'Flashcards',
       blurb: 'Flip cards that keep track of how you’re doing. The ones you’re unsure about come back again before you finish.',
-      meta: 'Both directions · 10 – 100 cards' }
+      meta: 'Both directions · 10 – 100 cards' },
+    { view: 'flags', icon: I.flag, title: 'Flags', wide: true,
+      blurb: 'Every flag in the world, weakest first. Name the flag, find the flag, or browse them all and test yourself.',
+      meta: '213 flags · by region' }
   ];
 
   var recsCache = [];
@@ -55,7 +58,7 @@
         '<div class="home-grid">' +
           '<div class="home-modes">' +
             MODES.map(function (m) {
-              return '<button class="portal-mode" data-view="' + m.view + '">' +
+              return '<button class="portal-mode' + (m.wide ? ' portal-mode--wide' : '') + '" data-view="' + m.view + '">' +
                 '<div class="portal-mode__top">' +
                   '<span class="portal-mode__icon">' + m.icon + '</span>' +
                   '<h3>' + m.title + '</h3>' +

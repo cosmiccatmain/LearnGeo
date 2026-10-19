@@ -478,6 +478,8 @@
     if (!T || !T.openBuilder) return;
     var view = (document.body.className.match(/\bview-(\w+)\b/) || [])[1];
     var seed = { mode: MODES[view] ? view : 'test' };
+    /* Flags is not an assignment mode; it is set as a test of flags */
+    if (view === 'flags') seed = { mode: 'test', title: 'Flags', types: ['flag', 'flagpick'] };
     var list = CL && CL.all ? CL.all() : [];
     if (list.length < 2) return T.openBuilder(null, seed);
 
