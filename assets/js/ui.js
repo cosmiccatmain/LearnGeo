@@ -1116,7 +1116,7 @@
   }
 
   /* ============================ NAVIGATION ========================== */
-  var VIEWS = ['portal', 'classroom', 'teacher', 'learn', 'test', 'quiz', 'cards'];
+  var VIEWS = ['portal', 'classroom', 'teacher', 'learn', 'test', 'quiz', 'cards', 'games'];
 
   /* The switcher shows Classroom to students and Teacher to teachers, so
      teacher mode is a place you can leave and come back to rather than a
@@ -1131,7 +1131,8 @@
     { view: 'learn',     icon: 'book',   label: 'Learn',         role: null },
     { view: 'test',      icon: 'clip',   label: 'Practice test', role: null },
     { view: 'quiz',      icon: 'target', label: 'Class quiz',    role: null },
-    { view: 'cards',     icon: 'cards',  label: 'Flashcards',    role: null }
+    { view: 'cards',     icon: 'cards',  label: 'Flashcards',    role: null },
+    { view: 'games',     icon: 'gamepad', label: 'Games',        role: null }
   ];
 
   function refreshTabs() {
@@ -1282,6 +1283,12 @@
       if (global.Masquerade && global.Masquerade.active) global.Masquerade.stop();
     }
 
+    /* Geo Kart owns a renderer, animation frame, input listeners and
+       possibly a realtime channel. Tear those down before hiding its view,
+       rather than leaving a race running behind another mode. */
+    if (currentView === 'games' && view !== 'games' && global.Games) {
+      global.Games.stop();
+    }
     currentView = view;
     VIEWS.forEach(function (v) {
       var el = document.getElementById('view-' + v);
@@ -1303,6 +1310,7 @@
     if (view === 'test') global.TestMode.start();
     if (view === 'quiz') global.QuizMode.start();
     if (view === 'cards') global.CardsMode.start();
+    if (view === 'games') global.Games.start();
     settleThumb();                     /* correct for any reflow the mode caused */
     global.GeoMap.invalidate();
     refreshHud();
@@ -1364,6 +1372,7 @@
 
   function showLanding() {
     closeMenu();
+    if (currentView === 'games' && global.Games) global.Games.stop();
     document.getElementById('app').classList.remove('is-open');
     document.getElementById('landing').classList.remove('hidden');
     /* only the view classes. no-scroll belongs to the modal stack and
