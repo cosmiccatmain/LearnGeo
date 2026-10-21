@@ -8,6 +8,7 @@
                      nearbyMapChoices, weakFirst }
        types       show the question-type checkboxes
        mapChoices  show the Locate-on-map choice setting
+       answerStyle show multiple choice / typed
        onApply     gets a fresh cfg; the one passed in is not touched
 
      StudyFilters.label(cfg)  "Europe · 48 places", for a summary line
@@ -41,6 +42,7 @@
     var cfg = opts.cfg;
     var showTypes = opts.types !== false;
     var showMap = opts.mapChoices !== false;
+    var showTyped = opts.answerStyle !== false;
     var regions = global.GeoData.regions;
     var cfgRegions = cfg.regions || [];
     var cfgTypes = cfg.types || [];
@@ -98,12 +100,14 @@
             '<div class="field__hint">For Locate on map, nearby choices use the closest countries instead of spreading them across the region.</div>' +
           '</div>'
         : '') +
-      '<div class="field"><label class="field__label">Answer style</label>' +
-        '<div class="seg" id="cfg-typed">' +
-          seg('choice', 'Multiple choice', cfg.typed ? 'typed' : 'choice') +
-          seg('typed', 'Type the answer', cfg.typed ? 'typed' : 'choice') +
-        '</div>' +
-      '</div>' +
+      (showTyped
+        ? '<div class="field"><label class="field__label">Answer style</label>' +
+            '<div class="seg" id="cfg-typed">' +
+              seg('choice', 'Multiple choice', cfg.typed ? 'typed' : 'choice') +
+              seg('typed', 'Type the answer', cfg.typed ? 'typed' : 'choice') +
+            '</div>' +
+          '</div>'
+        : '') +
       '<div class="field"><label class="field__label">Order</label>' +
         '<div class="seg" id="cfg-order">' +
           seg('weak', 'Weakest first', cfg.weakFirst ? 'weak' : 'random') +
@@ -194,7 +198,7 @@
       }
 
       var typed = W.$('#cfg-typed .is-active', m);
-      next.typed = !!typed && typed.dataset.v === 'typed';
+      next.typed = showTyped ? !!typed && typed.dataset.v === 'typed' : !!cfg.typed;
 
       var order = W.$('#cfg-order .is-active', m);
       next.weakFirst = !order || order.dataset.v === 'weak';
