@@ -39,9 +39,23 @@
   function all() {
     return global.GeoData.countries.filter(function (c) { return !!c.flag; });
   }
+  /* the countries picked by hand, kept in state so they survive a reload */
+  function picked() {
+    var names = W.state.flagPick || [];
+    if (!names.length) return [];
+    return all().filter(function (c) { return names.indexOf(c.name) !== -1; });
+  }
   function pool() {
+    var mine = picked();
+    if (mine.length) return mine;
     var list = all();
     return cfg.region ? list.filter(function (c) { return c.region === cfg.region; }) : list;
+  }
+  function setPicked(names) {
+    W.state.flagPick = names.slice();
+    W.save();
+    recent = [];
+    if (tab === 'practice') next(); else render();
   }
 
   function record(name) {
@@ -125,6 +139,8 @@
     var el = host();
     if (!el) return;
     var list = pool();
+    var mine = picked().length;
+    var where = mine ? ' in your countries' : cfg.region ? ' in ' + esc(cfg.region) : '';
     var known = list.filter(learned).length;
     var pct = list.length ? Math.round((known / list.length) * 100) : 0;
 
@@ -138,7 +154,7 @@
           '</div>' +
           '<div class="fl-learned">' +
             '<div class="fl-learned__n"><b class="mono">' + known + '</b><span>of ' + list.length +
-              ' learned' + (cfg.region ? ' in ' + esc(cfg.region) : '') + '</span></div>' +
+              ' learned' + where + '</span></div>' +
             '<div class="pbar"><div class="pbar__fill pbar__fill--success" style="width:' + pct + '%"></div></div>' +
           '</div>' +
         '</div>' +
@@ -150,6 +166,8 @@
           '<div class="fl-regions" id="fl-region">' +
             chip('', 'Whole world') +
             global.GeoData.regions.map(function (r) { return chip(r, r); }).join('') +
+            '<button class="fl-chip fl-chip--pick' + (mine ? ' is-on' : '') + '" id="fl-pick">' +
+              (mine ? I.flag + 'My countries · ' + mine : I.plus + 'Pick countries') + '</button>' +
           '</div>' +
         '</div>' +
 
@@ -163,7 +181,8 @@
     return '<button data-v="' + v + '" class="' + (cur === v ? 'is-active' : '') + '">' + label + '</button>';
   }
   function chip(v, label) {
-    return '<button class="fl-chip' + (cfg.region === v ? ' is-on' : '') + '" data-region="' + esc(v) + '">' +
+    var on = !picked().length && cfg.region === v;
+    return '<button class="fl-chip' + (on ? ' is-on' : '') + '" data-region="' + esc(v) + '">' +
       esc(label) + '</button>';
   }
 
@@ -277,6 +296,89 @@
     }
   }
 
+  /* --------------------------- picking ------------------------------ */
+  /* The same typeahead Learn uses, plus every flag to click on and off,
+     since a flag is often easier to find by sight than by name. */
+  function openPicker() {
+    var api = null, filter = '';
+    var flags = all().slice().sort(function (a, b) { return a.name.localeCompare(b.name); });
+    var byName = {};
+    flags.forEach(function (c) { byName[c.name] = c; });
+    var body =
+      '<div class="field"><label class="field__label">Your countries</label>' +
+        '<div id="flp-picker"></div>' +
+        '<div class="field__hint">Type a country or capital and press Enter, or click flags below. ' +
+          'Click a picked flag again, or its ×, to take it out.</div>' +
+      '</div>' +
+      '<div class="flp-bar">' +
+        '<input class="input" id="flp-search" placeholder="Filter the flags below" autocomplete="off" spellcheck="false">' +
+        '<span class="t-sm t-muted" id="flp-count"></span>' +
+      '</div>' +
+      '<div class="flp-grid" id="flp-grid">' +
+        flags.map(function (c) {
+          return '<button type="button" class="flp-tile" data-name="' + esc(c.name) + '" title="' + esc(c.name) + '">' +
+            '<img src="' + esc(c.flag) + '" alt="" loading="lazy" draggable="false">' +
+            '<span>' + esc(c.name) + '</span>' +
+            '<i class="flp-tile__on">' + I.check + '</i>' +
+          '</button>';
+        }).join('') +
+      '</div>';
+
+    global.UI.modal({
+      title: 'Pick your flags',
+      icon: I.flag,
+      wide: true,
+      body: body,
+      actions: [
+        { label: 'Cancel', cls: 'btn--ghost', close: true },
+        { label: 'Apply', cls: 'btn--accent', close: true,
+          onClick: function () {
+            var names = api.value;
+            if (!names.length) cfg.region = '';
+            setPicked(names);
+          } }
+      ],
+      onMount: function (m) {
+        var grid = W.$('#flp-grid', m);
+        api = global.Assignments.picker(W.$('#flp-picker', m), {
+          initial: (W.state.flagPick || []).slice(),
+          onChange: refresh
+        });
+        W.$$('.flp-tile', grid).forEach(function (t) {
+          t.addEventListener('click', function () {
+            var nm = t.dataset.name, list = api.value;
+            var at = list.indexOf(nm);
+            if (at === -1) list.push(nm); else list.splice(at, 1);
+            api.set(list);
+          });
+        });
+        var search = W.$('#flp-search', m);
+        search.addEventListener('input', function () {
+          filter = W.tight(search.value);
+          refresh(api.value);
+        });
+        refresh(api.value);
+
+        function refresh(list) {
+          var shown = 0;
+          W.$$('.flp-tile', grid).forEach(function (t) {
+            var nm = t.dataset.name;
+            var hit = !filter || W.tight(nm).indexOf(filter) !== -1 ||
+              W.tight(byName[nm].capital).indexOf(filter) !== -1;
+            t.classList.toggle('hidden', !hit);
+            t.classList.toggle('is-on', list.indexOf(nm) !== -1);
+            if (hit) shown += 1;
+          });
+          var n = list.filter(function (nm) { return byName[nm]; }).length;
+          W.$('#flp-count', m).textContent = n
+            ? n + (n === 1 ? ' flag' : ' flags') + ' picked'
+            : 'None picked yet. Apply with none to go back to the whole world.';
+          grid.classList.toggle('is-empty', !shown);
+        }
+      }
+    });
+  }
+
   /* ------------------------------ wiring ---------------------------- */
   function wire(el) {
     W.$$('#fl-tab button', el).forEach(function (b) {
@@ -285,9 +387,13 @@
     W.$$('#fl-region [data-region]', el).forEach(function (b) {
       b.addEventListener('click', function () {
         cfg.region = b.dataset.region;
+        if (picked().length) W.state.flagPick = [];
+        W.save();
         if (tab === 'practice') { recent = []; next(); } else render();
       });
     });
+    var pick = document.getElementById('fl-pick');
+    if (pick) pick.addEventListener('click', openPicker);
     W.$$('#fl-style button', el).forEach(function (b) {
       b.addEventListener('click', function () { if (cfg.style !== b.dataset.v) { cfg.style = b.dataset.v; next(); } });
     });

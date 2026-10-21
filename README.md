@@ -33,7 +33,9 @@ answers are accepted too.
   you struggled with come back before the deck is over.
 
 - **Flags**: a section of its own in the top bar, with no map. Practice names the flag, finds
-  the flag or mixes both, by choice or typed, weakest first, and filters by region. "All flags"
+  the flag or mixes both, by choice or typed, weakest first, and filters by region. "Pick
+  countries" narrows it to your own set instead: type names like in Learn or click flags on and
+  off, and the set is kept in `flagPick` in the save until you pick a region again. "All flags"
   shows every flag with its name and capital, with a search and a "Hide names" self-test. A flag
   counts as learned once it has been answered right twice more often than wrong, kept in
   `flagMastery` in the save.
