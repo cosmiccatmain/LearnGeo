@@ -127,7 +127,7 @@
           '<div class="go-powers" data-powers></div>' +
           '<button class="gd__btn" data-pause aria-label="Pause">' + I.pause + '</button>' +
         '</div>' +
-        '<div class="go-banner hidden" data-banner></div>' +
+        '<div class="game-banner hidden" data-banner></div>' +
         '<div class="gd__layer hidden" data-layer></div>' +
       '</div>';
 
@@ -520,7 +520,7 @@
       }
       renderBanner();
       if (correct) {
-        var anchor = W.$('.go-banner__line', banner);
+        var anchor = W.$('.game-banner__line', banner);
         if (anchor && r.result.gains) W.burstFrom(anchor, r.result.gains);
       }
       r.lit = r.lit.filter(function (l) { return !l.ask; });
@@ -541,18 +541,18 @@
       var what = q.type === 'flagpick' ? 'flag' : 'capital';
       var html;
       if (!res) {
-        html = '<div class="go-banner__line"><span class="go-banner__tag">' + I.sparkle + ' Supply drop</span>' +
+        html = '<div class="game-banner__line"><span class="game-banner__tag">' + I.sparkle + ' Supply drop</span>' +
             'Shoot the ' + what + ' of <b>' + esc(q.country.name) + '</b></div>' +
-          '<div class="go-banner__bar"><i data-timer></i></div>';
+          '<div class="game-banner__bar"><i data-timer></i></div>';
       } else if (res.correct) {
-        html = '<div class="go-banner__line is-right">' + I.check +
+        html = '<div class="game-banner__line is-right">' + I.check +
             (what === 'flag' ? 'The flag of <b>' + esc(q.country.name) + '</b>' : '<b>' + esc(q.country.capital) + '</b> is right') + '</div>' +
-          '<div class="go-banner__sub">' + esc(POWERS[res.power].label) +
+          '<div class="game-banner__sub">' + esc(POWERS[res.power].label) +
             (res.gains ? ' · +' + res.gains.xp + ' XP · ' + W.gem(res.gains.gems) : '') + '</div>';
       } else {
-        html = '<div class="go-banner__line is-wrong">' + I.x + (res.idx < 0 ? 'Out of time: ' : 'Not that one: ') +
+        html = '<div class="game-banner__line is-wrong">' + I.x + (res.idx < 0 ? 'Out of time: ' : 'Not that one: ') +
             (what === 'flag' ? 'it’s the green one' : 'it’s <b>' + esc(q.country.capital) + '</b>') + '</div>' +
-          '<div class="go-banner__sub">Meteor shower incoming</div>';
+          '<div class="game-banner__sub">Meteor shower incoming</div>';
       }
       banner.innerHTML = html;
       banner.classList.remove('hidden');
@@ -710,7 +710,7 @@
       if (Math.hypot(p.x, p.y) > 0.3) aim = Math.atan2(p.y, p.x);
     }
     function onDown(e) {
-      if (e.target.closest('button, .gd-card--over, .go-banner')) return;
+      if (e.target.closest('button, .gd-card--over, .game-banner')) return;
       if (e.button !== undefined && e.button !== 0) return;
       e.preventDefault();
       if (!run) return;

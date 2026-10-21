@@ -2908,39 +2908,39 @@ button.game-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-l
 .go-chip--triple { color: #E3CBFF; border-color: rgba(195,139,255,.6); }
 .go-chip--rapid { color: #FFC995; border-color: rgba(255,154,61,.6); }
 .go-chip--slow { color: #B8F7FF; border-color: rgba(124,243,255,.6); }
-/* the supply-drop question: kept to two short rows so the satellites fly
-   below it; the stage leaves room for exactly this much */
-.go-banner {
+/* the question a game is asking, under its HUD: kept to two short rows,
+   and the games leave room above the play area for exactly this much */
+.game-banner {
   position: absolute; left: 50%; top: 52px; transform: translateX(-50%); width: max-content; max-width: calc(100% - 24px);
   padding: 8px 16px 9px; border-radius: 13px; text-align: center; color: #fff;
   background: rgba(11,18,56,.84); border: 1px solid rgba(255,210,63,.45);
   box-shadow: 0 10px 30px rgba(0,0,0,.35); backdrop-filter: blur(4px);
   animation: gd-in .22s var(--spring);
 }
-.go-banner.is-done { border-color: rgba(255,255,255,.25); }
-.go-banner__line { font-size: 15px; line-height: 1.3; display: flex; align-items: center; justify-content: center; gap: 6px; flex-wrap: wrap; }
-.go-banner__line b { font-size: 18px; font-weight: 720; letter-spacing: -.02em; }
-.go-banner__line > svg { width: 17px; height: 17px; flex: none; }
-.go-banner__tag {
+.game-banner.is-done { border-color: rgba(255,255,255,.25); }
+.game-banner__line { font-size: 15px; line-height: 1.3; display: flex; align-items: center; justify-content: center; gap: 6px; flex-wrap: wrap; }
+.game-banner__line b { font-size: 18px; font-weight: 720; letter-spacing: -.02em; }
+.game-banner__line > svg { width: 17px; height: 17px; flex: none; }
+.game-banner__tag {
   display: inline-flex; align-items: center; gap: 4px; margin-right: 4px; font-family: var(--mono); font-size: 10.5px;
   letter-spacing: .08em; text-transform: uppercase; color: #FFD23F;
 }
-.go-banner__tag svg { width: 12px; height: 12px; }
-.go-banner__line.is-right { color: #8CF5C2; }
-.go-banner__line.is-wrong { color: #FF9EA1; }
-.go-banner__line.is-right b, .go-banner__line.is-wrong b { color: #fff; }
-.go-banner__bar { height: 4px; border-radius: 2px; background: rgba(255,255,255,.18); overflow: hidden; margin-top: 7px; }
-.go-banner__bar i { display: block; height: 100%; width: 100%; background: #FFD23F; border-radius: 2px; }
-.go-banner__sub { font-size: 12px; opacity: .78; margin-top: 3px; }
+.game-banner__tag svg { width: 12px; height: 12px; }
+.game-banner__line.is-right { color: #8CF5C2; }
+.game-banner__line.is-wrong { color: #FF9EA1; }
+.game-banner__line.is-right b, .game-banner__line.is-wrong b { color: #fff; }
+.game-banner__bar { height: 4px; border-radius: 2px; background: rgba(255,255,255,.18); overflow: hidden; margin-top: 7px; }
+.game-banner__bar i { display: block; height: 100%; width: 100%; background: #FFD23F; border-radius: 2px; }
+.game-banner__sub { font-size: 12px; opacity: .78; margin-top: 3px; }
 
 @media (max-width: 860px) {
   .dash-setup { grid-template-columns: 1fr; }
 }
 @media (max-width: 620px) {
-  .go-banner { top: 46px; padding: 7px 12px 8px; }
-  .go-banner__tag { display: none; }
-  .go-banner__line { font-size: 13.5px; }
-  .go-banner__line b { font-size: 16px; }
+  .game-banner { top: 46px; padding: 7px 12px 8px; }
+  .game-banner__tag { display: none; }
+  .game-banner__line { font-size: 13.5px; }
+  .game-banner__line b { font-size: 16px; }
   .go-chip { height: 22px; padding: 0 7px; font-size: 10.5px; }
   .go-chip svg { display: none; }
   .go-shields svg { width: 15px; height: 15px; }
