@@ -45,6 +45,9 @@
     close:  svg('<path d="M18 6 6 18M6 6l12 12"/>'),
     users:  svg('<circle cx="9" cy="8" r="3.2"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 5.2a3.2 3.2 0 0 1 0 5.9"/><path d="M18 14.4a6.2 6.2 0 0 1 3.5 5.6"/>'),
     plus:   svg('<path d="M12 5v14M5 12h14"/>'),
+    gamepad: svg('<path d="M6 11h4M8 9v4"/><path d="M15 12h.01M18 10h.01"/><path d="M17.3 5H6.7a4 4 0 0 0-4 3.6l-.7 6.6A2.6 2.6 0 0 0 4.6 18c.9 0 1.7-.5 2.2-1.2L8 15h8l1.2 1.8c.5.7 1.3 1.2 2.2 1.2a2.6 2.6 0 0 0 2.6-2.8l-.7-6.6A4 4 0 0 0 17.3 5z"/>'),
+    pause:  svg('<rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/>'),
+    play:   svg('<path d="M7 4v16l13-8z"/>'),
     inbox:  svg('<path d="M3 12h5l2 3h4l2-3h5"/><path d="M5 5h14l2 7v7H3v-7z"/>')
   };
 
@@ -114,6 +117,7 @@
       mastery: {},          /* countryName -> { c: correctCount, w: wrongCount, box: 0..5 } */
       flagMastery: {},      /* the same shape, for flags only; the Flags section writes it */
       flagPick: [],         /* the countries picked in Flags; empty means by region */
+      games: {},            /* per game: best scores and settings, e.g. games.dash */
       achievements: [],
       role: 'student',            /* 'student' | 'teacher' */
       roleChosen: false,          /* asked once, on first entry */

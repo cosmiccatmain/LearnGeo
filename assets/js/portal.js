@@ -23,9 +23,12 @@
     { view: 'cards', icon: I.cards, title: 'Flashcards',
       blurb: 'Flip cards that keep track of how you’re doing. The ones you’re unsure about come back again before you finish.',
       meta: 'Both directions · 10 – 100 cards' },
-    { view: 'flags', icon: I.flag, title: 'Flags', wide: true,
+    { view: 'flags', icon: I.flag, title: 'Flags',
       blurb: 'Every flag in the world, weakest first. Name the flag, find the flag, or browse them all and test yourself.',
-      meta: '213 flags · by region' }
+      meta: '213 flags · by region' },
+    { view: 'games', icon: I.gamepad, title: 'Games',
+      blurb: 'Short 2D games where geography is how you win. Start with Geo Dash: jump, dodge, and name the capital at every gate.',
+      meta: 'Geo Dash · more on the way' }
   ];
 
   var recsCache = [];

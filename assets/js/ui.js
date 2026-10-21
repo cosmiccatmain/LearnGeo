@@ -1116,7 +1116,7 @@
   }
 
   /* ============================ NAVIGATION ========================== */
-  var VIEWS = ['portal', 'classroom', 'teacher', 'learn', 'test', 'quiz', 'cards', 'flags'];
+  var VIEWS = ['portal', 'classroom', 'teacher', 'learn', 'test', 'quiz', 'cards', 'flags', 'games'];
 
   /* The switcher shows Classroom to students and Teacher to teachers, so
      teacher mode is a place you can leave and come back to rather than a
@@ -1132,7 +1132,8 @@
     { view: 'test',      icon: 'clip',   label: 'Practice test', role: null },
     { view: 'quiz',      icon: 'target', label: 'Class quiz',    role: null },
     { view: 'cards',     icon: 'cards',  label: 'Flashcards',    role: null },
-    { view: 'flags',     icon: 'flag',   label: 'Flags',         role: null }
+    { view: 'flags',     icon: 'flag',   label: 'Flags',         role: null },
+    { view: 'games',     icon: 'gamepad', label: 'Games',        role: null }
   ];
 
   function refreshTabs() {
@@ -1283,6 +1284,9 @@
       if (global.Masquerade && global.Masquerade.active) global.Masquerade.stop();
     }
 
+    /* a game runs its own animation loop, which must not outlive its view */
+    if (currentView === 'games' && view !== 'games' && global.Games) global.Games.stop();
+
     currentView = view;
     VIEWS.forEach(function (v) {
       var el = document.getElementById('view-' + v);
@@ -1305,6 +1309,7 @@
     if (view === 'quiz') global.QuizMode.start();
     if (view === 'cards') global.CardsMode.start();
     if (view === 'flags') global.FlagsMode.start();
+    if (view === 'games') global.Games.start();
     settleThumb();                     /* correct for any reflow the mode caused */
     global.GeoMap.invalidate();
     refreshHud();
@@ -1366,6 +1371,7 @@
 
   function showLanding() {
     closeMenu();
+    if (global.Games) global.Games.stop();
     document.getElementById('app').classList.remove('is-open');
     document.getElementById('landing').classList.remove('hidden');
     /* only the view classes. no-scroll belongs to the modal stack and

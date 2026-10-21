@@ -2669,3 +2669,188 @@ textarea.input:focus { outline: none; border-color: var(--accent); box-shadow: 0
   color: var(--accent); flex: none;
 }
 .home-hero__hello h1 .verified { vertical-align: -.06em; }
+
+/* ---- games: the hub, setup screens and the stage a game draws on ---- */
+.games__head { margin-bottom: 22px; }
+.games__head h1 { font-size: clamp(26px, 3.4vw, 34px); letter-spacing: -.035em; margin-top: 4px; }
+.games__head p { color: var(--muted); margin-top: 6px; font-size: 14.5px; max-width: 60ch; }
+.games__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+
+.game-card {
+  display: flex; flex-direction: column; text-align: left; overflow: hidden;
+  background: var(--white); border: 1px solid var(--line); border-radius: 16px;
+  transition: transform .18s var(--ease), box-shadow .18s var(--ease), border-color .18s;
+}
+button.game-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); border-color: #D5DAE2; }
+.game-card__body { padding: 18px 20px 20px; display: flex; flex-direction: column; flex: 1; }
+.game-card h3 { font-size: 17px; }
+.game-card p { margin-top: 8px; font-size: 14px; color: var(--muted); flex: 1; }
+.game-card__foot {
+  margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line-soft);
+  display: flex; align-items: center; gap: 10px; font-size: 12.5px; color: var(--faint);
+}
+.game-card__foot > span:first-child { flex: 1; }
+.game-card__best { color: var(--ink); font-weight: 600; font-family: var(--mono); }
+.game-card__go { color: var(--accent); font-weight: 580; display: inline-flex; align-items: center; gap: 5px; }
+.game-card--soon { border-style: dashed; background: var(--paper); justify-content: center; }
+.game-card--soon h3 { color: var(--muted); }
+
+/* a still from the game, drawn in CSS so the hub needs no image */
+.game-art--dash {
+  position: relative; height: 150px; overflow: hidden;
+  background: linear-gradient(hsl(222,72%,52%), hsl(222,78%,30%));
+}
+.ga-floor { position: absolute; left: 0; right: 0; bottom: 0; height: 30px; background: hsl(222,70%,20%); border-top: 2px solid rgba(255,255,255,.85); }
+.ga-cube {
+  position: absolute; left: 22%; bottom: 62px; width: 28px; height: 28px; transform: rotate(32deg);
+  background: #FFD23F; border: 3px solid #111; box-shadow: inset 0 0 0 5px #FFD23F, inset 0 0 0 14px #1B4DFF;
+}
+.ga-spike {
+  position: absolute; bottom: 30px; width: 0; height: 0;
+  border-left: 13px solid transparent; border-right: 13px solid transparent; border-bottom: 26px solid #fff;
+}
+.ga-spike::after {
+  content: ''; position: absolute; left: -10px; top: 4px;
+  border-left: 10px solid transparent; border-right: 10px solid transparent; border-bottom: 20px solid hsl(222,60%,8%);
+}
+.ga-block { position: absolute; left: 76%; bottom: 30px; width: 30px; height: 30px; background: hsl(222,70%,9%); border: 2px solid rgba(255,255,255,.9); }
+.ga-gate {
+  position: absolute; right: 7%; bottom: 30px; width: 30px; height: 96px; border-radius: 16px;
+  border: 4px solid #7CF3FF; box-shadow: 0 0 18px #7CF3FF; background: rgba(124,243,255,.16);
+  display: grid; place-items: center; color: #fff; font-weight: 800; font-size: 22px;
+}
+
+.games__back {
+  display: inline-flex; align-items: center; gap: 6px; font-size: 13.5px; font-weight: 560;
+  color: var(--muted); margin-bottom: 16px;
+}
+.games__back:hover { color: var(--ink); }
+.games__back svg { width: 16px; height: 16px; }
+
+.dash-setup { display: grid; grid-template-columns: 1fr 340px; gap: 20px; align-items: start; }
+.dash-setup__main {
+  background: var(--white); border: 1px solid var(--line); border-radius: 16px; overflow: hidden;
+  padding: 0 24px 24px;
+}
+.dash-setup__art { margin: 0 -24px 20px; height: 180px; }
+.dash-setup__main h1 { font-size: clamp(26px, 3.4vw, 34px); letter-spacing: -.035em; }
+.dash-setup__main > p { color: var(--muted); margin-top: 8px; font-size: 14.5px; max-width: 62ch; }
+.dash-setup__main .btn--lg { margin-top: 20px; gap: 8px; }
+.dash-setup__main .btn--lg svg { width: 16px; height: 16px; }
+.dash-setup__side { display: grid; gap: 16px; }
+.dash-keys { display: grid; gap: 8px; margin-top: 18px; font-size: 13.5px; color: var(--muted); }
+.dash-keys > div { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.dash-keys kbd {
+  font-family: var(--mono); font-size: 12px; color: var(--ink); background: var(--paper);
+  border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 6px; padding: 2px 7px;
+}
+.dash-keys span { margin-left: 4px; }
+.dash-cfg { display: grid; gap: 8px; font-size: 13.5px; }
+.dash-cfg > div { display: flex; justify-content: space-between; gap: 12px; }
+.dash-cfg span { color: var(--muted); }
+.dash-cfg b { font-weight: 600; text-align: right; }
+#dash-every { width: 100%; }
+#dash-every button { flex: 1; }
+.dash-best { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; text-align: center; }
+.dash-best b { display: block; font-size: 18px; }
+.dash-best span { font-size: 12px; color: var(--muted); }
+
+.games--play { max-width: 1120px; }
+.games__playbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.games__playbar .games__back { margin-bottom: 0; }
+
+/* ---- Geo Dash ---- */
+.gd {
+  position: relative; border-radius: 16px; overflow: hidden; background: hsl(222,78%,30%);
+  box-shadow: var(--shadow-lg); user-select: none; -webkit-user-select: none;
+  touch-action: manipulation; outline: none; cursor: pointer;
+}
+.gd__canvas { display: block; width: 100%; }
+.gd__hud {
+  position: absolute; top: 0; left: 0; right: 0; display: flex; align-items: center; gap: 18px;
+  padding: 12px 14px; color: #fff; pointer-events: none;
+  text-shadow: 0 1px 2px rgba(0,0,0,.35);
+}
+.gd__stat { display: flex; align-items: baseline; gap: 5px; }
+.gd__stat b { font-size: 20px; font-weight: 700; }
+.gd__stat span { font-size: 12px; opacity: .85; }
+.gd__next { margin-left: auto; display: grid; gap: 4px; min-width: 150px; font-size: 11.5px; font-weight: 600; opacity: .95; text-align: right; }
+.gd__bar { height: 5px; border-radius: 3px; background: rgba(255,255,255,.25); overflow: hidden; }
+.gd__bar i { display: block; height: 100%; width: 0; background: #7CF3FF; border-radius: 3px; }
+.gd__btn {
+  pointer-events: auto; width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center;
+  color: #fff; background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.3);
+}
+.gd__btn:hover { background: rgba(255,255,255,.26); }
+.gd__btn svg { width: 15px; height: 15px; fill: currentColor; stroke: none; }
+
+.gd__layer {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  padding: 56px 16px 16px; background: rgba(8,12,40,.38); backdrop-filter: blur(1.5px);
+}
+.gd-card {
+  width: min(460px, 100%); background: var(--white); border-radius: 16px; padding: 20px 22px;
+  box-shadow: var(--shadow-xl); cursor: default; max-height: 100%; overflow-y: auto;
+  animation: gd-in .22s var(--spring);
+}
+@keyframes gd-in { from { transform: translateY(10px) scale(.97); opacity: 0; } }
+.gd-card--ready { text-align: center; cursor: pointer; }
+.gd-card h3 { font-size: 20px; letter-spacing: -.02em; margin-top: 4px; }
+.gd-card p { font-size: 13.5px; color: var(--muted); margin-top: 8px; }
+.gd-card__eyebrow {
+  display: inline-flex; align-items: center; gap: 6px; font-family: var(--mono); font-size: 11px;
+  letter-spacing: .08em; text-transform: uppercase; color: var(--accent);
+}
+.gd-card__eyebrow svg { width: 13px; height: 13px; }
+.gd-card__prompt { font-size: 13.5px; color: var(--muted); margin-top: 8px; }
+.gd-card__subject { font-size: 24px; font-weight: 680; letter-spacing: -.02em; margin-top: 2px; line-height: 1.15; }
+.gd-card__subject small { display: block; font-size: 12.5px; font-weight: 500; color: var(--faint); letter-spacing: 0; margin-top: 3px; }
+.gd-opts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 14px; }
+.gd-opt {
+  display: flex; align-items: center; gap: 10px; text-align: left; min-height: 46px;
+  padding: 8px 12px; border: 1px solid var(--line); border-radius: 11px; background: var(--white);
+  font-size: 14px; font-weight: 560; transition: border-color .12s, background .12s;
+}
+.gd-opt span {
+  flex: none; width: 22px; height: 22px; border-radius: 6px; display: grid; place-items: center;
+  font-size: 11.5px; background: var(--paper); border: 1px solid var(--line); color: var(--muted);
+}
+.gd-opt:hover:not(.is-locked) { border-color: var(--accent); background: var(--accent-soft); }
+.gd-opt.is-locked { cursor: default; }
+.gd-opt.is-right { border-color: var(--success); background: var(--success-soft); }
+.gd-opt.is-wrong { border-color: var(--danger); background: var(--danger-soft); }
+.gd-typed { display: flex; gap: 8px; margin-top: 14px; }
+.gd-typed .answer-input { flex: 1; margin: 0; }
+.gd-card__ok {
+  display: flex; gap: 10px; align-items: flex-start; margin-top: 14px; padding: 10px 12px;
+  border-radius: 11px; background: var(--success-soft); color: var(--success);
+}
+.gd-card__ok svg { width: 18px; height: 18px; flex: none; margin-top: 2px; }
+.gd-card__ok b { display: block; color: var(--ink); font-size: 14px; }
+.gd-card__ok span { font-size: 12.5px; color: var(--muted); }
+.gd-card .btn--block { margin-top: 12px; }
+.gd-card__hint { text-align: center; font-size: 12px; color: var(--faint); margin-top: 8px; }
+.gd-card__row { display: flex; gap: 8px; justify-content: center; margin-top: 16px; flex-wrap: wrap; }
+.gd-card__row .btn { gap: 6px; }
+.gd-card__row .btn svg { width: 15px; height: 15px; }
+.gd-card--over { text-align: center; }
+.gd-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 14px; }
+.gd-stats > div { background: var(--paper); border: 1px solid var(--line-soft); border-radius: 11px; padding: 10px 6px; }
+.gd-stats b { display: block; font-size: 18px; }
+.gd-stats span { font-size: 11.5px; color: var(--muted); }
+
+@media (max-width: 860px) {
+  .dash-setup { grid-template-columns: 1fr; }
+}
+@media (max-width: 620px) {
+  .gd { border-radius: 12px; }
+  .gd__hud { gap: 12px; padding: 8px 10px; }
+  .gd__stat b { font-size: 16px; }
+  .gd__next { min-width: 96px; font-size: 10.5px; }
+  .gd__layer { position: fixed; z-index: 60; padding: 16px; }
+  .gd-card__subject { font-size: 20px; }
+  .games__playbar > span { display: none; }
+}
+@media (max-width: 420px) {
+  .gd-opts { grid-template-columns: 1fr; }
+}
