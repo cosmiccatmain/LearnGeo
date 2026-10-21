@@ -2932,6 +2932,41 @@ button.game-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-l
 .game-banner__bar { height: 4px; border-radius: 2px; background: rgba(255,255,255,.18); overflow: hidden; margin-top: 7px; }
 .game-banner__bar i { display: block; height: 100%; width: 100%; background: #FFD23F; border-radius: 2px; }
 .game-banner__sub { font-size: 12px; opacity: .78; margin-top: 3px; }
+.game-banner__sub.is-right, .game-banner__sub.is-wrong { opacity: 1; display: flex; align-items: center; justify-content: center; gap: 5px; }
+.game-banner__sub.is-right { color: #8CF5C2; }
+.game-banner__sub.is-wrong { color: #FF9EA1; }
+.game-banner__sub svg { width: 13px; height: 13px; flex: none; }
+
+/* ---- Capital Snake ---- */
+.game-art--snake {
+  position: relative; height: 150px; overflow: hidden;
+  background-color: #174a3a;
+  background-image: conic-gradient(#14533f 25%, transparent 0 50%, #14533f 0 75%, transparent 0);
+  background-size: 24px 24px;
+}
+.sn-art__seg {
+  position: absolute; width: 22px; height: 22px; margin: -11px 0 0 -11px; border-radius: 7px;
+  background: #8BD650; box-shadow: 0 0 0 3px #1d5a24;
+}
+.sn-art__head { width: 28px; height: 28px; margin: -14px 0 0 -14px; border-radius: 50%; background: #B5EE7A; }
+.sn-art__head::before, .sn-art__head::after {
+  content: ''; position: absolute; top: 6px; width: 7px; height: 7px; border-radius: 50%;
+  background: #fff; box-shadow: inset 2px 0 0 1px #10221a;
+}
+.sn-art__head::before { left: 13px; }
+.sn-art__head::after { left: 13px; top: 15px; }
+.sn-art__food {
+  position: absolute; width: 16px; height: 16px; margin: -8px 0 0 -8px; border-radius: 50%;
+  background: #FFD23F; box-shadow: 0 0 14px #FFD23F;
+}
+.sn-art__pill {
+  position: absolute; transform: translateX(-50%); padding: 2px 9px; border-radius: 10px;
+  background: #fff; color: #0b2c22; font-size: 11.5px; font-weight: 700; white-space: nowrap;
+}
+
+.sn { background: #06180f; touch-action: none; }
+.sn-streak { margin-left: auto; display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px; font-weight: 650; color: #FFD23F; }
+.sn-streak svg { width: 14px; height: 14px; }
 
 @media (max-width: 860px) {
   .dash-setup { grid-template-columns: 1fr; }

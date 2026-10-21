@@ -14,6 +14,9 @@
 
   var EVERY = [10, 20, 30, 45];
   var KINDS = [['flags', 'Flags'], ['capitals', 'Capitals'], ['mix', 'Mix']];
+  var FOODS = [['capitals', 'Capitals'], ['flags', 'Flags'], ['mix', 'Mix']];
+  var SPEEDS = [['relaxed', 'Relaxed'], ['normal', 'Normal'], ['fast', 'Fast']];
+  var WALLS = [['solid', 'Solid'], ['wrap', 'Wrap round']];
 
   var GAMES = [
     {
@@ -70,14 +73,9 @@
       ],
       filters: { title: 'Supply drop filters', heading: 'Supply drop questions', typed: false },
       side: function (r) {
-        var kind = kind_(r);
         return '<div class="panel">' +
             '<div class="panel__head"><h3>Satellites show</h3></div>' +
-            '<div class="seg game-seg" data-kind>' +
-              KINDS.map(function (k) {
-                return '<button data-v="' + k[0] + '" class="' + (k[0] === kind ? 'is-active' : '') + '">' + k[1] + '</button>';
-              }).join('') +
-            '</div>' +
+            segHtml('kind', KINDS, kind_(r)) +
             '<div class="field__hint" style="margin-top:10px">Flags: shoot the flag of the country named. Capitals: shoot its capital. Mix: either.</div>' +
           '</div>' +
           stats([[r.best || 0, 'Best score'], [r.bestWave || 0, 'Best wave'], [r.runs || 0, 'Games']]);
@@ -97,8 +95,68 @@
         var what = k === 'capitals' ? 'Capitals' : k === 'mix' ? 'Flags and capitals' : 'Flags';
         return what + ' from ' + global.StudyFilters.label(gameCfg('orbit'));
       }
+    },
+    {
+      id: 'snake', title: 'Capital Snake', art: 'snake',
+      blurb: 'Classic Snake, where the food is the answer. Eat the capital of the country named to grow; eat the wrong one and you lose part of your tail.',
+      meta: 'Steer · eat the answer',
+      best: function (r) { return r.best ? 'Best ' + r.best + ' pts' : ''; },
+      intro: 'The banner names a country and four capitals lie on the board. Steer into the right one: the snake grows, ' +
+        'speeds up and wears that country’s flag on its head, and quick answers and streaks score more. ' +
+        'A wrong capital costs three pieces of tail. Hit a wall or your own tail and the game is over.',
+      keys: [
+        [['←', '↑', '↓', '→'], 'or WASD, or swipe, to steer'],
+        [['Space'], 'start, or carry on after a pause'],
+        [['Esc'], 'pause']
+      ],
+      filters: { title: 'Snake question filters', heading: 'Questions', typed: false },
+      side: function (r) {
+        return '<div class="panel">' +
+            '<div class="panel__head"><h3>The food shows</h3></div>' +
+            segHtml('food', FOODS, pick(FOODS, r.food, 'capitals')) +
+            '<div class="field__hint" style="margin-top:10px">Capitals: eat the capital of the country named. Flags: eat its flag. Mix: either.</div>' +
+          '</div>' +
+          '<div class="panel">' +
+            '<div class="panel__head"><h3>Speed</h3></div>' +
+            segHtml('speed', SPEEDS, pick(SPEEDS, r.speed, 'normal')) +
+            '<div class="panel__head" style="margin-top:14px"><h3>Walls</h3></div>' +
+            segHtml('walls', WALLS, pick(WALLS, r.walls, 'solid')) +
+          '</div>' +
+          stats([[r.best || 0, 'Best score'], [r.bestCaps || 0, 'Most right'], [r.runs || 0, 'Games']]);
+      },
+      wire: function (el, r) {
+        seg(el, '[data-food]', function (v) { r.food = v; });
+        seg(el, '[data-speed]', function (v) { r.speed = v; });
+        seg(el, '[data-walls]', function (v) { r.walls = v; });
+      },
+      mount: function (stage, r) {
+        return global.GeoSnake.mount(stage, {
+          kind: function () { return pick(FOODS, r.food, 'capitals'); },
+          speed: function () { return pick(SPEEDS, r.speed, 'normal'); },
+          walls: function () { return pick(WALLS, r.walls, 'solid'); },
+          cfg: function () { return gameCfg('snake'); },
+          onBack: toSetup
+        });
+      },
+      playing: function () {
+        var k = pick(FOODS, record('snake').food, 'capitals');
+        var what = k === 'flags' ? 'Flags' : k === 'mix' ? 'Capitals and flags' : 'Capitals';
+        return what + ' from ' + global.StudyFilters.label(gameCfg('snake'));
+      }
     }
   ];
+
+  function pick(list, v, fallback) {
+    return list.some(function (o) { return o[0] === v; }) ? v : fallback;
+  }
+
+  function segHtml(name, list, active) {
+    return '<div class="seg game-seg" data-' + name + '>' +
+      list.map(function (o) {
+        return '<button data-v="' + o[0] + '" class="' + (o[0] === active ? 'is-active' : '') + '">' + o[1] + '</button>';
+      }).join('') +
+    '</div>';
+  }
 
   var screen = 'hub';
   var current = null;       /* the game whose setup or stage is showing */
@@ -111,9 +169,7 @@
     return g[id] || (g[id] = {});
   }
 
-  function kind_(r) {
-    return KINDS.some(function (k) { return k[0] === r.kind; }) ? r.kind : 'flags';
-  }
+  function kind_(r) { return pick(KINDS, r.kind, 'flags'); }
 
   /* Games ask with the same filters as Learn. The first time, each one
      starts from whatever Learn is set to. */
@@ -215,6 +271,15 @@
         '<span class="go-art__rock" style="left:14%;top:22%"></span>' +
         '<span class="go-art__rock go-art__rock--big" style="left:80%;top:62%"></span>' +
         '<span class="go-art__sat" style="left:72%;top:14%"><i></i></span>';
+    }
+    if (kind === 'snake') {
+      var body = [[14, 68], [22, 68], [30, 68], [38, 68], [38, 52], [46, 52], [54, 52]];
+      return body.map(function (p) {
+        return '<span class="sn-art__seg" style="left:' + p[0] + '%;top:' + p[1] + '%"></span>';
+      }).join('') +
+        '<span class="sn-art__seg sn-art__head" style="left:62%;top:52%"></span>' +
+        '<span class="sn-art__food" style="left:78%;top:52%"></span><span class="sn-art__pill" style="left:78%;top:30%">Nairobi</span>' +
+        '<span class="sn-art__food" style="left:22%;top:24%"></span><span class="sn-art__pill" style="left:22%;top:4%">Kampala</span>';
     }
     return '';
   }

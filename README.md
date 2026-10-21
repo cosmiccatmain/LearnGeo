@@ -53,6 +53,12 @@ answers are accepted too.
   shoot the right one (Space, or click / tap it) for a power-up (a shield back, triple shot,
   rapid fire or slow motion), and a wrong answer or running out of time brings a meteor shower.
   The questions use the Learn filters too, and the best score is kept in `games.orbit`.
+  The third is **Capital Snake**: classic Snake on a grid, steered with the arrow keys, WASD or a
+  swipe, where the food is the answer. The banner names a country and four capitals (or flags,
+  or a mix) lie on the board; eating the right one grows the snake, speeds it up and puts that
+  country's flag on its head, with more points for quick answers and streaks. A wrong one costs
+  three pieces of tail. Speed (relaxed, normal, fast) and walls (solid or wrap round) are set on
+  its setup screen, and the best score is kept in `games.snake`.
 
 All the modes save to the same mastery record, so the app knows what you keep getting wrong.
 
@@ -266,6 +272,7 @@ assets/js/study-filters.js      the filters dialog, shared by Learn and the game
 assets/js/games.js              Games: the hub and each game's setup screen
 assets/js/game-dash.js          Geo Dash: the runner, its track pieces and capital gates
 assets/js/game-orbit.js         Globe Defender: the orbit shooter, its globe and supply drops
+assets/js/game-snake.js         Capital Snake: the board, the snake and the answers it eats
 assets/js/main.js               startup and routing
 assets/js/demo.js               the three-question demo on the landing page
 assets/js/demo-shapes.js        country outlines for the demo
