@@ -46,6 +46,13 @@ answers are accepted too.
   flag; get it wrong and the run is over. The capitals use the same filters dialog as Learn
   (regions, UN members or your own countries, multiple choice or typed, weakest first), and the
   answers count toward mastery, XP and gems. Best distance is kept in `games.dash` in the save.
+  The second is **Globe Defender**, an orbit shooter: your ship circles a real globe and fires
+  outward on its own while you steer it (arrow keys, A / D, or the mouse) to meet the meteors.
+  A meteor that gets through costs one of three shields and lights up the country it landed on.
+  After every wave a supply drop arrives with four satellites showing flags, capitals or a mix;
+  shoot the right one (Space, or click / tap it) for a power-up (a shield back, triple shot,
+  rapid fire or slow motion), and a wrong answer or running out of time brings a meteor shower.
+  The questions use the Learn filters too, and the best score is kept in `games.orbit`.
 
 All the modes save to the same mastery record, so the app knows what you keep getting wrong.
 
@@ -255,9 +262,10 @@ assets/js/mode-test.js          Practice test
 assets/js/mode-quiz.js          Class quiz
 assets/js/mode-cards.js         Flashcards
 assets/js/mode-flags.js         Flags: practice and the all-flags gallery
-assets/js/study-filters.js      the filters dialog, shared by Learn and Geo Dash
+assets/js/study-filters.js      the filters dialog, shared by Learn and the games
 assets/js/games.js              Games: the hub and each game's setup screen
 assets/js/game-dash.js          Geo Dash: the runner, its track pieces and capital gates
+assets/js/game-orbit.js         Globe Defender: the orbit shooter, its globe and supply drops
 assets/js/main.js               startup and routing
 assets/js/demo.js               the three-question demo on the landing page
 assets/js/demo-shapes.js        country outlines for the demo

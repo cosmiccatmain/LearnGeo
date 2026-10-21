@@ -2749,8 +2749,8 @@ button.game-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-l
 .dash-cfg > div { display: flex; justify-content: space-between; gap: 12px; }
 .dash-cfg span { color: var(--muted); }
 .dash-cfg b { font-weight: 600; text-align: right; }
-#dash-every { width: 100%; }
-#dash-every button { flex: 1; }
+.game-seg { width: 100%; }
+.game-seg button { flex: 1; }
 .dash-best { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; text-align: center; }
 .dash-best b { display: block; font-size: 18px; }
 .dash-best span { font-size: 12px; color: var(--muted); }
@@ -2839,10 +2839,111 @@ button.game-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-l
 .gd-stats b { display: block; font-size: 18px; }
 .gd-stats span { font-size: 11.5px; color: var(--muted); }
 
+/* ---- Globe Defender ---- */
+.game-art--orbit {
+  position: relative; height: 150px; overflow: hidden;
+  background: radial-gradient(circle at 50% 55%, #16205a 0, #0b1238 55%, #050817 100%);
+}
+.game-art--orbit::before {
+  content: ''; position: absolute; inset: 0; opacity: .7;
+  background-image:
+    radial-gradient(1px 1px at 12% 30%, #fff 50%, transparent 51%),
+    radial-gradient(1px 1px at 28% 78%, #fff 50%, transparent 51%),
+    radial-gradient(1.4px 1.4px at 64% 22%, #fff 50%, transparent 51%),
+    radial-gradient(1px 1px at 88% 40%, #fff 50%, transparent 51%),
+    radial-gradient(1.2px 1.2px at 40% 12%, #fff 50%, transparent 51%),
+    radial-gradient(1px 1px at 92% 86%, #fff 50%, transparent 51%);
+}
+.go-art__globe {
+  position: absolute; left: 50%; top: 55%; width: 64px; height: 64px; margin: -32px 0 0 -32px; border-radius: 50%;
+  background:
+    radial-gradient(circle at 34% 30%, rgba(255,255,255,.22), transparent 45%),
+    radial-gradient(ellipse 14px 20px at 38% 48%, #4FC38A 98%, transparent 100%),
+    radial-gradient(ellipse 16px 11px at 66% 36%, #4FC38A 98%, transparent 100%),
+    radial-gradient(ellipse 10px 9px at 62% 72%, #FFD23F 98%, transparent 100%),
+    radial-gradient(circle at 40% 38%, #4f8ff0, #2156c4 60%, #0f2f82);
+  box-shadow: 0 0 22px rgba(110,170,255,.45), 0 0 0 7px rgba(124,243,255,.12);
+}
+.go-art__orbit {
+  position: absolute; left: 50%; top: 55%; width: 104px; height: 104px; margin: -52px 0 0 -52px;
+  border-radius: 50%; border: 1px dashed rgba(124,243,255,.3);
+}
+.go-art__ship {
+  position: absolute; left: calc(50% + 30px); top: calc(55% - 46px); width: 0; height: 0; transform: rotate(-58deg);
+  border-top: 7px solid transparent; border-bottom: 7px solid transparent; border-left: 16px solid #FFD23F;
+  filter: drop-shadow(0 0 4px rgba(255,210,63,.6));
+}
+.go-art__shot {
+  position: absolute; left: calc(50% + 42px); top: calc(55% - 70px); width: 4px; height: 14px; border-radius: 2px;
+  background: #FFE27A; transform: rotate(32deg); box-shadow: 0 0 6px #FFE27A;
+}
+.go-art__rock {
+  position: absolute; width: 16px; height: 14px; background: hsl(36,22%,40%);
+  border: 1.5px solid rgba(255,230,200,.55); border-radius: 46% 54% 40% 60% / 55% 40% 60% 45%;
+}
+.go-art__rock--big { width: 24px; height: 21px; }
+.go-art__sat { position: absolute; width: 30px; height: 20px; background: #fff; padding: 2px; }
+.go-art__sat i {
+  display: block; height: 100%;
+  background: linear-gradient(90deg, #1B4DFF 33%, #fff 33%, #fff 66%, #E8384F 66%);
+}
+.go-art__sat::before, .go-art__sat::after {
+  content: ''; position: absolute; top: 5px; width: 12px; height: 10px; background: #1d3d8f; border: 1px solid #a0beff;
+}
+.go-art__sat::before { left: -15px; }
+.go-art__sat::after { right: -15px; }
+
+.go { background: #050817; cursor: crosshair; }
+.go-shields { display: flex; gap: 3px; }
+.go-shields span { display: grid; color: #7CF3FF; }
+.go-shields span.is-off { color: rgba(255,255,255,.22); }
+.go-shields svg { width: 18px; height: 18px; }
+.go-powers { margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.go-chip {
+  display: inline-flex; align-items: center; gap: 5px; height: 26px; padding: 0 9px; border-radius: 13px;
+  font-size: 12px; font-weight: 640; font-family: var(--mono); background: rgba(255,255,255,.14);
+  border: 1px solid rgba(255,255,255,.28);
+}
+.go-chip svg { width: 13px; height: 13px; }
+.go-chip--triple { color: #E3CBFF; border-color: rgba(195,139,255,.6); }
+.go-chip--rapid { color: #FFC995; border-color: rgba(255,154,61,.6); }
+.go-chip--slow { color: #B8F7FF; border-color: rgba(124,243,255,.6); }
+/* the supply-drop question: kept to two short rows so the satellites fly
+   below it; the stage leaves room for exactly this much */
+.go-banner {
+  position: absolute; left: 50%; top: 52px; transform: translateX(-50%); width: max-content; max-width: calc(100% - 24px);
+  padding: 8px 16px 9px; border-radius: 13px; text-align: center; color: #fff;
+  background: rgba(11,18,56,.84); border: 1px solid rgba(255,210,63,.45);
+  box-shadow: 0 10px 30px rgba(0,0,0,.35); backdrop-filter: blur(4px);
+  animation: gd-in .22s var(--spring);
+}
+.go-banner.is-done { border-color: rgba(255,255,255,.25); }
+.go-banner__line { font-size: 15px; line-height: 1.3; display: flex; align-items: center; justify-content: center; gap: 6px; flex-wrap: wrap; }
+.go-banner__line b { font-size: 18px; font-weight: 720; letter-spacing: -.02em; }
+.go-banner__line > svg { width: 17px; height: 17px; flex: none; }
+.go-banner__tag {
+  display: inline-flex; align-items: center; gap: 4px; margin-right: 4px; font-family: var(--mono); font-size: 10.5px;
+  letter-spacing: .08em; text-transform: uppercase; color: #FFD23F;
+}
+.go-banner__tag svg { width: 12px; height: 12px; }
+.go-banner__line.is-right { color: #8CF5C2; }
+.go-banner__line.is-wrong { color: #FF9EA1; }
+.go-banner__line.is-right b, .go-banner__line.is-wrong b { color: #fff; }
+.go-banner__bar { height: 4px; border-radius: 2px; background: rgba(255,255,255,.18); overflow: hidden; margin-top: 7px; }
+.go-banner__bar i { display: block; height: 100%; width: 100%; background: #FFD23F; border-radius: 2px; }
+.go-banner__sub { font-size: 12px; opacity: .78; margin-top: 3px; }
+
 @media (max-width: 860px) {
   .dash-setup { grid-template-columns: 1fr; }
 }
 @media (max-width: 620px) {
+  .go-banner { top: 46px; padding: 7px 12px 8px; }
+  .go-banner__tag { display: none; }
+  .go-banner__line { font-size: 13.5px; }
+  .go-banner__line b { font-size: 16px; }
+  .go-chip { height: 22px; padding: 0 7px; font-size: 10.5px; }
+  .go-chip svg { display: none; }
+  .go-shields svg { width: 15px; height: 15px; }
   .gd { border-radius: 12px; }
   .gd__hud { gap: 12px; padding: 8px 10px; }
   .gd__stat b { font-size: 16px; }
