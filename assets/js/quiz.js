@@ -326,7 +326,7 @@
   }
 
   global.Quiz = {
-    types: TYPES, pool: pool, make: make, generate: generate,
+    types: TYPES, pool: pool, make: make, generate: generate, fits: fits,
     grade: grade, distractors: distractors, nearbyDistractors: nearbyDistractors,
     typeable: typeable, flagImg: flagImg, subjectHtml: subjectHtml,
     subjectInline: subjectInline, optionsClass: optionsClass, choiceHtml: choiceHtml

@@ -39,6 +39,13 @@ answers are accepted too.
   shows every flag with its name and capital, with a search and a "Hide names" self-test. A flag
   counts as learned once it has been answered right twice more often than wrong, kept in
   `flagMastery` in the save.
+- **Games**: 2D games in a section of their own. The first is **Geo Dash**, a one-button
+  runner like Geometry Dash: the cube runs by itself, and you jump over spikes, onto blocks,
+  off yellow pads and through yellow rings. Every 10, 20, 30 or 45 seconds a capital gate comes
+  down the track. Name the capital and the run speeds up and the cube wears that country's
+  flag; get it wrong and the run is over. The capitals use the same filters dialog as Learn
+  (regions, UN members or your own countries, multiple choice or typed, weakest first), and the
+  answers count toward mastery, XP and gems. Best distance is kept in `games.dash` in the save.
 
 All the modes save to the same mastery record, so the app knows what you keep getting wrong.
 
@@ -248,6 +255,9 @@ assets/js/mode-test.js          Practice test
 assets/js/mode-quiz.js          Class quiz
 assets/js/mode-cards.js         Flashcards
 assets/js/mode-flags.js         Flags: practice and the all-flags gallery
+assets/js/study-filters.js      the filters dialog, shared by Learn and Geo Dash
+assets/js/games.js              Games: the hub and each game's setup screen
+assets/js/game-dash.js          Geo Dash: the runner, its track pieces and capital gates
 assets/js/main.js               startup and routing
 assets/js/demo.js               the three-question demo on the landing page
 assets/js/demo-shapes.js        country outlines for the demo

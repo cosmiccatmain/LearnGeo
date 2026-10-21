@@ -662,7 +662,24 @@
     }
     return el;
   }
+  /* A game in motion holds toasts back: a stack of them over the track hides
+     what is coming. They come out together once it stops. */
+  var toastHold = false, toastQueue = [];
+  function holdToasts(on) {
+    toastHold = !!on;
+    if (toastHold) {
+      Array.prototype.forEach.call(document.querySelectorAll('.toast-stack .toast'), function (t) {
+        t.classList.add('is-out');
+        setTimeout(function () { t.remove(); }, 260);
+      });
+      return;
+    }
+    var queued = toastQueue;
+    toastQueue = [];
+    queued.forEach(function (a, i) { setTimeout(function () { toast(a[0], a[1], a[2], a[3]); }, i * 350); });
+  }
   function toast(title, sub, icon, ms) {
+    if (toastHold) { toastQueue.push([title, sub, icon, ms]); return; }
     var el = document.createElement('div');
     el.className = 'toast';
     el.innerHTML = '<div class="toast__i">' + (icon || Icons.check) + '</div>' +
@@ -798,7 +815,7 @@
     checkBadges: checkBadges,
     touchDaily: touchDaily,
     Sound: Sound,
-    confetti: confetti, floatGain: floatGain, burstFrom: burstFrom, toast: toast,
+    confetti: confetti, floatGain: floatGain, burstFrom: burstFrom, toast: toast, holdToasts: holdToasts,
     diamondRain: diamondRain, celebrateGoal: celebrateGoal,
     gem: gem, verifiedMark: verifiedMark,
     escapeHtml: escapeHtml, normalise: normalise, matches: matches, tight: tight,

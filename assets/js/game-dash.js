@@ -77,6 +77,7 @@
     var view = { w: 0, h: 0, s: 1, tiles: 20, dpr: 1 };
     var run, held = false, pressAt = -1, clock = 0;
     var recentQ = [], skins = {};
+    var holding = false;
 
     /* ----------------------------- the run ---------------------------- */
     function reset(go) {
@@ -223,8 +224,11 @@
     /* ---------------------------- questions --------------------------- */
     function ask() {
       var cfg = opts.cfg();
-      var list = global.StudyFilters.pool(cfg);
-      if (!list.length) list = global.Quiz.pool({ scope: 'all' });
+      /* Quiz.make turns a capital that names its own country (Andorra la
+         Vella, Djibouti) into a map question, and there is no map here */
+      var askable = function (c) { return global.Quiz.fits('capital', c); };
+      var list = global.StudyFilters.pool(cfg).filter(askable);
+      if (!list.length) list = global.Quiz.pool({ scope: 'all' }).filter(askable);
       var fresh = list.filter(function (c) { return recentQ.indexOf(c.name) === -1; });
       if (fresh.length) list = fresh;
       var head = cfg.weakFirst ? list.slice(0, Math.max(8, Math.ceil(list.length / 3))) : list;
@@ -712,6 +716,8 @@
         r.dead += dt;
         if (r.dead > 0.9) finish();
       }
+      var moving = r.state === 'run' || r.state === 'dead';
+      if (moving !== holding) { holding = moving; W.holdToasts(moving); }
       var target = HUES[Math.min(r.stage, HUES.length - 1)];
       r.hue += (target - r.hue) * Math.min(1, dt * 2);
       r.shake = Math.max(0, r.shake - dt);
@@ -727,6 +733,7 @@
     return {
       destroy: function () {
         cancelAnimationFrame(raf);
+        if (holding) { holding = false; W.holdToasts(false); }
         document.removeEventListener('keydown', onKey);
         document.removeEventListener('keyup', onKey);
         window.removeEventListener('pointerup', release);
