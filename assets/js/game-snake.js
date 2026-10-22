@@ -22,8 +22,8 @@
   var W = global.WW, I = W.Icons, TAU = Math.PI * 2;
 
   var GRID = { wide: [24, 14], phone: [14, 16] };
-  var SPEEDS = { relaxed: 5.5, normal: 7.5, fast: 9.5 };   /* cells a second */
-  var SPEED_UP = 0.3, MAX_SPEED = 14;
+  var SPEEDS = { relaxed: 2.75, normal: 3.75, fast: 4.75 };   /* cells a second */
+  var SPEED_UP = 0.15, MAX_SPEED = 7;
   var START_LEN = 4, GROW = 3, CUT = 3;
   var RESULT_TIME = 2.6;
   var LABEL_FONT = 0.5, LABEL_MAX = 6;                     /* in cells */
@@ -219,7 +219,7 @@
         r.caps += 1;
         r.streak += 1;
         r.bestStreak = Math.max(r.bestStreak, r.streak);
-        var quick = Math.max(0, Math.round(20 - (r.time - r.askedAt) * 2));
+        var quick = Math.max(0, Math.round(20 - (r.time - r.askedAt)));
         var pts = 10 * Math.min(5, r.streak) + quick;
         r.score += pts;
         r.grow += GROW;
