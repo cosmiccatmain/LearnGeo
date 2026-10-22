@@ -115,8 +115,15 @@
       /* a capital that names its country gives itself away, and a place
          without a flag cannot be asked by flag */
       var ok = function (c) { return global.Quiz.fits(type, c); };
+      var chosen = global.StudyFilters.pool(cfg);
+      var list = chosen.filter(ok);
+      /* stay with the chosen countries if they can be asked the other way */
+      if (!list.length) {
+        var other = type === 'capital' ? 'flagpick' : 'capital';
+        var alt = chosen.filter(function (c) { return global.Quiz.fits(other, c); });
+        if (alt.length) { type = other; list = alt; }
+      }
       var world = global.Quiz.pool({ scope: 'all' }).filter(ok);
-      var list = global.StudyFilters.pool(cfg).filter(ok);
       if (!list.length) list = world;
       var fresh = list.filter(function (c) { return recentQ.indexOf(c.name) === -1; });
       if (fresh.length) list = fresh;

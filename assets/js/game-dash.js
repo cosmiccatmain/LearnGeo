@@ -222,12 +222,32 @@
     function distance() { return Math.max(0, Math.floor(run.x - run.startX)); }
 
     /* ---------------------------- questions --------------------------- */
+    /* Quiz.make's capital question, for a place it would only ask on a map */
+    function capitalQuestion(c, field, typed) {
+      var q = {
+        type: 'capital', country: c, note: c.note, typed: typed && global.Quiz.typeable('capital'),
+        prompt: 'What is the capital of', subject: c.name, sub: c.region,
+        answerText: c.capital, aliases: c.capitalAliases, choices: null
+      };
+      if (!q.typed) {
+        q.choices = W.shuffle([c].concat(global.Quiz.distractors(c, field, 3, 'capital'))).map(function (o) {
+          return { text: o.capital, flag: o.flag, correct: o.name === c.name, country: o };
+        });
+      }
+      return q;
+    }
+
     function ask() {
       var cfg = opts.cfg();
       /* Quiz.make turns a capital that names its own country (Andorra la
          Vella, Djibouti) into a map question, and there is no map here */
       var askable = function (c) { return global.Quiz.fits('capital', c); };
-      var list = global.StudyFilters.pool(cfg).filter(askable);
+      var chosen = global.StudyFilters.pool(cfg);
+      var list = chosen.filter(askable);
+      /* Every chosen country gives itself away (Mexico, Kuwait): ask them
+         anyway rather than ask about countries nobody chose. */
+      var plain = !list.length && chosen.length > 0;
+      if (plain) list = chosen;
       if (!list.length) list = global.Quiz.pool({ scope: 'all' }).filter(askable);
       var fresh = list.filter(function (c) { return recentQ.indexOf(c.name) === -1; });
       if (fresh.length) list = fresh;
@@ -239,7 +259,7 @@
 
       run.state = 'ask';
       run.gateNo = run.caps + 1;
-      run.q = global.Quiz.make('capital', target, field, { typed: !!cfg.typed });
+      run.q = plain ? capitalQuestion(target, field, !!cfg.typed) : global.Quiz.make('capital', target, field, { typed: !!cfg.typed });
       run.answered = null;
       held = false;
       renderAsk();

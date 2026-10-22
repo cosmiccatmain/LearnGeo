@@ -150,7 +150,7 @@
       var r = run, cfg = opts.cfg();
       var world = global.Quiz.pool({ scope: 'all' }).filter(placed);
       var list = global.StudyFilters.pool(cfg).filter(placed);
-      if (list.length < 2) list = world;
+      if (!list.length) list = world;
       r.list = list;
       r.weak = cfg.weakFirst;
       r.course = makeCourse(list);
@@ -213,6 +213,7 @@
       r.target = W.pick(head);
       recent.push(r.target.name);
       if (recent.length > 8) recent.shift();
+      if (dist(r.target) < minD || inTarget()) tee(minD);
       var d = dist(r.target);
       r.par = d <= reach() * 0.92 ? 2 : 3;
       var shape = land.by[r.target.name];
@@ -222,6 +223,33 @@
     }
 
     function dist(c) { var r = run; return Math.hypot(U(c.lon) - r.ball.u, V(c.lat) - r.ball.v); }
+
+    function inTarget() {
+      var shape = land.by[run.target.name], b = run.ball;
+      return !!shape && inside(shape, lonOf(b.u), latOf(b.v));
+    }
+
+    /* The ball would start on (or in) the hole, which happens when the
+       filters leave only a country or two: tee off from another capital
+       on the course instead, a putt or so away. */
+    function tee(minD) {
+      var r = run, t = r.target, tu = U(t.lon), tv = V(t.lat);
+      var u0 = view.u0, u1 = u0 + view.aw / view.k, v0 = view.v0, v1 = v0 + view.ah / view.k;
+      var spots = global.Quiz.pool({ scope: 'all' }).filter(placed).map(function (c) {
+        return { name: c.name, u: U(c.lon), v: V(c.lat) };
+      }).filter(function (s) {
+        var d = Math.hypot(s.u - tu, s.v - tv);
+        return s.name !== t.name && s.u > u0 && s.u < u1 && s.v > v0 && s.v < v1 && d >= minD && d <= reach() * 1.6;
+      });
+      var s = spots.length ? W.pick(spots) : null;
+      if (!s) {
+        var a = Math.random() * TAU, d = Math.max(minD, reach() * 0.5);
+        s = { u: Math.max(u0, Math.min(u1, tu + Math.cos(a) * d)), v: Math.max(v0, Math.min(v1, tv + Math.sin(a) * d)) };
+      }
+      r.ball = { u: s.u, v: s.v };
+      r.rest = { u: s.u, v: s.v };
+      r.trail = [];
+    }
 
     function boxPx(shape) {
       var b = shape.box;
