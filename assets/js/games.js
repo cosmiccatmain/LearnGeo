@@ -17,6 +17,8 @@
   var FOODS = [['capitals', 'Capitals'], ['flags', 'Flags'], ['mix', 'Mix']];
   var SPEEDS = [['relaxed', 'Relaxed'], ['normal', 'Normal'], ['fast', 'Fast']];
   var WALLS = [['solid', 'Solid'], ['wrap', 'Wrap round']];
+  var TARGETS = [['countries', 'Countries'], ['capitals', 'Capitals'], ['mix', 'Mix']];
+  var HOLES = [['6', '6 holes'], ['9', '9 holes'], ['18', '18 holes']];
 
   var GAMES = [
     {
@@ -143,8 +145,57 @@
         var what = k === 'flags' ? 'Flags' : k === 'mix' ? 'Capitals and flags' : 'Capitals';
         return what + ' from ' + global.StudyFilters.label(gameCfg('snake'));
       }
+    },
+    {
+      id: 'golf', title: 'Geo Golf', art: 'golf',
+      blurb: 'Top-down golf on the world map. Each hole names a country or a capital, and there’s no pin to aim at: putt to where it is.',
+      meta: 'Drag and putt · on the map',
+      best: function (r) {
+        var b = r.best || {}, n = b['9'] !== undefined ? '9' : Object.keys(b)[0];
+        return n ? 'Best ' + parToText(b[n]) + ' · ' + n + ' holes' : '';
+      },
+      intro: 'The banner names a country, or a capital whose country you have to find, and you putt across the map to it. ' +
+        'Stop in the wrong country and you’re told where you are; stop in the sea and it’s a water hazard. ' +
+        'After three misses the pin comes out, and after six you pick up and see where it was. Fewest strokes wins.',
+      keys: [
+        [['Drag'], 'back from anywhere, like a slingshot, and let go to putt'],
+        [['←', '→'], 'aim, with ↑ ↓ for power and Space to putt'],
+        [['Esc'], 'pause']
+      ],
+      filters: { title: 'Golf course filters', heading: 'The course', typed: false },
+      side: function (r) {
+        var holes = pick(HOLES, String(r.holes), '9');
+        var best = (r.best || {})[holes];
+        return '<div class="panel">' +
+            '<div class="panel__head"><h3>Putt to</h3></div>' +
+            segHtml('target', TARGETS, pick(TARGETS, r.target, 'countries')) +
+            '<div class="field__hint" style="margin-top:10px">Countries: the hole names the country. Capitals: it names a capital, and you land in its country. Mix: either.</div>' +
+            '<div class="panel__head" style="margin-top:14px"><h3>Round</h3></div>' +
+            segHtml('holes', HOLES, holes) +
+          '</div>' +
+          stats([[best === undefined ? '–' : parToText(best), 'Best, ' + holes + ' holes'], [r.aces || 0, 'Holes in one'], [r.rounds || 0, 'Rounds']]);
+      },
+      wire: function (el, r) {
+        seg(el, '[data-target]', function (v) { r.target = v; });
+        seg(el, '[data-holes]', function (v) { r.holes = +v; renderSetup(); });
+      },
+      mount: function (stage, r) {
+        return global.GeoGolf.mount(stage, {
+          kind: function () { return pick(TARGETS, r.target, 'countries'); },
+          holes: function () { return +pick(HOLES, String(r.holes), '9'); },
+          cfg: function () { return gameCfg('golf'); },
+          onBack: toSetup
+        });
+      },
+      playing: function () {
+        var k = pick(TARGETS, record('golf').target, 'countries');
+        var what = k === 'capitals' ? 'Capitals' : k === 'mix' ? 'Countries and capitals' : 'Countries';
+        return what + ' from ' + global.StudyFilters.label(gameCfg('golf'));
+      }
     }
   ];
+
+  function parToText(n) { return n === 0 ? 'E' : n > 0 ? '+' + n : '−' + Math.abs(n); }
 
   function pick(list, v, fallback) {
     return list.some(function (o) { return o[0] === v; }) ? v : fallback;
@@ -280,6 +331,11 @@
         '<span class="sn-art__seg sn-art__head" style="left:62%;top:52%"></span>' +
         '<span class="sn-art__food" style="left:78%;top:52%"></span><span class="sn-art__pill" style="left:78%;top:30%">Nairobi</span>' +
         '<span class="sn-art__food" style="left:22%;top:24%"></span><span class="sn-art__pill" style="left:22%;top:4%">Kampala</span>';
+    }
+    if (kind === 'golf') {
+      return '<span class="gg-art__land gg-art__land--a"></span><span class="gg-art__land gg-art__land--b"></span>' +
+        '<span class="gg-art__trail"></span><span class="gg-art__ball"></span>' +
+        '<span class="gg-art__pin"></span><span class="gg-art__pill">Putt to Kenya</span>';
     }
     return '';
   }

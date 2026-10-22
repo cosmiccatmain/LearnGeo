@@ -27,8 +27,8 @@
       blurb: 'Every flag in the world, weakest first. Name the flag, find the flag, or browse them all and test yourself.',
       meta: '213 flags · by region' },
     { view: 'games', icon: I.gamepad, title: 'Games',
-      blurb: 'Short 2D games where geography is how you win. Jump through capital gates in Geo Dash, defend the globe from meteors in Globe Defender, or grow your Capital Snake.',
-      meta: 'Geo Dash · Globe Defender · Capital Snake' }
+      blurb: 'Short 2D games where geography is how you win. Jump through capital gates in Geo Dash, defend the globe from meteors in Globe Defender, grow your Capital Snake, or putt round the world in Geo Golf.',
+      meta: 'Geo Dash · Globe Defender · Capital Snake · Geo Golf' }
   ];
 
   var recsCache = [];

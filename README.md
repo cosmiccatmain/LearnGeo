@@ -59,6 +59,15 @@ answers are accepted too.
   country's flag on its head, with more points for quick answers and streaks. A wrong one costs
   three pieces of tail. Speed (relaxed, normal, fast) and walls (solid or wrap round) are set on
   its setup screen, and the best score is kept in `games.snake`.
+  The fourth is **Geo Golf**: top-down golf on the flat world map, where the course is the part
+  of the map the filtered countries cover. Each hole names a country, or a capital whose country
+  you have to find (or a mix), and there is no pin to aim at. You drag back like a slingshot, or
+  aim with the arrow keys, and putt to where you think it is. Stopping in the wrong country names
+  it; stopping in the sea is a water hazard, +1 stroke and back to where you were. After three
+  misses the pin comes out, and after six the hole is picked up and the country shown. A hole
+  only counts as right for mastery if it was holed before the pin came out. Rounds are 6, 9 or
+  18 holes, par is 2 or 3 by distance, and the best score to par for each round length is kept
+  in `games.golf`.
 
 All the modes save to the same mastery record, so the app knows what you keep getting wrong.
 
@@ -273,6 +282,7 @@ assets/js/games.js              Games: the hub and each game's setup screen
 assets/js/game-dash.js          Geo Dash: the runner, its track pieces and capital gates
 assets/js/game-orbit.js         Globe Defender: the orbit shooter, its globe and supply drops
 assets/js/game-snake.js         Capital Snake: the board, the snake and the answers it eats
+assets/js/game-golf.js          Geo Golf: the course drawn from the map, the putting and the holes
 assets/js/main.js               startup and routing
 assets/js/demo.js               the three-question demo on the landing page
 assets/js/demo-shapes.js        country outlines for the demo
