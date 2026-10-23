@@ -317,19 +317,35 @@
           '</div><button class="btn btn--ghost btn--sm" id="set-reset" style="color:var(--danger);border-color:#F3C6C6">Reset</button></div>' +
       '</div>';
 
+    /* The X, Escape and a click outside are all ways people close this, so
+       nothing here may depend on Done. Switches and the goal save as they
+       are changed; the role, which moves the whole app, applies on close.
+       Leaving through sign-in, sign-out or a reset is not a choice of role. */
+    var setRoot = null, leaving = false;
     modal({
       title: 'Settings', icon: I.gear, wide: true, tabs: tabs,
       body: general + dataPanel,
-      actions: [{ label: 'Done', cls: 'btn--primary', close: true, onClick: saveSettings }],
+      actions: [{ label: 'Done', cls: 'btn--primary', close: true }],
+      onClose: function () { if (!leaving && setRoot) applyRole(setRoot); },
       onMount: function (root, close) {
+        setRoot = root;
         wireSeg(root);
         wireTabs(root, '#set-tabs');
         W.$$('.switch', root).forEach(function (sw2) {
-          sw2.addEventListener('click', function () { sw2.classList.toggle('is-on'); });
+          sw2.setAttribute('aria-checked', sw2.classList.contains('is-on') ? 'true' : 'false');
+          sw2.addEventListener('click', function () {
+            var on = sw2.classList.toggle('is-on');
+            sw2.setAttribute('aria-checked', on ? 'true' : 'false');
+            saveSwitches(root);
+          });
         });
+        W.$$('#set-goal button', root).forEach(function (b) {
+          b.addEventListener('click', function () { saveSwitches(root); });
+        });
+        function leave() { leaving = true; close(); }
         var so = W.$('#set-signout', root), si = W.$('#set-signin', root);
-        if (so) so.addEventListener('click', function () { close(); signOut(); });
-        if (si) si.addEventListener('click', function () { close(); openAuth('signin'); });
+        if (so) so.addEventListener('click', function () { leave(); signOut(); });
+        if (si) si.addEventListener('click', function () { leave(); openAuth('signin'); });
         W.$('#set-reset', root).addEventListener('click', function () {
           modal({
             title: 'Reset everything?', icon: I.info,
@@ -338,7 +354,7 @@
             actions: [
               { label: 'Cancel', cls: 'btn--ghost', close: true },
               { label: 'Reset everything', cls: 'btn--primary', close: true, onClick: function () {
-                  W.reset(); close(); refreshHud(); global.UI.showLanding();
+                  W.reset(); leave(); refreshHud(); global.UI.showLanding();
                   var C = global.Cloud;
                   if (!signedIn() || !C || !C.push) {
                     W.toast('Progress reset', 'Everything’s back to the start', I.refresh);
@@ -368,13 +384,18 @@
       }
     });
 
-    function saveSettings(root) {
+    function saveSwitches(root) {
       var s2 = W.state.settings;
       s2.sound   = W.$('#set-sound', root).classList.contains('is-on');
       s2.effects = W.$('#set-effects', root).classList.contains('is-on');
       s2.showCapitalPins = W.$('#set-pins', root).classList.contains('is-on');
       var goal = W.$('#set-goal .is-active', root);
       if (goal) W.state.daily.goal = parseInt(goal.dataset.v, 10);
+      W.saveNow();
+      refreshHud();
+    }
+
+    function applyRole(root) {
       var role = W.$('#set-role .is-active', root);
       var nextRole = role && role.dataset.v === 'teacher' ? 'teacher' : 'student';
       var roleChanged = nextRole !== W.state.role;
