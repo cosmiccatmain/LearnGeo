@@ -1183,7 +1183,13 @@
       if (FEATURE_COLS[k] && typeof patch[k] === 'boolean') row[FEATURE_COLS[k]] = patch[k];
     });
     if (!Object.keys(row).length) return Promise.reject(new Error('nothing to set'));
-    return sb.from('classes').update(row).eq('id', classId).then(check);
+    /* An update the row policy filters out is not an error to PostgREST, it
+       is zero rows. Without asking for them back the switch would read as
+       saved and then flip back on the next read. */
+    return sb.from('classes').update(row).eq('id', classId).select('id').then(function (res) {
+      var rows = check(res);
+      if (!rows || !rows.length) throw new Error('Only the teacher who owns this class can change that.');
+    });
   }
 
   /* A level is a student fact the leaderboard happens to read, not a GeoLive
