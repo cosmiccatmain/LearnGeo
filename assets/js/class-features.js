@@ -103,9 +103,14 @@
     catch (e) { return Promise.resolve(null); }
     return out.then(function (row) {
       if (!row) return null;
-      known[classId] = normalise(row);
-      tell(classId);
-      return known[classId];
+      var next = normalise(row);
+      /* Watchers redraw whatever mounted this panel, and that redraw mounts
+         it again, which loads again. Telling them about an answer that has
+         not changed turns that into a loop that never stops. */
+      var changed = FEATURES.some(function (f) { return on(f.key, classId) !== next[f.key]; });
+      known[classId] = next;
+      if (changed) tell(classId);
+      return next;
     }).catch(function () { return null; });
   }
 
