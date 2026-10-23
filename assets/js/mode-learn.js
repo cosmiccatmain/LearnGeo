@@ -110,6 +110,7 @@
       global.GeoMap.drawCountry(c, 'right', null, c.name);
       global.GeoMap.frame(c, 80);
     }
+    if (W.state.settings.showCapitalPins) global.GeoMap.addPin(c, '', null, c.capital);
     setHint('');
     setBadge('<b>' + W.escapeHtml(c.capital) + '</b>' +
       '<span>' + W.escapeHtml(c.name) + ' · ' + W.escapeHtml(c.region) + '</span>');
