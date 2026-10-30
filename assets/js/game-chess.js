@@ -3,9 +3,11 @@
 import { Chess } from '../vendor/chess.js/chess.js';
 
 const LEVELS = {
-  1: { skill: 0, depth: 2, time: 150 },
-  2: { skill: 6, depth: 6, time: 500 },
-  3: { skill: 14, depth: 12, time: 1500 }
+  1: { random: 1 },
+  2: { random: 0.75, skill: 0, depth: 1, time: 100 },
+  3: { random: 0, skill: 0, depth: 2, time: 150 },
+  4: { random: 0, skill: 6, depth: 6, time: 500 },
+  5: { random: 0, skill: 14, depth: 12, time: 1500 }
 };
 const GLYPHS = { k: '♚', q: '♛', r: '♜', b: '♝', n: '♞', p: '♟' };
 const NAMES = { k: 'king', q: 'queen', r: 'rook', b: 'bishop', n: 'knight', p: 'pawn' };
@@ -14,6 +16,7 @@ const ENGINE = new URL('../vendor/stockfish/stockfish-17.1-lite-single-03e3232.j
 function mount(host, opts) {
   const W = window.WW, esc = W.escapeHtml;
   const level = LEVELS[opts.level] ? Number(opts.level) : 1;
+  const opponent = level === 1 ? 'Computer' : 'Stockfish';
   const record = W.state.games.chess || (W.state.games.chess = {});
   let chess = new Chess(), worker = null, timer = null, disposed = false;
   let ready = false, engineError = '', thinking = false, ended = false;
@@ -34,7 +37,8 @@ function mount(host, opts) {
     '<div class="panel chess-help"><h3>Plan your next move</h3>' +
     '<p>Answer a geography question, then select a white piece and a highlighted destination. Wrong answers give you another question without changing the board.</p>' +
     '<p>Use the arrow keys to explore the board and Enter or Space to select. Choose a piece when a pawn promotes.</p>' +
-    '<p class="t-sm t-muted">Opponent: <a href="https://stockfishchess.org/" target="_blank" rel="noopener noreferrer">Stockfish 17.1</a>. ' +
+    '<p class="t-sm t-muted">' + (level === 1 ? 'Level 1 plays random legal moves for beginners. Higher levels use ' : level === 2 ? 'Level 2 plays mostly random moves, with occasional moves from ' : 'Opponent: ') +
+    '<a href="https://stockfishchess.org/" target="_blank" rel="noopener noreferrer">Stockfish 17.1</a>. ' +
     'Rules: <a href="https://github.com/jhlywa/chess.js" target="_blank" rel="noopener noreferrer">chess.js</a>. Runs on your device.</p></div></aside></section>';
   const root = host.querySelector('.chess-game');
   const board = root.querySelector('.chess-board');
@@ -46,7 +50,7 @@ function mount(host, opts) {
   function draw() {
     if (disposed) return;
     status.textContent = engineError ? 'Opponent unavailable. Retry to continue this position.' :
-      ended ? result : !ready ? 'Loading Stockfish…' : thinking ? 'Stockfish is thinking…' :
+      ended ? result : !ready ? 'Loading Stockfish…' : thinking ? opponent + ' is thinking…' :
       (chess.isCheck() ? 'You are in check. ' : '') + (unlocked ? 'Your move. Select a white piece.' : 'Answer a question to unlock your move.');
     const focused = board.contains(document.activeElement) ? document.activeElement.dataset.square : null;
     const legal = selected && canMove() ? chess.moves({ square: selected, verbose: true }) : [];
@@ -118,7 +122,7 @@ function mount(host, opts) {
       panel.querySelector('[data-again]').onclick = reset;
       return;
     }
-    if (thinking) { panel.innerHTML = '<h3>Over to Stockfish</h3><p>Look for threats and plan your next move.</p>'; return; }
+    if (thinking) { panel.innerHTML = '<h3>Over to ' + opponent + '</h3><p>Look for threats and plan your next move.</p>'; return; }
     if (!question) { panel.innerHTML = '<h3>No countries in this set</h3><p>Return to setup and choose at least one country.</p>'; return; }
     const q = question;
     panel.innerHTML = '<span class="eyebrow">Move question · ' + correctCount + '/' + askedCount + ' correct</span>' +
@@ -174,7 +178,7 @@ function mount(host, opts) {
 
   function checkEnd() {
     if (!chess.isGameOver()) return false;
-    if (chess.isCheckmate()) finish(chess.turn() === 'b' ? 'You win by checkmate!' : 'Stockfish wins by checkmate.', chess.turn() === 'b' ? 'win' : 'loss');
+    if (chess.isCheckmate()) finish(chess.turn() === 'b' ? 'You win by checkmate!' : opponent + ' wins by checkmate.', chess.turn() === 'b' ? 'win' : 'loss');
     else finish(chess.isStalemate() ? 'Draw by stalemate.' : chess.isThreefoldRepetition() ? 'Draw by repetition.' :
       chess.isInsufficientMaterial() ? 'Draw by insufficient material.' : 'Draw by the fifty-move rule.', 'draw');
     return true;
@@ -198,20 +202,40 @@ function mount(host, opts) {
   }
 
   function search() {
-    if (!ready || !worker || disposed || ended || chess.turn() !== 'b') return;
+    if (!ready || disposed || ended || chess.turn() !== 'b') return;
     thinking = true;
+    clearTimeout(timer);
+    const strength = LEVELS[level];
+    if (strength.random === 1 || (strength.random > 0 && Math.random() < strength.random)) {
+      const move = W.pick(chess.moves({ verbose: true }));
+      timer = setTimeout(function () {
+        applyOpponentMove({ from: move.from, to: move.to, promotion: move.promotion });
+      }, 450);
+      return;
+    }
+    if (!worker) { fail(); return; }
     // Send full history, preserving repetition context in the engine as well as the rules API.
     const moves = chess.history({ verbose: true }).map(m => m.from + m.to + (m.promotion || '')).join(' ');
     worker.postMessage('position startpos moves ' + moves);
-    const strength = LEVELS[level];
     worker.postMessage('go depth ' + strength.depth + ' movetime ' + strength.time);
-    clearTimeout(timer); timer = setTimeout(fail, 15000);
+    timer = setTimeout(fail, 15000);
+  }
+
+  function applyOpponentMove(move) {
+    if (disposed || ended || !thinking || chess.turn() !== 'b') return;
+    clearTimeout(timer); thinking = false;
+    try {
+      lastMove = chess.move(move);
+      if (!checkEnd()) ask();
+      draw();
+    } catch (_) { fail(); }
   }
 
   function startEngine() {
     if (disposed) return;
-    clearTimeout(timer); if (worker) worker.terminate();
+    clearTimeout(timer); if (worker) worker.terminate(); worker = null;
     engineError = ''; ready = false; thinking = false;
+    if (level === 1) { ready = true; draw(); return; }
     try {
       const current = new Worker(ENGINE); worker = current;
       current.onerror = function (e) { e.preventDefault(); if (worker === current) fail(); };
@@ -228,14 +252,9 @@ function mount(host, opts) {
             if (chess.turn() === 'b' && !ended) search();
             draw();
           } else if (line.indexOf('bestmove ') === 0 && thinking) {
-            clearTimeout(timer); thinking = false;
             const match = /^bestmove ([a-h][1-8])([a-h][1-8])([qrbn])?(?:\s|$)/.exec(line);
-            try {
-              if (!match) throw new Error('No legal engine move');
-              lastMove = chess.move({ from: match[1], to: match[2], promotion: match[3] || 'q' });
-              if (!checkEnd()) ask();
-              draw();
-            } catch (_) { fail(); }
+            if (!match) { fail(); return; }
+            applyOpponentMove({ from: match[1], to: match[2], promotion: match[3] || 'q' });
           }
         });
       };
@@ -273,7 +292,7 @@ function mount(host, opts) {
   root.querySelector('[data-resign]').onclick = function () {
     if (ended || !window.confirm('Resign this game?')) return;
     if (worker) worker.terminate(); worker = null;
-    finish('You resigned. Stockfish wins.', 'loss');
+    finish('You resigned. ' + opponent + ' wins.', 'loss');
   };
   ask(); startEngine();
   return {

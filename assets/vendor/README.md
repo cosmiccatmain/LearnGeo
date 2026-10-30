@@ -14,10 +14,13 @@ Geo Chess uses two established projects locally, without a remote service or API
 
 Both npm archives were checked against their published SHA-512 integrity before extraction.
 Keep the Stockfish JavaScript and WASM filenames together and unchanged. The WASM is about
-7.3 MB and loads only when chess starts. This single-threaded build does not require
+7.3 MB and loads only when chess starts at Level 2 or above. Level 1 uses the chess.js
+legal-move API without loading Stockfish. This single-threaded build does not require
 cross-origin isolation headers, a backend, or additional allowed network domains.
 
-The game calls Stockfish's UCI API in a Web Worker. Level 1 uses Skill Level 0,
-depth 2 and a 150 ms limit; Level 2 uses Skill Level 6, depth 6 and 500 ms;
-Level 3 uses Skill Level 14, depth 12 and 1500 ms. These are relative difficulty
+The game calls Stockfish's UCI API in a Web Worker. Level 1 chooses uniformly among
+legal moves, without searching ahead. Level 2 chooses a random legal move 75% of the
+time; otherwise it uses Skill Level 0, depth 1 and a 100 ms limit. Level 3 uses Skill
+Level 0, depth 2 and 150 ms; Level 4 uses Skill Level 6, depth 6 and 500 ms;
+Level 5 uses Skill Level 14, depth 12 and 1500 ms. These are relative difficulty
 settings, not claimed Elo ratings. chess.js validates every player and engine move.

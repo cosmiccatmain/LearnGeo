@@ -19,21 +19,21 @@
   var WALLS = [['solid', 'Solid'], ['wrap', 'Wrap round']];
   var TARGETS = [['countries', 'Countries'], ['capitals', 'Capitals'], ['mix', 'Mix']];
   var HOLES = [['6', '6 holes'], ['9', '9 holes'], ['18', '18 holes']];
-  var LEVELS = [['1', 'Level 1 difficulty'], ['2', 'Level 2 difficulty'], ['3', 'Level 3 difficulty']];
+  var LEVELS = [['1', 'Level 1 difficulty'], ['2', 'Level 2 difficulty'], ['3', 'Level 3 difficulty'], ['4', 'Level 4 difficulty'], ['5', 'Level 5 difficulty']];
 
   var GAMES = [
     {
       id: 'chess', title: 'Geo Chess', art: 'chess',
-      blurb: 'Take on Stockfish, one move at a time. Answer a geography question to unlock your move, then outthink your opponent.',
-      meta: 'Chess · three difficulty levels',
+      blurb: 'Build your chess skills, from a forgiving beginner opponent to Stockfish. Answer a geography question to unlock each move.',
+      meta: 'Chess · five difficulty levels',
       best: function (r) { return r.wins ? r.wins + (r.wins === 1 ? ' win' : ' wins') : ''; },
-      intro: 'Play White against Stockfish. Answer a question from your study set before each move. A wrong answer shows you the answer and gives you another question. Choose a piece, then a highlighted square. Castling, en passant and promotion follow standard chess rules.',
+      intro: 'Play White against the computer. Answer a question from your study set before each move. A wrong answer shows you the answer and gives you another question. Choose a piece, then a highlighted square. Castling, en passant and promotion follow standard chess rules.',
       keys: [[['Click / tap'], 'a piece, then its destination'], [['Arrow keys'], 'explore the board; Enter or Space selects a square']],
       filters: { title: 'Chess question filters', heading: 'Move questions', typed: true },
       side: function (r) {
         return '<div class="panel"><div class="panel__head"><h3>Difficulty</h3></div>' +
           segHtml('level', LEVELS, pick(LEVELS, String(r.level), '1')) +
-          '<p class="field__hint">Level 1 is forgiving, Level 2 looks further ahead, and Level 3 plays the strongest.</p></div>' +
+          '<p class="field__hint">Level 1 plays random legal moves. Level 2 plays mostly random moves. Levels 3–5 use increasingly strong Stockfish opponents.</p></div>' +
           '<div class="panel"><div class="panel__head"><h3>Questions</h3></div>' +
           segHtml('kind', KINDS, kind_(r)) + '</div>' +
           stats([[r.wins || 0, 'Wins'], [r.draws || 0, 'Draws'], [r.completed || 0, 'Finished games']]);

@@ -1,6 +1,6 @@
 """Integration checks: run the documented local server, then python3 tests/test_chess.py.
 
-Real Stockfish is exercised at every difficulty. Scripted UCI replies then exercise
+All five opponents are exercised, including real Stockfish at Levels 2–5. Scripted UCI replies then exercise
 specific rule/UI situations deterministically, without adding application test hooks.
 """
 import json
@@ -55,7 +55,7 @@ class ChessTests(unittest.TestCase):
           };
         })();""" % json.dumps(replies))
 
-    def setup_game(self, level=1, typed=False):
+    def setup_game(self, level=3, typed=False):
         self.page.goto(BASE + '/?role=student&view=games', wait_until='networkidle')
         self.page.locator('[data-game="chess"]').click()
         self.page.locator('[data-level] [data-v="%s"]' % level).click()
@@ -92,14 +92,40 @@ class ChessTests(unittest.TestCase):
             self.page.locator('[data-promote="%s"]' % promote).click()
         self.page.wait_for_function("Games.current.fen.split(' ')[1] === 'w' || document.querySelector('.chess-question').textContent.includes('Game over')", timeout=20000)
 
-    def test_real_engine_all_three_levels(self):
-        for level in (1, 2, 3):
+    def test_opponents_all_five_levels(self):
+        # Force Level 2's engine branch here; its random branch is checked separately.
+        self.page.add_init_script('Math.random = () => 0.99;')
+        for level in (1, 2, 3, 4, 5):
             with self.subTest(level=level):
                 self.setup_game(level)
                 self.move('e2', 'e4')
                 self.assertEqual(len(self.page.locator('[data-moves]').text_content().split()), 3)
                 self.assertIn('1. e4 ', self.page.locator('[data-moves]').text_content())
                 self.page.get_by_role('button', name='Home', exact=True).click()
+
+    def test_level_one_needs_no_engine_and_plays_legal_moves(self):
+        self.page.add_init_script("window.Worker = class { constructor() { throw new Error('No engine available'); } };")
+        self.setup_game(1)
+        self.move('e2', 'e4')
+        self.assertIn('1. e4 ', self.page.locator('[data-moves]').text_content())
+        self.assertNotIn('unavailable', self.page.locator('.chess-status').text_content())
+
+    def test_level_two_random_branch_skips_engine_search(self):
+        self.scripted_engine(['not-a-legal-move'])
+        self.page.add_init_script('Math.random = () => 0;')
+        self.setup_game(2)
+        self.move('e2', 'e4')
+        self.assertFalse(self.page.evaluate("chessCommands.some(c => c.startsWith('go '))"))
+
+    def test_level_one_cancel_pending_move_on_restart(self):
+        self.setup_game(1)
+        self.answer()
+        self.page.locator('[data-square="e2"]').click()
+        self.page.locator('[data-square="e4"]').click()
+        self.page.once('dialog', lambda d: d.accept())
+        self.page.locator('[data-new]').click()
+        self.page.wait_for_timeout(600)
+        self.assertEqual(self.page.locator('[data-moves]').text_content(), 'No moves yet.')
 
     def test_wrong_answer_typed_and_settings_persist(self):
         self.scripted_engine(['e7e5'])

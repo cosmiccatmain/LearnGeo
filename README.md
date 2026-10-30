@@ -73,18 +73,21 @@ All the modes save to the same mastery record, so the app knows what you keep ge
 
 ### Geo Chess
 
-Games also includes **Geo Chess**: play White against Stockfish, answering a geography
+Games also includes **Geo Chess**: play White against the computer, answering a geography
 question before each move. It shares the other games' region, scope, custom country,
 weakest-first and answer-style filters, with flags, capitals or mixed questions.
 Wrong answers show the answer and offer another question; correct answers unlock a move
-and earn the usual geography rewards. Choose **Level 1 difficulty**, **Level 2 difficulty**
-or **Level 3 difficulty** for progressively stronger opponents. Wins, draws, finished games
+and earn the usual geography rewards. Choose **Level 1 difficulty** through **Level 5 difficulty**.
+Level 1 plays random legal moves for beginners; Level 2 mixes mostly random moves with
+occasional Stockfish moves; Levels 3–5 use progressively stronger Stockfish opponents.
+Wins, draws, finished games
 and settings are saved under `games.chess`.
 
 The game uses the local chess.js 1.4.0 rules API and Stockfish 17.1's UCI engine API in a
 Web Worker. It supports castling, en passant, all four promotion choices, checkmate and
 draws. No chess API key or backend is required. The approximately 7.3 MB engine loads
-only when you start chess. Dependency sources and licenses are in `assets/vendor/README.md`.
+only when you start Level 2 or above. Level 1 needs no engine download. Dependency sources
+and licenses are in `assets/vendor/README.md`.
 
 With the local server running, the chess browser checks can be run with
 `python3 tests/test_chess.py` (requires Python Playwright and Chromium).
