@@ -19,8 +19,37 @@
   var WALLS = [['solid', 'Solid'], ['wrap', 'Wrap round']];
   var TARGETS = [['countries', 'Countries'], ['capitals', 'Capitals'], ['mix', 'Mix']];
   var HOLES = [['6', '6 holes'], ['9', '9 holes'], ['18', '18 holes']];
+  var LEVELS = [['1', 'Level 1 difficulty'], ['2', 'Level 2 difficulty'], ['3', 'Level 3 difficulty']];
 
   var GAMES = [
+    {
+      id: 'chess', title: 'Geo Chess', art: 'chess',
+      blurb: 'Take on Stockfish, one move at a time. Answer a geography question to unlock your move, then outthink your opponent.',
+      meta: 'Chess · three difficulty levels',
+      best: function (r) { return r.wins ? r.wins + (r.wins === 1 ? ' win' : ' wins') : ''; },
+      intro: 'Play White against Stockfish. Answer a question from your study set before each move. A wrong answer shows you the answer and gives you another question. Choose a piece, then a highlighted square. Castling, en passant and promotion follow standard chess rules.',
+      keys: [[['Click / tap'], 'a piece, then its destination'], [['Arrow keys'], 'explore the board; Enter or Space selects a square']],
+      filters: { title: 'Chess question filters', heading: 'Move questions', typed: true },
+      side: function (r) {
+        return '<div class="panel"><div class="panel__head"><h3>Difficulty</h3></div>' +
+          segHtml('level', LEVELS, pick(LEVELS, String(r.level), '1')) +
+          '<p class="field__hint">Level 1 is forgiving, Level 2 looks further ahead, and Level 3 plays the strongest.</p></div>' +
+          '<div class="panel"><div class="panel__head"><h3>Questions</h3></div>' +
+          segHtml('kind', KINDS, kind_(r)) + '</div>' +
+          stats([[r.wins || 0, 'Wins'], [r.draws || 0, 'Draws'], [r.completed || 0, 'Finished games']]);
+      },
+      wire: function (el, r) {
+        seg(el, '[data-level]', function (v) { r.level = +v; });
+        seg(el, '[data-kind]', function (v) { r.kind = v; });
+      },
+      mount: function (stage, r) {
+        return global.GeoChess.mount(stage, {
+          level: +pick(LEVELS, String(r.level), '1'), kind: kind_(r),
+          cfg: function () { return gameCfg('chess'); }, onBack: toSetup
+        });
+      },
+      playing: function () { return 'Move questions from ' + global.StudyFilters.label(gameCfg('chess')); }
+    },
     {
       id: 'dash', title: 'Geo Dash', art: 'dash',
       blurb: 'Jump over spikes and onto blocks to the beat of your own taps. Every so often a capital gate comes up, and you have to name the capital to keep running.',
@@ -311,6 +340,9 @@
   }
 
   function art(kind) {
+    if (kind === 'chess') {
+      return '<span class="chess-art__board"></span><span class="chess-art__piece">♞</span><span class="chess-art__caption">Your next move starts here</span>';
+    }
     if (kind === 'dash') {
       return '<span class="ga-cube"></span><span class="ga-spike" style="left:58%"></span>' +
         '<span class="ga-spike" style="left:66%"></span><span class="ga-block"></span>' +
@@ -373,7 +405,7 @@
               '<div class="dash-cfg">' +
                 '<div><span>Countries</span><b>' + esc(global.StudyFilters.label(cfg)) + '</b></div>' +
                 (g.filters.typed
-                  ? '<div><span>Answer</span><b>' + (cfg.typed ? 'Type the capital' : 'Multiple choice') + '</b></div>'
+                  ? '<div><span>Answer</span><b>' + (cfg.typed ? (g.id === 'chess' ? 'Type the answer' : 'Type the capital') : 'Multiple choice') + '</b></div>'
                   : '') +
                 '<div><span>Order</span><b>' + (cfg.weakFirst ? 'Weakest first' : 'Random') + '</b></div>' +
               '</div>' +

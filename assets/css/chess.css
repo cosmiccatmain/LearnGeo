@@ -1,0 +1,73 @@
+.game-art--chess {
+  background: #172e2b; position: relative; overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+}
+.chess-art__board {
+  position: absolute; width: 240px; height: 240px; transform: rotate(-14deg);
+  background: conic-gradient(#dce5c4 25%, #698b71 0 50%, #dce5c4 0 75%, #698b71 0) 0 0 / 60px 60px;
+  opacity: .3; border: 8px solid #dce5c4; border-radius: 8px;
+}
+.chess-art__piece {
+  position: relative; font-size: 110px; line-height: 1; color: #fff8e2;
+  text-shadow: 0 5px 0 #172e2b, 0 12px 28px #0b211e;
+}
+.chess-art__caption {
+  position: absolute; bottom: 15px; color: #fff8e2; font-size: 11px; letter-spacing: .08em;
+  background: #172e2bd9; padding: 5px 10px; border-radius: 20px;
+}
+[data-level].game-seg { flex-direction: column; }
+.chess-game { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(260px, 1fr); gap: 24px; align-items: start; }
+.chess-main, .chess-side { min-width: 0; }
+.chess-side { display: grid; gap: 16px; }
+.chess-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.chess-heading h2 { margin: 4px 0 0; }
+.chess-status { min-height: 2.8em; margin: 12px 0; font-size: 14px; font-weight: 550; }
+.chess-board {
+  display: grid; grid-template-columns: repeat(8, minmax(0, 1fr));
+  border: 5px solid #23443b; border-radius: 8px; overflow: hidden; aspect-ratio: 1;
+  box-shadow: var(--shadow-lg);
+}
+.chess-square {
+  position: relative; display: grid; place-items: center; aspect-ratio: 1; width: 100%;
+  padding: 0; border: 0; border-radius: 0; cursor: pointer; touch-action: manipulation;
+}
+.chess-square--light { background: #e8ebd5; }
+.chess-square--dark { background: #72957d; }
+.chess-square[aria-disabled="true"] { cursor: default; }
+.chess-square.is-last { background-image: linear-gradient(#f4d55350, #f4d55350); }
+.chess-square.is-selected { background: #f2cb68; }
+.chess-square.is-legal::after {
+  content: ''; position: absolute; width: 26%; height: 26%; border-radius: 50%;
+  background: #173d36a6; pointer-events: none;
+}
+.chess-square.is-legal:has(.chess-piece:not(:empty))::after { width: 82%; height: 82%; background: transparent; border: 4px solid #173d36a6; }
+.chess-square:focus-visible { outline: 3px solid #102c72; outline-offset: -4px; z-index: 1; }
+.chess-piece { font-family: 'DejaVu Sans', 'Segoe UI Symbol', 'Apple Symbols', serif; font-size: clamp(25px, 4.6vw, 52px); line-height: 1; z-index: 1; pointer-events: none; }
+.chess-piece--w .chess-piece { color: #fffdf2; text-shadow: 1px 1px 1px #243c35, -1px -1px 1px #243c35, 1px -1px 1px #243c35, -1px 1px 1px #243c35; }
+.chess-piece--b .chess-piece { color: #172e2b; text-shadow: 0 1px 1px #ffffff65; }
+.chess-coordinate { position: absolute; bottom: 1px; left: 3px; font: 9px var(--mono); color: #173d36; pointer-events: none; }
+.chess-square--dark .chess-coordinate { color: #122c21; }
+.chess-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
+.chess-history { font-size: 13px; margin-top: 16px; }
+.chess-history summary { cursor: pointer; color: var(--muted); }
+.chess-history p { line-height: 1.8; overflow-wrap: anywhere; }
+.chess-promotion .panel { margin-top: 14px; }
+.chess-promotion .btn { text-transform: capitalize; margin: 4px; }
+.chess-question h3 { margin: 12px 0; font-size: 20px; }
+.chess-question__subject { font-size: 25px; font-weight: 600; margin: 0 0 20px; }
+.chess-question__flag { display: block; width: 130px; max-height: 100px; object-fit: contain; margin: 20px auto; }
+.chess-answers { display: grid; gap: 8px; }
+.chess-answers .btn { justify-content: flex-start; text-align: left; white-space: normal; }
+.chess-question form { display: grid; gap: 10px; }
+.chess-question form label { font-size: 13px; }
+.chess-feedback { margin-top: 20px; line-height: 1.6; }
+.chess-help p, .chess-question p { font-size: 14px; line-height: 1.6; }
+.chess-help h3 { margin-bottom: 10px; }
+.chess-help a { text-decoration: underline; }
+@media (max-width: 720px) {
+  .chess-game { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+  .chess-side { display: contents; }
+  .chess-question { grid-row: 1; }
+  .chess-piece { font-size: clamp(26px, 8vw, 55px); }
+  .chess-coordinate { font-size: 8px; }
+}
