@@ -605,6 +605,9 @@
       global.ClassFeatures.mount(fxHost, { classId: cls().cloudId || '' });
     }
 
+    var gbHost = document.getElementById('cr-gameblocks');
+    if (gbHost && global.GameBlocks) global.GameBlocks.mount(gbHost, { classId: cls().cloudId || '' });
+
     var tchHost = document.getElementById('cr-teachers');
     if (tchHost && global.ClassExtras && global.ClassExtras.mountTeachers) {
       global.ClassExtras.mountTeachers(tchHost, cls());
@@ -1131,6 +1134,7 @@
       /* first, not third. A teacher opening Settings to look for a feature
          should not have to scroll past Class and Data to find out it exists. */
       '<div class="cr-card"><div id="cr-features"></div></div>' +
+      '<div class="cr-card"><div id="cr-gameblocks"></div></div>' +
       /* Co-teachers (0010). Filled by classroom-extras.js. */
       '<div class="cr-card"><div id="cr-teachers"></div></div>' +
       '<div class="cr-card">' +

@@ -1,0 +1,29 @@
+/* Gamertag box, leaderboards, locked game cards, and the arcade's
+   Leaderboards buttons. */
+
+.gt-err { min-height: 18px; margin-top: 6px; font-size: 13px; color: var(--danger, #D7262B); }
+
+.lb-body { margin-top: 4px; min-height: 120px; }
+.lb-list { list-style: none; margin: 0; padding: 0; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.lb-row { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-top: 1px solid var(--line-soft, var(--line)); }
+.lb-row:first-child { border-top: 0; }
+.lb-row.is-mine { background: var(--accent-soft); }
+.lb-rank { width: 28px; flex: none; text-align: center; font: 600 13px var(--mono); color: var(--muted); }
+.lb-rank svg { width: 18px; height: 18px; color: #B45309; }
+.lb-name { flex: 1; min-width: 0; font-weight: 560; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lb-name i { font: 600 10px var(--mono); font-style: normal; text-transform: uppercase; letter-spacing: .06em;
+  padding: 2px 6px; margin-left: 6px; border-radius: 99px; background: var(--accent); color: #fff; }
+.lb-score { font-weight: 600; }
+.lb-gap { text-align: center; color: var(--faint, var(--muted)); padding: 2px 0; border-top: 1px solid var(--line-soft, var(--line)); }
+.lb-empty { padding: 26px 12px; text-align: center; color: var(--muted); font-size: 14px; }
+.lb-mine { margin-top: 10px; color: var(--ink); font-weight: 600; }
+.lb-you { margin-top: 14px; font-size: 13px; color: var(--muted); }
+.lb-you .linkbtn { padding: 0; border: 0; background: none; cursor: pointer; font: inherit; color: var(--accent); font-weight: 600; text-decoration: underline; }
+
+/* blocked by a teacher */
+.game-card.is-blocked { opacity: .55; filter: grayscale(.7); cursor: not-allowed; }
+.game-card.is-blocked .game-card__go { display: inline-flex; align-items: center; gap: 6px; }
+.game-card.is-blocked .game-card__go svg { width: 14px; height: 14px; }
+
+.cab__boards { margin-inline: auto 12px; }
+.dash-setup__go { display: flex; flex-wrap: wrap; gap: 10px; }

@@ -670,6 +670,7 @@
     if (win) r[field] = score;
     r.runs = (r.runs || 0) + 1;
     W.save();
+    if (win && global.GameBoards) global.GameBoards.touch();
     return win;
   }
 

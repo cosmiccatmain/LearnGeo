@@ -28,6 +28,7 @@
 <link rel="stylesheet" href="assets/css/administrator.css">
 <link rel="stylesheet" href="assets/css/classroom-extras.css">
 <link rel="stylesheet" href="assets/css/landing.css">
+<link rel="stylesheet" href="assets/css/game-boards.css">
 <link rel="stylesheet" href="assets/css/arcade.css">
 <link rel="stylesheet" href="assets/css/codex.css">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌍</text></svg>">
@@ -50,7 +51,6 @@
     <div class="nav__links">
       <a href="#try">Try it</a>
       <a href="#modes">Modes</a>
-      <a href="#games">Games</a>
       <a href="#coverage">What's in it</a>
       <a href="#screens">Screenshots</a>
       <a href="#rewards">Rewards</a>
@@ -59,6 +59,7 @@
     <div class="nav__spacer"></div>
     <button class="btn btn--ghost btn--sm hidden" id="nav-continue">Continue where you left off</button>
     <button class="btn btn--ghost btn--sm" id="nav-signin">Sign in</button>
+    <button class="btn btn--accent btn--sm" id="nav-signup">Sign up free</button>
     <button class="btn btn--primary btn--sm" data-launch="portal">Open the app</button>
     <!-- the same links again, for the widths where the row above does not fit -->
     <button class="nav__burger" id="nav-menu-btn" aria-expanded="false" aria-controls="nav-menu" aria-label="Sections">
@@ -67,7 +68,6 @@
     <div class="nav__sheet" id="nav-menu">
       <a href="#try">Try it</a>
       <a href="#modes">Modes</a>
-      <a href="#games">Games</a>
       <a href="#coverage">What's in it</a>
       <a href="#screens">Screenshots</a>
       <a href="#rewards">Rewards</a>
@@ -93,9 +93,9 @@
           <button class="btn btn--accent btn--lg" data-launch="learn">Start learning</button>
           <a class="btn btn--ghost btn--lg" href="#try">Try 3 questions first</a>
         </div>
-        <p class="hero__note">You can start as a guest without signing up. Make a free account if you want your progress on every device.</p>
+        <p class="hero__note">You can start as a guest without signing up. <button class="linkbtn" id="hero-signup" type="button">Make a free account</button> if you want your progress on every device.</p>
       </div>
-      <div class="hero__gem" aria-hidden="true"><canvas id="hero-gem"></canvas></div>
+      <div class="hero__gem"><canvas id="hero-globe" aria-label="A rotating globe. Click anywhere on it to see the nearest capital."></canvas></div>
     </div>
   </header>
 
@@ -175,21 +175,6 @@
           <li>You get a marked paper at the end</li>
         </ul>
       </div>
-    </div>
-  </section>
-
-  <!-- games (landing-games.js renders the cards) -->
-  <section class="section" id="games">
-    <div class="section__head">
-      <span class="eyebrow">Games</span>
-      <h2>Play with the map in your head.</h2>
-      <p>Short games where the geography is part of how you play, not a quiz bolted on the
-         side. Everything you answer in them counts toward the same mastery, XP and gems as
-         the study modes.</p>
-    </div>
-    <div class="games__grid" id="games-grid"></div>
-    <div class="row" style="justify-content:center;margin-top:28px">
-      <button class="btn btn--accent btn--lg" id="games-cta" type="button">Open the arcade</button>
     </div>
   </section>
 
@@ -571,7 +556,7 @@
 <script src="assets/js/classes.js"></script>
 <script src="assets/js/map.js"></script>
 <script src="assets/js/worldmap.js"></script>
-<script src="assets/js/hero-gem.js"></script>
+<script src="assets/js/globe.js"></script>
 <script src="assets/js/hero-cycle.js"></script>
 <script src="assets/js/quiz.js"></script>
 <script src="assets/js/assignments.js"></script>
@@ -626,7 +611,8 @@
 <script src="assets/js/game-stack.js"></script>
 <script src="assets/js/game-echo.js"></script>
 <script src="assets/js/games.js"></script>
-<script src="assets/js/landing-games.js"></script>
+<script src="assets/js/game-boards.js"></script>
+<script src="assets/js/game-blocks.js"></script>
 <script src="assets/js/main.js"></script>
 <script src="assets/js/demo-shapes.js"></script>
 <script src="assets/js/demo.js"></script>

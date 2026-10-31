@@ -21,6 +21,7 @@ This folder is for the live project — the one whose URL is in
 | `results` | `class_id`, `assignment_id`, `student_id`, `student_name`, `pct`, `missed` |
 | `announcements` | `class_id`, `body`, `pinned` — added by `0001` here; `author_id`, `author_name` by `0007` (not applied yet) |
 | `arcade_scores`, `admin_pins` | the arcade and the admin panel |
+| `gamertags`, `game_scores`, `class_game_blocks` | game leaderboards and per-class game blocks, added by `0008` |
 
 Authorisation goes through two `security definer` helpers in the
 `private` schema, `is_class_teacher(cid)` and `is_class_member(cid)`,

@@ -121,6 +121,9 @@
          the Codex hexagon is drawn from. */
       skills: {},
       games: {},            /* per game: best scores and settings, e.g. games.dash */
+      gamertag: '',         /* the name on the game leaderboards (game-boards.js) */
+      deviceId: '',         /* random, made here; what a gamertag is tied to */
+      boardSent: {},            /* last score sent to each game's board */
       achievements: [],
       role: 'student',            /* 'student' | 'teacher' */
       roleChosen: false,          /* asked once, on first entry */

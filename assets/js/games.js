@@ -511,6 +511,15 @@
   }
 
   function start() {
+    /* ask who is blocked, then redraw if the answer changed anything */
+    if (global.GameBlocks && !start.watching) {
+      start.watching = true;
+      global.GameBlocks.onChange(function () {
+        if (screen === 'hub') renderHub();
+        else if (screen === 'setup' && isBlocked(current)) renderSetup();
+      });
+    }
+    if (global.GameBlocks) global.GameBlocks.load();
     if (screen === 'play') screen = 'setup';
     stop();
     if (screen === 'setup') renderSetup(); else renderHub();
@@ -518,6 +527,7 @@
 
   function stop() {
     if (game) { game.destroy(); game = null; }
+    if (global.GameBoards) global.GameBoards.touch();
   }
 
   function toSetup() { screen = 'setup'; renderSetup(); }
@@ -581,6 +591,7 @@
             '<div class="cab__crt">' +
               '<div class="cab__row">' +
                 '<span class="cab__blink">\u25B6 Select game</span>' +
+                '<button class="btn btn--ghost btn--sm cab__boards" data-boards type="button">' + I.trophy + ' Leaderboards</button>' +
                 '<b>Hi ' + hi.toLocaleString() + '</b>' +
               '</div>' +
               '<div class="games__grid">' +
@@ -605,9 +616,16 @@
         '</div>' +
       '</div>';
 
+    W.$('[data-boards]', el).addEventListener('click', function () {
+      if (global.GameBoards) global.GameBoards.open(current);
+    });
+
     var cards = W.$$('[data-game]', el);
     cards.forEach(function (btn, i) {
-      btn.addEventListener('click', function () { current = btn.dataset.game; toSetup(); });
+      btn.addEventListener('click', function () {
+        if (isBlocked(btn.dataset.game)) { blockedToast(); return; }
+        current = btn.dataset.game; toSetup();
+      });
       btn.addEventListener('focus', function () {
         cards.forEach(function (o) { o.classList.toggle('is-picked', o === btn); });
       });
@@ -621,16 +639,21 @@
     });
   }
 
+  function isBlocked(id) { return !!(global.GameBlocks && global.GameBlocks.blocked(id)); }
+
   function card(g) {
     var best = g.best(record(g.id));
-    return '<button class="game-card" data-game="' + g.id + '" type="button">' +
+    var off = isBlocked(g.id);
+    return '<button class="game-card' + (off ? ' is-blocked' : '') + '" data-game="' + g.id + '" type="button"' +
+      (off ? ' aria-disabled="true"' : '') + '>' +
       '<div class="game-card__art game-art--' + g.art + '" aria-hidden="true">' + art(g.art) + '</div>' +
       '<div class="game-card__body">' +
         '<h3>' + esc(g.title) + '</h3>' +
         '<p>' + esc(g.blurb) + '</p>' +
         '<div class="game-card__foot"><span>' + esc(g.meta) + '</span>' +
           (best ? '<span class="game-card__best">' + esc(best) + '</span>' : '') +
-          '<span class="game-card__go">Play ' + I.arrowR + '</span></div>' +
+          (off ? '<span class="game-card__go">' + I.lock + ' Blocked by your teacher</span>'
+               : '<span class="game-card__go">Play ' + I.arrowR + '</span>') + '</div>' +
       '</div>' +
     '</button>';
   }
@@ -780,12 +803,17 @@
   }
 
   /* ----------------------------- setup ------------------------------ */
+  function blockedToast() {
+    W.toast('Blocked by your teacher', 'Ask them if you would like it turned back on.', I.lock, 4200);
+  }
+
   function renderSetup() {
     stop();
     var el = host();
     if (!el) return;
     var g = byId(current);
     current = g.id;
+    if (isBlocked(g.id)) { blockedToast(); renderHub(); return; }
     var r = record(g.id);
     var cfg = gameCfg(g.id);
 
@@ -803,7 +831,10 @@
                   '<span>' + esc(k[1]) + '</span></div>';
               }).join('') +
             '</div>' +
-            '<button class="btn btn--accent btn--lg" data-play>' + I.play + ' Play</button>' +
+            '<div class="dash-setup__go">' +
+              '<button class="btn btn--accent btn--lg" data-play>' + I.play + ' Play</button>' +
+              '<button class="btn btn--ghost btn--lg" data-board type="button">' + I.trophy + ' Leaderboard</button>' +
+            '</div>' +
           '</div>' +
           '<div class="dash-setup__side">' +
             '<div class="panel">' +
@@ -825,6 +856,9 @@
 
     W.$('[data-hub]', el).addEventListener('click', renderHub);
     W.$('[data-play]', el).addEventListener('click', play);
+    W.$('[data-board]', el).addEventListener('click', function () {
+      if (global.GameBoards) global.GameBoards.open(g.id);
+    });
     W.$('[data-filters]', el).addEventListener('click', function () {
       global.StudyFilters.open({
         cfg: cfg, title: g.filters.title, types: false, mapChoices: false, answerStyle: g.filters.typed,

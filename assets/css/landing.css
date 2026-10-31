@@ -1,6 +1,7 @@
 /* ------------------------------------------------------------------
    Landing hero: the headline cycles through the reasons to use
-   LearnGeo, and a cut gem turns beside it.
+   LearnGeo, and the globe turns beside it. Click it and the nearest
+   capital comes up on a card.
 
    Loaded last so it wins over the shared .hero rules in app.css, which
    teachers.html still relies on.
@@ -55,6 +56,7 @@
 .hero__gem canvas {
   position: relative; display: block; width: 100%; height: 100%;
   opacity: 0; transition: opacity 1.2s var(--ease);
+  cursor: pointer; touch-action: pan-y;
 }
 .hero__gem.is-live canvas { opacity: 1; }
 
@@ -66,4 +68,45 @@
   .hero--gem .hero__cta { justify-content: center; }
   .hero--gem .hero__note { text-align: center; }
   .hero__gem { max-width: 300px; }
+}
+
+/* A text link that is really a button: the sign-up prompt inside the note. */
+.linkbtn {
+  padding: 0; border: 0; background: none; cursor: pointer;
+  font: inherit; color: var(--accent); font-weight: 600;
+  text-decoration: underline; text-underline-offset: 2px;
+}
+.hero__note.is-signed-in .linkbtn { display: none; }
+
+/* The capital the globe was clicked on. Sits low over the ball so it
+   never covers the spot that was picked. */
+.globe-card {
+  position: absolute; left: 50%; bottom: 2%; transform: translateX(-50%);
+  width: min(300px, 92%); padding: 12px 14px 12px;
+  background: var(--white, #fff); border: 1px solid var(--line, #E5E7EB);
+  border-radius: 14px; box-shadow: 0 10px 30px rgba(10,10,11,.14);
+  text-align: left; z-index: 2; animation: globe-card-in .25s var(--ease);
+}
+.globe-card[hidden] { display: none; }
+.globe-card__eyebrow {
+  display: block; font: 600 10.5px var(--mono); letter-spacing: .08em;
+  text-transform: uppercase; color: var(--muted);
+}
+.globe-card__row { display: flex; align-items: center; gap: 10px; margin-top: 6px; }
+.globe-card__row img { border-radius: 3px; box-shadow: 0 0 0 1px rgba(10,10,11,.1); flex: none; }
+.globe-card__row > div { flex: 1; min-width: 0; }
+.globe-card__row b { display: block; font-size: 19px; line-height: 1.15; }
+.globe-card__row span { display: block; font-size: 13px; color: var(--muted); }
+.globe-card__row button {
+  align-self: flex-start; border: 0; background: none; cursor: pointer;
+  font-size: 22px; line-height: 1; color: var(--muted); padding: 0 2px;
+}
+.globe-card em { display: block; margin-top: 6px; font-style: normal; font-size: 12.5px; color: var(--faint, var(--muted)); }
+@keyframes globe-card-in { from { opacity: 0; transform: translate(-50%, 6px); } }
+@media (prefers-reduced-motion: reduce) { .globe-card { animation: none; } }
+
+/* Sign in and Sign up share the nav. On a phone there is room for those two and
+   the menu, not for "Open the app" as well. The hero has Start learning. */
+@media (max-width: 600px) {
+  .nav > .btn--primary[data-launch] { display: none; }
 }

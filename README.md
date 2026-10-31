@@ -311,9 +311,10 @@ assets/js/avatars.js            inline SVG artwork for avatars (no emoji fonts n
 assets/js/core.js               icons, state, storage, economy, sound, reward effects
 assets/js/map.js                Leaflet setup, country shapes, the map blur
 assets/js/worldmap.js           the outlines as one flat inline SVG, no Leaflet
-assets/js/hero-gem.js            the turning cut gem in the landing hero
 assets/js/hero-cycle.js          the "LearnGeo for ..." headline that cycles
-assets/js/globe.js               no longer loaded by index.html
+assets/js/game-boards.js         gamertags and a leaderboard for every game
+assets/js/game-blocks.js         teachers blocking games for a class
+assets/js/globe.js               the globe in the landing hero; click it and the nearest capital comes up
 assets/js/relief.js             the ridgeline relief behind the Geo Classroom headline
 assets/js/quiz.js               question generation
 assets/js/assignments.js        suggestions, share codes, handing in work

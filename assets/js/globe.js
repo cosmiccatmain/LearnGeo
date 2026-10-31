@@ -11,6 +11,10 @@
    frame. Points are thinned once at load, so a frame is arithmetic over
    a few thousand coordinates and nothing else.
 
+   Click or tap it and the nearest capital to that spot comes up on a
+   card, with a marker that stays on the city as the globe turns. (The
+   dataset holds capitals, so that is the nearest city it knows.)
+
    It drifts on its own and leans toward the pointer, and only while it
    is actually being looked at: scrolled past, or with the app open over
    the top of it, the loop stops rather than re-projecting a few thousand
@@ -30,6 +34,7 @@
   var lon = -20, lat = 18;             /* where the projection is centred */
   var spin = -20, targetLon = 0, targetLat = 18;
   var last = 0, reduced = false;
+  var pick = null, card = null;       /* the capital last clicked, and its card */
 
   /* ============================ the outlines ======================== */
   /* Every ring as a flat [lon, lat, lon, lat, …], thinned once. Flat
@@ -103,6 +108,8 @@
       ctx.stroke();
     }
 
+    if (pick) marker(cx, cy, r, sinLat, cosLat);
+
     /* the edge, and a breath of atmosphere just outside it */
     ctx.beginPath();
     ctx.arc(cx, cy, r, 0, Math.PI * 2);
@@ -154,6 +161,122 @@
       ringPath(mer, cx, cy, r, sinLat, cosLat);
     }
     ctx.stroke();
+  }
+
+  /* ============================== picking =========================== */
+  /* The orthographic projection run backwards: a point on the face of the
+     globe in, a longitude and latitude out. Null when the click landed
+     outside the ball. */
+  function unproject(px, py) {
+    var rho = Math.sqrt(px * px + py * py);
+    if (rho > 1) return null;
+    var c = Math.asin(rho), sinC = Math.sin(c), cosC = Math.cos(c);
+    var sinLat = Math.sin(lat * DEG), cosLat = Math.cos(lat * DEG);
+    var phi, dl;
+    if (rho < 1e-9) { phi = lat * DEG; dl = 0; }
+    else {
+      phi = Math.asin(cosC * sinLat + py * sinC * cosLat / rho);
+      dl = Math.atan2(px * sinC, rho * cosLat * cosC - py * sinLat * sinC);
+    }
+    return { lon: lon + dl / DEG, lat: phi / DEG };
+  }
+
+  function km(aLat, aLon, bLat, bLon) {
+    var p1 = aLat * DEG, p2 = bLat * DEG, dp = p2 - p1, dl = (bLon - aLon) * DEG;
+    var h = Math.sin(dp / 2) * Math.sin(dp / 2) +
+            Math.cos(p1) * Math.cos(p2) * Math.sin(dl / 2) * Math.sin(dl / 2);
+    return 6371 * 2 * Math.asin(Math.min(1, Math.sqrt(h)));
+  }
+
+  /* The dataset holds capitals, so "nearest city" is the nearest capital. */
+  function nearest(at) {
+    var list = global.GeoData && global.GeoData.countries;
+    if (!list || !list.length) return null;
+    var best = null, bestKm = Infinity;
+    for (var i = 0; i < list.length; i++) {
+      var d = km(at.lat, at.lon, list[i].lat, list[i].lon);
+      if (d < bestKm) { bestKm = d; best = list[i]; }
+    }
+    return best ? { place: best, km: bestKm } : null;
+  }
+
+  function esc(t) {
+    return String(t).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  function showCard() {
+    if (!card) {
+      card = document.createElement('div');
+      card.className = 'globe-card';
+      card.setAttribute('role', 'status');
+      canvas.parentNode.appendChild(card);
+      card.addEventListener('click', function (e) {
+        if (e.target.closest('[data-close]')) { pick = null; card.hidden = true; if (!running) draw(); }
+      });
+    }
+    var p = pick.place;
+    var away = pick.km < 25 ? 'right here'
+             : 'about ' + Math.round(pick.km / 10) * 10 + ' km from where you clicked';
+    card.innerHTML =
+      '<span class="globe-card__eyebrow">Nearest capital</span>' +
+      '<div class="globe-card__row">' +
+        (p.flag ? '<img src="' + esc(p.flag) + '" alt="" width="28" height="20">' : '') +
+        '<div><b>' + esc(p.capital) + '</b><span>' + esc(p.name) + ' · ' + esc(p.region) + '</span></div>' +
+        '<button type="button" data-close aria-label="Close">\u00d7</button>' +
+      '</div>' +
+      '<em>' + away + '</em>';
+    card.hidden = false;
+  }
+
+  /* A ring on the city, drawn each frame so it turns with the globe and
+     goes when it slips round the back. */
+  function marker(cx, cy, r, sinLat, cosLat) {
+    var p = pick.place.lat * DEG, dl = (pick.place.lon - lon) * DEG;
+    var cosP = Math.cos(p), sinP = Math.sin(p), cosDl = Math.cos(dl);
+    if (sinLat * sinP + cosLat * cosP * cosDl <= 0) return;
+    var x = cx + r * cosP * Math.sin(dl);
+    var y = cy - r * (cosLat * sinP - sinLat * cosP * cosDl);
+    var t = (global.performance.now() % 1600) / 1600;
+    ctx.beginPath();
+    ctx.arc(x, y, 5 + t * 14, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(27,77,255,' + (0.55 * (1 - t)).toFixed(3) + ')';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(x, y, 5, 0, Math.PI * 2);
+    ctx.fillStyle = '#1B4DFF';
+    ctx.fill();
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+
+  /* A press that barely moved is a click; anything longer is somebody
+     scrolling past with a thumb on the globe. */
+  function wirePick() {
+    var down = null;
+    canvas.addEventListener('pointerdown', function (e) {
+      down = { x: e.clientX, y: e.clientY, t: Date.now() };
+    });
+    canvas.addEventListener('pointerup', function (e) {
+      if (!down) return;
+      var moved = Math.abs(e.clientX - down.x) + Math.abs(e.clientY - down.y);
+      var quick = Date.now() - down.t < 600;
+      down = null;
+      if (moved > 8 || !quick) return;
+      var rect = canvas.getBoundingClientRect();
+      var r = Math.min(rect.width, rect.height) * 0.46;
+      var at = unproject((e.clientX - rect.left - rect.width / 2) / r,
+                         (rect.height / 2 - (e.clientY - rect.top)) / r);
+      if (!at) return;
+      var hit = nearest(at);
+      if (!hit) return;
+      pick = hit;
+      showCard();
+      if (!running) draw();
+    });
   }
 
   /* ============================== motion ============================ */
@@ -240,6 +363,7 @@
       global.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     canvas.parentNode.classList.add('is-live');
+    wirePick();
     draw();                                   /* the sphere, before the land arrives */
 
     /* Asked for less motion: draw the globe once and leave it there, rather

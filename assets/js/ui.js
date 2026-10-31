@@ -1119,6 +1119,13 @@
     }
     var si = document.getElementById('nav-signin');
     if (si) si.textContent = signedIn() ? (s.profile.displayName || 'My account') : 'Sign in';
+    /* once there is an account the sign-up prompts have nothing to offer */
+    ['nav-signup', 'hero-signup'].forEach(function (id) {
+      var b = document.getElementById(id);
+      if (b) b.classList.toggle('hidden', signedIn());
+    });
+    var note = document.querySelector('.hero__note');
+    if (note) note.classList.toggle('is-signed-in', signedIn());
   }
 
   /* Someone signed in or out, or the account's copy replaced this one:
@@ -1355,6 +1362,11 @@
                 '<b>I’m a teacher</b>' +
                 '<span>Give your class assignments, get their results back and see how everyone did.</span>' +
               '</button>' +
+              '<button class="role-opt" data-role="games">' +
+                '<span class="role-opt__i">' + I.gamepad + '</span>' +
+                '<b>I’m here for the games</b>' +
+                '<span>Jump straight into the arcade. You pick a gamertag and get on every leaderboard.</span>' +
+              '</button>' +
             '</div>' +
             (global.Cloud && global.Cloud.available && !signedIn()
               ? '<div class="auth-switch">Already have an account? <button data-signin>Sign in</button></div>'
@@ -1364,6 +1376,24 @@
         if (si) si.addEventListener('click', function () { close(); openAuth('signin'); });
         W.$$('[data-role]', root).forEach(function (b) {
           b.addEventListener('click', function () {
+            if (b.dataset.role === 'games') {
+              /* A gamertag first, then the arcade. Backing out of the box
+                 brings this question back rather than leaving nothing. */
+              close();
+              var enter = function () {
+                W.state.role = 'student';
+                W.state.roleChosen = true;
+                W.saveNow();
+                refreshTabs();
+                go('games');
+              };
+              if (global.GameBoards) global.GameBoards.askTag({
+                title: 'Pick a gamertag', backLabel: 'Back',
+                then: enter, onBack: function () { askRole(then); }
+              });
+              else enter();
+              return;
+            }
             W.state.role = b.dataset.role;
             W.state.roleChosen = true;
             W.saveNow();

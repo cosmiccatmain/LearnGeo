@@ -47,6 +47,12 @@
       if (global.Cloud && global.Cloud.signedIn) global.UI.showApp('portal');
       else global.UI.openAuth('signin');
     });
+    /* sign up is one tap from the nav and from the hero, not only from
+       inside the sign-in box */
+    ['nav-signup', 'hero-signup'].forEach(function (id) {
+      var b = document.getElementById(id);
+      if (b) b.addEventListener('click', function () { global.UI.openAuth('signup'); });
+    });
     navMenu();
     global.UI.refreshLanding();
     if (global.Cloud) global.Cloud.init();
