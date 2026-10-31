@@ -320,7 +320,7 @@
     }
 
     function answer(correct, given, idx) {
-      var gains = W.award(correct, { country: run.q.country.name });
+      var gains = W.award(correct, { country: run.q.country.name, type: run.q.type });
       run.answered = { correct: correct, given: given, idx: idx, gains: gains };
       if (correct) {
         W.Sound.correct(gains.combo);

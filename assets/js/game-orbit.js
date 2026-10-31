@@ -503,7 +503,7 @@
       r.shots = [];
       if (right) right.mark = 'right';
       if (idx >= 0) {
-        var gains = W.award(correct, { country: q.country.name });
+        var gains = W.award(correct, { country: q.country.name, type: q.type });
         r.result.gains = gains;
         W.save();
         if (global.UI) global.UI.refreshHud(true);

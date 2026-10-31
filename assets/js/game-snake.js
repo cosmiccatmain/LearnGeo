@@ -215,7 +215,7 @@
 
     function eat(f) {
       var r = run, q = r.q, c = f.choice, correct = c.correct;
-      var gains = W.award(correct, { country: q.country.name });
+      var gains = W.award(correct, { country: q.country.name, type: q.type });
       W.save();
       if (global.UI) global.UI.refreshHud(true);
       if (gains.level) W.toast('Level ' + gains.level, 'Nice one, keep it going', I.bolt, 3200);

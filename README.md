@@ -119,6 +119,46 @@ saved progress. When you finish, it asks if you want to sign up as a student or 
 The outlines it uses are in `demo-shapes.js`, which was generated from `countries.geo.json`
 so the landing page doesn't have to load the whole file.
 
+## The Codex
+
+A tab of its own, next to Home. It holds two things that only work together.
+
+**The hexagon evaluation** is six axes drawn as one shape, so the thing you see first is
+where your knowledge is lopsided rather than a column of six percentages. It has two lenses:
+
+- **World**: one corner per region, scored on how deep the mastery goes rather than on how
+  many countries have crossed the line. It is the mean Leitner box of every country in that
+  region, so it starts moving on the first right answer. This works on any save, including
+  ones from before the tab existed.
+- **Skills**: one corner per question type — capitals, flag sense, outlines, reverse,
+  colours, placing. Each is accuracy with a volume ramp: a corner only reaches your true
+  accuracy once there are 30 answers of that type behind it, so three right out of three is a
+  promising corner and not a perfect one. It fills from Learn, Practice test, Class quiz and
+  the games (`state.skills`, counted in `award()` wherever the mode has the question in hand).
+
+The middle of the hexagon carries the **Guild rating**: the mean of the six world corners,
+0–100. Hovering an axis swaps the readout for what that corner is counting, and the shortest
+corner gets a "Practise this" button that drops you into Learn filtered to exactly it.
+
+**The Cartographers' Guild** is the lore, and every page of it is sealed behind a number the
+hexagon already shows. Seven ranks run off the Guild rating, from Apprentice of the Blank
+Page at 0 to Guild Cartographer at 85, each with its entry and the one-line charge it lays on
+you. Below them is the archive, 42 pages in three shelves:
+
+- **How the Guild began** — three paragraphs, always open, because a world nobody has
+  explained yet is just a form to fill in.
+- **The regional chapters** — six chapters of five pages, unsealed as that region's corner
+  passes 15, 35, 55, 75 and 92.
+- **The instrument room** — one entry per corner of the *skills* hexagon (the Capitals
+  Ledger, the Flag Loft, the Silhouette Drawer, the Reverse Index, the Dye Book, the Plumb
+  Line), two pages each, at 40 and 80. So whichever lens you are working on, something is
+  opening behind you on the other.
+
+Nothing is awarded for reading them and nothing is spent: studying is the only key, so the
+story is the progress bar.
+
+Teachers don't get the tab — like Home, it is the student's own record.
+
 ## Progress and rewards
 
 You earn XP, level up and collect diamonds. Getting answers right in a row gives you a
@@ -263,6 +303,7 @@ assets/css/motion.css           button feedback and transitions
 assets/css/demo.css             landing page demo
 assets/css/auth.css             sign in, create account and password dialogs
 assets/css/brand.css            the LearnGeo mark
+assets/css/codex.css            the hexagon, the Guild and the archive chapters
 assets/js/data.js               the 213 places: capitals, coordinates, notes, aliases, flag codes
 assets/flags/                   one 4:3 SVG flag per place, named by ISO alpha-2 code
 assets/js/cosmetics.js          avatars, decorations, effects, nameplates, banners, themes, achievements
@@ -280,6 +321,7 @@ assets/js/cloud.js              Supabase accounts, save sync, online classes
 assets/js/ui.js                 shell, profile menu, sign in, settings, customization, shop
 assets/js/passkey.js            passkey sign-in and the eye on password boxes
 assets/js/portal.js             study center home screen, built around the map
+assets/js/codex.js              the Codex tab: the hexagon evaluation and the Guild lore
 assets/js/admin.js              ?admin panel: grants and removes the verified seal and diamonds
 assets/js/admin-pin.js          checks the admin code against Supabase
 assets/js/teacher.js            teacher view: stream, classwork, people, analytics

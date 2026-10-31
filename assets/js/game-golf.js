@@ -368,7 +368,13 @@
     }
 
     function finishQuestion(correct) {
-      var gains = W.award(correct, { country: run.target.name });
+      /* Golf names its holes in its own words, so they are mapped onto the
+         six Codex axes here: putting to a named country is placing it on the
+         map, and putting to a capital's country is the reverse question. */
+      var gains = W.award(correct, {
+        country: run.target.name,
+        type: run.type === 'capital' ? 'country' : 'locate'
+      });
       W.save();
       if (global.UI) global.UI.refreshHud(true);
       if (gains.level) W.toast('Level ' + gains.level, 'Nice one, keep it going', I.bolt, 3200);

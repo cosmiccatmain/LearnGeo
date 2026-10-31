@@ -277,8 +277,8 @@
          skipping everything you did not know kept a ×3 combo alive. */
       it.nameGiven = ''; it.capGiven = '';
       it.nameOk = false; it.capOk = false;
-      pay(false, skip, null, true);          /* the country half, and no second sound */
-      pay(false, skip, it.country.name);     /* the capital half, which names it once */
+      pay(false, skip, null, true, 'identify');          /* the country half, and no second sound */
+      pay(false, skip, it.country.name, false, 'capital'); /* the capital half, which names it once */
       stage = 'marked'; paintMap(); renderSidebar();
     });
 
@@ -339,7 +339,7 @@
       if (!input || !input.value.trim()) return;
       it.nameGiven = input.value.trim();
       it.nameOk = W.matches(it.nameGiven, it.country.name, it.country.nameAliases);
-      pay(it.nameOk, input);
+      pay(it.nameOk, input, null, false, 'identify');
       stage = 'capital';
       renderSidebar();
     } else if (stage === 'capital') {
@@ -347,7 +347,7 @@
       if (!cap || !cap.value.trim()) return;
       it.capGiven = cap.value.trim();
       it.capOk = W.matches(it.capGiven, it.country.capital, it.country.capitalAliases);
-      pay(it.capOk, cap, it.country.name);
+      pay(it.capOk, cap, it.country.name, false, 'capital');
       stage = 'marked';
       paintMap();
       renderSidebar();
@@ -360,8 +360,8 @@
      mastery two boxes. XP, gems and the streak still count both halves.
      `quiet` silences the second sound when a pair is scored together, so a
      skip marks two wrong answers without playing the same sound over itself. */
-  function pay(correct, anchor, country, quiet) {
-    var gains = W.award(correct, { country: country || null, baseXp: 12, baseGems: 5 });
+  function pay(correct, anchor, country, quiet, type) {
+    var gains = W.award(correct, { country: country || null, baseXp: 12, baseGems: 5, type: type || null });
     Q.xp += gains.xp; Q.gems += gains.gems;
     if (correct) { W.Sound.correct(gains.combo); W.burstFrom(anchor, gains); }
     else if (!quiet) W.Sound.wrong();
