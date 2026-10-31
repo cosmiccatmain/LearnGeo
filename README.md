@@ -314,3 +314,14 @@ assets/data/countries.geo.json  country outlines (GeoJSON)
 ## Deployment
 
 It's hosted on Vercel as a static site. You don't need a build command or an output directory.
+
+### Web Analytics
+
+Both public pages (`index.html` and `teachers.html`) load Vercel Web Analytics using
+`/_vercel/insights/script.js`. This is the plain HTML integration, so no npm package or
+build step is needed. Keep Web Analytics enabled in the Vercel project's **Analytics** tab.
+After deploying, visit the site and check that tab for visitors and page views. If data
+doesn't appear, try without a content blocker.
+
+This tracks page loads, not the app's individual in-page study modes. The analytics script
+is served by Vercel; a local Python server won't provide that endpoint.
