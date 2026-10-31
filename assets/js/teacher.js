@@ -283,6 +283,15 @@
     return found;
   }
 
+  /* Every attempt at one assignment by one student, newest first. latest()
+     answers what counts; this answers what happened, which is what a
+     teacher wants when a score looks wrong or a student says they did it. */
+  function attemptsFor(p, assignmentId) {
+    return cls().results.filter(function (r) {
+      return r.assignmentId === assignmentId && isTheirs(r, p);
+    }).sort(function (a, b) { return (b.at || 0) - (a.at || 0); });
+  }
+
   /* One score per student per assignment, so somebody who tried five times
      does not count five times towards an average. */
   function latest() {
@@ -487,7 +496,7 @@
           crTab('stream', I.layers, 'Stream', counts.stream) +
           crTab('classwork', I.clip, 'Classwork', counts.classwork) +
           crTab('people', I.users, 'People', counts.people) +
-          crTab('analytics', I.chart, 'Analytics', counts.analytics) +
+          crTab('analytics', I.chart, 'Grades', counts.analytics) +
           (featureOn('geolive') ? crTab('geolive', I.bolt, 'GeoLive') : '') +
           crTab('leaderboard', I.trophy, 'Leaderboard',
                 featureOn('leaderboard') ? 0 : 'Off') +
@@ -557,7 +566,9 @@
   function panel() {
     if (tab === 'classwork') return classworkPanel();
     if (tab === 'people') return peoplePanel();
-    if (tab === 'analytics') return analyticsPanel();
+    if (tab === 'analytics') {
+      return global.Grades ? global.Grades.panel() : analyticsPanel();
+    }
     if (tab === 'settings') return settingsPanel();
     if (tab === 'geolive') return geolivePanel();
     if (tab === 'leaderboard') return leaderboardPanel();
@@ -632,6 +643,13 @@
     bind('#tm-addperson', openAddPerson);
     bind('#tm-export', exportCsv);
     bind('#tm-to-features', function () { tab = 'settings'; render(true); });
+
+    /* The grading screens own their own controls — the three views, the
+       sort, the assignment and student pickers — and bind them here so
+       they are rewired on every redraw like everything else in the
+       panel. The score cells and the CSV button stay bound above,
+       because those two are the teacher's, not the screen's. */
+    if (tab === 'analytics' && global.Grades) global.Grades.wire(host);
 
     /* Rows carry the id of what they are about rather than their position
        in the list: a sync can reorder or shorten that list between the
@@ -1627,6 +1645,20 @@
        keeping its own copy of the rule that a typed name and the account
        that joined under it are one student. */
     people: people, ownerKey: ownerKey,
+    /* The grading screens live in grades.js. They are given the facts
+       rather than left to work them out again: who a score belongs to is
+       a rule with real subtlety in it — a typed name and the account that
+       joined under it are one student — and two copies of that rule would
+       drift and quietly disagree about somebody's average. */
+    data: {
+      cls: cls, people: people, latest: latest, resultFor: resultFor,
+      attemptsFor: attemptsFor, avg: avg, scoreClass: scoreClass,
+      ownerKey: ownerKey, isTheirs: isTheirs, who: who,
+      classAverage: classAverage, barColour: barColour, bandLabel: bandLabel,
+      assignmentById: assignmentById, initials: initials
+    },
+    openScoreEntry: openScoreEntry, exportCsv: exportCsv,
+    rerender: function () { render(); },
     get tab() { return tab; }, set tab(v) { tab = v; }
   };
 })(window);

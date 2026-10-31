@@ -3037,3 +3037,55 @@ button.game-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-l
 @media (max-width: 420px) {
   .gd-opts { grid-template-columns: 1fr; }
 }
+
+/* ======================= GRADES (grades.js) =======================
+   The teacher's grading screens. Everything here is new furniture for
+   the three views; the tables, bars and stat tiles they sit in are the
+   existing .gb, .an-bar and .an-stat rules above. */
+
+/* The row of assignments or students being chosen between. A select
+   would hide how many there are; these are the thing being picked. */
+/* The score button is width:100% so it fills a table cell. Reused in a
+   person row it ate the whole flex line and pushed the name and the
+   detail onto stacked lines; here it is only as wide as the score. */
+.person .gb__cell-btn { width: auto; flex: none; }
+
+.gr-picker { display: flex; flex-wrap: wrap; gap: 8px; }
+.gr-chip {
+  padding: 7px 13px; border: 1px solid var(--line); border-radius: 999px;
+  background: var(--white); color: var(--ink);
+  font: inherit; font-size: 13.5px; cursor: pointer;
+  max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.gr-chip:hover { border-color: var(--accent); color: var(--accent-ink); }
+.gr-chip.is-on {
+  background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 560;
+}
+
+/* A smaller segmented control, for the sort beside a heading rather
+   than one standing on its own line. */
+.seg--sm button { padding: 5px 11px; font-size: 12.5px; }
+
+/* A bar that is also a way into that assignment. */
+.an-bar--pick { cursor: pointer; border-radius: 8px; padding: 2px 4px; margin: 0 -4px; }
+.an-bar--pick:hover { background: var(--line-soft); }
+
+/* Column headers that open the by-assignment view. */
+.gb__head-btn {
+  border: 0; background: none; padding: 0; font: inherit; color: inherit;
+  cursor: pointer; text-align: left; max-width: 150px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.gb__head-btn:hover { color: var(--accent); text-decoration: underline; }
+
+/* How many goes it took, tucked against the score rather than given a
+   column of its own: it matters when it is 3, and never when it is 1. */
+.gb__tries {
+  display: inline-block; margin-left: 5px; padding: 0 5px;
+  border-radius: 999px; background: var(--line-soft); color: var(--muted);
+  font-size: 10.5px; font-style: normal; font-weight: 600; vertical-align: middle;
+}
+
+@media (max-width: 860px) {
+  .cr-grid[style*="1.15fr"] { grid-template-columns: 1fr !important; }
+}
