@@ -1,0 +1,300 @@
+/* ==================================================================
+   LearnGeo — the Codex tab: the hexagon evaluation and the Guild lore.
+   Same paper as the rest of the app. The only new idea here is that
+   the lore is set in the serif, so the archive reads as a different
+   kind of writing from the interface around it.
+   ================================================================== */
+
+/* ============================= hexagon ============================ */
+.hex-eval {
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  padding: 22px 24px 24px;
+  box-shadow: var(--shadow-sm);
+}
+.hex-eval__head { align-items: flex-start; gap: 14px; margin-bottom: 6px; }
+.hex-eval__h { font-size: 23px; margin-top: 6px; }
+
+.hex-eval__body {
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  gap: 26px;
+  align-items: center;
+  margin-top: 10px;
+}
+
+.hex-wrap { position: relative; }
+.hex { display: block; width: 100%; height: auto; overflow: visible; }
+
+.hex__ring { fill: none; stroke: var(--line); stroke-width: 1; }
+.hex__ring:last-of-type { stroke: #D8DCE4; }
+.hex__spoke { stroke: var(--line-soft); stroke-width: 1; }
+
+.hex__fill {
+  fill: color-mix(in srgb, var(--accent) 14%, transparent);
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  transform-origin: 170px 158px;
+  animation: hex-grow .62s var(--spring) both;
+}
+@supports not (color: color-mix(in srgb, red, blue)) {
+  .hex__fill { fill: rgba(27, 77, 255, .13); }
+}
+@keyframes hex-grow {
+  from { transform: scale(.2); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+
+.hex__dot {
+  fill: var(--white);
+  stroke: var(--accent);
+  stroke-width: 2;
+  transition: r .18s var(--ease);
+}
+.hex__dot.is-on { r: 6.5; fill: var(--accent); }
+
+.hex__label {
+  font-family: var(--sans);
+  font-size: 11.5px;
+  font-weight: 580;
+  fill: var(--ink-2);
+}
+.hex__val {
+  font-family: var(--mono);
+  font-size: 11px;
+  fill: var(--faint);
+}
+.hex__label.is-on { fill: var(--accent); }
+.hex__val.is-on { fill: var(--accent); }
+
+/* The rating, drawn into the chart with a halo under it rather than laid
+   over the chart in a box of its own. stroke + paint-order puts the white
+   behind the glyphs, so it separates the number from whatever it lands on
+   without hiding any of the shape. */
+.hex__rate {
+  font-family: var(--mono);
+  font-size: 32px;
+  font-weight: 600;
+  letter-spacing: -.02em;
+  fill: var(--ink);
+  stroke: var(--white);
+  stroke-width: 7;
+  stroke-linejoin: round;
+  paint-order: stroke fill;
+}
+
+/* ------------------------------ readout -------------------------- */
+.hex-side > .eyebrow { display: block; margin-bottom: 8px; }
+.hex-side__verdict {
+  font-size: 14px;
+  color: var(--muted);
+  line-height: 1.6;
+  min-height: 66px;
+}
+.hex-side__verdict b { color: var(--ink); font-weight: 600; }
+
+.hex-rows { margin-top: 16px; border-top: 1px solid var(--line-soft); }
+.hex-row {
+  display: grid;
+  grid-template-columns: 94px 1fr 34px;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 9px 2px;
+  text-align: left;
+  border-bottom: 1px solid var(--line-soft);
+}
+.hex-row:hover, .hex-row.is-on { background: var(--paper); }
+.hex-row__n { font-size: 13px; font-weight: 520; }
+.hex-row .pbar { display: block; }
+.hex-row .pbar__fill { display: block; }
+.hex-row__v { font-size: 12px; color: var(--muted); text-align: right; }
+.hex-row.is-on .hex-row__v { color: var(--accent); }
+
+.hex-fix {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 16px;
+  padding: 13px 15px;
+  background: var(--accent-soft);
+  border-radius: var(--r);
+}
+.hex-fix__t { flex: 1; min-width: 0; }
+.hex-fix__t b { display: block; font-size: 13.5px; }
+.hex-fix__t span { display: block; font-size: 12.5px; color: var(--muted); margin-top: 2px; }
+.hex-fix.is-done {
+  background: var(--success-soft);
+  color: var(--success);
+  font-size: 13px;
+  align-items: flex-start;
+}
+.hex-fix.is-done svg { flex: 0 0 auto; margin-top: 2px; }
+
+/* ============================== guild ============================= */
+.guild {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 0;
+  margin-top: 28px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  background: var(--white);
+}
+.guild__scroll { padding: 26px 28px; }
+.guild__rank {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 30px;
+  letter-spacing: -.01em;
+  margin-top: 8px;
+}
+.guild__text {
+  font-family: var(--serif);
+  font-size: 17.5px;
+  line-height: 1.62;
+  color: var(--ink-2);
+  margin-top: 12px;
+  max-width: 56ch;
+}
+.guild__next { margin-top: 20px; max-width: 420px; }
+.guild__next .pbar { margin-bottom: 8px; }
+.guild__next span { font-size: 12.5px; color: var(--muted); }
+
+.guild__ladder {
+  list-style: none;
+  margin: 0;
+  padding: 18px 20px;
+  background: var(--paper);
+  border-left: 1px solid var(--line);
+}
+.guild__ladder li {
+  display: grid;
+  grid-template-columns: 22px 1fr auto;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 0;
+  font-size: 12.5px;
+  color: var(--faint);
+}
+.guild__ladder li.is-past { color: var(--muted); }
+.guild__ladder li.is-now {
+  color: var(--ink);
+  font-weight: 600;
+}
+.guild__pip { display: inline-flex; color: currentColor; opacity: .75; }
+.guild__ladder li.is-now .guild__pip { color: var(--accent); opacity: 1; }
+.guild__lname { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.guild__lat { font-size: 11px; opacity: .8; }
+
+/* The rank's one-line duty, set apart from its paragraph: the lore says
+   what the rank is, this says what it asks of you. */
+.guild__charge {
+  margin-top: 16px;
+  padding-left: 14px;
+  border-left: 2px solid var(--accent);
+  font-family: var(--serif);
+  font-size: 16px;
+  color: var(--ink);
+}
+.guild__charge .eyebrow { display: block; margin-bottom: 3px; }
+
+/* ============================= archive ============================ */
+.archive__h {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 22px;
+  margin: 26px 0 4px;
+}
+.archive__h:first-of-type { margin-top: 22px; }
+.archive__note { font-size: 13px; color: var(--muted); margin-bottom: 14px; max-width: 62ch; }
+.archive__h + .chapters { margin-top: 14px; }
+
+/* Always open, so it is set wider and quieter than the sealed pages. */
+.founding {
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--paper);
+  padding: 24px 26px;
+}
+.founding p {
+  font-family: var(--serif);
+  font-size: 17px;
+  line-height: 1.62;
+  color: var(--ink-2);
+  max-width: 68ch;
+  margin-top: 12px;
+}
+
+/* ============================= chapters =========================== */
+.chapters {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+.chapter {
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  padding: 18px 20px 14px;
+  background: var(--white);
+}
+.chapter__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--line-soft);
+}
+.chapter__head h3 { font-size: 17px; margin-top: 4px; font-family: var(--serif); font-weight: 400; }
+.chapter__score { font-size: 13px; color: var(--muted); }
+.chapter__strap { font-size: 12.5px; color: var(--muted); margin-top: 5px; max-width: 42ch; }
+.chapter--kit .chapter__head h3 { font-family: var(--sans); font-weight: 620; font-size: 16px; }
+
+.chapter__frags { list-style: none; margin: 0; padding: 0; }
+.frag {
+  display: grid;
+  grid-template-columns: 20px 1fr;
+  gap: 10px;
+  padding: 13px 0;
+  border-bottom: 1px solid var(--line-soft);
+}
+.frag:last-child { border-bottom: none; }
+.frag p {
+  font-family: var(--serif);
+  font-size: 15.5px;
+  line-height: 1.58;
+  color: var(--ink-2);
+}
+.frag__seal { display: inline-flex; margin-top: 3px; color: var(--success); opacity: .8; }
+.frag.is-sealed .frag__seal { color: var(--faint); }
+.frag.is-sealed p {
+  font-family: var(--sans);
+  font-size: 12.5px;
+  color: var(--faint);
+  line-height: 1.5;
+}
+
+/* ============================ narrow ============================== */
+@media (max-width: 1000px) {
+  .hex-eval__body { grid-template-columns: 1fr; gap: 18px; }
+  .hex-wrap { max-width: 340px; margin: 0 auto; }
+  .guild { grid-template-columns: 1fr; }
+  .guild__ladder { border-left: none; border-top: 1px solid var(--line); }
+  .chapters { grid-template-columns: 1fr; }
+}
+@media (max-width: 560px) {
+  .hex-eval { padding: 18px 16px 20px; }
+  .hex-eval__h { font-size: 20px; }
+  .guild__scroll { padding: 20px 18px; }
+  .guild__rank { font-size: 25px; }
+  .guild__text { font-size: 16.5px; }
+  .hex-fix { flex-wrap: wrap; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hex__fill { animation: none; }
+}

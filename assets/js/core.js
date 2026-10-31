@@ -48,7 +48,8 @@
     gamepad: svg('<path d="M6 11h4M8 9v4"/><path d="M15 12h.01M18 10h.01"/><path d="M17.3 5H6.7a4 4 0 0 0-4 3.6l-.7 6.6A2.6 2.6 0 0 0 4.6 18c.9 0 1.7-.5 2.2-1.2L8 15h8l1.2 1.8c.5.7 1.3 1.2 2.2 1.2a2.6 2.6 0 0 0 2.6-2.8l-.7-6.6A4 4 0 0 0 17.3 5z"/>'),
     pause:  svg('<rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/>'),
     play:   svg('<path d="M7 4v16l13-8z"/>'),
-    inbox:  svg('<path d="M3 12h5l2 3h4l2-3h5"/><path d="M5 5h14l2 7v7H3v-7z"/>')
+    inbox:  svg('<path d="M3 12h5l2 3h4l2-3h5"/><path d="M5 5h14l2 7v7H3v-7z"/>'),
+    hex:    svg('<path d="M12 2.5 20 7v10l-8 4.5L4 17V7z"/><path d="M12 7.5 16 10v4l-4 2.5L8 14v-4z"/>')
   };
 
   /* The verified seal. Solid rather than line art, because it has to read as
@@ -115,6 +116,10 @@
       daily: { date: '', answered: 0, goal: 20, dayStreak: 0, lastDay: '', lastHit: '', hit: false },
       stats: { answered: 0, correct: 0, tests: 0, arcade: 0, perfectTests: 0 },
       mastery: {},          /* countryName -> { c: correctCount, w: wrongCount, box: 0..5 } */
+      /* question type -> { c, w }. Mastery says which countries you know;
+         this says which kind of question you are good at, which is what
+         the Codex hexagon is drawn from. */
+      skills: {},
       games: {},            /* per game: best scores and settings, e.g. games.dash */
       achievements: [],
       role: 'student',            /* 'student' | 'teacher' */
@@ -324,6 +329,16 @@
       }
     } else {
       state.streak.current = 0;
+    }
+
+    /* The type is passed where the mode has a question in hand. Where it
+       does not — a game that only knows the country it asked about — the
+       answer still counts everywhere else, it just does not land on one
+       of the six skill axes. */
+    if (opts.type) {
+      var sk = state.skills[opts.type] || { c: 0, w: 0 };
+      if (correct) sk.c += 1; else sk.w += 1;
+      state.skills[opts.type] = sk;
     }
 
     if (opts.country) {

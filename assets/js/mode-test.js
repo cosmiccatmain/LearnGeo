@@ -544,7 +544,7 @@
     T.right[T.i] = correct;
 
     if (T.instant) {
-      var gains = W.award(correct, { country: q.country.name });
+      var gains = W.award(correct, { country: q.country.name, type: q.type });
       T.gems += gains.gems; T.xp += gains.xp;
       if (correct) { W.Sound.correct(gains.combo); W.burstFrom(anchor, gains); }
       else W.Sound.wrong();
@@ -614,7 +614,7 @@
     T.qs.forEach(function (q, i) {
       if (T.right[i] === null) T.right[i] = T.given[i] === null ? false : global.Quiz.grade(q, T.given[i]);
       if (!T.instant && T.given[i] !== null) {
-        var g = W.award(T.right[i], { country: q.country.name });
+        var g = W.award(T.right[i], { country: q.country.name, type: q.type });
         T.gems += g.gems; T.xp += g.xp;
       }
     });

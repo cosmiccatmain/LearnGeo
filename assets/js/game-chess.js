@@ -145,7 +145,7 @@ function mount(host, opts) {
     if (disposed || !ready || engineError || thinking || ended || answered || !question || !given.trim()) return;
     answered = true; askedCount++;
     const correct = window.Quiz.grade(question, given);
-    const gains = W.award(correct, { country: question.country.name });
+    const gains = W.award(correct, { country: question.country.name, type: question.type });
     unlocked = correct; if (correct) correctCount++;
     feedback = { correct: correct, xp: gains.xp || 0 };
     W.save(); window.UI.refreshHud(true);

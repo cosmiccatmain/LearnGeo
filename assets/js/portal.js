@@ -71,6 +71,8 @@
               '<div class="panel__head"><h3>Progress by region</h3>' +
                 '<span class="eyebrow">' + mastered + ' mastered</span></div>' +
               regionRows() +
+              '<button class="btn btn--ghost btn--block btn--sm" id="portal-codex" style="margin-top:12px">' +
+                'See it as a hexagon</button>' +
             '</div>' +
             '<div class="panel">' +
               '<div class="panel__head"><h3>Achievements</h3>' +
@@ -547,6 +549,7 @@
     bind('portal-openclass', function () { global.UI.go('classroom'); });
     bind('portal-join', function () { global.UI.go('classroom'); });
     bind('portal-ach', global.UI.openAchievements);
+    bind('portal-codex', function () { global.UI.go('codex'); });
 
     function bind(id, fn) {
       var el = document.getElementById(id);

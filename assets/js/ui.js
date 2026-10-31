@@ -1137,7 +1137,7 @@
   }
 
   /* ============================ NAVIGATION ========================== */
-  var VIEWS = ['portal', 'classroom', 'teacher', 'learn', 'test', 'quiz', 'games'];
+  var VIEWS = ['portal', 'codex', 'classroom', 'teacher', 'learn', 'test', 'quiz', 'games'];
 
   /* The switcher shows Classroom to students and Teacher to teachers, so
      teacher mode is a place you can leave and come back to rather than a
@@ -1147,6 +1147,7 @@
      where they are. Home stays student-only. */
   var TAB_DEFS = [
     { view: 'portal',    icon: 'grid',   label: 'Home',          role: 'student' },
+    { view: 'codex',     icon: 'hex',    label: 'Codex',         role: 'student' },
     { view: 'classroom', icon: 'users',  label: 'Classroom',     role: 'student' },
     { view: 'teacher',   icon: 'users',  label: 'My class',      role: 'teacher' },
     { view: 'learn',     icon: 'book',   label: 'Learn',         role: null },
@@ -1187,7 +1188,7 @@
 
   /* ---------------------------------------------------------------
      Below the phone breakpoint the switcher is a bottom bar instead of
-     part of the top bar: six icon tabs, the brand, the HUD and the avatar
+     part of the top bar: seven icon tabs, the brand, the HUD and the avatar
      do not fit in 320px, and the strip was the thing forcing every view to
      scroll sideways. The element moves rather than being rebuilt, so the
      tabs keep their handlers and the pill keeps its place.
@@ -1282,7 +1283,7 @@
        teacher looking at their class as a student; neither should be
        bounced back out of the view they just asked for. */
     if (view === 'classroom' && isTeacher && !previewing) view = 'teacher';
-    if (isTeacher && !previewing && view === 'portal') view = 'teacher';
+    if (isTeacher && !previewing && (view === 'portal' || view === 'codex')) view = 'teacher';
     /* A teacher may look round Learn, Practice test and Class quiz. It
        opens as a browse — a preview with an "Assign to class" button — so
        nothing they do there is handed in. */
@@ -1321,6 +1322,7 @@
     positionThumb();
 
     if (view === 'portal') global.Portal.render();
+    if (view === 'codex') global.Codex.render();
     if (view === 'teacher') global.Teacher.render();
     if (view === 'classroom') global.Classroom.render();
     if (view === 'learn') global.LearnMode.start();
@@ -1402,6 +1404,8 @@
     modal: modal, wireSeg: wireSeg, wireCheck: wireCheck, wireTabs: wireTabs,
     refreshHud: refreshHud, toggleMenu: toggleMenu, closeMenu: closeMenu,
     openSettings: openSettings, openCustomization: openCustomization, openAchievements: openAchievements,
+    /* the Codex's World / Skills switch, reached by the seg's data-onchange */
+    codexLens: function (v) { if (global.Codex) global.Codex.setLens(v); },
     profileCard: profileCard, runEffect: runEffect,
     go: go, showApp: showApp, showLanding: showLanding,
     positionThumb: positionThumb, watchTabs: watchTabs, refreshTabs: refreshTabs,

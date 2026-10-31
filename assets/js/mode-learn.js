@@ -167,7 +167,7 @@
     session.asked += 1;
     if (correct) session.right += 1;
 
-    var gains = W.award(correct, { country: q.country.name });
+    var gains = W.award(correct, { country: q.country.name, type: q.type });
     last = { correct: correct, given: given, gains: gains, idx: how.idx, picked: how.picked };
 
     if (correct) {
