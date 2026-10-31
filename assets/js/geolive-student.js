@@ -177,6 +177,22 @@
   /* Asking GeoLive rather than reading session.answers, because that
      shape belongs to geolive.js and only it should know about it. */
   function answeredCount(s) {
+    /* A room snapshot carries answers as a flat list of database rows, not
+       as GeoLive's one object per question. Handed that, GeoLive.answered
+       counts the COLUMNS of one row, six or seven, which passed the seat
+       check below in any class of seven or more and was shown as "7 of 24
+       have answered" whatever had happened. Count the rows instead: one
+       per player on this question. */
+    var rows = s && s.answers;
+    if (rows && rows.length && rows[0] && rows[0].player_id !== undefined) {
+      var who = {}, n = 0, at = indexOf(s);
+      for (var r = 0; r < rows.length; r++) {
+        var row = rows[r];
+        if (!row || num(row.question_index, -1) !== at || who[row.player_id]) continue;
+        who[row.player_id] = true; n++;
+      }
+      return n;
+    }
     if (!s || !global.GeoLive || typeof global.GeoLive.answered !== 'function') return null;
     try {
       var v = global.GeoLive.answered(s);
@@ -304,12 +320,69 @@
     return (C && typeof C[name] === 'function') ? C[name].bind(C) : null;
   }
 
+  /* The shape each answer carries, and the picture a map question is
+     about. Both belong to GeoLiveQuestions so the projector draws the same
+     ones; absent, the tile falls back to its letter and the question to
+     its sentence, which is how this screen looked before either existed. */
+  function glyphHtml(i) {
+    var Q = global.GeoLiveQuestions;
+    if (Q && typeof Q.glyph === 'function') {
+      try { return Q.glyph(i); } catch (e) { /* the letter will do */ }
+    }
+    return KEYS[i] || '';
+  }
+
+  function pictureHtml(q) {
+    var Q = global.GeoLiveQuestions;
+    if (!q || !Q || typeof Q.picture !== 'function') return '';
+    try { return Q.picture(q); } catch (e) { return ''; }
+  }
+
+  function icon(name) {
+    return (W.Icons && W.Icons[name]) || '';
+  }
+
+  function initials(name) {
+    var bits = String(name || '').trim().split(/\s+/);
+    return ((bits[0] || '')[0] || '?').toUpperCase() +
+           (bits.length > 1 ? (bits[bits.length - 1][0] || '').toUpperCase() : '');
+  }
+
+  /* A tap you can feel. Phones that cannot buzz ignore it, and so does
+     anything that throws: a missing buzz is never worth an error. */
+  function buzz(pattern) {
+    try {
+      var nav = global.navigator;
+      /* Chrome refuses, and logs an error, until the page has been touched */
+      if (nav && nav.userActivation && !nav.userActivation.hasBeenActive) return;
+      if (nav && typeof nav.vibrate === 'function') nav.vibrate(pattern);
+    } catch (e) { /* no motor, no matter */ }
+  }
+
   function friendly(e) {
     var m = e && (e.message || e.msg || e.error_description);
     if (!m) return 'Something went wrong. Try again in a moment.';
     if (/network|fetch|offline/i.test(m)) return 'No connection. Check the wifi and try again.';
     return String(m).slice(0, 140);
   }
+
+  /* What this phone knows about the game it is in, kept outside any one
+     screen. The class page redraws itself whenever the class syncs, which
+     throws this screen away and mounts a new one, and that used to drop a
+     student back to "type the code" in the middle of a question. A new
+     screen for the same class picks up exactly where the last one was. */
+  var memory = null;
+  var KEEP = ['sessionId', 'playerId', 'code', 'name', 'index', 'answeredIndex', 'choice',
+              'result', 'accepted', 'scoreBefore', 'sawAsking', 'askedAt', 'clockKnown', 'limit'];
+
+  function enrolledClass() {
+    var e = W.state && W.state.enrolled;
+    return (e && e.classId) || '';
+  }
+
+  /* How often a waiting phone asks whether the game has started. Gentle,
+     because thirty phones are asking at once. */
+  var SEEK_MS = 5000;
 
   /* ============================== mount ============================ */
 
@@ -336,11 +409,15 @@
       accepted: null,         /* true in, false refused, null not heard yet */
       clockKnown: false,
       limit: FALLBACK_LIMIT,
-      phase: signedIn() ? 'join' : 'signin',
+      classId: String(opts.classId || enrolledClass() || ''),
+      phase: signedIn() ? 'finding' : 'signin',
+      seekTimer: null,
       note: '',
       busy: false,
       dead: false,
-      lowTimer: null
+      lowTimer: null,
+      fresh: '',              /* the phase and question last drawn, so a redraw does not replay its entrance */
+      screen: ''              /* the same, with answering counted as part of asking */
     };
 
     /* ------------------------------ reads ------------------------- */
@@ -517,7 +594,8 @@
 
     function onWake() {
       if (S.dead || document.hidden) return;
-      if (S.phase === 'signin' && signedIn()) { S.phase = 'join'; render(); return; }
+      if (S.phase === 'signin' && signedIn()) { S.phase = 'finding'; render(); seek(); return; }
+      if (S.phase === 'waiting' || S.phase === 'finding') { seek(); return; }
       /* Re-render so the drain is recomputed from the wall clock, and
          take a fresh subscription rather than trust one that was alive
          when the screen went dark. */
@@ -563,6 +641,7 @@
       S.choice = choice;
       S.accepted = null;
       S.phase = 'locked';
+      buzz(14);
       var ms = elapsed();
       var mine = S.index;
       render();
@@ -611,7 +690,11 @@
 
       if (code.length < 4) { S.note = 'That code looks too short. Check the board.'; render(); return; }
       if (!name) { S.note = 'Put your name in so the class knows who you are.'; render(); return; }
+      joinWith(code, name);
+    }
 
+    function joinWith(code, name) {
+      stopSeek();
       S.code = code;
       S.name = name;
       S.note = '';
@@ -629,17 +712,86 @@
           render();
           return;
         }
+        if (r.sessionId !== S.sessionId) forgetGame();
         S.sessionId = r.sessionId;
         S.playerId = r.playerId;
         S.phase = 'lobby';
         render();
         watch();
+        seekLater(SEEK_MS * 2);   /* keep an eye out for a newer game */
       })['catch'](function (e) {
         if (S.dead) return;
         S.busy = false;
         S.note = friendly(e);
+        if (S.phase !== 'join') S.phase = 'join';
         render();
       });
+    }
+
+    /* Everything about the previous game, gone, so a new one starts clean. */
+    function forgetGame() {
+      stopWatch();
+      S.session = null; S.seen = 0; S.index = -1; S.answeredIndex = -1;
+      S.choice = null; S.result = null; S.accepted = null; S.scoreBefore = null;
+      S.sawAsking = -1; S.clockKnown = false; S.askedAt = 0; S.fresh = ''; S.screen = '';
+    }
+
+    /* ------------------------- finding the game -------------------- */
+    /* The teacher's room already has a seat for this student, so the
+       phone can find it by itself. Nobody types a code unless they were
+       not on the teacher's list, and nobody types their name if the app
+       already knows it.
+
+       While waiting, and in the lobby or at the end of a game, it keeps
+       asking every few seconds, so a game started later, or a second game
+       after this one, turns up without anyone touching the phone. */
+    function seek() {
+      stopSeek();
+      if (S.dead || !signedIn()) return;
+      var fn = cloudFn('findOpen');
+      if (!fn) {
+        if (S.phase === 'finding') { S.phase = 'join'; render(); }
+        return;
+      }
+      Promise.resolve(fn(S.classId)).then(function (g) {
+        if (S.dead) return;
+        if (g && g.code && g.sessionId !== S.sessionId) {
+          var name = S.name || knownName();
+          if (name) { joinWith(g.code, name); return; }
+          /* found it, but we do not know what to call them: one field */
+          S.code = g.code;
+          S.phase = 'join';
+          S.note = '';
+          render();
+          return;
+        }
+        if (!g && S.phase === 'finding') { S.phase = 'waiting'; render(); }
+        seekLater();
+      }, function () { if (!S.dead) seekLater(); });
+    }
+
+    function seekLater(ms) {
+      stopSeek();
+      if (S.dead) return;
+      /* only where a new game is worth looking for: never mid-question */
+      if (!/^(waiting|finding|lobby|ended|off)$/.test(S.phase)) {
+        S.seekTimer = setTimeout(function () { seekLater(ms); }, ms || SEEK_MS);
+        return;
+      }
+      S.seekTimer = setTimeout(function () {
+        if (document.hidden) { seekLater(ms); return; }
+        seek();
+      }, ms || SEEK_MS);
+    }
+
+    function stopSeek() {
+      if (S.seekTimer) { clearTimeout(S.seekTimer); S.seekTimer = null; }
+    }
+
+    function remember() {
+      if (!S.sessionId) return;
+      memory = { classId: S.classId };
+      KEEP.forEach(function (k) { memory[k] = S[k]; });
     }
 
     /* ============================ drawing =========================== */
@@ -653,9 +805,11 @@
          show: liveReveal is null whenever god mode is off */
       var godAns = mode === 'open' ? godAnswer(q) : null;
       var list = (q && q.options) || [];
-      return '<div class="gl-targets">' + list.map(function (opt, i) {
+      var mini = mode === 'reveal' ? ' gl-targets--mini' : '';
+      return '<div class="gl-targets' + mini + '">' + list.map(function (opt, i) {
         var cls = 'gl-target gl-target--' + (SLOTS[i] || 'a');
         var extra = '';
+        var badge = '';
         if (mode === 'locked') {
           cls += String(opt) === String(mine) ? ' is-picked' : ' is-dimmed';
           cls += ' is-locked';
@@ -663,9 +817,10 @@
         } else if (mode === 'reveal') {
           var right = q.answer != null && String(opt) === String(q.answer);
           var chosen = String(opt) === String(mine);
-          if (right) cls += ' is-right';
-          else if (chosen) cls += ' is-wrong';
+          if (right) { cls += ' is-right'; badge = icon('check'); }
+          else if (chosen) { cls += ' is-wrong'; badge = icon('x'); }
           else cls += ' is-dimmed';
+          if (chosen) cls += ' is-mine';
           cls += ' is-locked';
           extra = ' disabled';
         }
@@ -680,19 +835,33 @@
           ? '<span class="gl__eyebrow">god mode answer</span>'
           : '';
         return '<button type="button" class="' + cls + '" data-slot="' + i + '"' + extra +
-            (mark ? ' aria-label="' + esc(opt) + ', the correct answer, shown by god mode"' : '') + '>' +
-            '<span class="gl-target__key">' + (KEYS[i] || '') + '</span>' +
+            ' style="--gl-n:' + i + '"' +
+            ' aria-label="' + esc((KEYS[i] || '') + ': ' + opt) +
+              (mark ? ', the correct answer, shown by god mode' : '') + '">' +
+            '<span class="gl-target__key">' + glyphHtml(i) + '</span>' +
             '<span class="gl-target__text">' + esc(opt) + '</span>' + mark +
+            (badge ? '<span class="gl-target__badge" aria-hidden="true">' + badge + '</span>' : '') +
           '</button>';
       }).join('') + '</div>';
     }
 
+    /* The strip across the top of a question: where we are in the game on
+       the left, what this student has on the right. The score only ever
+       comes from the standings, so it is absent rather than zero until the
+       host has saved some. */
     function headHtml() {
       var total = totalOf(S.session);
-      var count = total ? ('Question ' + (S.index + 1) + ' of ' + total) : ('Question ' + (S.index + 1));
+      var count = total ? ('<b>' + (S.index + 1) + '</b>/' + total) : ('Q<b>' + (S.index + 1) + '</b>');
+      var p = myPlace();
+      var streak = p && p.streak > 1
+        ? '<span class="gl-chip gl-chip--fire">' + icon('fire') + p.streak + '</span>'
+        : '';
       return '<div class="gl__head">' +
-          '<span class="gl-qcount">' + esc(count) + '</span>' +
-          (S.clockKnown ? '' : '<span class="gl__eyebrow">Answer fast</span>') +
+          '<span class="gl-qcount">' + count + '</span>' +
+          '<span class="gl__head-r">' + streak +
+            (p ? '<span class="gl-chip gl-chip--score">' + p.score.toLocaleString() + '</span>' : '') +
+            (S.clockKnown ? '' : '<span class="gl__eyebrow">Answer fast</span>') +
+          '</span>' +
         '</div>' + timerHtml();
     }
 
@@ -718,19 +887,28 @@
     function placeHtml(p) {
       if (!p) return '';
       return '<p class="gl-place' + rankClass(p.place) + '">' +
-          '<span class="gl-place__n">' + ordinal(p.place) + '</span> of ' + p.of +
-          ' <span class="gl-place__n">' + p.score + '</span> points' +
+          '<span class="gl-place__n">' + ordinal(p.place) + '</span>' +
+          '<span class="gl-place__of">of ' + p.of + '</span>' +
+          '<span class="gl-place__pts">' + p.score.toLocaleString() + ' pts</span>' +
         '</p>' +
-        (p.levelWith ? '<p class="gl__eyebrow">Level with ' + esc(p.levelWith) + '</p>' : '');
+        (p.levelWith ? '<p class="gl__eyebrow gl__eyebrow--mid">Level with ' + esc(p.levelWith) + '</p>' : '');
+    }
+
+    function brandHtml() {
+      return '<div class="gl-brand" aria-hidden="true">' +
+          '<span class="gl-brand__globe">' + icon('globe') + '</span>' +
+          '<span class="gl-brand__word">Geo<b>Live</b></span>' +
+        '</div>';
     }
 
     function signinHtml() {
-      return '<div class="gl-join">' +
-        '<h2 class="gl__title">Sign in to play</h2>' +
-        '<p class="gl-verdict__note t-muted">A live game needs your account, so your' +
-          ' points go on the class board under your name. Sign in and come back to' +
-          ' the code.</p>' +
-      '</div>';
+      return brandHtml() +
+        '<div class="gl-join">' +
+          '<h2 class="gl__title">Sign in to play</h2>' +
+          '<p class="gl-verdict__note">A live game needs your account, so your' +
+            ' points go on the class board under your name. Sign in and come back to' +
+            ' the code.</p>' +
+        '</div>';
     }
 
     function offHtml() {
@@ -750,41 +928,77 @@
           : 'Ask your teacher to turn this on.';
       }
       return '<div class="gl-wait">' +
+          '<span class="gl-wait__icon">' + icon('info') + '</span>' +
           '<h2 class="gl__title">' + esc(head) + '</h2>' +
-          '<p class="gl-verdict__note t-muted">' + esc(note) + '</p>' +
+          '<p class="gl-verdict__note">' + esc(note) + '</p>' +
+        '</div>';
+    }
+
+    function findingHtml() {
+      return brandHtml() +
+        '<div class="gl-wait">' +
+          '<div class="gl-radar" aria-hidden="true"><i></i><i></i><span>' + icon('globe') + '</span></div>' +
+          '<h2 class="gl__title">Looking for your class\u2019s game\u2026</h2>' +
+        '</div>';
+    }
+
+    /* Nothing to join yet. This screen is the whole instruction: stay
+       here, and the game arrives. The code is for anyone the teacher's
+       list missed, so it is offered, small, rather than demanded. */
+    function waitingHtml() {
+      return brandHtml() +
+        '<div class="gl-wait gl-wait--idle">' +
+          '<div class="gl-radar" aria-hidden="true"><i></i><i></i><span>' + icon('globe') + '</span></div>' +
+          '<h2 class="gl__title">No live game yet</h2>' +
+          '<p class="gl-verdict__note">Keep this open. When your teacher starts one, it will open here by itself.</p>' +
+          '<button type="button" class="gl-textbtn" data-gl-code>I have a game code</button>' +
+          noteHtml() +
         '</div>';
     }
 
     function joinHtml() {
-      return '<div class="gl-join">' +
-        '<h2 class="gl__title">Join the game</h2>' +
-        '<p class="gl__eyebrow">Code on the board</p>' +
-        '<input class="gl-join__field" type="text" value="' + esc(S.code) + '" ' +
-          'aria-label="Game code" autocomplete="one-time-code" autocapitalize="characters" ' +
-          'autocorrect="off" spellcheck="false" maxlength="8" enterkeyhint="next" placeholder="CODE">' +
-        '<input class="gl-join__field" type="text" value="' + esc(S.name) + '" ' +
-          'aria-label="Your name" autocomplete="nickname" maxlength="20" enterkeyhint="go" ' +
-          'placeholder="YOUR NAME">' +
-        '<button type="button" class="btn btn--accent btn--lg btn--block" data-gl-go' +
-          (S.busy ? ' disabled' : '') + '>' + (S.busy ? 'Joining' : 'Join') + '</button>' +
-        noteHtml() +
-      '</div>';
+      var found = !!S.code && !S.note;
+      return brandHtml() +
+        '<div class="gl-join">' +
+          (found
+            ? '<h2 class="gl__title">Your teacher\u2019s game is ready</h2>' +
+              '<p class="gl-verdict__note">Just tell the class who you are.</p>'
+            : '') +
+          /* found for them: the code is known, so it is not asked for */
+          (found
+            ? '<input class="gl-join__field" type="hidden" value="' + esc(S.code) + '">'
+            : '<label class="gl-join__label">Game code<span>on the board</span></label>' +
+              '<input class="gl-join__field gl-join__field--code" type="text" value="' + esc(S.code) + '" ' +
+                'aria-label="Game code" autocomplete="one-time-code" autocapitalize="characters" ' +
+                'autocorrect="off" spellcheck="false" maxlength="8" enterkeyhint="next" placeholder="······">') +
+          '<label class="gl-join__label">Your name</label>' +
+          '<input class="gl-join__field gl-join__field--name" type="text" value="' + esc(S.name) + '" ' +
+            'aria-label="Your name" autocomplete="nickname" maxlength="20" enterkeyhint="go" ' +
+            'placeholder="What the class calls you">' +
+          '<button type="button" class="btn btn--accent btn--lg btn--block gl-go" data-gl-go' +
+            (S.busy ? ' disabled' : '') + '>' + (S.busy ? 'Joining…' : 'Join the game') + '</button>' +
+          noteHtml() +
+        '</div>';
     }
 
     function lobbyHtml() {
       var n = playerCount(S.session);
       var here = arrivedCount(S.session);
-      return '<div class="gl-wait">' +
-        '<h2 class="gl__title">You are in</h2>' +
-        '<p class="gl-verdict__note t-muted">Hold on, ' + esc(S.name) +
-          '. It starts when your teacher says so.</p>' +
-        '<div class="gl-wait__dots" aria-hidden="true"><i></i><i></i><i></i></div>' +
+      return '<div class="gl-wait gl-wait--lobby">' +
+        '<div class="gl-me" aria-hidden="true"><span class="gl-me__ring"></span><span class="gl-me__ring"></span>' +
+          '<span class="gl-me__av">' + esc(initials(S.name)) + '</span></div>' +
+        '<h2 class="gl__title">You’re in, ' + esc(S.name || 'explorer') + '!</h2>' +
+        '<p class="gl-verdict__note">Look up at the board. It starts when your teacher says go.</p>' +
         /* joined_at is nullable now and live_join fills it, so "here" is a
            real thing to say. Falls back to the seated wording only when a
            snapshot carries no joined_at at all. */
         (here != null
-          ? '<p class="gl__eyebrow">' + here + (here === 1 ? ' person' : ' people') + ' here</p>'
-          : (n ? '<p class="gl__eyebrow">Set up for ' + n + (n === 1 ? ' player' : ' players') + '</p>' : '')) +
+          ? '<p class="gl-chip gl-chip--live"><i></i>' + here + (here === 1 ? ' player' : ' players') + ' here</p>'
+          : (n ? '<p class="gl-chip">Set up for ' + n + (n === 1 ? ' player' : ' players') + '</p>' : '')) +
+        '<div class="gl-tips">' +
+          '<p><b>Be quick.</b> A right answer is worth 600, and up to 400 more for speed.</p>' +
+          '<p><b>Keep it going.</b> Answers in a row build a streak.</p>' +
+        '</div>' +
         noteHtml() +
       '</div>';
     }
@@ -794,6 +1008,7 @@
       if (!q) return lobbyHtml();
       return headHtml() +
         '<p class="gl-prompt">' + esc(q.prompt) + '</p>' +
+        pictureHtml(q) +
         targetsHtml(q, 'open') +
         noteHtml();
     }
@@ -803,14 +1018,20 @@
       if (!q) return lobbyHtml();
       var done = answeredCount(S.session);
       var all = playerCount(S.session);
-      var waiting;
-      if (S.accepted === false) waiting = 'That one did not count. Hold on for the next question.';
-      else if (done != null && all) waiting = 'Locked in. ' + done + ' of ' + all + ' have answered.';
-      else waiting = 'Locked in. Waiting for the rest of the class.';
+      var head, sub;
+      if (S.accepted === false) { head = 'That one did not count'; sub = 'Hold on for the next question.'; }
+      else {
+        head = 'Locked in';
+        sub = (done != null && all) ? done + ' of ' + all + ' have answered' : 'Waiting for the rest of the class';
+      }
       return headHtml() +
         '<p class="gl-prompt">' + esc(q.prompt) + '</p>' +
+        pictureHtml(q) +
         targetsHtml(q, 'locked') +
-        '<p class="gl__eyebrow" role="status">' + esc(waiting) + '</p>';
+        '<div class="gl-locked" role="status">' +
+          '<span class="gl-locked__spin" aria-hidden="true"></span>' +
+          '<span><b>' + esc(head) + '</b><small>' + esc(sub) + '</small></span>' +
+        '</div>';
     }
 
     function revealHtml() {
@@ -835,13 +1056,13 @@
          next one normally. */
       var walkedIn = mine == null && S.sawAsking !== S.index;
 
-      var head, mod;
-      if (S.accepted === false) { head = 'That one did not count'; mod = ''; }
-      else if (walkedIn) { head = 'You are in'; mod = ''; }
-      else if (mine == null) { head = 'You missed that one'; mod = ''; }
-      else if (right === true) { head = 'Right'; mod = ' gl-verdict--right'; }
-      else if (right === false) { head = 'Not this time'; mod = ' gl-verdict--wrong'; }
-      else { head = 'Answer locked in'; mod = ''; }
+      var head, mod, glyph;
+      if (S.accepted === false) { head = 'That one did not count'; mod = ''; glyph = icon('info'); }
+      else if (walkedIn) { head = 'You are in'; mod = ''; glyph = icon('users'); }
+      else if (mine == null) { head = 'Too slow!'; mod = ' gl-verdict--late'; glyph = icon('clock'); }
+      else if (right === true) { head = pick(RIGHT_WORDS); mod = ' gl-verdict--right'; glyph = icon('check'); }
+      else if (right === false) { head = pick(WRONG_WORDS); mod = ' gl-verdict--wrong'; glyph = icon('x'); }
+      else { head = 'Answer locked in'; mod = ''; glyph = icon('lock'); }
 
       /* Points, in order of how much we trust them. A number the network
          handed back, else what our own total actually moved by, which the
@@ -859,32 +1080,53 @@
       if (S.accepted === false) note = 'The class had moved on by the time it arrived';
       else if (walkedIn) note = 'Next question shortly';
       else if (right === false && q.answer != null) note = 'It was ' + q.answer;
-      else if (mine == null) note = 'Nothing sent in time';
+      else if (mine == null) note = q.answer != null ? 'It was ' + q.answer : 'Nothing sent in time';
+
+      var p = myPlace();
+      var streak = (right === true && p && p.streak > 1)
+        ? '<p class="gl-chip gl-chip--fire gl-verdict__streak">' + icon('fire') + p.streak + ' in a row</p>'
+        : '';
 
       return '<div class="gl-verdict' + mod + '" role="status" aria-live="polite">' +
+          '<span class="gl-verdict__icon" aria-hidden="true">' + glyph + '</span>' +
           '<h2 class="gl-verdict__head">' + esc(head) + '</h2>' +
-          (pts != null ? '<p class="gl-verdict__points">+' + pts + '</p>' : '') +
+          (pts != null ? '<p class="gl-verdict__points">+<span data-gl-count="' + pts + '">' + pts + '</span></p>' : '') +
           (note ? '<p class="gl-verdict__note">' + esc(note) + '</p>' : '') +
+          streak +
         '</div>' +
-        placeHtml(myPlace()) +
+        placeHtml(p) +
+        /* the outline again, now with its name beside it: the moment it is
+           most likely to stick */
+        pictureHtml(q) +
         targetsHtml(q, 'reveal', mine) +
         noteHtml();
     }
 
+    /* A little variety, but stable for the question: the same reveal drawn
+       twice must not change its mind about what it said. */
+    var RIGHT_WORDS = ['Correct!', 'Nailed it!', 'Spot on!', 'Brilliant!', 'Right on!'];
+    var WRONG_WORDS = ['Not quite', 'So close', 'Not this time', 'Next one!'];
+    function pick(list) { return list[Math.abs(S.index * 7 + (S.playerId ? String(S.playerId).length : 0)) % list.length]; }
+
     function endedHtml() {
       var p = myPlace();
       var top = standingsOf(S.session).slice(0, 3);
-      return '<div class="gl-wait">' +
-          '<h2 class="gl__title">That is the game</h2>' +
-          (p
-            ? '<p class="gl-place' + rankClass(p.place) + '">You finished ' +
-              '<span class="gl-place__n">' + ordinal(p.place) + '</span> of ' + p.of +
-              ' <span class="gl-place__n">' + p.score + '</span> points</p>' +
-              (p.levelWith
-                ? '<p class="gl-verdict__note t-muted">Level with ' + esc(p.levelWith) +
-                  '. Ties go on correct answers, then speed, then who joined first.</p>'
-                : '')
-            : '<p class="gl-verdict__note t-muted">Thanks for playing</p>') +
+      var line;
+      if (!p) line = '<p class="gl-verdict__note">Thanks for playing</p>';
+      else line =
+        '<p class="gl-final' + rankClass(p.place) + '">' +
+          '<span class="gl-final__label">You finished</span>' +
+          '<span class="gl-final__n">' + ordinal(p.place) + '</span>' +
+          '<span class="gl-final__pts">' + p.score.toLocaleString() + ' points · ' + p.of + ' players</span>' +
+        '</p>' +
+        (p.levelWith
+          ? '<p class="gl-verdict__note">Level with ' + esc(p.levelWith) +
+            '. Ties go on correct answers, then speed, then who joined first.</p>'
+          : '');
+      return '<div class="gl-wait gl-wait--end">' +
+          '<span class="gl-wait__icon gl-wait__icon--gold">' + icon('trophy') + '</span>' +
+          '<h2 class="gl__title">That’s the game!</h2>' +
+          line +
         '</div>' +
         (top.length
           ? '<div class="gl-podium">' + top.map(function (t, i) {
@@ -892,11 +1134,38 @@
               return '<div class="gl-podium__place ' + RANKS[i] + me + '">' +
                 '<span class="gl-podium__medal" aria-hidden="true">' + MEDALS[i] + '</span>' +
                 '<span class="gl-podium__name">' + esc(t.name) + '</span>' + tagMark(t) +
-                '<span class="gl-podium__score">' + num(t.score, 0) + '</span>' +
+                '<span class="gl-podium__score">' + num(t.score, 0).toLocaleString() + '</span>' +
               '</div>';
             }).join('') + '</div>'
           : '') +
         noteHtml();
+    }
+
+    /* Counts a number up from zero, once, the first time a verdict lands.
+       Redraws of the same verdict show the final figure straight away. */
+    function countUp(el) {
+      var to = num(el.getAttribute('data-gl-count'), 0);
+      if (to <= 0 || !global.requestAnimationFrame) return;
+      var start = 0, dur = 700;
+      el.textContent = '0';
+      function step(t) {
+        if (S.dead) return;
+        if (!start) start = t;
+        var k = Math.min(1, (t - start) / dur);
+        el.textContent = Math.round(to * (1 - Math.pow(1 - k, 3)));
+        if (k < 1) global.requestAnimationFrame(step);
+      }
+      global.requestAnimationFrame(step);
+    }
+
+    /* Things that should happen once per moment rather than once per draw.
+       A reveal is redrawn every time the host saves a score, and replaying
+       the shake, the count and the buzz on each of those made the verdict
+       stutter in the student's hand. */
+    function firstTime(key) {
+      if (S.fresh === key) return false;
+      S.fresh = key;
+      return true;
     }
 
     function render() {
@@ -910,7 +1179,11 @@
 
       clearLow();
 
+      remember();
+
       if (S.phase === 'off') S.host.innerHTML = offHtml();
+      else if (S.phase === 'finding') S.host.innerHTML = findingHtml();
+      else if (S.phase === 'waiting') S.host.innerHTML = waitingHtml();
       else if (S.phase === 'signin') S.host.innerHTML = signinHtml();
       else if (S.phase === 'join') S.host.innerHTML = joinHtml();
       else if (S.phase === 'lobby') S.host.innerHTML = lobbyHtml();
@@ -921,6 +1194,43 @@
 
       if (S.host.setAttribute) S.host.setAttribute('data-phase', S.phase);
       if (S.phase === 'asking' || S.phase === 'locked') armLow();
+
+      /* Two kinds of new. data-fresh is a new screen, and a question that
+         has just been answered is the same screen: tapping must not make the
+         question and its answers fly in again. data-new is a new moment,
+         which is what the press on the picked answer belongs to. */
+      var fresh = firstTime(S.phase + ':' + S.index);
+      var screen = (S.phase === 'locked' ? 'asking' : S.phase) + ':' + S.index;
+      var newScreen = S.screen !== screen;
+      S.screen = screen;
+      if (S.host.toggleAttribute) {
+        S.host.toggleAttribute('data-fresh', newScreen);
+        S.host.toggleAttribute('data-new', fresh);
+      }
+
+      if (S.phase === 'join' && fresh) {
+        var nameEl = S.host.querySelector('.gl-join__field--name');
+        if (nameEl && S.code && !nameEl.value) { try { nameEl.focus(); } catch (e) {} }
+      }
+
+      var Q = global.GeoLiveQuestions;
+      if (Q && typeof Q.paintPictures === 'function') {
+        try { Q.paintPictures(S.host); } catch (e) { /* the sentence still reads */ }
+      }
+
+      if (!fresh) return;
+      if (S.phase === 'reveal') {
+        var c = S.host.querySelector('[data-gl-count]');
+        if (c) countUp(c);
+        if (S.host.querySelector('.gl-verdict--right')) buzz([28, 60, 28]);
+        else if (S.host.querySelector('.gl-verdict--wrong')) buzz(140);
+      }
+      if (S.phase === 'ended') {
+        var me = myPlace();
+        if (me && me.place <= 3 && W.confetti) {
+          try { W.confetti({ count: 110, power: 260 }); } catch (e) { /* no party */ }
+        }
+      }
     }
 
     /* ---------------------------- input --------------------------- */
@@ -935,7 +1245,8 @@
       /* a behaviour hook, not a style class, so the stylesheet owns
          every class this file emits and nothing else */
       var go = t.closest('[data-gl-go]');
-      if (go && !go.disabled) join();
+      if (go && !go.disabled) { join(); return; }
+      if (t.closest('[data-gl-code]')) { stopSeek(); S.phase = 'join'; S.note = ''; render(); }
     }
 
     function onKey(ev) {
@@ -963,6 +1274,7 @@
 
     function destroy() {
       S.dead = true;
+      stopSeek();
       godLive(false);
       clearLow();
       stopWatch();
@@ -995,11 +1307,22 @@
     document.addEventListener('visibilitychange', onWake);
     global.addEventListener('online', onWake);
 
-    /* A code handed in from a link still gets the name step, because
-       the class needs to know who just walked in. */
-    render();
+    var api = null;
 
-    var api = {
+    /* Same class, a game already joined on this page: carry on with it.
+       Otherwise go and look for one. */
+    if (signedIn() && memory && memory.sessionId && memory.classId === S.classId) {
+      KEEP.forEach(function (k) { if (memory[k] !== undefined) S[k] = memory[k]; });
+      S.phase = 'lobby';
+      render();
+      watch();
+      seekLater(SEEK_MS * 2);
+    } else {
+      render();
+      if (S.phase === 'finding') seek();
+    }
+
+    api = {
       destroy: destroy,
       get phase() { return S.phase; },
       get playerId() { return S.playerId; },

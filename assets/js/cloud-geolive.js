@@ -510,6 +510,39 @@
     });
   }
 
+  /* ============================ finding a game ======================= */
+
+  /* The game a student has been invited to, so they never have to type a
+     code. Opening a room seats every invited student, and the read rule on
+     live_sessions lets you see a game you are seated in. So asking for open
+     games returns exactly the ones this student may join, and nobody
+     else's: no new SQL, no wider access.
+
+     Only games opened in the last few hours count. A teacher who closes the
+     tab never marks a room ended, and a student should not be pulled into
+     yesterday's lobby.
+
+     Returns { sessionId, code, status } for the newest, or null. Never
+     throws: not finding a game is the normal answer most of the time. */
+  var FIND_WINDOW_MS = 3 * 60 * 60 * 1000;
+  function findOpen(classId) {
+    if (!enabled || !me()) return Promise.resolve(null);
+    return available().then(function (ok) {
+      if (!ok) return null;
+      var q = sb().from(SESSIONS).select('id, code, status, class_id, created_at')
+        .neq('status', 'ended')
+        .gte('created_at', new Date(Date.now() - FIND_WINDOW_MS).toISOString())
+        .order('created_at', { ascending: false })
+        .limit(1);
+      if (classId) q = q.eq('class_id', classId);
+      return q.then(function (res) {
+        if (res.error || !res.data || !res.data.length) return null;
+        var row = res.data[0];
+        return { sessionId: row.id, code: row.code, status: row.status };
+      });
+    })['catch'](function (e) { warn('looking for an open game', e); return null; });
+  }
+
   /* =============================== watching ========================== */
 
   /* One read of everything that matters, so a screen that has missed
@@ -1089,6 +1122,7 @@
     available: available,
     open: open,
     join: join,
+    findOpen: findOpen,
     watch: watch,
     answer: answer,
     setStatus: setStatus,
