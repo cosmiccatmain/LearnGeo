@@ -1,0 +1,69 @@
+/* ------------------------------------------------------------------
+   Landing hero: the headline cycles through the reasons to use
+   LearnGeo, and a cut gem turns beside it.
+
+   Loaded last so it wins over the shared .hero rules in app.css, which
+   teachers.html still relies on.
+-------------------------------------------------------------------*/
+
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+.hero--gem { padding: 104px 32px 96px; text-align: left; }
+
+.hero__inner {
+  position: relative; z-index: 1;
+  max-width: 1160px; margin: 0 auto;
+  display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, .8fr);
+  align-items: center; gap: 24px;
+}
+
+.hero--gem h1 {
+  max-width: none; margin: 0;
+  font-size: clamp(54px, 6.6vw, 92px);
+  line-height: 1.0; letter-spacing: -.02em;
+  text-wrap: wrap;
+}
+.hero__brand, .hero__for { display: block; }
+
+/* Each phrase is laid over the same cell. The cell takes the width of the
+   longest one, so nothing shifts when the phrase changes. */
+.cycle { display: inline-grid; color: var(--accent); text-align: left; }
+.cycle > span {
+  grid-area: 1 / 1;
+  white-space: nowrap;
+  opacity: 0; transform: translateY(.3em); filter: blur(6px);
+  transition: opacity .7s var(--ease), transform .7s var(--ease), filter .7s var(--ease);
+}
+.cycle > span.is-on { opacity: 1; transform: none; filter: none; }
+
+.hero--gem .hero__sub { margin: 26px 0 0; max-width: 44ch; }
+.hero--gem .hero__cta { justify-content: flex-start; margin-top: 32px; }
+.hero--gem .hero__note { text-align: left; }
+
+.hero__gem {
+  position: relative; width: 100%; max-width: 500px; aspect-ratio: 1;
+  justify-self: center;
+}
+.hero__gem::before {
+  content: ""; position: absolute; inset: 12%; border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(27,77,255,.2), rgba(27,77,255,0));
+  filter: blur(8px); pointer-events: none;
+}
+.hero__gem canvas {
+  position: relative; display: block; width: 100%; height: 100%;
+  opacity: 0; transition: opacity 1.2s var(--ease);
+}
+.hero__gem.is-live canvas { opacity: 1; }
+
+@media (max-width: 860px) {
+  .hero--gem { padding: 64px 20px 56px; text-align: center; }
+  .hero__inner { grid-template-columns: 1fr; justify-items: center; text-align: center; gap: 12px; }
+  .hero--gem h1 { font-size: clamp(44px, 13vw, 70px); }
+  .hero--gem .hero__sub { margin: 26px auto 0; }
+  .hero--gem .hero__cta { justify-content: center; }
+  .hero--gem .hero__note { text-align: center; }
+  .hero__gem { max-width: 300px; }
+}

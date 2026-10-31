@@ -27,6 +27,7 @@
 <link rel="stylesheet" href="assets/css/cosmetics-extra.css">
 <link rel="stylesheet" href="assets/css/administrator.css">
 <link rel="stylesheet" href="assets/css/classroom-extras.css">
+<link rel="stylesheet" href="assets/css/landing.css">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌍</text></svg>">
 </head>
 <body>
@@ -65,21 +66,28 @@
     </div>
   </nav>
 
-  <header class="hero" id="top">
+  <header class="hero hero--gem" id="top">
     <div class="hero__wash" aria-hidden="true"></div>
-    <div class="hero__grid"></div>
-    <div class="hero__globe" aria-hidden="true"><canvas id="hero-globe"></canvas></div>
-    <div class="hero__scrim" aria-hidden="true"></div>
-    <h1>Learn geography like a <em>superstar</em>.</h1>
-    <p class="hero__sub">
-      Staring at a list of capitals doesn't really work. Here you answer a question and the map
-      shows you where the place is, so the name sticks to an actual spot.
-    </p>
-    <div class="hero__cta">
-      <button class="btn btn--accent btn--lg" data-launch="learn">Start learning</button>
-      <a class="btn btn--ghost btn--lg" href="#try">Try 3 questions first</a>
+    <div class="hero__grid" aria-hidden="true"></div>
+    <div class="hero__inner">
+      <div class="hero__copy">
+        <h1>
+          <span class="sr-only">LearnGeo, for school, for party tricks, for pub quizzes and for showing off.</span>
+          <span class="hero__brand" aria-hidden="true">LearnGeo</span>
+          <span class="hero__for" aria-hidden="true">for <span class="cycle" data-cycle><span class="is-on">school.</span><span>my party trick.</span><span>a pub quiz.</span><span>road trips.</span><span>bragging rights.</span><span>homework.</span><span>settling bets.</span><span>trivia night.</span><span>a rainy Sunday.</span><span>showing off.</span></span></span>
+        </h1>
+        <p class="hero__sub">
+          Staring at a list of capitals doesn't really work. Here you answer a question and the map
+          shows you where the place is, so the name sticks to an actual spot.
+        </p>
+        <div class="hero__cta">
+          <button class="btn btn--accent btn--lg" data-launch="learn">Start learning</button>
+          <a class="btn btn--ghost btn--lg" href="#try">Try 3 questions first</a>
+        </div>
+        <p class="hero__note">You can start as a guest without signing up. Make a free account if you want your progress on every device.</p>
+      </div>
+      <div class="hero__gem" aria-hidden="true"><canvas id="hero-gem"></canvas></div>
     </div>
-    <p class="hero__note">You can start as a guest without signing up. Make a free account if you want your progress on every device.</p>
   </header>
 
   <section class="stats">
@@ -585,7 +593,8 @@
 <script src="assets/js/classes.js"></script>
 <script src="assets/js/map.js"></script>
 <script src="assets/js/worldmap.js"></script>
-<script src="assets/js/globe.js"></script>
+<script src="assets/js/hero-gem.js"></script>
+<script src="assets/js/hero-cycle.js"></script>
 <script src="assets/js/quiz.js"></script>
 <script src="assets/js/assignments.js"></script>
 <script src="assets/js/cloud.js"></script>

@@ -258,7 +258,7 @@ Leaflet and supabase-js are loaded from CDNs in `index.html`, so there's nothing
 
 `index.html` is the student page and carries the app shell too, so every button on it opens
 the app. `teachers.html` is marketing only: no app shell, and its buttons are plain links into
-`index.html?role=teacher`. It loads one script and nothing else, `globe.js`, for the hero.
+`index.html?role=teacher`. It loads one script and nothing else, `relief.js`, for the hero.
 
 `?role=` and `?view=` are read once on load and then wiped off the address bar. A role in the
 URL only settles things for a guest; if the save belongs to an account, the account's own role
@@ -281,7 +281,9 @@ assets/js/avatars.js            inline SVG artwork for avatars (no emoji fonts n
 assets/js/core.js               icons, state, storage, economy, sound, reward effects
 assets/js/map.js                Leaflet setup, country shapes, the map blur
 assets/js/worldmap.js           the outlines as one flat inline SVG, no Leaflet
-assets/js/globe.js              the globe behind the hero headline, drawn to a canvas
+assets/js/hero-gem.js            the turning cut gem in the landing hero
+assets/js/hero-cycle.js          the "LearnGeo for ..." headline that cycles
+assets/js/globe.js               no longer loaded by index.html
 assets/js/relief.js             the ridgeline relief behind the Geo Classroom headline
 assets/js/quiz.js               question generation
 assets/js/assignments.js        suggestions, share codes, handing in work
