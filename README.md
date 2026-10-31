@@ -28,17 +28,6 @@ answers are accepted too.
 - **Class quiz**: works like the paper map quizzes from school. A country is shaded gold, you
   click it, then type its name and its capital from memory. Each question is worth two marks,
   there's no multiple choice, and you get a marked paper at the end.
-- **Flashcards**: country on one side, capital on the other, or a flag on the front with the
-  country and its capital on the back. Rate each card Again, Hard, Good or Easy, and the ones
-  you struggled with come back before the deck is over.
-
-- **Flags**: a section of its own in the top bar, with no map. Practice names the flag, finds
-  the flag or mixes both, by choice or typed, weakest first, and filters by region. "Pick
-  countries" narrows it to your own set instead: type names like in Learn or click flags on and
-  off, and the set is kept in `flagPick` in the save until you pick a region again. "All flags"
-  shows every flag with its name and capital, with a search and a "Hide names" self-test. A flag
-  counts as learned once it has been answered right twice more often than wrong, kept in
-  `flagMastery` in the save.
 - **Games**: 2D games in a section of their own. The first is **Geo Dash**, a one-button
   runner like Geometry Dash: the cube runs by itself, and you jump over spikes, onto blocks,
   off yellow pads and through yellow rings. Every 10, 20, 30 or 45 seconds a capital gate comes
@@ -298,9 +287,8 @@ assets/js/classroom.js          student Classroom tab
 assets/js/mode-learn.js         Learn
 assets/js/mode-test.js          Practice test
 assets/js/mode-quiz.js          Class quiz
-assets/js/mode-cards.js         Flashcards
-assets/js/mode-flags.js         Flags: practice and the all-flags gallery
 assets/js/study-filters.js      the filters dialog, shared by Learn and the games
+assets/js/game-kit.js           GameKit: the canvas shell, question picker and run engine
 assets/js/games.js              Games: the hub and each game's setup screen
 assets/js/game-dash.js          Geo Dash: the runner, its track pieces and capital gates
 assets/js/game-orbit.js         Globe Defender: the orbit shooter, its globe and supply drops

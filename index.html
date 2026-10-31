@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>LearnGeo: learn every country and capital</title>
-<meta name="description" content="Learn all 213 countries and territories, their capitals, and where they are on the map. Free, with four study modes, and Geo Classroom for teachers.">
+<meta name="description" content="Learn all 213 countries and territories, their capitals, and where they are on the map. Free, with three study modes, an arcade, and Geo Classroom for teachers.">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -43,6 +43,7 @@
     <div class="nav__links">
       <a href="#try">Try it</a>
       <a href="#modes">Modes</a>
+      <a href="#games">Games</a>
       <a href="#coverage">What's in it</a>
       <a href="#screens">Screenshots</a>
       <a href="#rewards">Rewards</a>
@@ -59,6 +60,7 @@
     <div class="nav__sheet" id="nav-menu">
       <a href="#try">Try it</a>
       <a href="#modes">Modes</a>
+      <a href="#games">Games</a>
       <a href="#coverage">What's in it</a>
       <a href="#screens">Screenshots</a>
       <a href="#rewards">Rewards</a>
@@ -93,7 +95,7 @@
   <section class="stats">
     <div class="stat"><div class="stat__n" id="s-total">213</div><div class="stat__l">Countries and territories</div></div>
     <div class="stat"><div class="stat__n" id="s-members">193</div><div class="stat__l">UN member states</div></div>
-    <div class="stat"><div class="stat__n">4</div><div class="stat__l">Ways to study</div></div>
+    <div class="stat"><div class="stat__n">3</div><div class="stat__l">Ways to study</div></div>
     <div class="stat"><div class="stat__n">6</div><div class="stat__l">Kinds of questions</div></div>
   </section>
 
@@ -124,12 +126,12 @@
   <!-- modes -->
   <section class="section" id="modes">
     <div class="section__head">
-      <span class="eyebrow">Four ways to study</span>
+      <span class="eyebrow">Three ways to study</span>
       <h2>Use whichever mode you feel like.</h2>
-      <p>They all save to the same progress. So if you keep missing Burkina Faso in flashcards,
-         Learn mode knows about it too and will bring it up more often.</p>
+      <p>They all save to the same progress. So if you keep missing Burkina Faso on a practice
+         test, Learn mode knows about it too and will bring it up more often.</p>
     </div>
-    <div class="modes modes--4">
+    <div class="modes modes--3">
       <div class="mode-card">
         <div class="mode-card__icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></div>
         <h3>Learn</h3>
@@ -166,18 +168,21 @@
           <li>You get a marked paper at the end</li>
         </ul>
       </div>
-      <div class="mode-card">
-        <div class="mode-card__icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="14" height="14" rx="2"/><path d="M7 3h11a3 3 0 0 1 3 3v11"/></svg></div>
-        <h3>Flashcards</h3>
-        <p>Country on one side, capital on the other. Rate how well you knew each card, and the ones
-           you struggled with come back before the deck is over.</p>
-        <ul>
-          <li>Country to capital, or the other way</li>
-          <li>Again, Hard, Good or Easy</li>
-          <li>The back shows where it is</li>
-          <li>Decks of 10 to 100 cards</li>
-        </ul>
-      </div>
+    </div>
+  </section>
+
+  <!-- games (landing-games.js renders the cards) -->
+  <section class="section" id="games">
+    <div class="section__head">
+      <span class="eyebrow">Games</span>
+      <h2>Play with the map in your head.</h2>
+      <p>Short games where the geography is part of how you play, not a quiz bolted on the
+         side. Everything you answer in them counts toward the same mastery, XP and gems as
+         the study modes.</p>
+    </div>
+    <div class="games__grid" id="games-grid"></div>
+    <div class="row" style="justify-content:center;margin-top:28px">
+      <button class="btn btn--accent btn--lg" id="games-cta" type="button">Open the arcade</button>
     </div>
   </section>
 
@@ -248,7 +253,7 @@
         <span class="eyebrow">Inside the app</span>
         <h2>Here's what it looks like.</h2>
         <p>Questions on the left and a real map on the right. You get a report after every test,
-           and the flashcards show you where each place is when you flip them.</p>
+           broken down by region and by the kind of question.</p>
       </div>
       <div class="shots">
         <div class="shot shot--wide">
@@ -330,24 +335,6 @@
             </div>
           </div>
           <div class="shot__caption">See how you did in each region and on each type of question.</div>
-        </div>
-
-        <div class="shot">
-          <div class="shot__bar">
-            <span class="shot__dot"></span><span class="shot__dot"></span><span class="shot__dot"></span>
-            <span class="shot__label">Flashcards</span>
-          </div>
-          <div class="shot__body mini">
-            <div class="mini__card">
-              <div class="mini__eyebrow">Capital city</div>
-              <b style="display:block;margin-top:8px">Wellington</b>
-              <div style="color:var(--faint);font-size:10px;margin-top:6px" class="mono">-41.29°, 174.78°</div>
-            </div>
-            <div class="mini__rate">
-              <span>Again</span><span>Hard</span><span>Good</span><span>Easy</span>
-            </div>
-          </div>
-          <div class="shot__caption">Rate each card. The ones you didn't know come back around.</div>
         </div>
 
       </div>
@@ -617,6 +604,7 @@
 <script src="assets/js/game-golf.js"></script>
 <script type="module" src="assets/js/game-chess.js"></script>
 <script src="assets/js/games.js"></script>
+<script src="assets/js/landing-games.js"></script>
 <script src="assets/js/main.js"></script>
 <script src="assets/js/demo-shapes.js"></script>
 <script src="assets/js/demo.js"></script>
