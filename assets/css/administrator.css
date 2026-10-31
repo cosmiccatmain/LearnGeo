@@ -110,6 +110,16 @@
   background: var(--ink); color: var(--white);
 }
 
+/* 0009. Same shape as the staff chip so the row reads as one line of
+   marks, in the danger colour the ban buttons already use. Without it
+   the list cannot say who is banned and you have to click each
+   account in turn to find out. */
+.adminp__ban {
+  font-family: var(--mono); font-style: normal; font-size: 9px; letter-spacing: .06em;
+  padding: 1.5px 4px; border-radius: 4px; flex: none;
+  background: #9B1C1C; color: var(--white);
+}
+
 .adminp__empty { padding: 22px; text-align: center; color: var(--faint); font-size: 13px; }
 
 /* ---------------------------- the selected ----------------------- */
