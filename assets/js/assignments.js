@@ -95,8 +95,8 @@
         title: 'Finish off ' + Math.min(15, close.length) + ' places you almost know',
         blurb: 'Get each of these right one more time and they count as mastered.',
         why: 'in box 3 of 5',
-        mode: 'cards',
-        config: { countries: close.slice(0, 15).map(name), face: 'country' }
+        mode: 'learn',
+        config: { countries: close.slice(0, 15).map(name), types: ['capital', 'country'] }
       });
     }
 
@@ -159,9 +159,6 @@
     } else if (a.mode === 'test') {
       global.UI.go('test');
       global.TestMode.startAssignment(cfg, meta);
-    } else if (a.mode === 'cards') {
-      global.CardsMode.applyAssignment(cfg, meta);
-      global.UI.go('cards');
     } else if (a.mode === 'quiz') {
       global.UI.go('quiz');
       global.QuizMode.startAssignment(cfg, meta);

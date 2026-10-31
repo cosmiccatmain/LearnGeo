@@ -889,7 +889,7 @@
             var mean = avg(done.map(function (r) { return r.pct; }));
             var n = (a.config.countries && a.config.countries.length) || a.config.count || 0;
             return '<div class="cw-row">' +
-              '<div class="cw-row__i">' + (a.mode === 'cards' ? I.cards : a.mode === 'learn' ? I.book : I.clip) + '</div>' +
+              '<div class="cw-row__i">' + (a.mode === 'learn' ? I.book : a.mode === 'quiz' ? I.target : I.clip) + '</div>' +
               '<div class="cw-row__t"><b>' + W.escapeHtml(a.title) + '</b>' +
                 '<span>' + modeLabel(a.mode) + ' · ' + n + ' items' +
                 (a.config.timed ? ' · timed' : '') + (a.config.instant === false ? ' · exam mode' : '') + '</span></div>' +
@@ -1389,7 +1389,7 @@
       '<div class="field"><label class="field__label">What they do</label>' +
         '<div class="seg" id="ab-mode">' +
           seg('test', 'Practice test', a.mode) + seg('learn', 'Learn', a.mode) +
-          seg('cards', 'Flashcards', a.mode) + seg('quiz', 'Class quiz', a.mode) +
+          seg('quiz', 'Class quiz', a.mode) +
         '</div></div>' +
       '<div class="field"><label class="field__label">Countries</label>' +
         '<div id="ab-picker"></div>' +

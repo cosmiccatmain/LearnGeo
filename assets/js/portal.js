@@ -20,12 +20,6 @@
     { view: 'quiz', icon: I.target, title: 'Class quiz',
       blurb: 'Works like the paper map quiz from class. A country lights up, you click it, then write its name and capital from memory.',
       meta: 'Two marks each · no multiple choice' },
-    { view: 'cards', icon: I.cards, title: 'Flashcards',
-      blurb: 'Flip cards that keep track of how you’re doing. The ones you’re unsure about come back again before you finish.',
-      meta: 'Both directions · 10 – 100 cards' },
-    { view: 'flags', icon: I.flag, title: 'Flags',
-      blurb: 'Every flag in the world, weakest first. Name the flag, find the flag, or browse them all and test yourself.',
-      meta: '213 flags · by region' },
     { view: 'games', icon: I.gamepad, title: 'Games',
       blurb: 'Short 2D games where geography is how you win. Jump through capital gates in Geo Dash, defend the globe from meteors in Globe Defender, grow your Capital Snake, or putt round the world in Geo Golf.',
       meta: 'Geo Dash · Globe Defender · Capital Snake · Geo Golf' }

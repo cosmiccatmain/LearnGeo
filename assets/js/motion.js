@@ -22,7 +22,7 @@
   /* ============================= ripple =============================
      Drawn in #fx-layer over the pressed element rather than inside it,
      so no module ever finds an extra child in its own markup. */
-  var INK = '.btn, .option, .tab, .seg button, .fc-rate button, .mini-btn, .icon-btn, ' +
+  var INK = '.btn, .option, .tab, .seg button, .mini-btn, .icon-btn, ' +
             '.menu__item, .rec, .cw-row, .role-opt, .check, .portal-mode, .shop-item, ' +
             '.navcell, .vtab, .cr-tab, .picker__hit, .code-chip button, .avatar-btn';
   var TABS = '.cr-tab, .vtab';

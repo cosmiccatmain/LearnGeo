@@ -113,10 +113,8 @@
       economy: { diamonds: 150, xp: 0, level: 1 },
       streak: { current: 0, best: 0 },
       daily: { date: '', answered: 0, goal: 20, dayStreak: 0, lastDay: '', lastHit: '', hit: false },
-      stats: { answered: 0, correct: 0, tests: 0, cards: 0, perfectTests: 0 },
+      stats: { answered: 0, correct: 0, tests: 0, arcade: 0, perfectTests: 0 },
       mastery: {},          /* countryName -> { c: correctCount, w: wrongCount, box: 0..5 } */
-      flagMastery: {},      /* the same shape, for flags only; the Flags section writes it */
-      flagPick: [],         /* the countries picked in Flags; empty means by region */
       games: {},            /* per game: best scores and settings, e.g. games.dash */
       achievements: [],
       role: 'student',            /* 'student' | 'teacher' */
@@ -300,6 +298,8 @@
     touchDaily();
     state.stats.answered += 1;
     state.daily.answered += 1;
+    /* the arcade keeps its own tally, for the achievement that reads it */
+    if (opts.arcade) state.stats.arcade = (state.stats.arcade || 0) + 1;
 
     var gains = { xp: 0, gems: 0, level: false, combo: state.streak.current };
 
@@ -433,7 +433,7 @@
         case 'streak-25':     return state.streak.best >= 25;
         case 'perfect-test':  return s.perfectTests >= 1;
         case 'test-5':        return s.tests >= 5;
-        case 'cards-100':     return s.cards >= 100;
+        case 'cards-100':     return (s.arcade || 0) >= 150;
         case 'level-10':      return state.economy.level >= 10;
         case 'answers-500':   return s.answered >= 500;
         case 'globetrotter':  return masteredCount() >= 100;

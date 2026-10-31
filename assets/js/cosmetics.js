@@ -47,7 +47,7 @@
     { id: 'ach-streak-25',    name: 'Unstoppable',  kind: 'badge', badge: 'bolt',      c1: '#DC2626', earn: 'streak-25' },
     { id: 'ach-perfect-test', name: 'Flawless',     kind: 'badge', badge: 'bullseye',  c1: '#0E9F6E', earn: 'perfect-test' },
     { id: 'ach-test-5',       name: 'Test Taker',   kind: 'badge', badge: 'clipboard', c1: '#1B4DFF', earn: 'test-5' },
-    { id: 'ach-cards-100',    name: 'Card Shark',   kind: 'badge', badge: 'cards',     c1: '#8B5CF6', earn: 'cards-100' },
+    { id: 'ach-cards-100',    name: 'Arcade Regular', kind: 'badge', badge: 'joystick', c1: '#8B5CF6', earn: 'cards-100' },
     { id: 'ach-region-master',name: 'Region Master',kind: 'badge', badge: 'region',    c1: '#0891B2', earn: 'region-master' },
     { id: 'ach-level-10',     name: 'Seasoned',     kind: 'badge', badge: 'chevrons',  c1: '#F5B301', earn: 'level-10' },
     { id: 'ach-answers-500',  name: 'Five Hundred', kind: 'badge', badge: 'bars',      c1: '#DB2777', earn: 'answers-500' },
@@ -64,7 +64,7 @@
      three concentric circles or a map with internal lines. A tag glyph
      sits beside four letters at about 12px next to a child's name, on a
      leaderboard row and sometimes on a projector at the back of a room.
-     Bullseye, region, clipboard, cards and orbit all turn to mud there.
+     Bullseye, region, clipboard, joystick and orbit all turn to mud there.
      These are drawn with fewer strokes and a heavier line so they survive
      it.
 
@@ -202,7 +202,7 @@
     { id: 'streak-25', name: 'Unstoppable', desc: 'Hit a 25-answer streak', reward: 200 },
     { id: 'perfect-test', name: 'Flawless', desc: 'Score 100% on a practice test', reward: 250 },
     { id: 'test-5', name: 'Test Taker', desc: 'Finish 5 practice tests', reward: 150 },
-    { id: 'cards-100', name: 'Card Shark', desc: 'Review 100 flashcards', reward: 150 },
+    { id: 'cards-100', name: 'Arcade Regular', desc: 'Answer 150 questions in the arcade', reward: 150 },
     { id: 'region-master', name: 'Region Master', desc: 'Master every country in one region', reward: 400 },
     { id: 'level-10', name: 'Seasoned', desc: 'Reach level 10', reward: 300 },
     { id: 'answers-500', name: 'Five Hundred', desc: 'Answer 500 questions', reward: 400 },

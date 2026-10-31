@@ -927,133 +927,13 @@ textarea.input:focus { outline: none; border-color: var(--accent); box-shadow: 0
 .review-item__a b { color: var(--ink); font-weight: 560; }
 .review-item__a .bad { color: var(--danger); text-decoration: line-through; }
 
-/* --------------------------- flashcards --------------------------
-   Sized to the viewport: the deck never scrolls, the card shrinks.
--------------------------------------------------------------------*/
-.fc-shell { flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; }
-
-.fc-stage {
-  flex: 1; min-height: 0; display: flex; flex-direction: column;
-  align-items: center; justify-content: center; gap: 16px;
-  padding: 22px 28px; background: var(--paper);
-  overflow-y: auto;                 /* safety valve on very short screens */
-}
-.fc-wrap {
-  width: 100%; max-width: 560px; display: flex; flex-direction: column;
-  gap: 14px; min-height: 0;
-}
-
-.fc-card {
-  position: relative; width: 100%;
-  height: clamp(150px, 30vh, 280px);
-  perspective: 1600px; cursor: pointer; flex: none;
-}
-.fc-inner {
-  position: absolute; inset: 0;
-  transition: transform .5s var(--ease); transform-style: preserve-3d;
-}
-.fc-card.is-flipped .fc-inner { transform: rotateY(180deg); }
-.fc-face {
-  position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden;
-  background: var(--white); border: 1px solid var(--line); border-radius: 20px;
-  box-shadow: var(--shadow-lg);
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  padding: 30px 26px; text-align: center; overflow: hidden;
-}
-.fc-face--back { transform: rotateY(180deg); }
-.fc-face__top {
-  position: absolute; top: 16px; left: 20px; right: 20px;
-  display: flex; align-items: center; justify-content: space-between;
-}
-.fc-term {
-  font-size: clamp(24px, 3.4vw, 38px); font-weight: 640;
-  letter-spacing: -.035em; line-height: 1.08; max-width: 100%;
-}
-.fc-sub { margin-top: 10px; font-size: 14px; color: var(--muted); max-width: 42ch; }
-/* sized off the card's height, which shrinks on short windows, so the
-   flag never runs into the labels above it or the hint below */
-.fc-flag { display: flex; justify-content: center; width: 100%; height: 50%; min-height: 0; }
-.fc-flag__img {
-  display: block; height: 100%; width: auto; max-width: 100%; aspect-ratio: 4 / 3; object-fit: cover;
-  border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 2px 8px rgba(15, 23, 42, .1);
-}
-.fc-note {
-  margin-top: 10px; font-size: 12.5px; color: var(--faint);
-  max-width: 44ch; line-height: 1.45;
-}
-.fc-coord {
-  position: absolute; bottom: 16px; left: 0; right: 0;
-  font-family: var(--mono); font-size: 11px; color: var(--faint); text-align: center;
-}
-.fc-flip-hint {
-  position: absolute; bottom: 16px; left: 0; right: 0;
-  font-size: 12px; color: var(--faint); text-align: center;
-}
-
-.fc-actions { flex: none; }
-.fc-rate { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-.fc-rate button:not(.btn) {
-  height: 52px; border: 1px solid var(--line); border-radius: 12px; background: var(--white);
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
-  font-size: 13.5px; font-weight: 570; color: var(--ink);
-  transition: all .14s var(--ease);
-}
-.fc-rate button:not(.btn):hover { transform: translateY(-2px); box-shadow: var(--shadow); }
-.fc-rate button:not(.btn):disabled {
-  opacity: .48; cursor: wait; transform: none; box-shadow: none;
-}
-.fc-rate span { font-family: var(--mono); font-size: 10px; color: var(--faint); font-weight: 500; }
-.fc-rate .r-again:hover { border-color: var(--danger); color: var(--danger); }
-.fc-rate .r-hard:hover  { border-color: #B45309; color: #B45309; }
-.fc-rate .r-good:hover  { border-color: var(--accent); color: var(--accent); }
-.fc-rate .r-easy:hover  { border-color: var(--success); color: var(--success); }
-
-.fc-progress {
-  flex: none; display: flex; align-items: center; gap: 12px;
-  font-size: 12.5px; color: var(--muted);
-}
-.fc-progress .pbar { flex: 1; }
-
-/* the map only matters once the card is turned over */
-.fc-map {
-  flex: none; height: clamp(110px, 22vh, 190px); position: relative;
-  border-top: 1px solid var(--line); background: var(--paper);
-}
-/* #cards-map needs its own stacking context or Leaflet's panes (z-index 400)
-   paint straight over the veil. */
-#cards-map { z-index: 0; }
-.fc-map__veil {
-  position: absolute; inset: 0; z-index: 5;
-  display: grid; place-items: center; text-align: center;
-  background: var(--paper); color: var(--faint); font-size: 12.5px;
-  transition: opacity .3s var(--ease);
-}
-.fc-map__veil.is-gone { opacity: 0; pointer-events: none; }
-
 /* compact deck summary in the sidebar */
-.deck-stat {
-  display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; text-align: center;
-}
-.deck-stat div b { font-family: var(--mono); font-size: 18px; font-weight: 640; display: block; }
-.deck-stat div span { font-size: 11px; color: var(--faint); }
-
 .deck-summary {
   border: 1px solid var(--line); border-radius: 12px; padding: 14px;
   text-align: center;
 }
 .deck-summary__n { font-family: var(--mono); font-size: 30px; font-weight: 650; letter-spacing: -.03em; }
 .deck-summary__l { font-size: 12.5px; color: var(--muted); margin-top: 2px; }
-
-@media (max-width: 860px) {
-  .fc-card { height: clamp(150px, 26vh, 230px); }
-  .fc-stage { padding: 16px; }
-}
-/* short windows: the card keeps priority over the map strip */
-@media (max-height: 620px) {
-  .fc-stage { padding: 12px 20px; gap: 10px; }
-  .fc-map { height: 104px; }
-  .fc-rate button:not(.btn) { height: 44px; }
-}
 
 /* ---------------------------- modals ----------------------------- */
 .overlay {
@@ -1333,7 +1213,6 @@ textarea.input:focus { outline: none; border-color: var(--accent); box-shadow: 0
   .hud__item { padding: 0 8px; font-size: 12px; }
   .avatar-btn { width: 34px; height: 34px; }
   .sidebar__head, .sidebar__body, .sidebar__foot { padding-left: 16px; padding-right: 16px; }
-  .fc-rate { grid-template-columns: 1fr 1fr; }
   .qnav { padding: 8px 12px; gap: 10px; }
   .qnav__legend { display: none; }
   .modal__body { padding: 16px; }
@@ -1561,7 +1440,6 @@ textarea.input:focus { outline: none; border-color: var(--accent); box-shadow: 0
 .home-modes { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .portal-mode--wide { grid-column: 1 / -1; }
 .home-side { display: grid; gap: 20px; }
-
 
 .portal__section { margin-top: 28px; }
 .portal__section > .eyebrow { display: block; margin-bottom: 14px; }
@@ -2157,104 +2035,6 @@ textarea.input:focus { outline: none; border-color: var(--accent); box-shadow: 0
 }
 .empty-cta b { display: block; font-size: 15.5px; }
 .empty-cta p { font-size: 13.5px; color: var(--muted); margin-top: 5px; }
-
-/* ---- flags: the section of its own ---- */
-.fl-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; margin-bottom: 22px; }
-.fl-head h1 { font-size: clamp(26px, 3.4vw, 34px); letter-spacing: -.035em; margin-top: 4px; }
-.fl-head p { color: var(--muted); margin-top: 6px; font-size: 14.5px; max-width: 52ch; }
-.fl-learned {
-  flex: none; width: 240px; background: var(--white); border: 1px solid var(--line);
-  border-radius: 14px; padding: 14px 16px;
-}
-.fl-learned__n { display: flex; align-items: baseline; gap: 8px; margin-bottom: 9px; }
-.fl-learned__n b { font-size: 26px; font-weight: 650; letter-spacing: -.03em; }
-.fl-learned__n span { font-size: 13px; color: var(--muted); }
-
-.fl-bar { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 18px; }
-.fl-bar > .seg { flex: none; width: 230px; }
-.fl-regions { display: flex; gap: 6px; flex-wrap: wrap; }
-.fl-chip {
-  height: 32px; padding: 0 12px; border-radius: 999px; font-size: 13px; font-weight: 520;
-  border: 1px solid var(--line); background: var(--white); color: var(--muted);
-  transition: border-color .14s, background .14s, color .14s;
-}
-.fl-chip:hover { border-color: #C9CFD9; color: var(--ink); }
-.fl-chip.is-on { background: var(--ink); border-color: var(--ink); color: #fff; }
-
-.fl-practice { max-width: 620px; margin: 0 auto; }
-.fl-opts { display: grid; grid-template-columns: 1.5fr 1fr; gap: 10px; margin-bottom: 14px; }
-.fl-card {
-  background: var(--white); border: 1px solid var(--line); border-radius: 18px;
-  padding: 22px 24px 24px; box-shadow: var(--shadow-sm);
-}
-.fl-big { display: flex; justify-content: center; margin: 14px 0 4px; }
-.fl-big__img {
-  display: block; width: min(300px, 100%); aspect-ratio: 4 / 3; object-fit: cover;
-  border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 4px 14px rgba(15, 23, 42, .1);
-}
-.fl-names { grid-template-columns: 1fr 1fr; }
-.fl-card .options--flags .option { padding: 10px 12px; }
-.fl-card .option__flag { max-width: 168px; margin: 0 auto; }
-
-.fl-gallery__bar { display: flex; gap: 10px; align-items: center; }
-.fl-gallery__bar .input { flex: 1; max-width: 420px; }
-.fl-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
-.fl-tile {
-  position: relative; display: flex; flex-direction: column; text-align: left;
-  background: var(--white); border: 1px solid var(--line); border-radius: 12px; overflow: hidden;
-  cursor: default; transition: border-color .14s, transform .14s var(--ease), box-shadow .14s;
-}
-.fl-tile.is-hidden { cursor: pointer; }
-.fl-tile.is-hidden:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: var(--shadow-sm); }
-.fl-tile__img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-bottom: 1px solid var(--line-soft); background: var(--paper); }
-.fl-tile__t { padding: 8px 10px 10px; min-width: 0; }
-.fl-tile__t b { display: block; font-size: 13.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.fl-tile__t span { display: block; font-size: 12px; color: var(--faint); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.fl-tile__ok {
-  position: absolute; top: 6px; right: 6px; width: 20px; height: 20px; border-radius: 50%;
-  display: grid; place-items: center; background: var(--success); color: #fff;
-}
-.fl-tile__ok svg { width: 12px; height: 12px; }
-
-.fl-chip--pick { display: inline-flex; align-items: center; gap: 6px; border-style: dashed; }
-.fl-chip--pick.is-on { border-style: solid; background: var(--accent); border-color: var(--accent); }
-.fl-chip--pick svg { width: 14px; height: 14px; }
-
-.flp-bar { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin: 4px 0 10px; }
-.flp-bar .input { flex: 1; min-width: 180px; max-width: 320px; }
-.flp-grid {
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 8px;
-  max-height: min(38vh, 340px); overflow-y: auto; padding: 2px 4px 4px 2px;
-}
-.flp-grid.is-empty::after { content: 'No flag matches that.'; grid-column: 1 / -1; padding: 20px 0; color: var(--faint); font-size: 13.5px; text-align: center; }
-.flp-tile {
-  position: relative; display: flex; flex-direction: column; text-align: left;
-  background: var(--white); border: 1px solid var(--line); border-radius: 10px; overflow: hidden;
-  transition: border-color .14s, box-shadow .14s;
-}
-.flp-tile:hover { border-color: #C9CFD9; }
-.flp-tile img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-bottom: 1px solid var(--line-soft); background: var(--paper); }
-.flp-tile span { padding: 5px 7px 6px; font-size: 12px; font-weight: 560; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.flp-tile.is-on { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
-.flp-tile.is-on span { color: var(--accent); }
-.flp-tile__on {
-  position: absolute; top: 5px; right: 5px; width: 20px; height: 20px; border-radius: 50%;
-  display: none; place-items: center; background: var(--accent); color: #fff;
-}
-.flp-tile.is-on .flp-tile__on { display: grid; }
-.flp-tile__on svg { width: 12px; height: 12px; }
-
-@media (max-width: 720px) {
-  .fl-head { flex-direction: column; align-items: stretch; }
-  .fl-learned { width: auto; }
-  .fl-opts { grid-template-columns: 1fr; }
-  .fl-bar > .seg { width: 100%; }
-  .fl-card { padding: 18px 16px 20px; }
-  .flp-grid { grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); max-height: none; overflow: visible; }
-}
-@media (max-width: 420px) {
-  .fl-names { grid-template-columns: 1fr; }
-}
 
 /* ---- stream: the teacher's posts, and the student's copy of them ---- */
 .st-compose { min-height: 80px; resize: vertical; line-height: 1.55; }
