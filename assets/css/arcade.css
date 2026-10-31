@@ -1,0 +1,532 @@
+/* ==================================================================
+   LearnGeo — the arcade
+   The Games hub, drawn as a cabinet: a lit marquee on top, a CRT
+   screen holding the game list, and a control deck underneath.
+
+   The cabinet is decoration, so none of it is in the tab order and
+   all of it is aria-hidden. What a screen reader and a keyboard get
+   is the plain list of buttons inside the screen, which is the same
+   .game-card markup the landing page uses.
+
+   Everything here is scoped under .arcade or .gk-*, so the rest of
+   the app keeps its own light theme.
+   ================================================================== */
+
+:root {
+  --ar-ink:    #05060f;
+  --ar-case:   #1a1130;
+  --ar-case-2: #0d0920;
+  --ar-neon:   #FF2E88;
+  --ar-neon-2: #7CF3FF;
+  --ar-amber:  #FFD23F;
+  --ar-screen: #060a1c;
+
+  /* The pixel face is for the marquee and the short CRT labels only.
+     At 11px it is a texture, not type you read a sentence in, so the
+     cards and blurbs stay in Inter. */
+  --arcade-font: 'Press Start 2P', var(--mono);
+}
+
+/* ---------------------------- the cabinet ------------------------- */
+.arcade { max-width: 1120px; }
+
+.cab {
+  position: relative;
+  border-radius: 26px 26px 14px 14px;
+  background:
+    linear-gradient(180deg, var(--ar-case) 0%, var(--ar-case-2) 62%, #080514 100%);
+  box-shadow:
+    0 40px 90px rgba(5, 4, 20, .5),
+    inset 0 1px 0 rgba(255, 255, 255, .14),
+    inset 0 0 0 1px rgba(255, 255, 255, .05);
+  padding: 0 0 20px;
+  overflow: hidden;
+}
+
+/* the two uprights, so the thing reads as a box rather than a panel */
+.cab::before,
+.cab::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 16px;
+  pointer-events: none;
+  background: linear-gradient(90deg, rgba(255, 255, 255, .1), rgba(0, 0, 0, .35));
+}
+.cab::before { left: 0; }
+.cab::after { right: 0; transform: scaleX(-1); }
+
+/* ---------------------------- the marquee ------------------------- */
+.cab__marquee {
+  position: relative;
+  margin: 12px 16px 0;
+  padding: 16px 20px 15px;
+  border-radius: 16px 16px 8px 8px;
+  text-align: center;
+  background:
+    radial-gradient(120% 160% at 50% 0%, #2b1550 0%, #160a2e 60%, #0d0620 100%);
+  box-shadow:
+    inset 0 0 40px rgba(255, 46, 136, .3),
+    inset 0 -2px 0 rgba(0, 0, 0, .5),
+    0 2px 0 rgba(255, 255, 255, .06);
+  border: 1px solid rgba(255, 255, 255, .1);
+}
+
+.cab__title {
+  font-family: var(--arcade-font, var(--mono));
+  font-size: clamp(15px, 2.6vw, 27px);
+  line-height: 1.35;
+  letter-spacing: .02em;
+  color: #fff;
+  text-shadow:
+    0 0 6px var(--ar-neon),
+    0 0 18px rgba(255, 46, 136, .8),
+    0 0 40px rgba(255, 46, 136, .4);
+  margin: 0;
+}
+.cab__title em {
+  font-style: normal;
+  color: var(--ar-neon-2);
+  text-shadow:
+    0 0 6px var(--ar-neon-2),
+    0 0 20px rgba(124, 243, 255, .75);
+}
+
+.cab__sub {
+  margin-top: 9px;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, .5);
+}
+
+/* the row of bulbs along the marquee */
+.cab__bulbs {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: -5px;
+  display: flex;
+  justify-content: space-between;
+  pointer-events: none;
+}
+.cab__bulbs i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--ar-amber);
+  box-shadow: 0 0 8px var(--ar-amber);
+  animation: cab-bulb 1.4s steps(1, end) infinite;
+}
+.cab__bulbs i:nth-child(odd) { animation-delay: .7s; }
+@keyframes cab-bulb {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: .22; }
+}
+
+/* ---------------------------- the screen -------------------------- */
+.cab__screen {
+  position: relative;
+  margin: 22px 20px 0;
+  padding: 20px;
+  border-radius: 20px / 26px;
+  background: var(--ar-screen);
+  box-shadow:
+    inset 0 0 70px rgba(0, 0, 0, .9),
+    inset 0 0 0 2px rgba(124, 243, 255, .12),
+    0 0 0 9px #0a0718,
+    0 0 0 10px rgba(255, 255, 255, .06);
+  overflow: hidden;
+}
+
+/* scanlines and the glass bulge, both on top of everything */
+.cab__screen::before,
+.cab__screen::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+}
+.cab__screen::before {
+  background: repeating-linear-gradient(
+    180deg,
+    rgba(0, 0, 0, .22) 0 1px,
+    transparent 1px 3px
+  );
+  mix-blend-mode: multiply;
+  opacity: .55;
+}
+.cab__screen::after {
+  background:
+    radial-gradient(120% 100% at 50% 50%, transparent 55%, rgba(0, 0, 0, .55) 100%),
+    linear-gradient(180deg, rgba(255, 255, 255, .055), transparent 28%);
+}
+
+.cab__crt {
+  position: relative;
+  z-index: 1;
+}
+
+.cab__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 14px;
+  font-family: var(--arcade-font, var(--mono));
+  font-size: 10px;
+  letter-spacing: .08em;
+  color: var(--ar-neon-2);
+  text-shadow: 0 0 10px rgba(124, 243, 255, .6);
+}
+.cab__row b { color: var(--ar-amber); text-shadow: 0 0 10px rgba(255, 210, 63, .6); font-weight: 400; }
+
+.cab__blink { animation: cab-blink 1.1s steps(1, end) infinite; }
+@keyframes cab-blink { 0%, 55% { opacity: 1; } 56%, 100% { opacity: .15; } }
+
+/* ------------------------- the game list -------------------------- */
+.arcade .games__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(248px, 1fr));
+  gap: 14px;
+}
+
+/* the cards keep their own markup; inside the screen they go dark */
+.arcade .game-card {
+  background: rgba(14, 20, 52, .78);
+  border-color: rgba(124, 243, 255, .2);
+  border-radius: 12px;
+}
+.arcade button.game-card:hover,
+.arcade button.game-card:focus-visible {
+  border-color: var(--ar-amber);
+  box-shadow: 0 0 0 2px rgba(255, 210, 63, .35), 0 10px 30px rgba(0, 0, 0, .5);
+  transform: translateY(-3px);
+  outline: none;
+}
+.arcade button.game-card.is-picked {
+  border-color: var(--ar-amber);
+  box-shadow: 0 0 0 2px var(--ar-amber), 0 0 26px rgba(255, 210, 63, .35);
+}
+.arcade .game-card h3 { color: #EAF2FF; }
+.arcade .game-card p { color: rgba(214, 224, 255, .72); }
+.arcade .game-card__foot {
+  border-top-color: rgba(124, 243, 255, .16);
+  color: rgba(214, 224, 255, .5);
+}
+.arcade .game-card__best { color: var(--ar-amber); }
+.arcade .game-card__go { color: var(--ar-neon-2); }
+.arcade .game-card--soon {
+  background: rgba(10, 14, 38, .6);
+  border-color: rgba(124, 243, 255, .16);
+}
+.arcade .game-card--soon h3 { color: rgba(214, 224, 255, .6); }
+
+/* the art panel keeps its own colours, just squared off a little */
+.arcade .game-card__art { height: 120px; }
+
+/* --------------------------- control deck ------------------------- */
+.cab__deck {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin: 18px 20px 0;
+  padding: 14px 18px;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #241741, #140d2b);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .12), inset 0 -3px 8px rgba(0, 0, 0, .5);
+}
+
+.cab__stick { position: relative; width: 46px; height: 46px; flex: none; }
+.cab__stick i {
+  position: absolute;
+  left: 50%;
+  bottom: 6px;
+  width: 7px;
+  height: 24px;
+  margin-left: -3.5px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #6b7490, #cfd6e8, #6b7490);
+}
+.cab__stick b {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 22px;
+  height: 22px;
+  margin-left: -11px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 34% 30%, #ff7ab0, var(--ar-neon) 55%, #8d1148);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, .55);
+}
+.cab__stick::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 30px;
+  height: 11px;
+  margin-left: -15px;
+  border-radius: 50%;
+  background: #0b0818;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, .8);
+}
+
+.cab__buttons { display: flex; gap: 9px; }
+.cab__buttons span {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 34% 30%, #fff6c9, var(--ar-amber) 55%, #9a7400);
+  box-shadow: 0 3px 7px rgba(0, 0, 0, .55), inset 0 -2px 3px rgba(0, 0, 0, .3);
+}
+.cab__buttons span:nth-child(2) {
+  background: radial-gradient(circle at 34% 30%, #b9fbff, var(--ar-neon-2) 55%, #0b6b7a);
+}
+.cab__buttons span:nth-child(3) {
+  background: radial-gradient(circle at 34% 30%, #ffb0cf, var(--ar-neon) 55%, #8d1148);
+}
+
+.cab__hint {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: .06em;
+  color: rgba(255, 255, 255, .42);
+  text-align: right;
+}
+.cab__hint kbd {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: #EAF2FF;
+  background: rgba(255, 255, 255, .1);
+  border: 1px solid rgba(255, 255, 255, .18);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  padding: 1px 5px;
+}
+
+.cab__slot {
+  margin: 14px auto 0;
+  width: 76px;
+  height: 9px;
+  border-radius: 5px;
+  background: #0a0718;
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, .9), 0 1px 0 rgba(255, 255, 255, .08);
+}
+
+/* --------------------------- game screens ------------------------- */
+/* Each new game's hub thumbnail. They are CSS rather than images so
+   the hub costs no extra requests, the same way the first five are. */
+.game-art--invaders,
+.game-art--breakout,
+.game-art--maze,
+.game-art--typer,
+.game-art--crossing,
+.game-art--whack,
+.game-art--match,
+.game-art--sort,
+.game-art--stack,
+.game-art--echo {
+  position: relative;
+  height: 150px;
+  overflow: hidden;
+}
+
+/* Geo Invaders */
+.game-art--invaders { background: radial-gradient(circle at 50% 120%, #16205a 0, #070b22 60%, #04060f 100%); }
+.gi-art__pod {
+  position: absolute; width: 30px; height: 16px; border-radius: 4px;
+  background: rgba(16, 24, 64, .95); border: 1.5px solid rgba(124, 243, 255, .6);
+}
+.gi-art__pod::after {
+  content: ''; position: absolute; left: 5px; right: 5px; top: 4px; bottom: 4px;
+  background: rgba(124, 243, 255, .35); border-radius: 2px;
+}
+.gi-art__ship {
+  position: absolute; left: 50%; bottom: 14px; margin-left: -11px;
+  width: 0; height: 0; border-left: 11px solid transparent;
+  border-right: 11px solid transparent; border-bottom: 18px solid var(--ar-amber);
+}
+.gi-art__shot {
+  position: absolute; left: 50%; bottom: 36px; width: 3px; height: 16px;
+  margin-left: -1.5px; background: var(--ar-neon-2); box-shadow: 0 0 8px var(--ar-neon-2);
+}
+
+/* Flag Breakout */
+.game-art--breakout { background: linear-gradient(#141a3c, #070a18); }
+.gb-art__brick {
+  position: absolute; width: 26px; height: 15px; border-radius: 3px;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .35);
+}
+.gb-art__pad {
+  position: absolute; left: 50%; bottom: 12px; width: 52px; height: 8px;
+  margin-left: -26px; border-radius: 5px; background: var(--ar-neon-2);
+}
+.gb-art__ball {
+  position: absolute; left: 58%; bottom: 42px; width: 9px; height: 9px;
+  border-radius: 50%; background: #fff; box-shadow: 0 0 10px rgba(255, 255, 255, .7);
+}
+
+/* Capital Maze */
+.game-art--maze { background: #05081c; }
+.gm-art__wall { position: absolute; background: #16205a; border-radius: 3px; box-shadow: inset 0 0 0 1px rgba(124, 243, 255, .22); }
+.gm-art__dot { position: absolute; width: 4px; height: 4px; border-radius: 50%; background: rgba(255, 255, 255, .45); }
+.gm-art__me {
+  position: absolute; width: 18px; height: 18px; border-radius: 50%;
+  background: var(--ar-neon-2);
+  clip-path: polygon(100% 28%, 50% 50%, 100% 72%, 100% 100%, 0 100%, 0 0, 100% 0);
+}
+.gm-art__ghost {
+  position: absolute; width: 17px; height: 17px; background: #FF9A3D;
+  border-radius: 9px 9px 3px 3px;
+}
+.gm-art__pill {
+  position: absolute; padding: 2px 7px; border-radius: 9px; font-size: 10px; font-weight: 700;
+  background: rgba(8, 12, 40, .92); color: #EAF2FF; border: 1px solid rgba(255, 210, 63, .5);
+  white-space: nowrap;
+}
+
+/* Capital Typer */
+.game-art--typer { background: linear-gradient(#0b1030, #04060f); }
+.gt-art__word {
+  position: absolute; padding: 5px 10px; border-radius: 8px; font-size: 11px; font-weight: 700;
+  background: rgba(16, 24, 64, .92); color: #EAF2FF; border: 1.5px solid rgba(124, 243, 255, .45);
+  white-space: nowrap;
+}
+.gt-art__word--lit { background: rgba(27, 77, 255, .92); border-color: var(--ar-neon-2); }
+.gt-art__bar {
+  position: absolute; left: 12px; right: 12px; bottom: 12px; height: 24px; border-radius: 7px;
+  background: rgba(8, 12, 40, .9); border: 1px solid rgba(124, 243, 255, .35);
+  font-family: var(--mono); font-size: 11px; color: var(--ar-neon-2);
+  display: flex; align-items: center; padding: 0 9px;
+}
+
+/* Border Crossing */
+.game-art--crossing { background: #071024; }
+.gc-art__lane { position: absolute; left: 0; right: 0; height: 24px; background: #0f1838; }
+.gc-art__lane:nth-of-type(even) { background: #0d1530; }
+.gc-art__car { position: absolute; height: 14px; border-radius: 4px; }
+.gc-art__gate {
+  position: absolute; top: 8px; height: 26px; border-radius: 6px;
+  background: rgba(8, 14, 44, .9); border: 1.5px solid rgba(255, 210, 63, .55);
+  font-size: 9px; font-weight: 700; color: #EAF2FF;
+  display: grid; place-items: center;
+}
+.gc-art__me {
+  position: absolute; left: 50%; bottom: 10px; width: 16px; height: 16px; margin-left: -8px;
+  border-radius: 50%; background: #8CF5C2;
+}
+
+/* Capital Whack */
+.game-art--whack { background: #10251a; }
+.gw-art__hole {
+  position: absolute; width: 34px; height: 12px; border-radius: 50%; background: #071509;
+}
+.gw-art__head {
+  position: absolute; width: 38px; height: 22px; border-radius: 7px;
+  background: #1B4DFF; border: 1px solid rgba(255, 255, 255, .3);
+  font-size: 8px; font-weight: 700; color: #fff; display: grid; place-items: center;
+  overflow: hidden;
+}
+.gw-art__mallet {
+  position: absolute; width: 26px; height: 10px; border-radius: 3px; background: var(--ar-amber);
+  transform: rotate(-28deg); box-shadow: 0 2px 6px rgba(0, 0, 0, .5);
+}
+
+/* Flag Match */
+.game-art--match { background: #0c1130; }
+.gmt-art__tile {
+  position: absolute; width: 32px; height: 24px; border-radius: 6px;
+  background: #1B2A5E; border: 1px solid rgba(124, 243, 255, .3);
+  display: grid; place-items: center; font-size: 13px; font-weight: 700;
+  color: rgba(124, 243, 255, .5);
+}
+.gmt-art__tile--up { background: #16205a; border-color: rgba(255, 210, 63, .5); }
+.gmt-art__tile--done { background: rgba(14, 159, 110, .3); border-color: rgba(140, 245, 194, .7); }
+.gmt-art__tile i { display: block; width: 22px; height: 14px; border-radius: 2px; }
+
+/* Continent Sort */
+.game-art--sort { background: #0a1024; }
+.gs-art__belt {
+  position: absolute; left: 0; right: 0; top: 34px; height: 36px; background: #161d42;
+  border-top: 1px solid rgba(124, 243, 255, .3); border-bottom: 1px solid rgba(124, 243, 255, .3);
+  background-image: repeating-linear-gradient(115deg, rgba(255, 255, 255, .07) 0 2px, transparent 2px 16px);
+}
+.gs-art__parcel {
+  position: absolute; left: 32%; top: 40px; padding: 5px 10px; border-radius: 7px;
+  background: #1B4DFF; border: 1px solid rgba(255, 255, 255, .4);
+  font-size: 11px; font-weight: 700; color: #fff; white-space: nowrap;
+}
+.gs-art__bin {
+  position: absolute; bottom: 12px; height: 34px; border-radius: 7px;
+  border: 1.5px solid; background: rgba(255, 255, 255, .05);
+  font-size: 8.5px; font-weight: 700; display: grid; place-items: center;
+}
+
+/* Capital Stack */
+.game-art--stack { background: #0b1030; }
+.gst-art__head {
+  position: absolute; top: 10px; height: 22px; border-radius: 6px;
+  background: rgba(22, 32, 90, .95); border: 1px solid rgba(255, 210, 63, .5);
+  font-size: 8.5px; font-weight: 700; color: #EAF2FF; display: grid; place-items: center;
+}
+.gst-art__block {
+  position: absolute; height: 19px; border-radius: 5px;
+  font-size: 8.5px; font-weight: 700; display: grid; place-items: center; color: #fff;
+}
+.gst-art__block--fall { background: #1B4DFF; border: 1.5px solid var(--ar-neon-2); }
+.gst-art__block--bad { background: rgba(122, 36, 48, .9); border: 1px solid rgba(255, 138, 142, .5); }
+.gst-art__floor { position: absolute; left: 0; right: 0; bottom: 10px; height: 2px; background: rgba(124, 243, 255, .4); }
+
+/* Flag Echo */
+.game-art--echo { background: #080c22; }
+.ge-art__pad {
+  position: absolute; width: 36px; height: 26px; border-radius: 7px;
+  background: rgba(22, 32, 90, .85); border: 1.5px solid rgba(124, 243, 255, .28);
+}
+.ge-art__pad--lit {
+  background: rgba(255, 210, 63, .22); border-color: var(--ar-amber);
+  box-shadow: 0 0 18px rgba(255, 210, 63, .7);
+}
+.ge-art__pad i { position: absolute; inset: 4px; border-radius: 3px; }
+
+/* ------------------------ the games themselves -------------------- */
+/* Backgrounds behind each canvas, so a game that has not painted its
+   first frame does not flash the default blue. */
+.gk-invaders { background: #05070f; }
+.gk-breakout { background: #070a18; }
+.gk-maze     { background: #05081c; }
+.gk-typer    { background: #04060f; }
+.gk-crossing { background: #071024; }
+.gk-whack    { background: #10251a; }
+.gk-match    { background: #0c1130; }
+.gk-sort     { background: #0a1024; }
+.gk-stack    { background: #0b1030; }
+.gk-echo     { background: #080c22; }
+
+/* the slot the kit's shell leaves for a game's own HUD widgets */
+.gk__extra { margin-left: auto; display: flex; gap: 6px; align-items: center; }
+
+/* ----------------------------- narrow ----------------------------- */
+@media (max-width: 760px) {
+  .cab { border-radius: 18px 18px 10px 10px; }
+  .cab__screen { margin: 16px 12px 0; padding: 14px; }
+  .cab__marquee { margin: 10px 10px 0; padding: 13px 14px 12px; }
+  .cab__deck { margin: 14px 12px 0; gap: 12px; padding: 11px 13px; }
+  .cab__hint { display: none; }
+  .arcade .games__grid { grid-template-columns: 1fr; }
+  .arcade .game-card__art { height: 104px; }
+}
+
+/* --------------------------- less motion -------------------------- */
+/* The bulbs and the blinking prompt are the only things that move on
+   this screen, and neither carries information. */
+@media (prefers-reduced-motion: reduce) {
+  .cab__bulbs i,
+  .cab__blink { animation: none; opacity: 1; }
+  .arcade button.game-card:hover { transform: none; }
+}

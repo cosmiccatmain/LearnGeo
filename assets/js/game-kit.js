@@ -499,6 +499,8 @@
     };
 
     var frames = null, offResize = null, offKeys = null, offHidden = null, dead = false;
+    /* set true by the first frame, which is when a run first exists */
+    var armed = false;
 
     function fit() {
       E.view = sh.fit(spec.aspect || 1.6);
@@ -562,7 +564,10 @@
     /* ---- input ----
        One rule for the keys every game shares, then the game's own. */
     offKeys = keys(function (e) {
-      if (dead) return false;
+      /* Nothing is playable until the first frame has armed a run: a
+         tab opened in the background gets no frames at all, and a key
+         pressed there used to reach a game whose run was still null. */
+      if (dead || !armed) return false;
       if (e.key === 'Escape') {
         if (E.state === 'play') { E.pause(); return true; }
         if (E.state === 'paused') { E.resume(); return true; }
@@ -571,7 +576,15 @@
       var go = e.key === ' ' || e.key === 'Enter';
       if (E.state === 'ready') {
         /* anything but a bare modifier starts it */
-        if (e.key.length === 1 || go || e.key.indexOf('Arrow') === 0) { E.begin(); return true; }
+        if (e.key.length === 1 || go || e.key.indexOf('Arrow') === 0) {
+          E.begin();
+          /* The key that started the run is still a move, or a letter
+             the game wanted: Capital Typer says "start typing", so the
+             first letter has to reach its buffer rather than be eaten
+             by the ready card. Space and Enter only ever mean "go". */
+          if (spec.key && !go) spec.key(e);
+          return true;
+        }
         return false;
       }
       if (E.state === 'paused') { if (go) { E.resume(); return true; } return false; }
@@ -585,19 +598,19 @@
       return { x: e.clientX - r.left, y: e.clientY - r.top };
     }
     function down(e) {
-      if (dead) return;
+      if (dead || !armed) return;
       if (E.state === 'ready') return E.begin();
       if (E.state !== 'play') return;
       var p = at(e);
       if (spec.pointer) spec.pointer('down', p.x, p.y, e);
     }
     function move(e) {
-      if (dead || E.state !== 'play' || !spec.pointer) return;
+      if (dead || !armed || E.state !== 'play' || !spec.pointer) return;
       var p = at(e);
       spec.pointer('move', p.x, p.y, e);
     }
     function up(e) {
-      if (dead || E.state !== 'play' || !spec.pointer) return;
+      if (dead || !armed || E.state !== 'play' || !spec.pointer) return;
       var p = at(e);
       spec.pointer('up', p.x, p.y, e);
     }
@@ -613,9 +626,14 @@
     offResize = sh.onResize(fit);
 
     fit();
-    arm();
 
+    /* The first run is armed on the first frame rather than here.
+       A game writes `var E = GameKit.engine(host, {...})` and its
+       start() reaches for E.view and E.banner, so arming inside this
+       call would run start() while that variable is still null.
+       requestAnimationFrame lands after the assignment. */
     frames = loop(function (dt, clock) {
+      if (!armed) { armed = true; arm(); }
       if (E.state === 'play') {
         spec.step(dt, clock);
         E.fx.step(dt);
