@@ -762,7 +762,10 @@
       });
       /* an empty array is still an answer, so this asks once and not on
          every redraw */
-      if (!en.members && global.Cloud && global.Cloud.classMembers) {
+      /* a list saved by an older build can be just the student's own seat,
+         so it is refetched once per page load, not only when missing */
+      if ((!en.members || en.membersFresh !== true) && global.Cloud && global.Cloud.classMembers) {
+        en.membersFresh = true;
         global.Cloud.classMembers(en.classId || '').then(function (list) {
           en.members = list;
           W.save();

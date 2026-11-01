@@ -1232,6 +1232,24 @@
      answer a class with nobody in it gives. */
   function classMembers(classId) {
     if (!ready() || !classId) return Promise.resolve([]);
+    /* class_members' read policy shows a student only their own seat, so a
+       direct select reads as a class of one. class_roster (0010) is the
+       sanctioned way to see classmates; the select stays as the fallback
+       for a database without 0010. */
+    return Promise.resolve(sb.rpc('class_roster', { p_class: classId }))
+      .then(function (res) {
+        var data = res && !res.error ? res.data : null;
+        if (!data || !Array.isArray(data.students)) return membersFromTable(classId);
+        return data.students.map(function (s) {
+          var out = { id: s.id, name: s.name };
+          if (typeof s.level === 'number') out.level = s.level;
+          return out;
+        });
+      })
+      .catch(function () { return membersFromTable(classId); });
+  }
+
+  function membersFromTable(classId) {
     return sb.from('class_members').select('*').eq('class_id', classId).order('joined_at')
       .then(function (res) {
         if (res && res.error) return [];
