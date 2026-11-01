@@ -74,6 +74,15 @@
   var known = {};
   var watchers = [];
 
+  /* Remembered between page loads. The answer arrives after the page has
+     drawn, and a student whose first read lands before sign-in has finished
+     would otherwise see the leaderboard tab missing until a later redraw. */
+  var CACHE_KEY = 'learngeo.classFeatures';
+  try { known = JSON.parse(global.localStorage.getItem(CACHE_KEY) || '{}') || {}; } catch (e) { known = {}; }
+  function remember() {
+    try { global.localStorage.setItem(CACHE_KEY, JSON.stringify(known)); } catch (e) {}
+  }
+
   /* ============================== the store ========================= */
   /* The flags live with the class, which means Supabase, which this file
      does not talk to: oy-01 owns the column and oy-09 owns the read and
@@ -109,6 +118,7 @@
          not changed turns that into a loop that never stops. */
       var changed = FEATURES.some(function (f) { return on(f.key, classId) !== next[f.key]; });
       known[classId] = next;
+      remember();
       if (changed) tell(classId);
       return next;
     }).catch(function () { return null; });
