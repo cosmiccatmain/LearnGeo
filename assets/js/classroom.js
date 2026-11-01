@@ -766,7 +766,9 @@
       var en = W.state.enrolled || {};
       global.ClassLeaderboard.mount(lbHost, {
         classId: en.classId || '',
-        people: (en.members || []).slice(),
+        people: (en.members || []).map(function (m) {
+          return Object.assign({}, m, { keys: [m.id || ('name:' + m.name)] });
+        }),
         /* a student's own class holds only their own results, so the
            classmates' come from the server and are kept in memory only */
         classroom: { cloudId: en.classId || '', results: lbResults[en.classId] || [], assignments: [], members: en.members || [], roster: [] },
