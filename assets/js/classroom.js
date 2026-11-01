@@ -38,6 +38,7 @@
      that wrote the list it vouches for */
   var membersFetched = {};
   var lbResults = {};
+  var lbAsking = {};
 
   function leaderboardOn() {
     var F = global.ClassFeatures, e = W.state.enrolled;
@@ -774,11 +775,13 @@
         classroom: { cloudId: en.classId || '', results: lbResults[en.classId] || [], assignments: [], members: en.members || [], roster: [] },
         enabled: true
       });
-      if (lbResults[en.classId] === undefined && global.Cloud && global.Cloud.classResults) {
-        lbResults[en.classId] = [];
+      if (!lbResults[en.classId] && !lbAsking[en.classId] && global.Cloud && global.Cloud.classResults) {
+        lbAsking[en.classId] = true;
         global.Cloud.classResults(en.classId || '').then(function (list) {
+          lbAsking[en.classId] = false;
+          if (!list) return;
           lbResults[en.classId] = list;
-          if (list.length) render(true);
+          render(true);
         });
       }
       /* an empty array is still an answer, so this asks once and not on

@@ -1255,13 +1255,16 @@
      class_leaderboard_results, which refuses unless the teacher has the
      leaderboard switched on. Empty on any refusal. */
   function classResults(classId) {
-    if (!ready() || !classId) return Promise.resolve([]);
+    if (!ready() || !classId) return Promise.resolve(null);
     return Promise.resolve(sb.rpc('class_leaderboard_results', { p_class: classId }))
       .then(function (res) {
-        if (!res || res.error || !Array.isArray(res.data)) return [];
+        if (!res || res.error || !Array.isArray(res.data)) {
+          if (global.console && console.warn) console.warn('class_leaderboard_results:', res && res.error);
+          return null;
+        }
         return res.data.map(rowToResult);
       })
-      .catch(function () { return []; });
+      .catch(function () { return null; });
   }
 
   function membersFromTable(classId) {
