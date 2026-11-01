@@ -54,7 +54,11 @@
       featuresWatched = true;
       F.onChange(function () { render(true); });
     }
-    if (typeof F.load === 'function') F.load(id);
+    if (typeof F.load === 'function') {
+      /* a read that came back empty (not signed in yet) must be asked again
+         on the next redraw rather than treated as answered */
+      Promise.resolve(F.load(id)).then(function (row) { if (!row && featuresFor === id) featuresFor = ''; });
+    }
   }
 
   /* Signed in: new work from the teacher shows up by itself. Throttled,
