@@ -40,6 +40,52 @@
     return F.on('leaderboard', (e && e.classId) || '');
   }
 
+  /* A student cannot read anyone else's seat in class_members, nor their
+     results, so the board is built from class_roster, which any member may
+     call and which carries each classmate's own level and totals. The class
+     handed in is a bare one on purpose: left out, the leaderboard falls back
+     to this device's teacher workspace, which is not this class at all. */
+  var boardPeople = {};
+
+  function mountBoard(host) {
+    var en = W.state.enrolled || {}, id = en.classId || '';
+    function draw(people) {
+      if (!host.isConnected) return;
+      global.ClassLeaderboard.mount(host, {
+        classId: id,
+        classroom: { cloudId: id, results: [], assignments: [], members: people },
+        people: people,
+        enabled: true
+      });
+    }
+    var have = boardPeople[id];
+    if (have) draw(have);
+    else host.innerHTML = '<div class="cr-card"><div class="lb-empty"><b>Loading the leaderboard…</b></div></div>';
+
+    var X = global.ClassExtras;
+    if (!id || !X || !X.classRoster) { if (!have) draw([]); return; }
+    X.classRoster(id).then(function (r) {
+      if (!r.ok || !r.data) {
+        if (!have && host.isConnected) {
+          host.innerHTML = '<div class="cr-card"><div class="lb-empty"><b>The leaderboard could not load</b>' +
+            '<p>' + W.escapeHtml(r.kind === 'nomigration'
+              ? 'Seeing the rest of the class needs 0010 on the database.'
+              : 'Try again in a moment.') + '</p></div></div>';
+        }
+        return;
+      }
+      var people = (r.data.students || []).filter(function (s) { return s && s.id; }).map(function (s) {
+        return {
+          id: s.id, name: s.name || 'Student', keys: [s.id],
+          level: typeof s.level === 'number' ? s.level : 1, xp: 0, levelOnly: true,
+          stats: { answered: Number(s.answered) || 0, correct: Number(s.correct) || 0 }
+        };
+      });
+      boardPeople[id] = people;
+      draw(people);
+    });
+  }
+
   function geoliveOn() {
     var F = global.ClassFeatures, e = W.state.enrolled;
     if (!F || typeof F.on !== 'function') return true;
@@ -67,6 +113,11 @@
     if (!C || !C.ready || !enrolled()) return;
     if (!force && Date.now() - lastSync < 15000) return;
     lastSync = Date.now();
+    /* The switches are asked again with each sync, not once a page load: a
+       teacher turns the leaderboard on in front of a class whose students
+       already have this page open. load() only redraws on a real change. */
+    var F = global.ClassFeatures, en = W.state.enrolled;
+    if (F && typeof F.load === 'function' && en && en.classId) F.load(en.classId);
     C.studentSync().then(function (changed) {
       if (!changed || document.querySelector('.overlay')) return;
       var v = document.getElementById('view-classroom');
@@ -754,21 +805,7 @@
 
     var lbHost = document.getElementById('cl-leaderboard');
     if (lbHost && leaderboardOn() && global.ClassLeaderboard && global.ClassLeaderboard.mount) {
-      var en = W.state.enrolled || {};
-      global.ClassLeaderboard.mount(lbHost, {
-        classId: en.classId || '',
-        people: (en.members || []).slice(),
-        enabled: true
-      });
-      /* an empty array is still an answer, so this asks once and not on
-         every redraw */
-      if (!en.members && global.Cloud && global.Cloud.classMembers) {
-        global.Cloud.classMembers(en.classId || '').then(function (list) {
-          en.members = list;
-          W.save();
-          render(true);
-        });
-      }
+      mountBoard(lbHost);
     }
 
     /* Whatever happens next, the screen that was up is already gone: render()

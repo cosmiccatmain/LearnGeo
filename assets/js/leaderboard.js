@@ -323,6 +323,17 @@
       }
     });
 
+    /* A student's own board has no class results to count, since a student
+       cannot read anyone else's, so it is handed each classmate's own
+       totals instead. Only ever a stand-in: where results were counted
+       they win, so the teacher's board is unchanged. */
+    out.forEach(function (t) {
+      var s = t.person && t.person.stats;
+      if (!s || t.quizAnswered > 0 || !(Number(s.answered) > 0)) return;
+      t.quizAnswered = Number(s.answered);
+      t.quizRight = Math.min(Number(s.correct) || 0, t.quizAnswered);
+    });
+
     out.forEach(settle);
     return out;
   }
@@ -633,8 +644,12 @@
       '</span></td>';
   }
 
+  /* Built from a roster that knows each level but not the XP inside it,
+     nor which quizzes were for this class: a zero there would be made up. */
+  function levelOnly(t) { return !!(t.person && t.person.levelOnly); }
+
   function progressCell(t) {
-    if (!t.started) return '<td></td>';
+    if (!t.started || levelOnly(t)) return '<td></td>';
     var pct = t.need > 0 ? Math.round(t.into / t.need * 100) : 0;
     if (pct < 0) pct = 0; else if (pct > 100) pct = 100;
     return '<td>' +
@@ -663,7 +678,7 @@
           '<td class="gb__name">' + esc(t.name) + '</td>' +
           levelCell(t) +
           progressCell(t) +
-          '<td class="mono">' + num(t.quizzes) + '</td>' +
+          '<td class="mono">' + (levelOnly(t) ? '–' : num(t.quizzes)) + '</td>' +
           '<td><span class="gb__score ' + scoreClass(acc) + '">' +
             (acc === null ? '–' : acc + '%') + '</span></td>' +
           '<td class="mono">' + (t.answered ? num(t.answered) : '–') + '</td>' +

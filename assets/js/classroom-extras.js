@@ -520,6 +520,7 @@
     isAdmin: isAdmin,
     inAdminClass: inAdminClass,
     mountPeople: mountPeople,
+    classRoster: roster,
     mountAdminJoin: mountAdminJoin,
     mountTeachers: mountTeachers,
     mountAdminClasses: mountAdminClasses,
