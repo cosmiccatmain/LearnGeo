@@ -1243,6 +1243,7 @@
         return data.students.map(function (s) {
           var out = { id: s.id, name: s.name };
           if (typeof s.level === 'number') out.level = s.level;
+          if (typeof s.xp === 'number') out.xp = s.xp;
           return out;
         });
       })
