@@ -34,6 +34,10 @@
      Defaults to OFF if the switches never loaded, the same direction as the
      teacher side, because the wrong way round shows every student their rank
      in front of the class because a file did not arrive. */
+  /* in memory on purpose: a flag saved with the state would outlive the build
+     that wrote the list it vouches for */
+  var membersFetched = {};
+
   function leaderboardOn() {
     var F = global.ClassFeatures, e = W.state.enrolled;
     if (!F || typeof F.on !== 'function') return false;
@@ -768,8 +772,8 @@
          every redraw */
       /* a list saved by an older build can be just the student's own seat,
          so it is refetched once per page load, not only when missing */
-      if ((!en.members || en.membersFresh !== true) && global.Cloud && global.Cloud.classMembers) {
-        en.membersFresh = true;
+      if ((!en.members || membersFetched[en.classId] !== true) && global.Cloud && global.Cloud.classMembers) {
+        membersFetched[en.classId] = true;
         global.Cloud.classMembers(en.classId || '').then(function (list) {
           en.members = list;
           W.save();
