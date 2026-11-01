@@ -37,6 +37,7 @@
   /* in memory on purpose: a flag saved with the state would outlive the build
      that wrote the list it vouches for */
   var membersFetched = {};
+  var lbResults = {};
 
   function leaderboardOn() {
     var F = global.ClassFeatures, e = W.state.enrolled;
@@ -766,8 +767,18 @@
       global.ClassLeaderboard.mount(lbHost, {
         classId: en.classId || '',
         people: (en.members || []).slice(),
+        /* a student's own class holds only their own results, so the
+           classmates' come from the server and are kept in memory only */
+        classroom: { cloudId: en.classId || '', results: lbResults[en.classId] || [], assignments: [], members: en.members || [], roster: [] },
         enabled: true
       });
+      if (lbResults[en.classId] === undefined && global.Cloud && global.Cloud.classResults) {
+        lbResults[en.classId] = [];
+        global.Cloud.classResults(en.classId || '').then(function (list) {
+          lbResults[en.classId] = list;
+          if (list.length) render(true);
+        });
+      }
       /* an empty array is still an answer, so this asks once and not on
          every redraw */
       /* a list saved by an older build can be just the student's own seat,

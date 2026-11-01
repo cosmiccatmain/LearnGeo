@@ -1250,6 +1250,20 @@
       .catch(function () { return membersFromTable(classId); });
   }
 
+  /* Every classmate's scores, for the student leaderboard. results is
+     readable only by its owner and the teacher, so this goes through
+     class_leaderboard_results, which refuses unless the teacher has the
+     leaderboard switched on. Empty on any refusal. */
+  function classResults(classId) {
+    if (!ready() || !classId) return Promise.resolve([]);
+    return Promise.resolve(sb.rpc('class_leaderboard_results', { p_class: classId }))
+      .then(function (res) {
+        if (!res || res.error || !Array.isArray(res.data)) return [];
+        return res.data.map(rowToResult);
+      })
+      .catch(function () { return []; });
+  }
+
   function membersFromTable(classId) {
     return sb.from('class_members').select('*').eq('class_id', classId).order('joined_at')
       .then(function (res) {
@@ -1291,6 +1305,7 @@
     wearTag: wearTag,
     myTag: myTag,
     classMembers: classMembers,
+    classResults: classResults,
     syncLevel: pushLevel,
     emailRedirect: redirectUrl,
     get available() { return !!client(); },
