@@ -23,6 +23,7 @@
   var tick = null;
 
   function reset() { T = null; clearInterval(tick); tick = null; renderNav('off'); }
+  function active() { return !!(T && T.phase === 'running'); }
 
   function start() {
     if (!T) renderSetup();
@@ -818,5 +819,8 @@
     else if (e.key.toLowerCase() === 'f') { e.preventDefault(); toggleFlag(); }
   });
 
-  global.TestMode = { start: start, reset: reset, startAssignment: startAssignment };
+  global.TestMode = {
+    start: start, reset: reset, startAssignment: startAssignment,
+    active: active, abandon: reset
+  };
 })(window);

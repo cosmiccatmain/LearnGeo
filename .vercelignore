@@ -1,0 +1,8 @@
+# Dev, test, and server-side source. The live site is index.html,
+# teachers.html, and assets/. vercel.json is project config and is not
+# listed here; Vercel reads it whether or not files around it are ignored.
+tools/
+tests/
+agents/
+supabase/
+README.md

@@ -105,9 +105,15 @@
     return m || 'Something went wrong. Please try again.';
   }
 
+  /* Confirmation and password-reset emails must come back to a URL on the
+     Supabase redirect allowlist. That list has the site root, not /games or
+     /learn, and a link Supabase will not allow is dropped in favour of the
+     Site URL. Always use the root. index.html still loads there, so
+     ?code= and #access_token=...&type=recovery are picked up as before
+     and the recovery dialog opens from the landing page. */
   function redirectUrl() {
     var o = global.location;
-    return /^https?:$/.test(o.protocol) ? o.origin + o.pathname : undefined;
+    return /^https?:$/.test(o.protocol) ? o.origin + '/' : undefined;
   }
 
   /* ============================ save sync ============================ */
@@ -1267,6 +1273,7 @@
     myTag: myTag,
     classMembers: classMembers,
     syncLevel: pushLevel,
+    emailRedirect: redirectUrl,
     get available() { return !!client(); },
     get sb() { return client(); },
     get user() { return user; },

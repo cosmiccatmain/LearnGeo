@@ -89,7 +89,7 @@
         { label: o.backLabel || 'Cancel', cls: 'btn--ghost', close: true },
         { label: 'Save', cls: 'btn--accent', onClick: function (m, close) { save(m, close); return false; } }
       ],
-      onClose: function () { if (!done && o.onBack) o.onBack(); },
+      onClose: function (reason) { if (reason !== 'navigation' && !done && o.onBack) o.onBack(); },
       onMount: function (root, close) {
         var input = W.$('#gt-input', root);
         setTimeout(function () { input.focus(); input.select(); }, 30);
