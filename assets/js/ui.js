@@ -42,6 +42,7 @@
 
   /* ============================== MODALS ============================ */
   var openModals = [];
+  var modalClosers = new WeakMap();
 
   function modal(opts) {
     var ov = W.el('div', 'overlay');
@@ -71,12 +72,13 @@
     document.body.classList.add('no-scroll');
     openModals.push(ov);
 
-    function close() {
+    function close(reason) {
       ov.remove();
       openModals = openModals.filter(function (x) { return x !== ov; });
       if (!openModals.length) document.body.classList.remove('no-scroll');
-      if (opts.onClose) opts.onClose();
+      if (opts.onClose) opts.onClose(reason === 'navigation' ? reason : undefined);
     }
+    modalClosers.set(ov, close);
 
     W.$$('[data-close]', m).forEach(function (b) { b.addEventListener('click', close); });
     (opts.actions || []).forEach(function (a, i) {
@@ -102,6 +104,10 @@
     }
   }
   document.addEventListener('keydown', escClose);
+
+  function closeModals() {
+    openModals.slice().forEach(function (ov) { modalClosers.get(ov)('navigation'); });
+  }
 
   /* Segmented controls / checkbox grids used across every panel. */
   function wireSeg(root) {
@@ -1138,7 +1144,7 @@
     if (global.Teacher && global.Teacher.forget) global.Teacher.forget();
     if (global.Classroom && global.Classroom.forget) global.Classroom.forget();
     if (appOpen()) {
-      go(currentView);
+      go(currentView, { history: 'replace' });
       if (!W.state.roleChosen) askRole();
     }
   }
@@ -1281,7 +1287,7 @@
     }
   }
 
-  function go(view) {
+  function go(view, opts) {
     /* The tab strip already hides the wrong one, but guard the route too so
        a student cannot reach the teacher's class by any other path. */
     var isTeacher = W.state.role === 'teacher';
@@ -1315,6 +1321,7 @@
     if (currentView === 'games' && view !== 'games' && global.Games) global.Games.stop();
 
     currentView = view;
+    global.AppRouter.record(view, opts);
     VIEWS.forEach(function (v) {
       var el = document.getElementById('view-' + v);
       if (el) el.classList.toggle('hidden', v !== view);
@@ -1407,22 +1414,23 @@
     });
   }
 
-  function showApp(view) {
+  function showApp(view, opts) {
     document.getElementById('landing').classList.add('hidden');
     document.getElementById('app').classList.add('is-open');
     document.body.classList.remove('no-scroll');
     W.touchDaily();
     W.saveNow();
     refreshTabs();
-    go(view || currentView || 'portal');
+    go(view || currentView || 'portal', opts);
     if (!W.state.roleChosen) askRole();
   }
 
-  function showLanding() {
+  function showLanding(opts) {
     closeMenu();
     if (global.Games) global.Games.stop();
     document.getElementById('app').classList.remove('is-open');
     document.getElementById('landing').classList.remove('hidden');
+    global.AppRouter.record(null, opts);
     /* only the view classes. no-scroll belongs to the modal stack and
        is-previewing to the preview bar, and both put them back themselves. */
     VIEWS.forEach(function (v) { document.body.classList.remove('view-' + v); });
@@ -1431,7 +1439,7 @@
   }
 
   global.UI = {
-    modal: modal, wireSeg: wireSeg, wireCheck: wireCheck, wireTabs: wireTabs,
+    modal: modal, closeModals: closeModals, wireSeg: wireSeg, wireCheck: wireCheck, wireTabs: wireTabs,
     refreshHud: refreshHud, toggleMenu: toggleMenu, closeMenu: closeMenu,
     openSettings: openSettings, openCustomization: openCustomization, openAchievements: openAchievements,
     /* the Codex's World / Skills switch, reached by the seg's data-onchange */

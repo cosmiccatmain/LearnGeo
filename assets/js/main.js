@@ -16,8 +16,7 @@
   var W = global.WW;
 
   function param(name) {
-    var m = new RegExp('[?&]' + name + '=([^&]*)').exec(global.location.search);
-    return m ? decodeURIComponent(m[1].replace(/\+/g, ' ')) : '';
+    return new URLSearchParams(global.location.search).get(name) || '';
   }
 
   function init() {
@@ -114,6 +113,8 @@
      left alone: the link can open a view but never change who you are. */
   function openFromUrl() {
     var role = param('role'), view = param('view');
+    if (!global.AppRouter.pathForView(view)) view = '';
+    view = view || global.AppRouter.viewForPath(global.location.pathname);
     /* A join link is how a teacher hands the class over without anyone
        copying six characters off a board. It carries the class code and
        nothing else, and it lands on the join screen with it filled in. */
@@ -125,12 +126,12 @@
     var ultra = /[?&]ultra(=|&|$)/.test(global.location.search);
     if (!role && !view && !join && !admin && !ultra) return;
 
-    /* the query has done its job; a refresh should not replay it */
-    if (global.history && global.history.replaceState) {
-      global.history.replaceState({}, '', global.location.pathname);
-    }
+    /* Consume launch flags without losing authentication or other query data. */
+    var url = new URL(global.location.href);
+    ['role', 'view', 'join', 'admin', 'ultra'].forEach(function (name) { url.searchParams.delete(name); });
+    global.history.replaceState(null, '', url.pathname + url.search + url.hash);
 
-    route(role, view, join);
+    route(role, view, join, { history: 'replace' });
     if (admin) openAdmin();
     if (ultra) openUltra();
   }
@@ -141,7 +142,7 @@
   function openAdmin() {
     if (!global.Admin) return;
     var app = document.getElementById('app');
-    if (app && !app.classList.contains('is-open')) global.UI.showApp('portal');
+    if (app && !app.classList.contains('is-open')) global.UI.showApp('portal', { history: 'replace' });
     setTimeout(global.Admin.open, 60);
   }
 
@@ -150,11 +151,11 @@
   function openUltra() {
     if (!global.UltraAdmin) return;
     var app = document.getElementById('app');
-    if (app && !app.classList.contains('is-open')) global.UI.showApp('portal');
+    if (app && !app.classList.contains('is-open')) global.UI.showApp('portal', { history: 'replace' });
     setTimeout(global.UltraAdmin.open, 60);
   }
 
-  function route(role, view, join) {
+  function route(role, view, join, opts) {
     if (role && !W.accountId()) {
       W.state.role = role === 'teacher' ? 'teacher' : 'student';
       W.state.roleChosen = true;
@@ -168,16 +169,16 @@
         W.saveNow();
       }
       global.Classroom.prefill(join);
-      global.UI.showApp('classroom');
+      global.UI.showApp('classroom', opts);
       return;
     }
 
-    if (W.state.role === 'teacher') {
-      global.UI.showApp('teacher');
+    if (W.state.role === 'teacher' && !view) {
+      global.UI.showApp('teacher', opts);
       global.Teacher.becomeTeacher();
       return;
     }
-    global.UI.showApp(view || 'portal');
+    global.UI.showApp(view || 'portal', opts);
   }
 
   /* The Home screenshot greets you by the hour, the same way the real

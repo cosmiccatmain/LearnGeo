@@ -274,7 +274,7 @@ everything still works. Most of it is skipped if your system has reduced motion 
 There's no build step. From the repo folder, run:
 
 ```bash
-python3 -m http.server 8765
+python3 tools/serve.py
 ```
 
 Then open <http://localhost:8765>. Use a local server instead of opening `index.html`
@@ -282,6 +282,19 @@ directly, because the country outlines are loaded with `fetch` and won't load fr
 filesystem (every country would fall back to a circle).
 
 Leaflet and supabase-js are loaded from CDNs in `index.html`, so there's nothing to install.
+
+The app uses `/home`, `/codex`, `/myclassroom` (students), `/myclass` (teachers),
+`/learn`, `/test`, `/quiz` and `/games`. Switching views adds browser history, so
+Back and Forward return to the previous screen, including the landing page at `/`.
+Direct links and refreshes work through `vercel.json` rewrites and the local server
+(use `python3 tools/serve.py 8766` to choose another port). The teacher marketing page
+stays at `/teachers.html`. Existing `?role=`, `?view=` and `?join=` links still work
+and are converted to the corresponding route when opened. Routes select a screen,
+not an account role; existing role guards still apply. Returning to a study mode or
+game opens that screen again rather than restoring an unfinished run.
+
+Routing checks run with `node --test tests/test_router.js` and, with the local
+server running, `python3 tests/test_routes.py` (requires Python Playwright and Chromium).
 
 ## Two landing pages
 

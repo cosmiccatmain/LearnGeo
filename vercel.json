@@ -1,0 +1,13 @@
+{
+  "trailingSlash": false,
+  "rewrites": [
+    { "source": "/home", "destination": "/index.html" },
+    { "source": "/codex", "destination": "/index.html" },
+    { "source": "/myclassroom", "destination": "/index.html" },
+    { "source": "/myclass", "destination": "/index.html" },
+    { "source": "/learn", "destination": "/index.html" },
+    { "source": "/test", "destination": "/index.html" },
+    { "source": "/quiz", "destination": "/index.html" },
+    { "source": "/games", "destination": "/index.html" }
+  ]
+}
