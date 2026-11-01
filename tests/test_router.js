@@ -29,6 +29,7 @@ function fixture(url = 'https://learngeo.example/') {
   for (const method of ['pushState', 'replaceState']) {
     window.history[method] = (state, title, url) => {
       calls.push([method, url]);
+      window.history.state = state;
       window.location = new URL(url, window.location);
     };
   }
@@ -95,4 +96,62 @@ test('modal close callbacks cannot push entries during history restoration', () 
   assert.deepEqual(calls, [
     ['replaceState', '/home'], ['landing'], ['replaceState', '/']
   ]);
+});
+
+test('cancelling a history move restores the in-progress url, query included', () => {
+  const { router, calls, window } = fixture('https://learngeo.example/quiz?campaign=test#q');
+  router.record('quiz');
+  window.location = new URL('https://learngeo.example/home');
+  router.stay();
+  assert.deepEqual(calls, [['pushState', '/quiz?campaign=test#q']]);
+});
+
+test('a refused history leave does not switch screens', () => {
+  const { window, calls, listeners } = fixture('https://learngeo.example/quiz');
+  window.UI.blockHistoryLeave = view => {
+    calls.push(['block', view]);
+    return true;
+  };
+  window.location = new URL('https://learngeo.example/home');
+  listeners.popstate();
+  assert.deepEqual(calls, [['block', 'portal']]);
+});
+
+test('entries written before sign-out open the landing page', () => {
+  const { window, calls, listeners, router } = fixture('https://learngeo.example/');
+  router.record('games');
+  router.invalidate();
+  window.location = new URL('https://learngeo.example/games');
+  window.history.state = { epoch: 0 };
+  calls.length = 0;
+  listeners.popstate();
+  assert.deepEqual(calls, [['closeModals'], ['landing'], ['replaceState', '/']]);
+});
+
+test('history written after sign-out still opens that screen', () => {
+  const { calls, listeners, router } = fixture('https://learngeo.example/');
+  router.invalidate();
+  router.record('games');
+  calls.length = 0;
+  listeners.popstate();
+  assert.deepEqual(calls, [['closeModals'], ['app', 'games']]);
+});
+
+test('auth emails always redirect to the site root', () => {
+  const cloud = fs.readFileSync(path.join(root, 'assets/js/cloud.js'), 'utf8');
+  function redirect(href) {
+    const window = {
+      location: new URL(href),
+      WW: { onSave() {} },
+      document: { addEventListener() {} },
+      addEventListener() {}
+    };
+    vm.runInNewContext(cloud, { window });
+    return window.Cloud.emailRedirect();
+  }
+  assert.equal(redirect('https://learngeo.example/games'), 'https://learngeo.example/');
+  assert.equal(redirect('https://learngeo.example/learn?next=1'), 'https://learngeo.example/');
+  assert.equal(redirect('http://localhost:8765/quiz#access_token=abc&type=recovery'), 'http://localhost:8765/');
+  assert.equal(redirect('https://learngeo.example/'), 'https://learngeo.example/');
+  assert.equal(redirect('file:///tmp/index.html'), undefined);
 });

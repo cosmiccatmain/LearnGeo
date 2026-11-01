@@ -504,6 +504,13 @@
   }
 
   function reset() { Q = null; stage = 'idle'; renderSetup(); }
+  function active() { return !!(Q && Q.phase === 'running'); }
+  /* Drop the run without painting setup. The view we are leaving is about
+     to be hidden, and start() draws setup the next time this screen opens. */
+  function abandon() { Q = null; stage = 'idle'; }
 
-  global.QuizMode = { start: start, reset: reset, startAssignment: startAssignment };
+  global.QuizMode = {
+    start: start, reset: reset, startAssignment: startAssignment,
+    active: active, abandon: abandon
+  };
 })(window);

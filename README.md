@@ -246,8 +246,10 @@ Functions. Apply `deployed/`; `supabase/deployed/README.md` explains the split.
 ### Supabase dashboard settings
 
 - **Authentication > URL Configuration**: set the Site URL to the deployed address, and add
-  it to Redirect URLs along with `http://localhost:8765` for local testing. That way the
-  confirmation and password reset emails link back to the app.
+  it to Redirect URLs along with `http://localhost:8765` for local testing. Sign-up and
+  password-reset emails always send people back to that root, not to `/games` or whichever
+  screen they had open, because those paths are not on the allowlist. The root page still
+  accepts `?code=` confirmation links and `#access_token=...&type=recovery` reset links.
 - **Authentication > Providers > Email**: "Confirm email" is on by default. If some students
   can't check their email easily, you might want to turn it off so they can sign up in class.
   The built-in email sender is rate limited, so set up custom SMTP before a whole class tries
@@ -289,12 +291,39 @@ Back and Forward return to the previous screen, including the landing page at `/
 Direct links and refreshes work through `vercel.json` rewrites and the local server
 (use `python3 tools/serve.py 8766` to choose another port). The teacher marketing page
 stays at `/teachers.html`. Existing `?role=`, `?view=` and `?join=` links still work
-and are converted to the corresponding route when opened. Routes select a screen,
-not an account role; existing role guards still apply. Returning to a study mode or
-game opens that screen again rather than restoring an unfinished run.
+and are converted to the corresponding route when opened.
 
-Routing checks run with `node --test tests/test_router.js` and, with the local
-server running, `python3 tests/test_routes.py` (requires Python Playwright and Chromium).
+A teacher opening any of those routes, or an old `?view=` link, lands on `/myclass`.
+Students are unchanged: `/myclass` still becomes `/myclassroom`, and a student still
+cannot open the teacher screen. Once a teacher is inside the app, the study tabs
+still open Learn, Practice test, Class quiz and Games.
+
+A practice test or class quiz left by its tab stays in memory, so Back redraws the
+unfinished run. Back or Forward while that run, or a game, is on screen asks before
+leaving, because the history entry only remembers the screen. A game cannot be
+resumed after it is left: its canvas is destroyed with the view. Signing out returns
+to `/` and replaces the current history entry. Back does not reopen screens from
+before the sign-out.
+
+### Route tests
+
+History and redirect checks that do not need a browser:
+
+```bash
+node --test tests/test_router.js
+```
+
+Browser checks, with the local server already running:
+
+```bash
+pip install playwright
+python3 tests/test_routes.py
+```
+
+Chromium has to be on `PATH` as `chromium` (some packages call it `chromium-browser`),
+or `CHROMIUM_PATH` has to point at the executable. The file skips with a short
+explanation when Playwright or Chromium is missing. `LEARNGEO_TEST_URL` overrides
+`http://127.0.0.1:8765` if the server is on another port.
 
 ## Two landing pages
 

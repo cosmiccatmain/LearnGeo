@@ -530,6 +530,15 @@
     if (global.GameBoards) global.GameBoards.touch();
   }
 
+  function playing() { return screen === 'play' && !!game; }
+
+  /* The canvas is gone once stop() runs, so a history return cannot resume
+     the run. Callers that are about to leave ask first, then abandon. */
+  function abandon() {
+    if (screen === 'play') screen = 'hub';
+    stop();
+  }
+
   function toSetup() { screen = 'setup'; renderSetup(); }
 
   function stats(items) {
@@ -903,6 +912,7 @@
 
   global.Games = {
     start: start, stop: stop, catalogue: catalogue, art: art,
+    playing: playing, abandon: abandon,
     get current() { return game; },
     get game() { return current; },
     get screen() { return screen; }

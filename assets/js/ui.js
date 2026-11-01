@@ -360,7 +360,7 @@
             actions: [
               { label: 'Cancel', cls: 'btn--ghost', close: true },
               { label: 'Reset everything', cls: 'btn--primary', close: true, onClick: function () {
-                  W.reset(); leave(); refreshHud(); global.UI.showLanding();
+                  W.reset(); leave(); refreshHud(); global.UI.showLanding({ history: 'replace' });
                   var C = global.Cloud;
                   if (!signedIn() || !C || !C.push) {
                     W.toast('Progress reset', 'Everything’s back to the start', I.refresh);
@@ -910,10 +910,19 @@
   }
   if (global.Cloud) global.Cloud.onChange(paintSync);
 
+  /* Set before the account promise resolves. toGuest redraws the open app
+     on the way out, and that redraw must not push a new history entry or
+     the Back button walks back into the signed-in screens. */
+  var suppressApp = false;
+
   function signOut() {
+    suppressApp = true;
     global.Cloud.signOut().then(function () {
+      if (global.AppRouter && global.AppRouter.invalidate) global.AppRouter.invalidate();
+      closeModals();
+      showLanding({ history: 'replace' });
       W.toast('Signed out', 'You’re back on the guest profile for this device', I.logout);
-    });
+    }).then(function () { suppressApp = false; }, function () { suppressApp = false; });
   }
 
   function authMsg(root, kind, title, text) {
@@ -1143,6 +1152,7 @@
     refreshHud();
     if (global.Teacher && global.Teacher.forget) global.Teacher.forget();
     if (global.Classroom && global.Classroom.forget) global.Classroom.forget();
+    if (suppressApp) return;
     if (appOpen()) {
       go(currentView, { history: 'replace' });
       if (!W.state.roleChosen) askRole();
@@ -1287,6 +1297,41 @@
     }
   }
 
+  /* A practice test, class quiz or game keeps its run in memory, not in
+     the history entry. Leaving the screen drops it (a game has to: its
+     canvas is destroyed with the view). Ask first when that would be silent. */
+  function runKind() {
+    if (currentView === 'test' && global.TestMode && global.TestMode.active && global.TestMode.active()) return 'practice test';
+    if (currentView === 'quiz' && global.QuizMode && global.QuizMode.active && global.QuizMode.active()) return 'quiz';
+    if (currentView === 'games' && global.Games && global.Games.playing && global.Games.playing()) return 'game';
+    return '';
+  }
+
+  function abandonRun() {
+    if (currentView === 'test' && global.TestMode && global.TestMode.abandon) global.TestMode.abandon();
+    if (currentView === 'quiz' && global.QuizMode && global.QuizMode.abandon) global.QuizMode.abandon();
+    if (currentView === 'games' && global.Games && global.Games.abandon) global.Games.abandon();
+  }
+
+  function confirmLeave(label) {
+    if (global.confirm('Leave this ' + label + '? This run will be lost.')) {
+      abandonRun();
+      return true;
+    }
+    return false;
+  }
+
+  /* History navigation. Returning true keeps the current screen and puts
+     its URL back. Tabs go through go(), which asks only for a live game:
+     a test or quiz left by a tab is still in memory and start() redraws it. */
+  function blockHistoryLeave(nextView) {
+    var label = runKind();
+    if (!label || nextView === currentView) return false;
+    if (confirmLeave(label)) return false;
+    if (global.AppRouter && global.AppRouter.stay) global.AppRouter.stay();
+    return true;
+  }
+
   function go(view, opts) {
     /* The tab strip already hides the wrong one, but guard the route too so
        a student cannot reach the teacher's class by any other path. */
@@ -1297,6 +1342,16 @@
        bounced back out of the view they just asked for. */
     if (view === 'classroom' && isTeacher && !previewing) view = 'teacher';
     if (isTeacher && !previewing && (view === 'portal' || view === 'codex')) view = 'teacher';
+
+    /* A click away from a live game cannot be undone by coming back: stop()
+       destroys the canvas. History asks in blockHistoryLeave instead, and
+       passes fromHistory so this does not ask a second time. Asked before
+       the preview bar changes, so Cancel leaves that bar alone. */
+    if (!(opts && opts.fromHistory) && view !== currentView &&
+        currentView === 'games' && global.Games && global.Games.playing && global.Games.playing()) {
+      if (!confirmLeave('game')) return;
+    }
+
     /* A teacher may look round Learn, Practice test and Class quiz. It
        opens as a browse — a preview with an "Assign to class" button — so
        nothing they do there is handed in. */
@@ -1427,7 +1482,12 @@
 
   function showLanding(opts) {
     closeMenu();
-    if (global.Games) global.Games.stop();
+    /* The landing page is not a view the run can be redrawn onto, and a
+       timed test must not keep counting down behind it. */
+    if (global.TestMode && global.TestMode.active && global.TestMode.active()) global.TestMode.abandon();
+    if (global.QuizMode && global.QuizMode.active && global.QuizMode.active()) global.QuizMode.abandon();
+    if (global.Games && global.Games.playing && global.Games.playing() && global.Games.abandon) global.Games.abandon();
+    else if (global.Games && global.Games.stop) global.Games.stop();
     document.getElementById('app').classList.remove('is-open');
     document.getElementById('landing').classList.remove('hidden');
     global.AppRouter.record(null, opts);
@@ -1445,7 +1505,7 @@
     /* the Codex's World / Skills switch, reached by the seg's data-onchange */
     codexLens: function (v) { if (global.Codex) global.Codex.setLens(v); },
     profileCard: profileCard, runEffect: runEffect,
-    go: go, showApp: showApp, showLanding: showLanding,
+    go: go, showApp: showApp, showLanding: showLanding, blockHistoryLeave: blockHistoryLeave,
     positionThumb: positionThumb, watchTabs: watchTabs, refreshTabs: refreshTabs,
     askRole: askRole, startPreview: startPreview, endPreview: endPreview,
     openAuth: openAuth, openNewPassword: openNewPassword,

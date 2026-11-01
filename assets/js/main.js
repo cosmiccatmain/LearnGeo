@@ -124,12 +124,15 @@
     /* ?ultra is the second panel, behind its own code. Same shape as
        ?admin, and deliberately not a value either. */
     var ultra = /[?&]ultra(=|&|$)/.test(global.location.search);
-    if (!role && !view && !join && !admin && !ultra) return;
+    if (!role && !view && !join && !admin && !ultra) {
+      global.AppRouter.claim();
+      return;
+    }
 
     /* Consume launch flags without losing authentication or other query data. */
     var url = new URL(global.location.href);
     ['role', 'view', 'join', 'admin', 'ultra'].forEach(function (name) { url.searchParams.delete(name); });
-    global.history.replaceState(null, '', url.pathname + url.search + url.hash);
+    global.AppRouter.replace(url.pathname + url.search + url.hash);
 
     route(role, view, join, { history: 'replace' });
     if (admin) openAdmin();
@@ -173,7 +176,10 @@
       return;
     }
 
-    if (W.state.role === 'teacher' && !view) {
+    /* A teacher arriving from a link lands on their class, including
+       /learn, /games and ?view=learn. go() still decides what they may
+       open afterwards, so the study tabs keep working once they are in. */
+    if (W.state.role === 'teacher') {
       global.UI.showApp('teacher', opts);
       global.Teacher.becomeTeacher();
       return;

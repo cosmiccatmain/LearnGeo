@@ -1,22 +1,62 @@
-"""Browser route checks: start tools/serve.py, then run python3 tests/test_routes.py."""
+"""Browser route checks.
+
+Start the app, then run this file:
+
+    python3 tools/serve.py
+    python3 tests/test_routes.py
+
+Requires Playwright (`pip install playwright`) and a Chromium executable
+on PATH as `chromium` (or `chromium-browser`), or CHROMIUM_PATH pointing
+at it. If either is missing the file skips instead of erroring.
+Set LEARNGEO_TEST_URL when the server is not http://127.0.0.1:8765.
+"""
 import os
 import shutil
+import sys
 import unittest
 
-from playwright.sync_api import sync_playwright
+try:
+    from playwright.sync_api import sync_playwright
+except ImportError:
+    sync_playwright = None
 
 BASE = os.environ.get('LEARNGEO_TEST_URL', 'http://127.0.0.1:8765')
 
 
+def chromium_executable():
+    return (os.environ.get('CHROMIUM_PATH')
+            or shutil.which('chromium')
+            or shutil.which('chromium-browser'))
+
+
+def chromium_skip_reason():
+    if sync_playwright is None:
+        return ('Playwright is not installed. Install it with '
+                '`pip install playwright`, then run `python3 tests/test_routes.py`.')
+    if not chromium_executable():
+        return ('Chromium was not found. Put the `chromium` executable on PATH, '
+                'or set CHROMIUM_PATH to it, then run `python3 tests/test_routes.py`.')
+    return None
+
+
+@unittest.skipIf(sync_playwright is None, chromium_skip_reason() or '')
 class RouteTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
+        reason = chromium_skip_reason()
+        if reason:
+            raise unittest.SkipTest(reason)
         cls.playwright = sync_playwright().start()
-        options = dict(headless=True)
-        executable = os.environ.get('CHROMIUM_PATH') or shutil.which('chromium')
-        if executable:
-            options['executable_path'] = executable
-        cls.browser = cls.playwright.chromium.launch(**options)
+        executable = chromium_executable()
+        try:
+            cls.browser = cls.playwright.chromium.launch(
+                headless=True, executable_path=executable)
+        except Exception as exc:
+            cls.playwright.stop()
+            raise unittest.SkipTest(
+                'Chromium at %s did not start (%s). Set CHROMIUM_PATH to a '
+                'working executable and run python3 tests/test_routes.py.'
+                % (executable, exc))
 
     @classmethod
     def tearDownClass(cls):
@@ -39,6 +79,13 @@ class RouteTests(unittest.TestCase):
     def tearDown(self):
         self.context.close()
         self.assertEqual(self.errors, [])
+
+    def dismiss_class_name(self):
+        """Landing on the class page asks for a name until one is saved."""
+        button = self.page.locator('button', has_text='Not now')
+        if button.count():
+            button.click()
+            self.page.wait_for_function("document.querySelectorAll('.overlay').length === 0")
 
     def assert_view(self, path, view):
         self.page.wait_for_url(BASE + path)
@@ -101,7 +148,15 @@ class RouteTests(unittest.TestCase):
         self.page.evaluate("WW.state.role = 'teacher'; WW.saveNow()")
         self.page.goto(BASE + '/myclassroom')
         self.assert_view('/myclass', 'teacher')
-        self.page.goto(BASE + '/games')
+        self.dismiss_class_name()
+        # A teacher opening a study route, or an old ?view= link, lands on
+        # their class. The study tabs still work after that.
+        for path in ('/games', '/learn', '/?view=games', '/?role=teacher&view=learn'):
+            with self.subTest(path=path):
+                self.page.goto(BASE + path)
+                self.assert_view('/myclass', 'teacher')
+                self.dismiss_class_name()
+        self.page.locator('.tab[data-view="games"]').click()
         self.assert_view('/games', 'games')
         self.page.locator('.tab[data-view="learn"]').click()
         self.assert_view('/learn', 'learn')
@@ -129,6 +184,78 @@ class RouteTests(unittest.TestCase):
         self.page.wait_for_function("document.querySelectorAll('.overlay').length === 0")
         self.assertEqual(self.page.locator('.overlay').count(), 0)
 
+    def test_quiz_history_confirms_and_tab_back_restores(self):
+        # confirm() is stubbed in the page. Driving it through Playwright's
+        # dialog event races the history navigation it is trying to cancel.
+        self.page.add_init_script("""
+          window.__confirms = [];
+          window.__confirmAnswer = false;
+          window.confirm = function (msg) {
+            window.__confirms.push(String(msg));
+            return !!window.__confirmAnswer;
+          };
+        """)
+        self.page.goto(BASE + '/')
+        self.page.locator('.nav [data-launch="portal"]').click()
+        self.assert_view('/home', 'portal')
+        self.page.locator('.tab[data-view="quiz"]').click()
+        self.assert_view('/quiz', 'quiz')
+        self.page.locator('#qz-go').click()
+        self.page.wait_for_function(
+            "() => !document.querySelector('#quiz-workspace').classList.contains('hidden')")
+
+        # Leaving by a tab keeps the run, so Back redraws it.
+        self.page.locator('.tab[data-view="portal"]').click()
+        self.assert_view('/home', 'portal')
+        self.page.go_back()
+        self.assert_view('/quiz', 'quiz')
+        self.assertFalse(self.page.locator('#quiz-workspace').evaluate(
+            "el => el.classList.contains('hidden')"))
+        self.assertTrue(self.page.evaluate('QuizMode.active()'))
+
+        # Back from the run itself asks. Cancelling stays on the question.
+        # history.back() rather than page.go_back(): the guard pushState's the
+        # run's own URL, which is the location the page actually ends on.
+        self.page.evaluate('history.back()')
+        self.page.wait_for_function(
+            "() => __confirms.length === 1 && location.pathname === '/quiz' && QuizMode.active()")
+        self.assertIn('quiz', self.page.evaluate('__confirms[0]').lower())
+        self.assertFalse(self.page.locator('#quiz-workspace').evaluate(
+            "el => el.classList.contains('hidden')"))
+
+        # Accepting leaves, and Forward opens the screen fresh.
+        self.page.evaluate('__confirmAnswer = true; history.back()')
+        self.page.wait_for_function(
+            "() => location.pathname === '/home' && !QuizMode.active()")
+        self.assert_view('/home', 'portal')
+        self.page.evaluate('history.forward()')
+        self.page.wait_for_function(
+            "() => location.pathname === '/quiz' && "
+            "!document.querySelector('#quiz-setup').classList.contains('hidden')")
+        self.assertTrue(self.page.locator('#quiz-setup').evaluate(
+            "el => !el.classList.contains('hidden')"))
+
+    def test_sign_out_back_stays_on_the_landing_page(self):
+        self.page.goto(BASE + '/')
+        self.page.locator('.nav [data-launch="portal"]').click()
+        self.assert_view('/home', 'portal')
+        self.page.locator('.tab[data-view="games"]').click()
+        self.assert_view('/games', 'games')
+        self.page.evaluate("""() => {
+          AppRouter.invalidate();
+          UI.showLanding({ history: 'replace' });
+        }""")
+        self.page.wait_for_url(BASE + '/')
+        self.assertFalse(self.page.locator('#app').evaluate(
+            "el => el.classList.contains('is-open')"))
+        self.page.go_back()
+        self.page.wait_for_function(
+            "() => !document.querySelector('#app').classList.contains('is-open')")
+        self.assertFalse(self.page.locator('#app').evaluate(
+            "el => el.classList.contains('is-open')"))
+        self.assertNotIn('/home', self.page.url)
+        self.assertNotIn('/games', self.page.url)
+
     def test_back_dismisses_first_visit_prompts(self):
         self.page.goto(BASE + '/')
         self.page.evaluate("WW.state.roleChosen = false")
@@ -143,4 +270,7 @@ class RouteTests(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    unittest.main()
+    reason = chromium_skip_reason()
+    if reason:
+        print(reason, file=sys.stderr)
+    unittest.main(verbosity=2 if reason else 1)
