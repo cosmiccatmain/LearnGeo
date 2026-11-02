@@ -779,7 +779,7 @@
         lbAsking[en.classId] = true;
         global.Cloud.classResults(en.classId || '').then(function (list) {
           lbAsking[en.classId] = false;
-          if (!list) return;
+          if (!list) { lbResults[en.classId] = []; return; }
           lbResults[en.classId] = list;
           render(true);
         });
