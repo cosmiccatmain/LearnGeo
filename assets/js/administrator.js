@@ -116,6 +116,20 @@
           '<div id="ap-picked"></div>' +
         '</section>' +
 
+        /* 0009. Above Commands because it is the thing you watch while
+           you work, and below the selected account because picking
+           somebody is what you do with what you see here. */
+        '<section class="adminp__sec">' +
+          '<div class="row row--between">' +
+            '<h3 style="margin:0">Who is on now</h3>' +
+            '<button class="btn btn--ghost btn--sm" data-do="watch">' + I.refresh + ' Refresh</button>' +
+          '</div>' +
+          '<p class="t-sm t-muted">Which screen each signed-in account is on, and when they were ' +
+            'last there. Screen names only — not what they type, what they answer, or anything on ' +
+            'their screen.</p>' +
+          '<div id="ap-activity" class="adminp__rows"></div>' +
+        '</section>' +
+
         '<section class="adminp__sec">' +
           '<h3>Commands</h3>' +
           '<p class="t-sm t-muted">Type <code>help</code> for the list. A command that needs an account uses the selected one.</p>' +
@@ -177,6 +191,12 @@
       if (d.do === 'staff') return setStaff(d.on === '1');
       if (d.do === 'allow') return setAllow(d.on === '1');
       if (d.do === 'selfstaff') return selfStaff(d.on === '1');
+      if (d.do === 'ban')      return setBan(d.on === '1');
+      if (d.do === 'rename')   return renameAccount();
+      if (d.do === 'wipescores')   return wipeScores();
+      if (d.do === 'resetprog')    return resetProgress();
+      if (d.do === 'leaveclasses') return leaveClasses();
+      if (d.do === 'watch')    return loadActivity(true);
       if (d.do === 'msg') {
         var box = W.$('#ap-msg-text', root);
         return sendMessage(box ? box.value : '', box);
@@ -256,8 +276,67 @@
       if (!r.ok) renderStats();
     });
     o.recent(15).then(function (r) { guard(r, renderLog); });
+    loadBans();
+    loadActivity(false);
     renderStaff();
     search();
+  }
+
+  /* Who is banned, kept so a row and the selected card can say so
+     without another round trip per account. */
+  var bans = {};
+  function loadBans() {
+    var o = ops();
+    if (!o || !o.banned) return;
+    o.banned().then(function (r) {
+      if (!r || !r.ok) return;            /* 0009 not run yet: no bans to show */
+      bans = {};
+      (r.data || []).forEach(function (b) { bans[b.user_id] = b; });
+      for (var i = 0; i < rows.length; i++) rows[i].banned = !!bans[rows[i].id];
+      if (picked) picked.banned = !!bans[picked.id];
+      renderRows(); if (picked) renderPicked();
+    });
+  }
+
+  function loadActivity(loud) {
+    var o = ops();
+    var host = W.$('#ap-activity', root);
+    if (!o || !o.activity || !host) return;
+    if (loud) host.innerHTML = '<div class="t-sm t-muted">Looking…</div>';
+    o.activity(15).then(function (r) {
+      if (!r || !r.ok) {
+        host.innerHTML = '<div class="t-sm t-muted">' +
+          (r && r.kind === 'nomigration'
+            ? 'This needs 0009, which has not been run on the database yet.'
+            : 'Could not read who is on right now.') + '</div>';
+        return;
+      }
+      var list = r.data || [];
+      if (!list.length) {
+        host.innerHTML = '<div class="t-sm t-muted">Nobody signed in has been active in the last ' +
+          '15 minutes.</div>';
+        return;
+      }
+      /* Same grid as the Accounts table above, so the two read as one
+         page rather than two designs. Six columns, same order. */
+      host.innerHTML =
+        '<div class="adminp__row adminp__row--head">' +
+          '<span>Name</span><span>Email</span><span>On</span>' +
+          '<span class="num"></span><span class="num"></span><span>Last seen</span>' +
+        '</div>' +
+        list.map(function (a) {
+          return '<button class="adminp__row' + (picked && picked.id === a.user_id ? ' is-picked' : '') +
+            '" data-pick="' + esc(a.user_id) + '">' +
+            '<span class="adminp__nm">' + esc(a.display_name || 'Explorer') +
+              (a.banned ? '<i class="adminp__staff" title="Banned">BANNED</i>' : '') + '</span>' +
+            '<span class="t-muted">' + esc(a.email || '—') + '</span>' +
+            '<span>' + esc(a.screen || '—') + '</span>' +
+            '<span class="num"></span>' +
+            '<span class="num"></span>' +
+            '<span class="t-muted">' + esc(ago(a.seen_at)) + '</span>' +
+          '</button>';
+        }).join('');
+    });
   }
 
   function sessionPill() {
@@ -305,6 +384,13 @@
       if (!r.ok) { host.innerHTML = '<div class="adminp__empty">Nothing to show.</div>'; return guard(r, function () {}); }
       if (banner === 'nomigration' || banner === 'expired' || banner === 'notready') setBanner('');
       rows = r.data || [];
+      /* 0009. find() hands back fresh objects, so the ban marks that
+         loadBans() wrote onto the previous rows are not on these. Put
+         them back before the first paint: without this, searching for
+         somebody you banned a moment ago shows them clean, and the
+         selected card offers to ban them again. ultra_banned() returns
+         every ban, so the map is complete as of the last load. */
+      for (var i = 0; i < rows.length; i++) rows[i].banned = !!bans[rows[i].id];
       renderRows();
     });
   }
@@ -324,7 +410,8 @@
         return '<button class="adminp__row' + (picked && picked.id === a.id ? ' is-picked' : '') +
           '" data-pick="' + esc(a.id) + '">' +
           '<span class="adminp__nm">' + esc(a.display_name || 'Explorer') +
-            (a.staff ? '<i class="adminp__staff" title="LearnGeo staff">STAFF</i>' : '') + '</span>' +
+            (a.staff ? '<i class="adminp__staff" title="LearnGeo staff">STAFF</i>' : '') +
+            (a.banned ? '<i class="adminp__ban" title="Banned from LearnGeo">BANNED</i>' : '') + '</span>' +
           '<span class="t-muted">' + esc(a.email || '—') + '</span>' +
           '<span>' + esc(a.role || '—') + '</span>' +
           '<span class="num mono">' + num(a.level) + '</span>' +
@@ -391,6 +478,26 @@
         '<button class="btn btn--sm" data-do="allow" data-on="1">Give admin access</button>' +
         '<button class="btn btn--sm" data-do="allow" data-on="0">Remove admin access</button>' +
       '</div>' +
+
+      /* 0009. The ban sits with the other account-level actions rather
+         than beside the gem buttons: taking diamonds is an adjustment,
+         and these four change what the account IS. */
+      '<div class="adminp__act">' +
+        '<span class="eyebrow">Account</span>' +
+        (picked.banned
+          ? '<button class="btn btn--sm" data-do="ban" data-on="0">Lift the ban</button>'
+          : '<button class="btn btn--sm adminp__danger" data-do="ban" data-on="1">Ban this account</button>') +
+        '<button class="btn btn--sm" data-do="rename">Rename</button>' +
+        '<button class="btn btn--sm adminp__danger" data-do="wipescores">Wipe arcade scores</button>' +
+        '<button class="btn btn--sm adminp__danger" data-do="resetprog">Reset progress</button>' +
+        '<button class="btn btn--sm adminp__danger" data-do="leaveclasses">Remove from all classes</button>' +
+      '</div>' +
+
+      (picked.banned
+        ? '<div class="adminp__warn" style="margin:4px 0 12px"><b>Banned.</b> ' +
+          '<div class="t-sm" style="margin-top:2px">They are shown the banned screen when they sign in. ' +
+          'Their writes are not refused by the database, so this is a locked door rather than a wall.</div></div>'
+        : '') +
 
       (Number(picked.diamonds) > MAX_SAFE
         ? '<div class="adminp__warn adminp__warn--nomigration" style="margin:4px 0 12px"><b>Too large to count.</b> ' +
@@ -471,6 +578,155 @@
         ops().recent(15).then(function (x) { guard(x, renderLog); });
       });
     });
+  }
+
+  /* ===================== 0009 commands ==========================
+     Each one asks first, because none of them can be undone from this
+     page: a wiped score is gone, reset progress is gone, and a student
+     removed from their classes has to be given the code again. The
+     server re-checks the token on every one of them, so a confirm that
+     was skipped buys nothing. */
+
+  function ask(title, body, label, run, extra) {
+    global.UI.modal({
+      title: title, icon: I.info,
+      body: '<p class="t-muted">' + body + '</p>' + (extra || ''),
+      actions: [
+        { label: 'Cancel', cls: 'btn--ghost', close: true },
+        { label: label, cls: 'btn--primary', close: true, onClick: run }
+      ]
+    });
+  }
+
+  function setBan(on) {
+    if (!needPicked()) return;
+    var who = picked;
+    if (!on) {
+      return ops().ban(who.id, false, '').then(function (r) {
+        guard(r, function () {
+          who.banned = false;
+          markRow(who.id, 'banned', false);
+          renderRows(); renderPicked();
+          say(esc(who.display_name) + ': ban lifted');
+          refreshLog();
+        });
+      });
+    }
+    ask('Ban ' + esc(who.display_name) + '?',
+        'They will be shown "You have been banned from LearnGeo" when they sign in, and ' +
+        'cannot get past it. You can lift it again from here at any time.',
+        'Ban the account',
+        function (root) {
+          var why = W.$('#ap-ban-why', root);
+          /* The reason is shown to them on the banned screen, so it is
+             worth writing as something a person can read. */
+          ops().ban(who.id, true, why ? why.value : '').then(function (r) {
+            guard(r, function () {
+              who.banned = true;
+              markRow(who.id, 'banned', true);
+              renderRows(); renderPicked();
+              say(esc(who.display_name) + ': banned');
+              refreshLog();
+            });
+          });
+        },
+        '<div class="field" style="margin-top:12px">' +
+          '<label class="field__label" for="ap-ban-why">Reason, shown to them</label>' +
+          '<input class="input" id="ap-ban-why" maxlength="300" ' +
+            'placeholder="e.g. Cheating on the arcade boards"></div>');
+  }
+
+  function renameAccount() {
+    if (!needPicked()) return;
+    var who = picked;
+    global.UI.modal({
+      title: 'Rename ' + esc(who.display_name), icon: I.user,
+      body: '<div class="field"><label class="field__label">Display name</label>' +
+        '<input class="input" id="ap-name" maxlength="40" value="' + esc(who.display_name || '') + '">' +
+        '<div class="field__hint">Leave it empty to put them back to Explorer, the app\'s own default.</div></div>',
+      actions: [
+        { label: 'Cancel', cls: 'btn--ghost', close: true },
+        { label: 'Rename', cls: 'btn--accent', close: true, onClick: function (root) {
+            var box = W.$('#ap-name', root);
+            ops().rename(who.id, box ? box.value : '').then(function (r) {
+              guard(r, function (now) {
+                who.display_name = now;
+                markRow(who.id, 'display_name', now);
+                renderRows(); renderPicked();
+                say('Renamed to ' + esc(now));
+                refreshLog();
+              });
+            });
+          } }
+      ],
+      onMount: function (root) { setTimeout(function () { W.$('#ap-name', root).focus(); }, 60); }
+    });
+  }
+
+  function wipeScores() {
+    if (!needPicked()) return;
+    var who = picked;
+    ask('Wipe ' + esc(who.display_name) + '\'s arcade scores?',
+        'Their gamertag and every game score go, so they drop off the leaderboards. Learning ' +
+        'progress is untouched. Note that the boards are keyed on device, so this clears the ' +
+        'device they last synced from, not a second one they may have played on.',
+        'Wipe the scores',
+        function () {
+          ops().wipeScores(who.id).then(function (r) {
+            guard(r, function (n) {
+              say(esc(who.display_name) + ': ' + (n ? n + ' score' + (n === 1 ? '' : 's') + ' wiped'
+                                                    : 'nothing on the boards'));
+              refreshLog();
+            });
+          });
+        });
+  }
+
+  function resetProgress() {
+    if (!needPicked()) return;
+    var who = picked;
+    ask('Reset ' + esc(who.display_name) + '\'s progress?',
+        'Level, XP, diamonds, mastery, streaks and achievements go back to a new account. ' +
+        'The account, its name and its classes stay. Cosmetics they own are left alone.',
+        'Reset it',
+        function () {
+          ops().resetProgress(who.id).then(function (r) {
+            guard(r, function () {
+              picked.diamonds = 150;
+              markRow(who.id, 'diamonds', 150);
+              renderRows(); renderPicked();
+              say(esc(who.display_name) + ': progress reset');
+              refreshLog();
+            });
+          });
+        });
+  }
+
+  function leaveClasses() {
+    if (!needPicked()) return;
+    var who = picked;
+    ask('Remove ' + esc(who.display_name) + ' from every class?',
+        'They come out of every class they have joined. Marks they already handed in stay in ' +
+        'those gradebooks. To get back in they need the class code again.',
+        'Remove them',
+        function () {
+          ops().leaveClasses(who.id).then(function (r) {
+            guard(r, function (n) {
+              say(esc(who.display_name) + ': out of ' + n + ' class' + (n === 1 ? '' : 'es'));
+              refreshLog();
+            });
+          });
+        });
+  }
+
+  /* Keep the row in the results table in step with the card above it,
+     so a ban or a rename does not need a fresh search to show up. */
+  function markRow(id, key, value) {
+    for (var i = 0; i < rows.length; i++) { if (rows[i].id === id) rows[i][key] = value; }
+  }
+
+  function refreshLog() {
+    ops().recent(15).then(function (x) { guard(x, renderLog); });
   }
 
   /* Sends to the selected account. The text is checked here only so a

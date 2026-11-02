@@ -312,6 +312,22 @@
     setPrivate: setPrivate,
     clearPrivate: clearPrivate,
     allowList: function ()                { return call('ultra_allow_list', {}); },
-    allow:    function (email, on)        { return call('ultra_allow_set', { p_email: email, p_on: !!on }); }
+    allow:    function (email, on)        { return call('ultra_allow_set', { p_email: email, p_on: !!on }); },
+
+    /* ---------------------------------------------------------------
+       0009: bans, the activity board, and four more commands.
+
+       Same shape as everything above — the token goes on in call() and
+       the server re-checks it — so an edited copy of this file still
+       cannot do any of them. */
+    ban:      function (id, on, why)      {
+      return call('ultra_set_ban', { p_target: id, p_on: !!on, p_reason: why || '' });
+    },
+    banned:   function ()                 { return call('ultra_banned', {}); },
+    activity: function (mins)             { return call('ultra_activity', { p_minutes: mins || 15 }); },
+    rename:   function (id, name)         { return call('ultra_set_name', { p_target: id, p_name: String(name || '') }); },
+    wipeScores:    function (id)          { return call('ultra_wipe_scores', { p_target: id }); },
+    resetProgress: function (id)          { return call('ultra_reset_progress', { p_target: id }); },
+    leaveClasses:  function (id)          { return call('ultra_leave_classes', { p_target: id }); }
   };
 })(window);

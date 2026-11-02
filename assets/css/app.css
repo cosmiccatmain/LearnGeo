@@ -2871,3 +2871,37 @@ button.game-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-l
 @media (max-width: 860px) {
   .cr-grid[style*="1.15fr"] { grid-template-columns: 1fr !important; }
 }
+
+/* ===================== BANNED (banned.js) ========================
+   Above everything, including the admin page at 190 and .overlay at
+   200: a banned account must not be able to reach anything behind
+   it, and a dialog that opened a moment earlier must not sit on top
+   of the one screen they are meant to be reading. */
+.banned-screen {
+  position: fixed; inset: 0; z-index: 400;
+  display: grid; place-items: center; padding: 24px;
+  background: rgba(12, 16, 28, .96);
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+}
+body.is-banned { overflow: hidden; }
+.banned-card {
+  width: min(460px, 100%); text-align: center;
+  background: var(--white); color: var(--ink);
+  border-radius: 18px; padding: 34px 30px;
+  box-shadow: 0 24px 60px rgba(0,0,0,.4);
+}
+.banned-card__i {
+  width: 52px; height: 52px; margin: 0 auto 16px;
+  display: grid; place-items: center; border-radius: 50%;
+  background: var(--danger-soft); color: var(--danger);
+}
+.banned-card h1 {
+  font-size: 22px; line-height: 1.25; letter-spacing: -.02em; margin: 0;
+}
+.banned-card p { margin: 10px 0 0; color: var(--muted); font-size: 15px; }
+.banned-card__why {
+  margin-top: 14px !important; padding: 10px 12px;
+  background: var(--line-soft); border-radius: 10px;
+  font-size: 14px; color: var(--ink);
+}
+.banned-card .btn { margin-top: 22px; width: 100%; }
