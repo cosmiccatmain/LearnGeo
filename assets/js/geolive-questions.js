@@ -317,6 +317,230 @@
     return { found: found, missing: missing };
   }
 
+  /* ------------------------------------------------------------- pictures
+
+     Two of the four kinds are a picture with a question under it: "Which
+     country has this outline?" and "Which country is shaded on the map?".
+     Until now neither screen drew the picture, so both kinds were asked as
+     a sentence pointing at nothing, and the Shapes set could not be played.
+
+     The outlines come from WorldMap, which already projects and simplifies
+     every country once for the study centre. Its whole-world SVG is about
+     155 KB, far too much to re-insert on a phone every time a classmate
+     answers, so it is read once into name -> { d, box } and each picture is
+     a small SVG of only the paths it needs. Built once per country, cached.
+
+     picture(q) returns markup straight away. If the outlines have not
+     loaded yet it returns an empty frame, and paintPictures(root) fills any
+     empty frame in when they land, so no screen has to wait or re-render. */
+
+  var shapeIndex = null, shapeLoading = null, pictureCache = {};
+
+  function attr(tag, name) {
+    var m = new RegExp('\\s' + name + '="([^"]*)"').exec(tag);
+    return m ? m[1] : '';
+  }
+
+  function boxOf(d) {
+    var nums = String(d).match(/-?\d+(\.\d+)?/g) || [];
+    var x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (var i = 0; i + 1 < nums.length; i += 2) {
+      var x = +nums[i], y = +nums[i + 1];
+      /* a ring WorldMap redrew a world along sits off the board: it is
+         clipped there and has no business stretching the frame here */
+      if (x < 0 || x > WORLD_W) continue;
+      if (x < x0) x0 = x; if (x > x1) x1 = x;
+      if (y < y0) y0 = y; if (y > y1) y1 = y;
+    }
+    return isFinite(x0) ? { x: x0, y: y0, w: x1 - x0, h: y1 - y0 } : null;
+  }
+
+  var WORLD_W = 760, WORLD_H = 300;
+
+  /* The frame a country is drawn in. Not the box around every last ring:
+     Alaska and Hawaii put the United States across half the world, and
+     the frame around all of it drew the mainland as a sliver. So: the
+     biggest landmass, plus whatever lies close enough to it to read as part
+     of the same shape. Japan keeps its islands; the US keeps its lower 48. */
+  function focusBox(d) {
+    var parts = String(d).split('M').filter(Boolean).map(function (p) { return boxOf('M' + p); })
+      .filter(Boolean);
+    if (!parts.length) return null;
+    var main = parts[0];
+    parts.forEach(function (b) { if (b.w * b.h > main.w * main.h) main = b; });
+    var reach = Math.max(main.w, main.h) * 0.45 + 2;
+    var near = { x: main.x - reach, y: main.y - reach, w: main.w + reach * 2, h: main.h + reach * 2 };
+    var x0 = main.x, y0 = main.y, x1 = main.x + main.w, y1 = main.y + main.h;
+    parts.forEach(function (b) {
+      if (!overlaps(b, near)) return;
+      x0 = Math.min(x0, b.x); y0 = Math.min(y0, b.y);
+      x1 = Math.max(x1, b.x + b.w); y1 = Math.max(y1, b.y + b.h);
+    });
+    return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+  }
+
+  function buildIndex() {
+    var WM = global.WorldMap;
+    if (!WM || !WM.ready) return null;
+    if (WM.size) { WORLD_W = WM.size.w; WORLD_H = WM.size.h; }
+    var src = WM.svg({ mode: 'pale' }), out = {};
+    var re = /<(path|circle)\b[^>]*>/g, m;
+    while ((m = re.exec(src))) {
+      var tag = m[0], name = attr(tag, 'data-c');
+      if (!name) continue;
+      if (m[1] === 'path') {
+        var d = attr(tag, 'd');
+        out[name] = { d: d, box: boxOf(d), focus: focusBox(d) };
+      } else {
+        var cx = +attr(tag, 'cx'), cy = +attr(tag, 'cy');
+        out[name] = { dot: true, box: { x: cx - 1, y: cy - 1, w: 2, h: 2 } };
+      }
+    }
+    return out;
+  }
+
+  function loadShapes() {
+    if (shapeIndex) return Promise.resolve(shapeIndex);
+    if (shapeLoading) return shapeLoading;
+    var WM = global.WorldMap;
+    if (!WM || typeof WM.load !== 'function') return Promise.resolve(null);
+    shapeLoading = Promise.resolve(WM.load()).then(function () {
+      shapeIndex = buildIndex();
+      return shapeIndex;
+    })['catch'](function () { return null; });
+    return shapeLoading;
+  }
+
+  function hasPicture(q) {
+    return !!q && (q.kind === 'shape-country' || q.kind === 'country-map');
+  }
+
+  function fmt(n) { return Math.round(n * 10) / 10; }
+
+  function frameAround(box, minW, ratio, pad) {
+    var w = Math.max(box.w * pad, minW), h = Math.max(box.h * pad, minW / ratio);
+    if (w / h < ratio) w = h * ratio; else h = w / ratio;
+    var x = box.x + box.w / 2 - w / 2, y = box.y + box.h / 2 - h / 2;
+    return { x: x, y: y, w: w, h: h };
+  }
+
+  function overlaps(a, b) {
+    return a && b && a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+  }
+
+  function drawPicture(q) {
+    var c = resolve(q.code) || resolve(q.answer);
+    if (!c || !shapeIndex) return null;
+    var key = q.kind + '|' + c.name;
+    if (pictureCache[key]) return pictureCache[key];
+
+    var esc = W.escapeHtml;
+    var me = shapeIndex[esc(c.name)] || shapeIndex[c.name];
+    if (!me || !me.box) return null;
+    var svg, as = 'map';
+
+    /* An island nation a few map units across simplifies to a handful of
+       points, and its "outline" is a spike. Those are shown where they are
+       instead, ringed on the map, which is still a fair question. */
+    var f0 = me.focus || me.box;
+    var outline = me.d && Math.max(f0.w, f0.h) >= 4;
+
+    if (q.kind === 'shape-country' && outline) {
+      /* the outline alone, filling a square frame */
+      as = 'shape';
+      var f = frameAround(me.focus || me.box, 1, 1.35, 1.12);
+      svg = '<svg class="gl-pic__svg" viewBox="' + fmt(f.x) + ' ' + fmt(f.y) + ' ' + fmt(f.w) + ' ' + fmt(f.h) +
+        '" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Outline of the country in question">' +
+        '<path class="gl-pic__hit" vector-effect="non-scaling-stroke" d="' + me.d + '"/></svg>';
+    } else {
+      /* in place, with its neighbours for context. A microstate that is a
+         dot at this scale also lands here, outline question or not, since
+         an outline of a dot is no question at all. */
+      var g, paths, near;
+      /* Widen until there is land in the picture to get a bearing from. A
+         ring in empty ocean is not a question anyone can answer. */
+      /* The flat map ends at the date line and the Pacific does not, so a
+         frame that hangs off one edge borrows the land from the other, drawn
+         a world's width along. Only real landmasses count as a bearing:
+         a ring among specks is still a ring in empty ocean. */
+      [70, 150, 260, 400].some(function (min) {
+        g = frameAround(me.focus || me.box, min, 1.6, 2.6);
+        paths = ''; near = 0;
+        Object.keys(shapeIndex).forEach(function (n) {
+          var s = shapeIndex[n], b = s.focus || s.box;
+          if (s === me || !s.d || !b) return;
+          [0, WORLD_W, -WORLD_W].forEach(function (shift) {
+            var moved = { x: b.x + shift, y: b.y, w: b.w, h: b.h };
+            if (!overlaps(moved, g)) return;
+            if (Math.max(b.w, b.h) >= 6) near++;
+            paths += '<path class="gl-pic__land" vector-effect="non-scaling-stroke"' +
+              (shift ? ' transform="translate(' + shift + ' 0)"' : '') + ' d="' + s.d + '"/>';
+          });
+        });
+        return near >= 2;
+      });
+      var at = me.focus || me.box;
+      var cx = at.x + at.w / 2, cy = at.y + at.h / 2;
+      var mark = me.d
+        ? '<path class="gl-pic__hit" vector-effect="non-scaling-stroke" d="' + me.d + '"/>'
+        : '';
+      /* small countries vanish at this zoom, so a ring says where to look */
+      var small = at.w < g.w * 0.06 && at.h < g.h * 0.06;
+      if (small || !me.d) {
+        mark += '<circle class="gl-pic__ring" cx="' + fmt(cx) + '" cy="' + fmt(cy) + '" r="' + fmt(g.w * 0.035) + '"/>' +
+                '<circle class="gl-pic__dot" cx="' + fmt(cx) + '" cy="' + fmt(cy) + '" r="' + fmt(g.w * 0.009) + '"/>';
+      }
+      svg = '<svg class="gl-pic__svg" viewBox="' + fmt(g.x) + ' ' + fmt(g.y) + ' ' + fmt(g.w) + ' ' + fmt(g.h) +
+        '" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Map with the country in question shaded">' +
+        paths + mark + '</svg>';
+    }
+    pictureCache[key] = { svg: svg, as: as };
+    return pictureCache[key];
+  }
+
+  /* Markup for a question's picture, or '' for a kind that has none. */
+  function picture(q) {
+    if (!hasPicture(q)) return '';
+    var pic = shapeIndex ? drawPicture(q) : null;
+    if (!pic) loadShapes();
+    var kind = pic ? pic.as : (q.kind === 'shape-country' ? 'shape' : 'map');
+    return '<div class="gl-pic gl-pic--' + kind + (pic ? '' : ' is-loading') + '"' +
+      ' data-gl-q="' + W.escapeHtml(JSON.stringify({ kind: q.kind, code: q.code, answer: q.answer })) + '">' +
+      (pic ? pic.svg : '') + '</div>';
+  }
+
+  /* Fill in any picture frame drawn before the outlines had loaded. */
+  function paintPictures(root) {
+    if (!root || !root.querySelectorAll) return;
+    var empty = root.querySelectorAll('.gl-pic.is-loading');
+    if (!empty.length) return;
+    loadShapes().then(function () {
+      Array.prototype.forEach.call(empty, function (el) {
+        if (!el.isConnected) return;
+        var q;
+        try { q = JSON.parse(el.getAttribute('data-gl-q')); } catch (e) { return; }
+        var pic = drawPicture(q);
+        if (!pic) { el.classList.remove('is-loading'); el.hidden = true; return; }
+        el.innerHTML = pic.svg;
+        el.className = 'gl-pic gl-pic--' + pic.as;
+      });
+    });
+  }
+
+  /* The mark each answer slot carries, the same on the phone and the
+     projector, so "the triangle" means one answer to the whole room. A
+     shape as well as a colour, because one child in twelve cannot tell
+     the green tile from the amber one. */
+  var GLYPHS = [
+    '<path d="M12 3.2 22 20.4H2Z"/>',
+    '<path d="M12 1.8 22.2 12 12 22.2 1.8 12Z"/>',
+    '<circle cx="12" cy="12" r="9.6"/>',
+    '<rect x="3" y="3" width="18" height="18" rx="2.4"/>'
+  ];
+  function glyph(i) {
+    return '<svg class="gl-glyph" viewBox="0 0 24 24" aria-hidden="true">' + (GLYPHS[i] || GLYPHS[0]) + '</svg>';
+  }
+
   /* The ready-made sets. */
   function premade() {
     return [
@@ -355,6 +579,12 @@
        show a country's code without rebuilding a question */
     codeOf: codeOf,
     resolve: resolve,
-    resolveCodes: resolveCodes
+    resolveCodes: resolveCodes,
+    /* the outline or map a shape or map question is asked about */
+    glyph: glyph,
+    hasPicture: hasPicture,
+    picture: picture,
+    paintPictures: paintPictures,
+    loadShapes: loadShapes
   };
 })(window);
