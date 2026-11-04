@@ -147,10 +147,11 @@
        class they are in and what its code is instead. */
     var fireEl = document.getElementById('hud-fire');
     if (fireEl) fireEl.classList.toggle('hidden', teacher || s.streak.current < 2);
-    ['hud-xp-chip', 'hud-gem-chip'].forEach(function (id) {
+    ['hud-xp-chip', 'hud-gem-chip', 'hud-pets-gem-chip'].forEach(function (id) {
       var n = document.getElementById(id);
       if (n) n.classList.toggle('hidden', teacher);
     });
+    if (global.Pets && global.Pets.refreshHudChip) global.Pets.refreshHudChip();
     classChip(teacher, s);
 
     var av = document.getElementById('avatar-slot');

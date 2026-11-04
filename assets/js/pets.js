@@ -28,14 +28,22 @@
      max UPLOAD_MAX_PENDING pending items, school-safe affirmation required.
      Nothing goes public without a human approve action on the queue screen.
 
-   Economy (LEA-16 v1 — local demo):
+   Economy (LEA-16 / LEA-22):
      Pets Diamonds live in learngeo.pets.wallet.v0 (soft currency for this
      collab surface). Kept separate from LearnGeo shop diamonds to avoid
      double-charge / shop-path bugs in v1. Starting balance START_DIAMONDS.
+     LEA-22: store is keyed by account id ({ version:1, accounts:{ id:… } }).
+     Viewer balance uses W.accountId() or "local" for guests. Administrator
+     give/take/set edits the selected account’s slot on THIS device.
+     GAP (documented in admin UI + help): unlike shop diamonds via
+     ultra_adjust_gems, Pets Diamonds are not yet synced through Supabase —
+     an adjust on another account only lands on that user’s other devices
+     once a cloud wallet exists. Same-browser / same-admin-device sees it.
      Listings: learngeo.pets.market.v0. Fee FEE_BPS (10%). List gate:
      level >= MIN_LIST_LEVEL OR has mutation. Price bounds PRICE_MIN–MAX.
      Demo NPC listings seed once so Buy works without a second account.
      No real-money / crypto / off-platform trades.
+     HUD: Pets Diamonds chip sits in the topbar beside shop diamonds.
 
    Chest pulls (LEA-20 — local demo):
      Hub "Open chest" spends CHEST_COST Pets Diamonds, runs a suspense →
@@ -402,39 +410,129 @@
     return saveOwned(instanceId, owned);
   }
 
-  /* -------------------- Pets Diamonds wallet (local demo) --------- */
-  function readWallet() {
+  /* -------------------- Pets Diamonds wallet (per account) -------- */
+  function viewerAccountId() {
+    var id = (W && typeof W.accountId === 'function' && W.accountId()) ||
+      (global.Cloud && global.Cloud.user && global.Cloud.user.id) ||
+      '';
+    return id ? String(id) : 'local';
+  }
+
+  function readWalletStore() {
     try {
       var raw = global.localStorage.getItem(WALLET_KEY);
       if (!raw) return null;
-      var parsed = JSON.parse(raw);
-      if (!parsed || typeof parsed.diamonds !== 'number') return null;
-      return parsed;
+      return JSON.parse(raw);
     } catch (e) { return null; }
   }
 
-  function writeWallet(data) {
-    try { global.localStorage.setItem(WALLET_KEY, JSON.stringify(data)); } catch (e) {}
+  function writeWalletStore(store) {
+    try { global.localStorage.setItem(WALLET_KEY, JSON.stringify(store)); } catch (e) {}
   }
 
-  function ensureWallet() {
-    var w = readWallet();
-    if (w) {
+  /* Legacy LEA-16 shape was { diamonds }. Promote into accounts[viewer]. */
+  function normalizeWalletStore(raw) {
+    if (raw && raw.version === 1 && raw.accounts && typeof raw.accounts === 'object') {
+      return raw;
+    }
+    var accounts = {};
+    if (raw && typeof raw.diamonds === 'number') {
+      accounts[viewerAccountId()] = {
+        diamonds: Math.max(0, Math.floor(raw.diamonds)),
+        seededAt: raw.seededAt || Date.now(),
+        updatedAt: Date.now(),
+        migratedFrom: 'legacy-v0'
+      };
+    }
+    return { version: 1, accounts: accounts };
+  }
+
+  function ensureWalletStore() {
+    var store = normalizeWalletStore(readWalletStore());
+    writeWalletStore(store);
+    return store;
+  }
+
+  function ensureWallet(accountId) {
+    var id = accountId ? String(accountId) : viewerAccountId();
+    var store = ensureWalletStore();
+    var w = store.accounts[id];
+    if (w && typeof w.diamonds === 'number') {
       w.diamonds = Math.max(0, Math.floor(Number(w.diamonds) || 0));
-      writeWallet(w);
+      store.accounts[id] = w;
+      writeWalletStore(store);
       return w;
     }
     w = { diamonds: START_DIAMONDS, seededAt: Date.now() };
-    writeWallet(w);
+    store.accounts[id] = w;
+    writeWalletStore(store);
     return w;
   }
 
-  function adjustDiamonds(delta) {
-    var w = ensureWallet();
+  function adjustDiamonds(delta, accountId) {
+    var id = accountId ? String(accountId) : viewerAccountId();
+    var store = ensureWalletStore();
+    var w = ensureWallet(id);
     w.diamonds = Math.max(0, Math.floor(w.diamonds + (Number(delta) || 0)));
     w.updatedAt = Date.now();
-    writeWallet(w);
+    store.accounts[id] = w;
+    writeWalletStore(store);
+    if (id === viewerAccountId()) refreshHudChip();
     return w;
+  }
+
+  function setDiamonds(amount, accountId) {
+    var id = accountId ? String(accountId) : viewerAccountId();
+    var store = ensureWalletStore();
+    var w = ensureWallet(id);
+    w.diamonds = Math.max(0, Math.floor(Number(amount) || 0));
+    w.updatedAt = Date.now();
+    store.accounts[id] = w;
+    writeWalletStore(store);
+    if (id === viewerAccountId()) refreshHudChip();
+    return w;
+  }
+
+  /* Administrator: adjust a selected account’s Pets Diamonds slot.
+     Returns { ok, diamonds, accountId, live }. Live means the edited
+     account is the signed-in viewer on this browser (HUD updated). */
+  function adminAdjustWallet(accountId, opts) {
+    var id = String(accountId || '');
+    if (!id) return { ok: false, error: 'No account id.' };
+    opts = opts || {};
+    var before = ensureWallet(id).diamonds;
+    var w;
+    if (opts.set != null && opts.set !== '' && !isNaN(+opts.set)) {
+      w = setDiamonds(+opts.set, id);
+    } else {
+      w = adjustDiamonds(Number(opts.delta) || 0, id);
+    }
+    var live = id === viewerAccountId();
+    if (live) refreshHudChip();
+    return {
+      ok: true,
+      accountId: id,
+      before: before,
+      diamonds: w.diamonds,
+      live: live
+    };
+  }
+
+  function refreshHudChip() {
+    var nEl = document.getElementById('hud-pets-gems');
+    var sEl = document.getElementById('hud-pets-gems-short');
+    var chip = document.getElementById('hud-pets-gem-chip');
+    if (!nEl && !sEl && !chip) return;
+    var w = ensureWallet();
+    var full = String(w.diamonds);
+    var short = (W && W.compact) ? W.compact(w.diamonds) : full;
+    if (nEl) nEl.textContent = full;
+    if (sEl) sEl.textContent = short;
+    if (chip) {
+      chip.title = w.diamonds.toLocaleString() + ' Pets Diamonds (collab soft currency)';
+      var teacher = W && W.state && W.state.role === 'teacher';
+      chip.classList.toggle('hidden', !!teacher);
+    }
   }
 
   function feeOf(price) {
@@ -927,13 +1025,11 @@
     '</button>';
   }
 
+  /* Balance lives in the topbar HUD (LEA-22). Kept as a no-op helper so
+     older call sites do not throw if a sibling branch still references it. */
   function walletChipHtml() {
-    var w = ensureWallet();
-    return '<span class="pets-wallet" title="Pets Diamonds — local demo currency">' +
-      '<span class="pets-wallet__gem" aria-hidden="true">◆</span>' +
-      '<span class="pets-wallet__n">' + w.diamonds + '</span>' +
-      '<span class="pets-wallet__lbl">Pets Diamonds</span>' +
-    '</span>';
+    refreshHudChip();
+    return '';
   }
 
   function eventBannerHtml(withActions) {
@@ -1569,9 +1665,8 @@
             '<div class="eyebrow">Limited-time collab</div>' +
             '<h1>Pets</h1>' +
           '</div>' +
-          walletChipHtml() +
         '</div>' +
-        '<p>Meet your starter brainrots, open chests for more, unlock Silver/Golden mutations, customize looks, and trade in the marketplace.</p>' +
+        '<p>Meet your starter brainrots, open chests for more, unlock Silver/Golden mutations, customize looks, and trade in the marketplace. Pets Diamonds sit in the top bar beside shop diamonds.</p>' +
       '</div>' +
       noticeHtml() +
       '<div class="pets__banner">' + eventBannerHtml(false) + '</div>' +
@@ -1685,7 +1780,6 @@
           '</div>' +
         '</div>' +
         '<div class="pets-detail__panel">' +
-          walletChipHtml() +
           xpBarHtml(owned) +
           '<div class="pets-detail__bands" aria-label="Skin stage bands">' +
             '<span class="' + (stage === 'A' ? 'is-active' : '') + '">1–3 A</span>' +
@@ -2009,9 +2103,8 @@
             '<div class="eyebrow">Trade</div>' +
             '<h1>Marketplace</h1>' +
           '</div>' +
-          walletChipHtml() +
         '</div>' +
-        '<p>Browse high-level and mutated brainrots. Buy, list, or cancel — soft currency only, classroom-safe.</p>' +
+        '<p>Browse high-level and mutated brainrots. Buy, list, or cancel — soft currency only, classroom-safe. Balance is in the top bar.</p>' +
       '</div>' +
       '<div class="pets-market__filters" role="tablist" aria-label="Listing filters">' +
         '<button type="button" class="pets-chip' + (marketFilter === 'all' ? ' is-on' : '') +
@@ -2108,6 +2201,7 @@
     if (!el) return;
     var roster = ensureRoster();
     ensureWallet();
+    refreshHudChip();
     var name = screen.name || 'hub';
     if (name === 'detail') {
       el.innerHTML = renderDetail(roster, screen.instanceId);
@@ -2244,6 +2338,10 @@
     listPet: listPet,
     buyListing: buyListing,
     cancelListing: cancelListing,
+    /* LEA-22 — HUD + Administrator */
+    refreshHudChip: refreshHudChip,
+    adminAdjustWallet: adminAdjustWallet,
+    viewerAccountId: viewerAccountId,
     /* test / ops helpers */
     _dismissKey: DISMISS_KEY,
     _rosterKey: ROSTER_KEY,
@@ -2253,6 +2351,8 @@
     _ensureRoster: ensureRoster,
     _ensureWallet: ensureWallet,
     _ensureMarket: ensureMarket,
+    _setDiamonds: setDiamonds,
+    _adjustDiamonds: adjustDiamonds,
     _readDismissed: readDismissed,
     _readDesigns: readDesigns,
     _updateDesignStatus: updateDesignStatus,

@@ -173,6 +173,7 @@
       if (!act) return;
       var d = act.dataset;
       if (d.do === 'gems')  return gems(d.delta ? { delta: +d.delta } : { set: +d.set }, d.label || '');
+      if (d.do === 'petsgems') return petsGems(d.delta ? { delta: +d.delta } : { set: +d.set }, d.label || '');
       if (d.do === 'staff') return setStaff(d.on === '1');
       if (d.do === 'allow') return setAllow(d.on === '1');
       if (d.do === 'selfstaff') return selfStaff(d.on === '1');
@@ -730,7 +731,8 @@
             return '<button class="btn btn--sm" data-do="gems" data-delta="' + n +
               '" data-label="gave ' + n + '">+' + num(n) + '</button>';
           }).join('') +
-        '</div>';
+        '</div>' +
+        petsDiamondsBlock(picked);
     }
 
     var marks = '';
@@ -829,7 +831,8 @@
             return '<button class="btn btn--sm" data-do="gems" data-delta="' + n +
               '" data-label="gave ' + n + '">+' + num(n) + '</button>';
           }).join('') +
-        '</div>';
+        '</div>' +
+        petsDiamondsBlock(picked);
     }
 
     if (section === 'messages' && can('messages')) {
@@ -990,6 +993,68 @@
         refreshLog();
       });
     });
+  }
+
+  /* Pets Diamonds (LEA-22). Soft collab currency keyed by account id in
+     learngeo.pets.wallet.v0 on this device. Not cloud-synced yet — see
+     petsDiamondsBlock note. Same UltraAdmin gate as the rest of this page
+     (owner alexjschendel@gmail.com retains access via the allowlist). */
+  function petsBalanceFor(accountId) {
+    if (!global.Pets || !global.Pets._ensureWallet) return 0;
+    try { return global.Pets._ensureWallet(accountId).diamonds; }
+    catch (e) { return 0; }
+  }
+
+  function petsDiamondsBlock(who) {
+    var bal = petsBalanceFor(who.id);
+    var PETS_TAKE = [20, 100, 320, 1000];
+    return '<div class="adminp__act adminp__act--pets">' +
+        '<span class="eyebrow">Pets Diamonds</span>' +
+        '<div class="adminp__bal adminp__bal--inline"><b class="mono">' + num(bal) +
+          '</b><span>pets ◆</span></div>' +
+      '</div>' +
+      '<div class="adminp__act adminp__act--pets-ops">' +
+        '<span class="eyebrow">Pets take</span>' +
+        PETS_TAKE.map(function (n) {
+          return '<button class="btn btn--sm adminp__danger" data-do="petsgems" data-delta="-' + n +
+            '" data-label="pets took ' + n + '">−' + num(n) + '</button>';
+        }).join('') +
+        '<button class="btn btn--sm adminp__danger" data-do="petsgems" data-set="0" data-label="pets emptied">Empty pets</button>' +
+      '</div>' +
+      '<div class="adminp__act adminp__act--pets-ops">' +
+        '<span class="eyebrow">Pets give</span>' +
+        PETS_TAKE.map(function (n) {
+          return '<button class="btn btn--sm" data-do="petsgems" data-delta="' + n +
+            '" data-label="pets gave ' + n + '">+' + num(n) + '</button>';
+        }).join('') +
+      '</div>' +
+      '<p class="t-sm t-muted" style="margin:0 0 12px">Pets Diamonds are stored per account id on this ' +
+        'admin device (<code>learngeo.pets.wallet.v0</code>). If the selected account is signed in here, ' +
+        'the top-bar chip updates live. <b>Gap:</b> unlike shop diamonds, there is no Supabase sync yet — ' +
+        'another browser will not see this adjust until a cloud pets wallet ships. Commands: ' +
+        '<code>pets give|take|set|empty|who</code>.</p>';
+  }
+
+  function petsGems(opts, label) {
+    if (!can('gems')) return say('Gems commands are not granted to you.');
+    if (!needPicked()) return;
+    if (!global.Pets || !global.Pets.adminAdjustWallet) {
+      return say('Pets wallet is not loaded on this page.');
+    }
+    var r = global.Pets.adminAdjustWallet(picked.id, {
+      delta: opts.delta,
+      set: opts.set
+    });
+    if (!r || !r.ok) return say((r && r.error) || 'Could not change Pets Diamonds.');
+    if (section === 'accounts') renderPicked();
+    if (section === 'gems') renderPickedMini();
+    say(esc(picked.display_name) + ' pets ◆: ' + num(r.before) + ' → ' + num(r.diamonds) +
+      ' (' + (r.diamonds - r.before >= 0 ? '+' : '') + num(r.diamonds - r.before) + ')' +
+      (label ? ' — ' + label : '') +
+      (r.live ? '' : ' · stored on this device only (not cloud-synced yet)'));
+    W.toast('Pets Diamonds',
+      (picked.display_name || 'That account') + ' now has ' + num(r.diamonds) + ' ◆',
+      I.gem, 3600);
   }
 
   function overrideGems(amount) {
@@ -1279,7 +1344,12 @@
         'give <n>           give n diamonds',
         'set <n>            set the balance to exactly n',
         'empty              set the balance to 0',
-        'override set <n>   set diamonds past the ' + num(CAP) + ' cap, up to ' + num(MAX_SAFE)
+        'override set <n>   set diamonds past the ' + num(CAP) + ' cap, up to ' + num(MAX_SAFE),
+        'pets take <n>      take n Pets Diamonds (per-account local wallet)',
+        'pets give <n>      give n Pets Diamonds',
+        'pets set <n>       set Pets Diamonds to exactly n',
+        'pets empty         set Pets Diamonds to 0',
+        'pets who           show selected account Pets Diamonds'
       ]);
     }
     if (can('staff')) lines.push('staff on|off       grant or remove the staff effect');
@@ -1341,9 +1411,39 @@
     if (cmd === 'who') {
       return say(picked
         ? picked.display_name + '  <' + (picked.email || 'no email') + '>  ' +
-          num(picked.diamonds) + ' diamonds, level ' + num(picked.level) +
+          num(picked.diamonds) + ' diamonds, ' +
+          num(petsBalanceFor(picked.id)) + ' pets ◆, level ' + num(picked.level) +
           (picked.staff ? ', staff' : '')
         : 'Nothing selected.');
+    }
+    if (cmd === 'pets') {
+      if (!can('gems') && (bits[0] || '').toLowerCase() !== 'who') {
+        return say('Gems commands are not granted to you.');
+      }
+      var sub = (bits[0] || '').toLowerCase();
+      var petsRest = bits.slice(1).join(' ');
+      var petsN = petsRest === '' ? NaN : Number(petsRest.replace(/,/g, ''));
+      if (!Number.isInteger(petsN)) petsN = NaN;
+      if (sub === 'who') {
+        return say(picked
+          ? picked.display_name + ' has ' + num(petsBalanceFor(picked.id)) +
+            ' Pets Diamonds (device-local until cloud sync).'
+          : 'Nothing selected.');
+      }
+      if (sub === 'empty') return petsGems({ set: 0 }, 'pets emptied');
+      if (sub === 'take') {
+        return isNaN(petsN) ? say('Try "pets take 100".')
+          : petsGems({ delta: -Math.abs(petsN) }, 'pets took ' + Math.abs(petsN));
+      }
+      if (sub === 'give') {
+        return isNaN(petsN) ? say('Try "pets give 100".')
+          : petsGems({ delta: Math.abs(petsN) }, 'pets gave ' + Math.abs(petsN));
+      }
+      if (sub === 'set') {
+        return isNaN(petsN) ? say('Try "pets set 320".')
+          : petsGems({ set: Math.max(0, petsN) }, 'pets set to ' + Math.max(0, petsN));
+      }
+      return say('pets take|give|set|empty|who — type help.');
     }
     if (cmd === 'take')  return isNaN(n) ? say(bad) : gems({ delta: -Math.abs(n) }, 'took ' + Math.abs(n));
     if (cmd === 'give')  return isNaN(n) ? say(bad) : gems({ delta:  Math.abs(n) }, 'gave ' + Math.abs(n));

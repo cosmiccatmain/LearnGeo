@@ -220,12 +220,22 @@
 .adminp__bal { text-align: right; }
 .adminp__bal b { font-size: 19px; display: block; }
 .adminp__bal span { font-size: 11px; color: var(--faint); }
+.adminp__bal--inline {
+  text-align: left;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.adminp__bal--inline b { display: inline; font-size: 15px; }
 
 .adminp__act {
   display: flex; align-items: center; gap: 7px;
   flex-wrap: wrap; margin-bottom: 9px;
 }
 .adminp__act .eyebrow { width: 52px; flex: none; }
+/* Pets Diamonds labels are longer than Take / Give. */
+.adminp__act--pets .eyebrow,
+.adminp__act--pets-ops .eyebrow { width: 78px; }
 
 .adminp__danger:not(.btn--primary) {
   border-color: #FBD5D5; color: #9B1C1C; background: var(--danger-soft);
