@@ -15,7 +15,6 @@
   position: absolute; bottom: 15px; color: #fff8e2; font-size: 11px; letter-spacing: .08em;
   background: #172e2bd9; padding: 5px 10px; border-radius: 20px;
 }
-[data-level].game-seg { flex-direction: column; }
 .chess-game { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(260px, 1fr); gap: 24px; align-items: start; }
 .chess-main, .chess-side { min-width: 0; }
 .chess-side { display: grid; gap: 16px; }

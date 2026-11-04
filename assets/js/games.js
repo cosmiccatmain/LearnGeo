@@ -20,6 +20,15 @@
   var TARGETS = [['countries', 'Countries'], ['capitals', 'Capitals'], ['mix', 'Mix']];
   var HOLES = [['6', '6 holes'], ['9', '9 holes'], ['18', '18 holes']];
   var LEVELS = [['1', 'Level 1 difficulty'], ['2', 'Level 2 difficulty'], ['3', 'Level 3 difficulty'], ['4', 'Level 4 difficulty'], ['5', 'Level 5 difficulty']];
+  /* Named rungs for the shared DifficultySlider (values stay 1–5). */
+  var CHESS_DIFF = [
+    { value: 1, name: 'Beginner', blurb: 'Plays random legal moves' },
+    { value: 2, name: 'Easy', blurb: 'Mostly random, with occasional stronger moves' },
+    { value: 3, name: 'Intermediate', blurb: 'A gentle Stockfish opponent' },
+    { value: 4, name: 'Advanced', blurb: 'A sharper Stockfish opponent' },
+    { value: 5, name: 'Expert', blurb: 'The strongest Stockfish opponent' }
+  ];
+  var CHESS_DIFF_HINT = 'Level 1 plays random legal moves. Level 2 plays mostly random moves. Levels 3–5 use increasingly strong Stockfish opponents.';
   /* the ten added alongside the first five */
   var ROWS_ = [['2', '2 rows'], ['3', '3 rows'], ['4', '4 rows']];
   var RATES_ = [['calm', 'Calm'], ['brisk', 'Brisk'], ['frantic', 'Frantic']];
@@ -38,15 +47,30 @@
       keys: [[['Click / tap'], 'a piece, then its destination'], [['Arrow keys'], 'explore the board; Enter or Space selects a square']],
       filters: { title: 'Chess question filters', heading: 'Move questions', typed: true },
       side: function (r) {
-        return '<div class="panel"><div class="panel__head"><h3>Difficulty</h3></div>' +
-          segHtml('level', LEVELS, pick(LEVELS, String(r.level), '1')) +
-          '<p class="field__hint">Level 1 plays random legal moves. Level 2 plays mostly random moves. Levels 3–5 use increasingly strong Stockfish opponents.</p></div>' +
+        var level = +pick(LEVELS, String(r.level), '1');
+        var slider = global.DifficultySlider
+          ? global.DifficultySlider.html({
+              name: 'level',
+              value: level,
+              levels: CHESS_DIFF,
+              ends: ['Beginner', 'Expert +'],
+              hint: CHESS_DIFF_HINT
+            })
+          : segHtml('level', LEVELS, String(level));
+        return '<div class="panel">' + slider + '</div>' +
           '<div class="panel"><div class="panel__head"><h3>Questions</h3></div>' +
           segHtml('kind', KINDS, kind_(r)) + '</div>' +
           stats([[r.wins || 0, 'Wins'], [r.draws || 0, 'Draws'], [r.completed || 0, 'Finished games']]);
       },
       wire: function (el, r) {
-        seg(el, '[data-level]', function (v) { r.level = +v; });
+        if (global.DifficultySlider) {
+          global.DifficultySlider.wire(el, {
+            levels: CHESS_DIFF,
+            onChange: function (v) { r.level = +v; W.save(); }
+          });
+        } else {
+          seg(el, '[data-level]', function (v) { r.level = +v; });
+        }
         seg(el, '[data-kind]', function (v) { r.kind = v; });
       },
       mount: function (stage, r) {
