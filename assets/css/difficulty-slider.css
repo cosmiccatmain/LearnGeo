@@ -1,0 +1,214 @@
+/* Shared difficulty slider — progressive fill, white thumb.
+   Nebula/galaxy fill only at the maximum step. Thumb motion is
+   continuous; discrete levels commit on release (see JS). */
+
+.diff-slider {
+  --diff-purple: #7c3aed;
+  --diff-purple-deep: #4c1d95;
+  --diff-lilac: #c4b5fd;
+  --pct: 0%;
+  display: grid;
+  gap: 14px;
+}
+
+.diff-slider__label {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: -.01em;
+  color: var(--ink);
+}
+
+.diff-slider__status { min-width: 0; }
+
+.diff-slider__name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 1.15em;
+}
+
+.diff-slider__name {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -.03em;
+  line-height: 1.15;
+  color: var(--diff-purple);
+}
+
+.diff-slider__spark {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  color: var(--diff-purple);
+  opacity: .35;
+  transition: opacity .18s ease;
+}
+
+.diff-slider.is-max .diff-slider__spark { opacity: 1; }
+
+.diff-slider__blurb {
+  margin: 6px 0 0;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+.diff-slider__control { display: grid; gap: 8px; }
+
+.diff-slider__track {
+  position: relative;
+  height: 36px;
+  border-radius: 999px;
+  border: 1.5px solid #ddd6fe;
+  background: linear-gradient(180deg, #f3f0ff 0%, #ebe4ff 100%);
+  box-shadow: inset 0 1px 2px rgba(76, 29, 149, .06);
+  overflow: hidden;
+}
+
+.diff-slider__fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: var(--pct);
+  min-width: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  /* Plain fill for every non-max position — no stars, streaks, or nebula. */
+  background: linear-gradient(90deg, #a78bfa 0%, #8b5cf6 55%, #7c3aed 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .28);
+}
+
+/* Galaxy look only when the committed/nearest value is the max step. */
+.diff-slider.is-max .diff-slider__fill {
+  border: 0;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .18);
+  background:
+    radial-gradient(1.5px 1.5px at 12% 38%, rgba(255, 255, 255, .95) 50%, transparent 52%),
+    radial-gradient(1.2px 1.2px at 28% 62%, rgba(255, 255, 255, .75) 50%, transparent 52%),
+    radial-gradient(1.4px 1.4px at 46% 28%, rgba(255, 255, 255, .9) 50%, transparent 52%),
+    radial-gradient(1px 1px at 61% 70%, rgba(255, 255, 255, .7) 50%, transparent 52%),
+    radial-gradient(1.6px 1.6px at 78% 42%, rgba(255, 255, 255, .95) 50%, transparent 52%),
+    radial-gradient(1.1px 1.1px at 88% 64%, rgba(255, 255, 255, .65) 50%, transparent 52%),
+    radial-gradient(1.3px 1.3px at 34% 48%, rgba(255, 255, 255, .55) 50%, transparent 52%),
+    linear-gradient(105deg,
+      transparent 0%,
+      rgba(255, 190, 220, .22) 18%,
+      transparent 32%,
+      transparent 48%,
+      rgba(255, 220, 245, .28) 58%,
+      transparent 72%,
+      rgba(200, 220, 255, .18) 84%,
+      transparent 100%),
+    radial-gradient(120% 90% at 18% 50%, #a855f7 0%, transparent 55%),
+    radial-gradient(90% 110% at 72% 40%, #6366f1 0%, transparent 58%),
+    radial-gradient(80% 100% at 92% 70%, #db2777 0%, transparent 50%),
+    linear-gradient(90deg, #2e1065 0%, #4c1d95 28%, #3730a3 58%, #5b21b6 78%, #312e81 100%);
+}
+
+.diff-slider.is-max .diff-slider__track {
+  border-color: #d4c4f7;
+}
+
+.diff-slider__input {
+  -webkit-appearance: none;
+  appearance: none;
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+  outline: none;
+}
+
+.diff-slider__input:focus-visible {
+  outline: none;
+}
+
+.diff-slider__track:has(.diff-slider__input:focus-visible) {
+  box-shadow:
+    inset 0 1px 2px rgba(76, 29, 149, .06),
+    0 0 0 3px rgba(124, 58, 237, .28);
+}
+
+.diff-slider__input::-webkit-slider-runnable-track {
+  height: 36px;
+  background: transparent;
+  border: 0;
+}
+
+.diff-slider__input::-moz-range-track {
+  height: 36px;
+  background: transparent;
+  border: 0;
+}
+
+.diff-slider__input::-moz-range-progress {
+  background: transparent;
+  height: 36px;
+  border: 0;
+}
+
+.diff-slider__input::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 28px;
+  height: 28px;
+  margin-top: 4px;
+  border-radius: 50%;
+  border: 0;
+  background: #fff;
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, .18),
+    0 6px 14px rgba(15, 23, 42, .22);
+  cursor: grab;
+  /* Avoid layout “tick” feel; thumb follows the continuous value. */
+  transition: none;
+}
+
+.diff-slider__input::-moz-range-thumb {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 0;
+  background: #fff;
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, .18),
+    0 6px 14px rgba(15, 23, 42, .22);
+  cursor: grab;
+  transition: none;
+}
+
+.diff-slider__input:active::-webkit-slider-thumb { cursor: grabbing; }
+.diff-slider__input:active::-moz-range-thumb { cursor: grabbing; }
+
+.diff-slider__ends {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12.5px;
+  font-weight: 520;
+  color: var(--muted);
+}
+
+.diff-slider__hint {
+  margin: 2px 0 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--faint);
+}
+
+@media (max-width: 480px) {
+  .diff-slider__name { font-size: 24px; }
+  .diff-slider__track { height: 32px; }
+  .diff-slider__input::-webkit-slider-runnable-track { height: 32px; }
+  .diff-slider__input::-moz-range-track { height: 32px; }
+  .diff-slider__input::-webkit-slider-thumb {
+    width: 24px; height: 24px; margin-top: 4px;
+  }
+  .diff-slider__input::-moz-range-thumb { width: 24px; height: 24px; }
+}
