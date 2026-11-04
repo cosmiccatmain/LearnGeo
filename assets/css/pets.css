@@ -30,6 +30,17 @@
   --pets-btn-hover: #4a3299;
   --pets-silver: #c5d0dc;
   --pets-silver-deep: #8a97a8;
+  /* Rarity ladder colors (LEA-17) — cue the subtitle, not a neon slab. */
+  --pets-rarity-common: #5b6578;
+  --pets-rarity-common-soft: rgba(91, 101, 120, .72);
+  --pets-rarity-rare: #3b6fd9;
+  --pets-rarity-rare-soft: rgba(90, 140, 220, .72);
+  --pets-rarity-epic: #8b4fd9;
+  --pets-rarity-epic-soft: rgba(150, 100, 220, .72);
+  --pets-rarity-legendary: #c48912;
+  --pets-rarity-legendary-soft: rgba(200, 150, 40, .78);
+  --pets-rarity-mythical: #d23f9a;
+  --pets-rarity-mythical-soft: rgba(210, 80, 170, .75);
 }
 
 .pets__head { margin-bottom: 22px; }
@@ -45,66 +56,105 @@
   max-width: 60ch;
 }
 
-/* ------------------------- event banner / popup card -------------- */
+/* ------------------------- event / product-update card ------------ */
+/* LEA-17: real update card — hero picture on top, update copy under it.
+   Drop the heavy purple gradient slab for login / homescreen announce. */
 .pets-event {
   position: relative;
-  border-radius: 28px;
-  padding: 28px 28px 26px;
-  background: var(--pets-event);
-  border: 1.5px solid rgba(255, 255, 255, .22);
-  box-shadow: var(--pets-shadow);
-  color: #fff;
-  text-align: center;
+  border-radius: 22px;
+  padding: 0;
+  background: #f7f8fb;
+  border: 1.5px solid rgba(30, 40, 70, .12);
+  box-shadow: 0 16px 40px rgba(20, 24, 40, .14);
+  color: #12141a;
+  text-align: left;
   overflow: hidden;
   isolation: isolate;
 }
 .pets-event::before { display: none; }
+.pets-event--update {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+.pets-event__media {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 7;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, .2), transparent 40%),
+    linear-gradient(120deg, #d9f4ff 0%, #e8f8d8 48%, #fff3b0 100%);
+  overflow: hidden;
+  border-bottom: 1px solid rgba(30, 40, 70, .08);
+}
+.pets-event__img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center bottom;
+}
+.pets-event__body {
+  position: relative;
+  padding: 18px 20px 20px;
+}
+.pets-event__eyebrow {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: #5b6578;
+  margin: 0 0 8px;
+}
 .pets-event__title {
   position: relative;
-  font-size: clamp(20px, 3.2vw, 28px);
+  font-size: clamp(18px, 2.8vw, 24px);
   font-weight: 800;
   letter-spacing: -.02em;
   line-height: 1.2;
   margin: 0;
-  color: #fff;
+  color: #12141a;
+}
+.pets-event__desc {
+  margin: 10px 0 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #3a4254;
+  max-width: 54ch;
 }
 .pets-event__sub {
-  position: relative;
-  display: inline-block;
-  margin-top: 10px;
-  font-size: clamp(14px, 2vw, 17px);
-  font-weight: 700;
-  letter-spacing: .01em;
-  color: #7cf0ff;
+  /* legacy hook — update card uses __desc instead */
+  display: none;
 }
 .pets-event__actions {
   position: relative;
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
-  justify-content: center;
-  margin-top: 20px;
+  justify-content: flex-start;
+  margin-top: 16px;
 }
 .pets-event__actions .btn--pets-primary {
-  background: #fff;
-  color: #2a1a5e;
+  background: linear-gradient(165deg, var(--pets-event-mid), var(--pets-event-to));
+  color: #fff;
   border: none;
   font-weight: 700;
 }
 .pets-event__actions .btn--pets-primary:hover {
-  background: #f0f4ff;
+  filter: brightness(1.06);
 }
 .pets-event__actions .btn--pets-ghost {
   background: transparent;
-  color: rgba(255, 255, 255, .88);
-  border: 1px solid rgba(255, 255, 255, .35);
+  color: #3a4254;
+  border: 1px solid rgba(30, 40, 70, .22);
 }
 .pets-event__actions .btn--pets-ghost:hover {
-  background: rgba(255, 255, 255, .08);
-  color: #fff;
+  background: rgba(30, 40, 70, .05);
+  color: #12141a;
 }
 
 .pets__banner { margin-bottom: 22px; }
+.pets__banner .pets-event { max-width: 720px; }
 
 /* --------------------------- roster grid -------------------------- */
 .pets__toolbar {
@@ -508,8 +558,38 @@
   font-weight: 700;
   letter-spacing: .02em;
 }
-.pets-card__rarity-soft { color: var(--pets-blue-soft); }
-.pets-card__rarity-strong { color: var(--pets-blue); }
+.pets-card__rarity-soft { color: var(--pets-rarity-rare-soft); }
+.pets-card__rarity-strong { color: var(--pets-rarity-rare); }
+
+.pets-card__rarity--common .pets-card__rarity-soft { color: var(--pets-rarity-common-soft); }
+.pets-card__rarity--common .pets-card__rarity-strong { color: var(--pets-rarity-common); }
+.pets-card__rarity--rare .pets-card__rarity-soft { color: var(--pets-rarity-rare-soft); }
+.pets-card__rarity--rare .pets-card__rarity-strong { color: var(--pets-rarity-rare); }
+.pets-card__rarity--epic .pets-card__rarity-soft { color: var(--pets-rarity-epic-soft); }
+.pets-card__rarity--epic .pets-card__rarity-strong { color: var(--pets-rarity-epic); }
+.pets-card__rarity--legendary .pets-card__rarity-soft { color: var(--pets-rarity-legendary-soft); }
+.pets-card__rarity--legendary .pets-card__rarity-strong { color: var(--pets-rarity-legendary); }
+.pets-card__rarity--mythical .pets-card__rarity-soft { color: var(--pets-rarity-mythical-soft); }
+.pets-card__rarity--mythical .pets-card__rarity-strong { color: var(--pets-rarity-mythical); }
+
+/* Subtle square edge cue by tier — keep Blox Fruits card shape. */
+.pets-card--tier-common { box-shadow: 0 8px 22px rgba(30, 80, 60, .16), inset 0 0 0 1.5px rgba(91, 101, 120, .28); }
+.pets-card--tier-rare { box-shadow: 0 8px 22px rgba(30, 80, 60, .16), inset 0 0 0 1.5px rgba(59, 111, 217, .35); }
+.pets-card--tier-epic { box-shadow: 0 8px 22px rgba(30, 80, 60, .16), inset 0 0 0 1.5px rgba(139, 79, 217, .4); }
+.pets-card--tier-legendary { box-shadow: 0 8px 22px rgba(30, 80, 60, .16), inset 0 0 0 1.5px rgba(196, 137, 18, .45); }
+.pets-card--tier-mythical { box-shadow: 0 8px 22px rgba(30, 80, 60, .18), inset 0 0 0 2px rgba(210, 63, 154, .42); }
+
+.pets-mcard--tier-common { border-color: rgba(91, 101, 120, .28); }
+.pets-mcard--tier-rare { border-color: rgba(59, 111, 217, .35); }
+.pets-mcard--tier-epic { border-color: rgba(139, 79, 217, .4); }
+.pets-mcard--tier-legendary { border-color: rgba(196, 137, 18, .45); }
+.pets-mcard--tier-mythical { border-color: rgba(210, 63, 154, .42); }
+
+.pets-chip--rarity-common.is-on { box-shadow: inset 0 0 0 1.5px var(--pets-rarity-common); }
+.pets-chip--rarity-rare.is-on { box-shadow: inset 0 0 0 1.5px var(--pets-rarity-rare); }
+.pets-chip--rarity-epic.is-on { box-shadow: inset 0 0 0 1.5px var(--pets-rarity-epic); }
+.pets-chip--rarity-legendary.is-on { box-shadow: inset 0 0 0 1.5px var(--pets-rarity-legendary); }
+.pets-chip--rarity-mythical.is-on { box-shadow: inset 0 0 0 1.5px var(--pets-rarity-mythical); }
 
 .pets-card__meta {
   position: relative;
@@ -587,6 +667,11 @@
   flex-direction: column;
   align-items: center;
 }
+.pets-detail__hero--tier-common { box-shadow: 0 10px 28px rgba(30, 80, 60, .18), inset 0 0 0 1.5px rgba(91, 101, 120, .28); }
+.pets-detail__hero--tier-rare { box-shadow: 0 10px 28px rgba(30, 80, 60, .18), inset 0 0 0 1.5px rgba(59, 111, 217, .35); }
+.pets-detail__hero--tier-epic { box-shadow: 0 10px 28px rgba(30, 80, 60, .18), inset 0 0 0 1.5px rgba(139, 79, 217, .4); }
+.pets-detail__hero--tier-legendary { box-shadow: 0 10px 28px rgba(30, 80, 60, .18), inset 0 0 0 1.5px rgba(196, 137, 18, .45); }
+.pets-detail__hero--tier-mythical { box-shadow: 0 10px 28px rgba(30, 80, 60, .2), inset 0 0 0 2px rgba(210, 63, 154, .42); }
 .pets-detail__name {
   position: relative;
   font-size: clamp(22px, 3.4vw, 30px);
@@ -715,12 +800,12 @@
 @keyframes pets-fade { from { opacity: 0; } }
 .pets-event-overlay .pets-event {
   width: 100%;
-  max-width: 440px;
-  min-height: 200px;
+  max-width: 460px;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  align-items: stretch;
+  justify-content: flex-start;
   animation: pets-rise .24s ease;
 }
 @keyframes pets-rise {
@@ -728,22 +813,23 @@
 }
 .pets-event__close {
   position: absolute;
-  top: 12px;
-  right: 12px;
+  top: 10px;
+  right: 10px;
   width: 32px;
   height: 32px;
   border-radius: 10px;
   display: grid;
   place-items: center;
-  color: rgba(255, 255, 255, .7);
-  background: transparent;
-  border: none;
+  color: #3a4254;
+  background: rgba(255, 255, 255, .82);
+  border: 1px solid rgba(30, 40, 70, .12);
   cursor: pointer;
-  z-index: 1;
+  z-index: 2;
+  box-shadow: 0 2px 8px rgba(20, 24, 40, .12);
 }
 .pets-event__close:hover {
-  background: rgba(255, 255, 255, .12);
-  color: #fff;
+  background: #fff;
+  color: #12141a;
 }
 
 /* ------------------------- LEA-15 customize / UGC ----------------- */
@@ -1910,7 +1996,9 @@
 }
 
 @media (max-width: 560px) {
-  .pets-event { border-radius: 22px; padding: 24px 18px 22px; }
+  .pets-event { border-radius: 18px; }
+  .pets-event__body { padding: 16px 16px 18px; }
+  .pets-event__media { aspect-ratio: 16 / 8; }
   .pets-card { border-radius: 22px; min-height: 170px; }
   .pets-detail__hero { border-radius: 22px; padding: 22px 16px 20px; }
   .pets-locker__stage,
