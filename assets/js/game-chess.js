@@ -12,6 +12,15 @@ const LEVELS = {
 const GLYPHS = { k: '♚', q: '♛', r: '♜', b: '♝', n: '♞', p: '♟' };
 const NAMES = { k: 'king', q: 'queen', r: 'rook', b: 'bishop', n: 'knight', p: 'pawn' };
 const ENGINE = new URL('../vendor/stockfish/stockfish-17.1-lite-single-03e3232.js', import.meta.url);
+const MOVE_MS = 220;
+const CASTLE_ROOK = {
+  e1g1: ['h1', 'f1'], e1c1: ['a1', 'd1'],
+  e8g8: ['h8', 'f8'], e8c8: ['a8', 'd8']
+};
+
+function reduceMotion() {
+  return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
 
 function mount(host, opts) {
   const W = window.WW, esc = W.escapeHtml;
@@ -23,6 +32,8 @@ function mount(host, opts) {
   let selected = null, promotion = null, lastMove = null, unlocked = false;
   let question = null, feedback = null, answered = false, recent = [];
   let result = '', correctCount = 0, askedCount = 0;
+  let hideSquares = Object.create(null);
+  let animToken = 0;
 
   host.innerHTML = '<section class="chess-game" aria-label="Geo Chess">' +
     '<div class="chess-main"><div class="chess-heading"><div><span class="eyebrow">You play White</span>' +
@@ -47,6 +58,40 @@ function mount(host, opts) {
 
   function canMove() { return ready && !engineError && !thinking && !ended && unlocked && chess.turn() === 'w'; }
 
+  function clearFx() {
+    animToken++;
+    hideSquares = Object.create(null);
+    board.querySelectorAll('.chess-flyer, .chess-capture-ghost').forEach(function (el) { el.remove(); });
+    board.querySelectorAll('.is-capture-flash').forEach(function (el) { el.classList.remove('is-capture-flash'); });
+  }
+
+  function checkedKingSquare() {
+    if (!chess.isCheck()) return null;
+    const color = chess.turn();
+    for (let rank = 0; rank < 8; rank++) {
+      for (let file = 0; file < 8; file++) {
+        const piece = chess.board()[rank][file];
+        if (piece && piece.type === 'k' && piece.color === color) return 'abcdefgh'[file] + (8 - rank);
+      }
+    }
+    return null;
+  }
+
+  function ensureBoard() {
+    if (board.querySelectorAll('.chess-square').length === 64) return;
+    let html = '';
+    for (let rank = 0; rank < 8; rank++) {
+      for (let file = 0; file < 8; file++) {
+        const square = 'abcdefgh'[file] + (8 - rank);
+        html += '<button type="button" class="chess-square ' + ((rank + file) % 2 ? 'chess-square--dark' : 'chess-square--light') +
+          '" data-square="' + square + '" tabindex="-1">' +
+          '<span class="chess-piece" aria-hidden="true"></span>' +
+          '<span class="chess-coordinate" aria-hidden="true">' + square + '</span></button>';
+      }
+    }
+    board.innerHTML = html;
+  }
+
   function draw() {
     if (disposed) return;
     status.textContent = engineError ? 'Opponent unavailable. Retry to continue this position.' :
@@ -54,28 +99,129 @@ function mount(host, opts) {
       (chess.isCheck() ? 'You are in check. ' : '') + (unlocked ? 'Your move. Select a white piece.' : 'Answer a question to unlock your move.');
     const focused = board.contains(document.activeElement) ? document.activeElement.dataset.square : null;
     const legal = selected && canMove() ? chess.moves({ square: selected, verbose: true }) : [];
-    board.innerHTML = chess.board().map(function (row, rank) {
-      return row.map(function (piece, file) {
+    const checkSq = checkedKingSquare();
+    ensureBoard();
+    chess.board().forEach(function (row, rank) {
+      row.forEach(function (piece, file) {
         const square = 'abcdefgh'[file] + (8 - rank);
+        const btn = board.querySelector('[data-square="' + square + '"]');
         const destination = legal.some(m => m.to === square);
         const label = square + ': ' + (piece ? (piece.color === 'w' ? 'White ' : 'Black ') + NAMES[piece.type] : 'empty') +
-          (destination ? ', legal destination' : '');
-        return '<button type="button" class="chess-square ' + ((rank + file) % 2 ? 'chess-square--dark' : 'chess-square--light') +
+          (destination ? ', legal destination' : '') + (checkSq === square ? ', check' : '');
+        btn.className = 'chess-square ' + ((rank + file) % 2 ? 'chess-square--dark' : 'chess-square--light') +
           (piece ? ' chess-piece--' + piece.color : '') + (selected === square ? ' is-selected' : '') +
           (destination ? ' is-legal' : '') + (lastMove && (lastMove.from === square || lastMove.to === square) ? ' is-last' : '') +
-          '" data-square="' + square + '" aria-label="' + label + '" aria-pressed="' + (selected === square) +
-          '" aria-disabled="' + (!canMove() || !!promotion) + '" tabindex="' + (square === (focused || 'e2') ? 0 : -1) + '">' +
-          '<span class="chess-piece" aria-hidden="true">' + (piece ? GLYPHS[piece.type] : '') + '</span>' +
-          '<span class="chess-coordinate" aria-hidden="true">' + square + '</span></button>';
-      }).join('');
-    }).join('');
-    if (focused) board.querySelector('[data-square="' + focused + '"]').focus({ preventScroll: true });
+          (checkSq === square ? ' is-check' : '');
+        btn.setAttribute('aria-label', label);
+        btn.setAttribute('aria-pressed', selected === square ? 'true' : 'false');
+        btn.setAttribute('aria-disabled', (!canMove() || !!promotion) ? 'true' : 'false');
+        btn.tabIndex = square === (focused || 'e2') ? 0 : -1;
+        const glyph = btn.querySelector('.chess-piece');
+        glyph.textContent = piece ? GLYPHS[piece.type] : '';
+        glyph.classList.toggle('is-hidden', !!hideSquares[square]);
+      });
+    });
+    if (focused) {
+      const focusBtn = board.querySelector('[data-square="' + focused + '"]');
+      if (focusBtn) focusBtn.focus({ preventScroll: true });
+    }
     root.querySelector('[data-moves]').textContent = chess.history().map(function (move, i) {
       return (i % 2 === 0 ? (Math.floor(i / 2) + 1) + '. ' : '') + move;
     }).join(' ') || 'No moves yet.';
     root.querySelector('[data-resign]').disabled = ended || !chess.history().length;
     drawPromotion();
     drawQuestion();
+  }
+
+  function squareOffset(square) {
+    const btn = board.querySelector('[data-square="' + square + '"]');
+    if (!btn) return null;
+    const boardRect = board.getBoundingClientRect();
+    const rect = btn.getBoundingClientRect();
+    return {
+      left: rect.left - boardRect.left,
+      top: rect.top - boardRect.top,
+      width: rect.width,
+      height: rect.height
+    };
+  }
+
+  function placeOverlay(className, square, color, type) {
+    const box = squareOffset(square);
+    if (!box) return null;
+    const el = document.createElement('span');
+    el.className = className + ' chess-flyer--' + color;
+    el.style.left = box.left + 'px';
+    el.style.top = box.top + 'px';
+    el.style.width = box.width + 'px';
+    el.style.height = box.height + 'px';
+    el.innerHTML = '<span class="chess-piece" aria-hidden="true">' + GLYPHS[type] + '</span>';
+    board.appendChild(el);
+    return { el: el, box: box };
+  }
+
+  function animateMove(move, done) {
+    const finish = typeof done === 'function' ? done : function () {};
+    clearFx();
+    if (!move || reduceMotion()) {
+      draw();
+      finish();
+      return;
+    }
+    const token = animToken;
+    const pieceType = move.promotion || move.piece;
+    hideSquares[move.from] = true;
+    hideSquares[move.to] = true;
+    let captureSq = null;
+    if (move.captured) {
+      captureSq = move.flags && move.flags.indexOf('e') !== -1 ? move.to[0] + move.from[1] : move.to;
+      hideSquares[captureSq] = true;
+    }
+    let rook = null;
+    if (move.flags && (move.flags.indexOf('k') !== -1 || move.flags.indexOf('q') !== -1)) {
+      rook = CASTLE_ROOK[move.from + move.to];
+      if (rook) {
+        hideSquares[rook[0]] = true;
+        hideSquares[rook[1]] = true;
+      }
+    }
+    draw();
+    if (captureSq) {
+      const capBtn = board.querySelector('[data-square="' + captureSq + '"]');
+      if (capBtn) {
+        capBtn.classList.add('is-capture-flash');
+        placeOverlay('chess-capture-ghost', captureSq, move.color === 'w' ? 'b' : 'w', move.captured);
+      }
+    }
+    const flyer = placeOverlay('chess-flyer', move.from, move.color, pieceType);
+    const rookFlyer = rook ? placeOverlay('chess-flyer', rook[0], move.color, 'r') : null;
+    const toBox = squareOffset(move.to);
+    const rookTo = rook ? squareOffset(rook[1]) : null;
+    if (!flyer || !toBox) {
+      clearFx();
+      draw();
+      finish();
+      return;
+    }
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        if (disposed || token !== animToken) return;
+        flyer.el.style.transform = 'translate(' + (toBox.left - flyer.box.left) + 'px,' + (toBox.top - flyer.box.top) + 'px)';
+        if (rookFlyer && rookTo) {
+          rookFlyer.el.style.transform = 'translate(' + (rookTo.left - rookFlyer.box.left) + 'px,' + (rookTo.top - rookFlyer.box.top) + 'px)';
+        }
+      });
+    });
+    let settled = false;
+    function settle() {
+      if (settled || disposed || token !== animToken) return;
+      settled = true;
+      clearFx();
+      draw();
+      finish();
+    }
+    flyer.el.addEventListener('transitionend', settle, { once: true });
+    setTimeout(settle, MOVE_MS + 80);
   }
 
   function drawPromotion() {
@@ -172,8 +318,9 @@ function mount(host, opts) {
   function playMove(move) {
     lastMove = chess.move(move);
     selected = null; unlocked = false;
-    if (!checkEnd()) search();
-    draw();
+    const over = checkEnd();
+    if (!over) search();
+    animateMove(lastMove);
   }
 
   function checkEnd() {
@@ -191,13 +338,14 @@ function mount(host, opts) {
     record.completed = (record.completed || 0) + 1;
     if (outcome === 'win') record.wins = (record.wins || 0) + 1;
     if (outcome === 'draw') record.draws = (record.draws || 0) + 1;
-    W.saveNow(); draw();
+    W.saveNow();
   }
 
   function fail() {
     if (disposed) return;
     clearTimeout(timer); ready = false; thinking = false; engineError = 'Stockfish unavailable';
     if (worker) worker.terminate(); worker = null;
+    clearFx();
     draw();
   }
 
@@ -227,7 +375,7 @@ function mount(host, opts) {
     try {
       lastMove = chess.move(move);
       if (!checkEnd()) ask();
-      draw();
+      animateMove(lastMove);
     } catch (_) { fail(); }
   }
 
@@ -266,6 +414,7 @@ function mount(host, opts) {
 
   function reset() {
     if (disposed) return;
+    clearFx();
     chess = new Chess(); ended = false; result = ''; lastMove = null;
     correctCount = 0; askedCount = 0; recent = [];
     ask(); startEngine();
@@ -293,12 +442,13 @@ function mount(host, opts) {
     if (ended || !window.confirm('Resign this game?')) return;
     if (worker) worker.terminate(); worker = null;
     finish('You resigned. ' + opponent + ' wins.', 'loss');
+    clearFx(); draw();
   };
   ask(); startEngine();
   return {
     get fen() { return chess.fen(); },
     destroy: function () {
-      disposed = true; clearTimeout(timer);
+      disposed = true; clearTimeout(timer); clearFx();
       if (worker) worker.terminate(); worker = null;
       host.innerHTML = '';
     }
