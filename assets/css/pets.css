@@ -1,0 +1,253 @@
+/* ==================================================================
+   LearnGeo — Pets (Mongolian Brainrot collab v0)
+   Event + pet card language from the collab ref. Do not reuse arcade
+   / Games hub chrome here.
+   ================================================================== */
+
+/* Tokens live on :root so the homescreen overlay (outside #view-pets)
+   still gets event-card colors. */
+:root {
+  --pets-event-from: #3b2780;
+  --pets-event-mid: #4a3299;
+  --pets-event-to: #24165a;
+  --pets-pet-from: #3ecfc4;
+  --pets-pet-mid: #7ed96a;
+  --pets-pet-to: #f0d84a;
+  --pets-cyan: #6ef0ff;
+  --pets-blue: #3b6fd9;
+  --pets-blue-soft: rgba(90, 140, 220, .72);
+  --pets-name-soft: #e8eef6;
+  --pets-border: rgba(230, 240, 255, .72);
+  --pets-shadow: 0 14px 36px rgba(20, 12, 48, .32);
+}
+
+.pets__head { margin-bottom: 22px; }
+.pets__head h1 {
+  font-size: clamp(26px, 3.4vw, 34px);
+  letter-spacing: -.035em;
+  margin-top: 4px;
+}
+.pets__head p {
+  color: var(--muted);
+  margin-top: 6px;
+  font-size: 14.5px;
+  max-width: 60ch;
+}
+
+/* ------------------------- event banner / popup card -------------- */
+.pets-event {
+  position: relative;
+  border-radius: 28px;
+  padding: 28px 28px 26px;
+  background: linear-gradient(165deg, var(--pets-event-mid) 0%, var(--pets-event-from) 42%, var(--pets-event-to) 100%);
+  border: 1.5px solid var(--pets-border);
+  box-shadow: var(--pets-shadow);
+  color: #fff;
+  text-align: center;
+  overflow: hidden;
+  isolation: isolate;
+}
+.pets-event::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% -10%, rgba(140, 110, 255, .35), transparent 55%);
+  pointer-events: none;
+}
+.pets-event__title {
+  position: relative;
+  font-size: clamp(20px, 3.2vw, 28px);
+  font-weight: 800;
+  letter-spacing: -.02em;
+  line-height: 1.2;
+  margin: 0;
+  color: #fff;
+}
+.pets-event__sub {
+  position: relative;
+  display: inline-block;
+  margin-top: 10px;
+  font-size: clamp(14px, 2vw, 17px);
+  font-weight: 700;
+  letter-spacing: .01em;
+  background: linear-gradient(90deg, #7cf0ff 0%, #b8f06a 55%, #f0e060 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.pets-event__actions {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 20px;
+}
+.pets-event__actions .btn--pets-primary {
+  background: #fff;
+  color: #2a1a5e;
+  border: none;
+  font-weight: 700;
+}
+.pets-event__actions .btn--pets-primary:hover {
+  background: #f0f4ff;
+}
+.pets-event__actions .btn--pets-ghost {
+  background: transparent;
+  color: rgba(255, 255, 255, .88);
+  border: 1px solid rgba(255, 255, 255, .35);
+}
+.pets-event__actions .btn--pets-ghost:hover {
+  background: rgba(255, 255, 255, .08);
+  color: #fff;
+}
+
+.pets__banner { margin-bottom: 22px; }
+
+/* --------------------------- roster grid -------------------------- */
+.pets__toolbar {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+.pets__toolbar-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.pets__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+/* --------------------------- pet card ----------------------------- */
+.pets-card {
+  position: relative;
+  border-radius: 26px;
+  padding: 22px 18px 20px;
+  min-height: 168px;
+  background: linear-gradient(100deg, var(--pets-pet-from) 0%, var(--pets-pet-mid) 48%, var(--pets-pet-to) 100%);
+  border: 1.5px solid rgba(255, 255, 255, .55);
+  box-shadow: 0 8px 22px rgba(30, 80, 60, .18);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: #0a0a0b;
+  overflow: hidden;
+}
+.pets-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, .18), transparent 45%);
+  pointer-events: none;
+}
+.pets-card__art {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  margin-bottom: 12px;
+  background: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, .55), transparent 50%),
+    linear-gradient(145deg, rgba(255, 255, 255, .35), rgba(40, 60, 120, .15));
+  border: 2px solid rgba(255, 255, 255, .65);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .06);
+}
+.pets-card__art--jill { background-color: #6a8cff; }
+.pets-card__art--jack { background-color: #ff8a5c; }
+.pets-card__art--freddy { background-color: #c46bff; }
+.pets-card__art--washington { background-color: #4ec9a0; }
+.pets-card__art--napoleon { background-color: #ffd45c; }
+
+.pets-card__name {
+  position: relative;
+  font-size: clamp(15px, 2.2vw, 18px);
+  font-weight: 800;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  line-height: 1.25;
+  margin: 0;
+}
+.pets-card__name-soft {
+  color: var(--pets-name-soft);
+  text-shadow: 0 1px 0 rgba(0, 0, 0, .18);
+  font-weight: 750;
+}
+.pets-card__name-strong {
+  color: #0a0a0b;
+}
+.pets-card__rarity {
+  position: relative;
+  margin-top: 8px;
+  font-size: 13.5px;
+  font-weight: 700;
+  letter-spacing: .02em;
+}
+.pets-card__rarity-soft { color: var(--pets-blue-soft); }
+.pets-card__rarity-strong { color: var(--pets-blue); }
+
+.pets__note {
+  margin-top: 18px;
+  font-size: 13px;
+  color: var(--muted);
+  max-width: 62ch;
+}
+
+/* ------------------------ event popup overlay --------------------- */
+.pets-event-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 210;
+  background: rgba(10, 8, 24, .58);
+  backdrop-filter: blur(4px);
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  animation: pets-fade .2s ease;
+}
+@keyframes pets-fade { from { opacity: 0; } }
+.pets-event-overlay .pets-event {
+  width: 100%;
+  max-width: 440px;
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  animation: pets-rise .24s ease;
+}
+@keyframes pets-rise {
+  from { opacity: 0; transform: translateY(12px) scale(.985); }
+}
+.pets-event__close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  color: rgba(255, 255, 255, .7);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  z-index: 1;
+}
+.pets-event__close:hover {
+  background: rgba(255, 255, 255, .12);
+  color: #fff;
+}
+
+@media (max-width: 560px) {
+  .pets-event { border-radius: 22px; padding: 24px 18px 22px; }
+  .pets-card { border-radius: 22px; min-height: 150px; }
+}

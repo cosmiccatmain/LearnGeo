@@ -1160,7 +1160,7 @@
   }
 
   /* ============================ NAVIGATION ========================== */
-  var VIEWS = ['portal', 'codex', 'classroom', 'teacher', 'learn', 'test', 'quiz', 'games'];
+  var VIEWS = ['portal', 'codex', 'classroom', 'teacher', 'learn', 'test', 'quiz', 'games', 'pets'];
 
   /* The switcher shows Classroom to students and Teacher to teachers, so
      teacher mode is a place you can leave and come back to rather than a
@@ -1176,7 +1176,8 @@
     { view: 'learn',     icon: 'book',   label: 'Learn',         role: null },
     { view: 'test',      icon: 'clip',   label: 'Practice test', role: null },
     { view: 'quiz',      icon: 'target', label: 'Class quiz',    role: null },
-    { view: 'games',     icon: 'gamepad', label: 'Games',        role: null }
+    { view: 'games',     icon: 'gamepad', label: 'Games',        role: null },
+    { view: 'pets',      icon: 'paw',    label: 'Pets',          role: null }
   ];
 
   function refreshTabs() {
@@ -1390,7 +1391,10 @@
        start should never leave the switcher pointing at the wrong tab */
     positionThumb();
 
-    if (view === 'portal') global.Portal.render();
+    if (view === 'portal') {
+      global.Portal.render();
+      if (global.Pets && global.Pets.maybeShowEventPopup) global.Pets.maybeShowEventPopup();
+    }
     if (view === 'codex') global.Codex.render();
     if (view === 'teacher') global.Teacher.render();
     if (view === 'classroom') global.Classroom.render();
@@ -1398,6 +1402,7 @@
     if (view === 'test') global.TestMode.start();
     if (view === 'quiz') global.QuizMode.start();
     if (view === 'games') global.Games.start();
+    if (view === 'pets' && global.Pets) global.Pets.start();
     settleThumb();                     /* correct for any reflow the mode caused */
     global.GeoMap.invalidate();
     refreshHud();
@@ -1488,6 +1493,7 @@
     if (global.QuizMode && global.QuizMode.active && global.QuizMode.active()) global.QuizMode.abandon();
     if (global.Games && global.Games.playing && global.Games.playing() && global.Games.abandon) global.Games.abandon();
     else if (global.Games && global.Games.stop) global.Games.stop();
+    if (global.Pets && global.Pets.dismissOverlayIfOpen) global.Pets.dismissOverlayIfOpen();
     document.getElementById('app').classList.remove('is-open');
     document.getElementById('landing').classList.remove('hidden');
     global.AppRouter.record(null, opts);
