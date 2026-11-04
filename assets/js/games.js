@@ -626,7 +626,8 @@
       '</div>';
 
     W.$('[data-boards]', el).addEventListener('click', function () {
-      if (global.GameBoards) global.GameBoards.open(current);
+      /* Hub opens the All overview so every game is one tap away. */
+      if (global.GameBoards) global.GameBoards.open();
     });
 
     var cards = W.$$('[data-game]', el);

@@ -12,6 +12,10 @@
    server keeps the better of the two as well, so a stale device can
    never pull a board down.
 
+   The modal covers the whole hub: an All overview with a short board
+   per game, plus a chip rail to open any one board in full. Scores are
+   formatted per game (wins, metres, strokes against par, points).
+
    Fail soft. Until the SQL has been run, or while offline, the tag is
    kept on the device, scores wait, and the board says it is not switched
    on yet. Nothing here throws into a game.
@@ -22,27 +26,40 @@
 
   var TAG_RE = /^[A-Za-z0-9_]{3,16}$/;
   var RUDE = /(fuck|shit|cunt|nigg|fag|rape|nazi|hitler|whore|slut|dick|cock|bitch)/i;
+  var ALL = '__all__';
 
   function toPar(n) { return n === 0 ? 'E' : (n > 0 ? '+' + n : String(n)); }
   function num(n) { return Number(n).toLocaleString(); }
+  function pts(n) { return num(n) + (n === 1 ? ' pt' : ' pts'); }
 
   /* Where each game keeps the number its board is ranked on, whether
-     lower is better, and how to print it. Golf ranks the nine-hole best,
-     in strokes against par. Chess ranks wins against the engine. */
+     lower is better, how to print it, and a short line for the board
+     header. Golf ranks the nine-hole best, in strokes against par.
+     Chess ranks wins against the engine. */
   var SCORERS = {
-    chess:    { get: function (r) { return r.wins || 0; },  fmt: function (n) { return num(n) + (n === 1 ? ' win' : ' wins'); } },
-    dash:     { get: function (r) { return r.best || 0; },  fmt: function (n) { return num(n) + ' m'; } },
-    orbit:    { get: function (r) { return r.best || 0; },  fmt: num },
-    snake:    { get: function (r) { return r.best || 0; },  fmt: num },
+    chess:    { get: function (r) { return r.wins || 0; },
+                fmt: function (n) { return num(n) + (n === 1 ? ' win' : ' wins'); },
+                metric: 'Wins against the computer' },
+    dash:     { get: function (r) { return r.best || 0; },
+                fmt: function (n) { return num(n) + ' m'; },
+                metric: 'Best distance' },
+    orbit:    { get: function (r) { return r.best || 0; }, fmt: pts, metric: 'Best score' },
+    snake:    { get: function (r) { return r.best || 0; }, fmt: pts, metric: 'Best score' },
     golf:     { get: function (r) { return r.best && typeof r.best['9'] === 'number' ? r.best['9'] : null; },
-                asc: true, fmt: function (n) { return toPar(n) + ' · 9 holes'; } },
-    invaders: best(), breakout: best(), maze: best(), typer: best(), crossing: best(),
-    whack: best(), match: best(), sort: best(), stack: best(), echo: best()
+                asc: true,
+                fmt: function (n) { return toPar(n) + ' · 9 holes'; },
+                metric: 'Best 9-hole score vs par · lower is better' },
+    invaders: ptsBest(), breakout: ptsBest(), maze: ptsBest(), typer: ptsBest(),
+    crossing: ptsBest(), whack: ptsBest(), match: ptsBest(), sort: ptsBest(),
+    stack: ptsBest(),
+    echo:     { get: function (r) { return r.best || 0; }, fmt: pts, metric: 'Best score' }
   };
-  function best() { return { get: function (r) { return r.best || 0; }, fmt: num }; }
+  function ptsBest() { return { get: function (r) { return r.best || 0; }, fmt: pts, metric: 'Best score' }; }
+  function best() { return { get: function (r) { return r.best || 0; }, fmt: num, metric: 'Best score' }; }
 
   function sb() { return global.Cloud && global.Cloud.sb; }
   function esc(t) { return W.escapeHtml(String(t)); }
+  function scorer(id) { return SCORERS[id] || best(); }
 
   /* ============================ identity ============================ */
   function deviceId() {
@@ -194,60 +211,191 @@
   /* ============================== the board ======================== */
   function catalogue() { return (global.Games && global.Games.catalogue) ? global.Games.catalogue() : []; }
 
-  function open(gameId) { ensureTag(function () { show(gameId); }); }
+  function fetchBoard(id, limit) {
+    var sc = scorer(id), c = sb();
+    if (!c) return Promise.resolve({ offline: true, rows: [], sc: sc });
+    return c.rpc('game_leaderboard', {
+      p_game: id, p_asc: !!sc.asc, p_device: deviceId(), p_limit: limit || 25
+    }).then(function (res) {
+      if (!res || res.error) return { offline: true, rows: [], sc: sc };
+      return { offline: false, rows: res.data || [], sc: sc };
+    }, function () { return { offline: true, rows: [], sc: sc }; });
+  }
+
+  /* open() with no id (or an unknown one) lands on the All overview so
+     the hub button covers every game at once. A setup screen still
+     passes its own id and opens that board. */
+  function open(gameId) {
+    ensureTag(function () { show(gameId); });
+  }
 
   function show(gameId) {
     var games = catalogue();
     if (!games.length) return;
-    var current = games.some(function (g) { return g.id === gameId; }) ? gameId : games[0].id;
+    var startId = games.some(function (g) { return g.id === gameId; }) ? gameId : ALL;
 
     global.UI.modal({
-      title: 'Leaderboards', icon: I.trophy, wide: true,
+      title: 'Arcade leaderboards', icon: I.trophy, wide: true,
       body:
-        '<div class="field"><label class="field__label" for="lb-game">Game</label>' +
-        '<select class="input" id="lb-game">' +
-          games.map(function (g) {
-            return '<option value="' + esc(g.id) + '"' + (g.id === current ? ' selected' : '') + '>' + esc(g.title) + '</option>';
-          }).join('') +
-        '</select></div>' +
-        '<div id="lb-body" class="lb-body" aria-live="polite"></div>' +
-        '<div class="lb-you">Playing as <b id="lb-tag">' + esc(tag()) + '</b> · <button class="linkbtn" id="lb-change" type="button">Change</button></div>',
+        '<div class="gb">' +
+          '<div class="gb__screen">' +
+            '<div class="gb__rail" role="tablist" aria-label="Games" id="lb-rail">' +
+              chip(ALL, 'All games', startId === ALL) +
+              games.map(function (g) {
+                return chip(g.id, g.title, g.id === startId);
+              }).join('') +
+            '</div>' +
+            '<p class="gb__metric" id="lb-metric"></p>' +
+            '<div id="lb-body" class="lb-body" aria-live="polite"></div>' +
+          '</div>' +
+          '<div class="lb-you">Playing as <b id="lb-tag">' + esc(tag()) + '</b> · ' +
+            '<button class="linkbtn" id="lb-change" type="button">Change</button></div>' +
+        '</div>',
       actions: [{ label: 'Done', cls: 'btn--ghost', close: true }],
       onMount: function (root) {
-        var sel = W.$('#lb-game', root), body = W.$('#lb-body', root);
+        var rail = W.$('#lb-rail', root), body = W.$('#lb-body', root);
+        var metric = W.$('#lb-metric', root);
         var token = 0;
+        var current = startId;
 
-        function load() {
-          var id = sel.value, sc = SCORERS[id] || best(), mine = ++token;
-          body.innerHTML = '<div class="lb-empty">Loading…</div>';
-          var c = sb();
-          if (!c) { body.innerHTML = notOn(id, sc); return; }
-          sync().then(function () {
-            return c.rpc('game_leaderboard', { p_game: id, p_asc: !!sc.asc, p_device: deviceId(), p_limit: 25 });
-          }).then(function (res) {
-            if (mine !== token) return;                      /* they changed game meanwhile */
-            if (!res || res.error) { body.innerHTML = notOn(id, sc); return; }
-            body.innerHTML = rows(res.data || [], sc);
-          }, function () { if (mine === token) body.innerHTML = notOn(id, sc); });
+        function setChip(id) {
+          current = id;
+          W.$$('.gb__chip', rail).forEach(function (b) {
+            var on = b.getAttribute('data-game') === id;
+            b.classList.toggle('is-on', on);
+            b.setAttribute('aria-selected', on ? 'true' : 'false');
+          });
+          var onChip = W.$('.gb__chip.is-on', rail);
+          if (onChip && onChip.scrollIntoView) {
+            try { onChip.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' }); }
+            catch (e) { /* older browsers */ }
+          }
         }
 
-        sel.addEventListener('change', load);
+        function load() {
+          var id = current, mine = ++token;
+          body.innerHTML = '<div class="lb-empty lb-empty--loading"><span class="gb__pulse" aria-hidden="true"></span>Loading…</div>';
+          if (id === ALL) {
+            metric.textContent = 'Top scores across every game in the arcade';
+            loadAll(mine);
+            return;
+          }
+          var g = games.filter(function (x) { return x.id === id; })[0];
+          var sc = scorer(id);
+          metric.textContent = (g ? g.title + ' · ' : '') + (sc.metric || 'Best score');
+          var c = sb();
+          if (!c) { body.innerHTML = notOn(id, sc); return; }
+          sync().then(function () { return fetchBoard(id, 25); }).then(function (res) {
+            if (mine !== token) return;
+            if (res.offline) { body.innerHTML = notOn(id, sc); return; }
+            body.innerHTML = boardPanel(g, res.rows, sc, false);
+          });
+        }
+
+        function loadAll(mine) {
+          var c = sb();
+          if (!c) {
+            body.innerHTML = '<div class="lb-empty">The shared boards are not switched on yet. ' +
+              'Your own bests still show on each game’s setup screen.</div>';
+            return;
+          }
+          sync().then(function () {
+            return Promise.all(games.map(function (g) {
+              return fetchBoard(g.id, 3).then(function (res) {
+                return { game: g, res: res };
+              });
+            }));
+          }).then(function (parts) {
+            if (mine !== token) return;
+            if (parts.every(function (p) { return p.res.offline; })) {
+              body.innerHTML = '<div class="lb-empty">The shared boards are not switched on yet. ' +
+                'Your own bests still show on each game’s setup screen.</div>';
+              return;
+            }
+            body.innerHTML = '<div class="gb__sections">' + parts.map(function (p) {
+              return section(p.game, p.res);
+            }).join('') + '</div>';
+            W.$$('[data-open-game]', body).forEach(function (btn) {
+              btn.addEventListener('click', function () {
+                setChip(btn.getAttribute('data-open-game'));
+                load();
+              });
+            });
+          });
+        }
+
+        rail.addEventListener('click', function (e) {
+          var btn = e.target.closest && e.target.closest('[data-game]');
+          if (!btn || !rail.contains(btn)) return;
+          setChip(btn.getAttribute('data-game'));
+          load();
+        });
         W.$('#lb-change', root).addEventListener('click', function () {
           askTag({ then: function () { W.$('#lb-tag', root).textContent = tag(); load(); } });
         });
+        setChip(current);
         load();
       }
     });
   }
 
-  function rows(list, sc) {
-    if (!list.length) return '<div class="lb-empty">Nobody is on this board yet. Play a round and it could be you.</div>';
+  function chip(id, label, on) {
+    return '<button type="button" class="gb__chip' + (on ? ' is-on' : '') + '" role="tab" ' +
+      'data-game="' + esc(id) + '" aria-selected="' + (on ? 'true' : 'false') + '">' +
+      esc(label) + '</button>';
+  }
+
+  function section(g, res) {
+    var sc = res.sc;
+    var initial = (g.title || g.id || '?').charAt(0).toUpperCase();
+    var head =
+      '<div class="gb__sec-head">' +
+        '<div class="gb__sec-title">' +
+          '<span class="gb__sec-mark" aria-hidden="true">' + esc(initial) + '</span>' +
+          '<div><b>' + esc(g.title) + '</b><span>' + esc(sc.metric || 'Best score') + '</span></div>' +
+        '</div>' +
+        '<button type="button" class="linkbtn gb__sec-more" data-open-game="' + esc(g.id) + '">Full board</button>' +
+      '</div>';
+    if (res.offline) {
+      return '<section class="gb__sec">' + head +
+        '<div class="lb-empty lb-empty--compact">Board offline for now.</div></section>';
+    }
+    if (!res.rows.length) {
+      return '<section class="gb__sec">' + head +
+        '<div class="lb-empty lb-empty--compact">Nobody on this board yet. Be the first.</div></section>';
+    }
+    return '<section class="gb__sec">' + head + rows(res.rows, sc, true) + '</section>';
+  }
+
+  function boardPanel(g, list, sc, compact) {
+    if (!list.length) {
+      return emptyState(g, sc);
+    }
+    return rows(list, sc, compact);
+  }
+
+  function emptyState(g, sc) {
+    var rec = (W.state.games || {})[g.id], v = rec ? sc.get(rec) : null;
+    var local = (v !== null && v !== undefined && (sc.asc || v > 0))
+      ? '<div class="lb-mine mono">Your best on this device: ' + esc(sc.fmt(v)) + '</div>'
+      : '';
+    return '<div class="lb-empty">' +
+      '<div class="lb-empty__glyph" aria-hidden="true">' + I.trophy + '</div>' +
+      '<p>Nobody is on the ' + esc(g.title) + ' board yet.</p>' +
+      '<p class="lb-empty__hint">Play a round and your gamertag can take first place.</p>' +
+      local +
+    '</div>';
+  }
+
+  function rows(list, sc, compact) {
     var prev = 0;
-    return '<ol class="lb-list">' + list.map(function (r) {
+    return '<ol class="lb-list' + (compact ? ' lb-list--compact' : '') + '">' + list.map(function (r) {
       var gap = prev && r.rank > prev + 1 ? '<li class="lb-gap" aria-hidden="true">…</li>' : '';
       prev = r.rank;
+      var medal = r.rank <= 3 ? ' lb-rank--' + r.rank : '';
+      var rankHtml = r.rank === 1 ? I.trophy : String(r.rank);
       return gap + '<li class="lb-row' + (r.mine ? ' is-mine' : '') + '">' +
-        '<span class="lb-rank">' + (r.rank === 1 ? I.trophy : r.rank) + '</span>' +
+        '<span class="lb-rank' + medal + '">' + rankHtml + '</span>' +
         '<span class="lb-name">' + esc(r.gamertag) + (r.mine ? ' <i>you</i>' : '') + '</span>' +
         '<span class="lb-score mono">' + esc(sc.fmt(r.score)) + '</span></li>';
     }).join('') + '</ol>';
@@ -255,8 +403,15 @@
 
   function notOn(id, sc) {
     var rec = (W.state.games || {})[id], v = rec ? sc.get(rec) : null;
-    return '<div class="lb-empty">The shared boards are not switched on yet, so only your own best shows for now.' +
-      (v ? '<div class="lb-mine mono">Your best: ' + esc(sc.fmt(v)) + '</div>' : '') + '</div>';
+    var local = (v !== null && v !== undefined && (sc.asc || v > 0))
+      ? '<div class="lb-mine mono">Your best: ' + esc(sc.fmt(v)) + '</div>'
+      : '';
+    return '<div class="lb-empty">' +
+      '<div class="lb-empty__glyph" aria-hidden="true">' + I.trophy + '</div>' +
+      '<p>The shared boards are not switched on yet.</p>' +
+      '<p class="lb-empty__hint">Only your own best shows for now. Scores still save on this device.</p>' +
+      local +
+    '</div>';
   }
 
   global.GameBoards = {
