@@ -1,0 +1,332 @@
+/* ------------------------------------------------------------------
+   LearnGeo — TEST / Development subscription preview.
+
+   Full-page overlay opened only from Administrator → Development
+   (or the admin "plans" command). z-index 195 sits above .adminp (190)
+   and below .overlay modals (200). Not linked from public nav.
+-------------------------------------------------------------------*/
+
+.subdev {
+  position: fixed; inset: 0; z-index: 195;
+  display: flex; flex-direction: column;
+  background:
+    radial-gradient(1200px 520px at 12% -10%, rgba(27, 77, 255, .12), transparent 60%),
+    radial-gradient(900px 480px at 88% 0%, rgba(14, 116, 144, .10), transparent 55%),
+    linear-gradient(180deg, #F4F7FC 0%, var(--paper) 42%, #EEF2F8 100%);
+  color: var(--ink);
+  animation: subdevIn .2s var(--ease);
+}
+@keyframes subdevIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+.subdev__ribbon {
+  flex: none;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  padding: 9px 16px;
+  background: #7A3410;
+  color: #FFF7ED;
+  font-size: 12.5px; font-weight: 600; letter-spacing: .02em;
+  text-align: center;
+  border-bottom: 1px solid rgba(0,0,0,.12);
+}
+.subdev__ribbon b {
+  font-family: var(--mono); font-size: 11px; font-weight: 700;
+  letter-spacing: .08em; text-transform: uppercase;
+  padding: 2px 7px; border-radius: 4px;
+  background: rgba(255,255,255,.16);
+}
+.subdev__ribbon span { opacity: .95; }
+
+.subdev__bar {
+  flex: none;
+  display: flex; align-items: center; gap: 12px;
+  padding: 0 18px; height: var(--topbar-h);
+  background: rgba(255,255,255,.86);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+}
+.subdev__brand {
+  display: flex; align-items: center; gap: 9px;
+  font-size: 15px; font-weight: 650;
+}
+.subdev__brand svg { width: 18px; height: 18px; color: var(--accent); }
+.subdev__tag {
+  font-family: var(--mono); font-size: 10.5px; font-weight: 650;
+  letter-spacing: .08em; text-transform: uppercase;
+  padding: 3px 8px; border-radius: 999px;
+  background: #FEF3C7; color: #92400E;
+  border: 1px solid #FDE68A;
+}
+.subdev__bar .grow { flex: 1; }
+
+.subdev__scroll {
+  flex: 1; overflow-y: auto;
+  padding: 28px 20px 72px;
+}
+
+.subdev__inner {
+  max-width: 1080px; margin: 0 auto;
+}
+
+.subdev__hero {
+  text-align: center;
+  margin: 8px auto 28px;
+  max-width: 640px;
+}
+.subdev__eyebrow {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: var(--mono); font-size: 11px; font-weight: 650;
+  letter-spacing: .1em; text-transform: uppercase;
+  color: #92400E; background: #FEF3C7;
+  border: 1px solid #FDE68A; border-radius: 999px;
+  padding: 5px 12px; margin-bottom: 14px;
+}
+.subdev__hero h1 {
+  margin: 0;
+  font-size: clamp(28px, 4.2vw, 42px);
+  letter-spacing: -.02em; line-height: 1.12;
+  font-weight: 700;
+}
+.subdev__hero h1 em {
+  font-style: normal; color: var(--accent);
+}
+.subdev__hero p {
+  margin: 12px auto 0;
+  max-width: 48ch;
+  font-size: 15.5px; color: var(--ink-2); line-height: 1.5;
+}
+
+.subdev__banner {
+  display: flex; gap: 12px; align-items: flex-start;
+  padding: 13px 15px; margin-bottom: 22px;
+  border-radius: var(--r-lg);
+  border: 1px solid #FDE68A;
+  background: #FFFBEB;
+  color: #78350F;
+  font-size: 13.5px; line-height: 1.45;
+}
+.subdev__banner svg { width: 18px; height: 18px; flex: none; margin-top: 1px; }
+.subdev__banner b { font-weight: 650; }
+.subdev__banner code {
+  font-family: var(--mono); font-size: 12px;
+  background: rgba(120, 53, 15, .08);
+  padding: 1.5px 5px; border-radius: var(--r-sm);
+}
+
+.subdev__toggle {
+  display: flex; justify-content: center; margin: 0 0 22px;
+}
+.subdev__seg {
+  display: inline-flex; gap: 2px;
+  padding: 3px; border-radius: 999px;
+  background: var(--white);
+  border: 1px solid var(--line);
+  box-shadow: 0 1px 2px rgba(10,10,11,.04);
+}
+.subdev__seg button {
+  border: 0; background: transparent; cursor: pointer;
+  font: inherit; font-size: 13px; font-weight: 560;
+  padding: 8px 16px; border-radius: 999px;
+  color: var(--ink-2);
+}
+.subdev__seg button.is-on {
+  background: var(--ink); color: #fff;
+}
+.subdev__seg .subdev__save {
+  margin-left: 4px;
+  font-family: var(--mono); font-size: 10px; font-weight: 700;
+  letter-spacing: .04em; text-transform: uppercase;
+  color: #047857; background: #D1FAE5;
+  padding: 2px 6px; border-radius: 999px;
+}
+.subdev__seg button.is-on .subdev__save {
+  color: #ECFDF5; background: rgba(255,255,255,.18);
+}
+
+.subdev__plans {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 28px;
+}
+@media (max-width: 900px) {
+  .subdev__plans { grid-template-columns: 1fr; max-width: 420px; margin-left: auto; margin-right: auto; }
+}
+
+.subdev__plan {
+  position: relative;
+  display: flex; flex-direction: column;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 22px 20px 18px;
+  box-shadow: 0 1px 2px rgba(10,10,11,.04);
+  transition: transform .18s var(--ease), border-color .18s var(--ease), box-shadow .18s var(--ease);
+}
+.subdev__plan:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 28px rgba(15, 23, 42, .08);
+}
+.subdev__plan--featured {
+  border-color: #A5B4FC;
+  background: linear-gradient(180deg, #F8FAFF 0%, #fff 48%);
+  box-shadow: 0 8px 24px rgba(27, 77, 255, .08);
+}
+.subdev__plan--featured::before {
+  content: "Most useful for teachers";
+  position: absolute; top: -11px; left: 50%; transform: translateX(-50%);
+  white-space: nowrap;
+  font-family: var(--mono); font-size: 10.5px; font-weight: 700;
+  letter-spacing: .06em; text-transform: uppercase;
+  padding: 4px 10px; border-radius: 999px;
+  background: var(--accent); color: #fff;
+}
+
+.subdev__plan-top { margin-bottom: 14px; }
+.subdev__plan-name {
+  margin: 0; font-size: 18px; font-weight: 680; letter-spacing: -.01em;
+}
+.subdev__plan-blurb {
+  margin: 6px 0 0; font-size: 13px; color: var(--ink-2); line-height: 1.4;
+  min-height: 2.8em;
+}
+.subdev__price {
+  display: flex; align-items: baseline; gap: 6px;
+  margin: 0 0 4px;
+}
+.subdev__price b {
+  font-size: 36px; font-weight: 720; letter-spacing: -.03em;
+  font-variant-numeric: tabular-nums;
+}
+.subdev__price span { font-size: 13.5px; color: var(--faint); }
+.subdev__price-note {
+  margin: 0 0 16px; font-size: 12px; color: var(--faint);
+  min-height: 1.2em;
+}
+
+.subdev__feats {
+  list-style: none; margin: 0 0 18px; padding: 0;
+  display: flex; flex-direction: column; gap: 9px;
+  flex: 1;
+}
+.subdev__feats li {
+  display: flex; gap: 9px; align-items: flex-start;
+  font-size: 13.5px; line-height: 1.35; color: var(--ink);
+}
+.subdev__feats li svg {
+  width: 16px; height: 16px; flex: none; margin-top: 1px;
+  color: var(--accent);
+}
+.subdev__feats li.is-muted { color: var(--faint); }
+.subdev__feats li.is-muted svg { color: var(--faint); }
+
+.subdev__cta {
+  width: 100%;
+  margin-top: auto;
+}
+.subdev__cta.btn { justify-content: center; }
+
+.subdev__compare {
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 22px;
+  overflow-x: auto;
+}
+.subdev__compare h2 {
+  margin: 0 0 4px; font-size: 17px; font-weight: 650;
+}
+.subdev__compare > .t-sm { margin: 0 0 14px; }
+.subdev__table {
+  width: 100%; border-collapse: collapse; font-size: 13.5px;
+  min-width: 560px;
+}
+.subdev__table th,
+.subdev__table td {
+  padding: 11px 12px; text-align: left;
+  border-bottom: 1px solid var(--line-soft);
+}
+.subdev__table th {
+  font-size: 11.5px; text-transform: uppercase; letter-spacing: .06em;
+  color: var(--faint); font-weight: 650;
+}
+.subdev__table td:not(:first-child),
+.subdev__table th:not(:first-child) { text-align: center; }
+.subdev__table tr:last-child td { border-bottom: 0; }
+.subdev__yes { color: var(--accent); font-weight: 650; }
+.subdev__no { color: var(--faint); }
+
+.subdev__faq {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px; margin-bottom: 22px;
+}
+@media (max-width: 720px) {
+  .subdev__faq { grid-template-columns: 1fr; }
+}
+.subdev__faq article {
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 16px 16px 14px;
+}
+.subdev__faq h3 {
+  margin: 0 0 6px; font-size: 14px; font-weight: 650;
+}
+.subdev__faq p {
+  margin: 0; font-size: 13.5px; color: var(--ink-2); line-height: 1.45;
+}
+
+.subdev__foot {
+  text-align: center;
+  font-size: 12.5px; color: var(--faint); line-height: 1.5;
+  max-width: 62ch; margin: 0 auto;
+}
+.subdev__foot code {
+  font-family: var(--mono); font-size: 11.5px;
+  background: var(--line-soft); padding: 1px 5px; border-radius: 4px;
+}
+
+/* Mock checkout sheet (uses .overlay from app.css; body lives here) */
+.subdev-checkout {
+  display: flex; flex-direction: column; gap: 14px;
+}
+.subdev-checkout__warn {
+  display: flex; gap: 10px; align-items: flex-start;
+  padding: 11px 12px;
+  border-radius: var(--r);
+  background: #FFFBEB; border: 1px solid #FDE68A; color: #78350F;
+  font-size: 13px; line-height: 1.4;
+}
+.subdev-checkout__warn svg { width: 16px; height: 16px; flex: none; margin-top: 1px; }
+.subdev-checkout__plan {
+  display: flex; justify-content: space-between; gap: 12px; align-items: baseline;
+  padding: 12px 14px;
+  border: 1px solid var(--line); border-radius: var(--r);
+  background: var(--paper);
+}
+.subdev-checkout__plan b { font-size: 15px; }
+.subdev-checkout__plan span { font-family: var(--mono); font-size: 13px; color: var(--ink-2); }
+.subdev-checkout__fields {
+  display: flex; flex-direction: column; gap: 10px;
+}
+.subdev-checkout__fields label {
+  display: flex; flex-direction: column; gap: 5px;
+  font-size: 12px; font-weight: 560; color: var(--ink-2);
+}
+.subdev-checkout__fields .input { font-weight: 450; }
+.subdev-checkout__fake {
+  font-family: var(--mono); font-size: 12px; color: var(--faint);
+  letter-spacing: .04em;
+}
+.subdev-checkout__ok {
+  text-align: center; padding: 8px 4px 2px;
+}
+.subdev-checkout__ok b {
+  display: block; font-size: 17px; margin: 8px 0 4px;
+}
+.subdev-checkout__ok p {
+  margin: 0; font-size: 13.5px; color: var(--ink-2); line-height: 1.45;
+}

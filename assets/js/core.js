@@ -55,7 +55,9 @@
     monitor: svg('<rect x="2" y="4" width="20" height="14" rx="2"/><path d="M8 21h8M12 18v3"/>'),
     message: svg('<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>'),
     list:   svg('<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>'),
-    home:   svg('<path d="M3 11.5 12 4l9 7.5"/><path d="M6 10.5V20h12v-9.5"/>')
+    home:   svg('<path d="M3 11.5 12 4l9 7.5"/><path d="M6 10.5V20h12v-9.5"/>'),
+    /* Development / lab previews (Administrator → Development) */
+    flask:  svg('<path d="M9 3h6"/><path d="M10 3v6.5L4.8 18.2A2 2 0 0 0 6.5 21h11a2 2 0 0 0 1.7-2.8L14 9.5V3"/><path d="M7.5 14h9"/>')
   };
 
   /* The verified seal. Solid rather than line art, because it has to read as
