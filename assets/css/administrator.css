@@ -206,3 +206,42 @@
 .admsg:last-child { margin-bottom: 0; }
 .admsg__text { font-size: 15px; line-height: 1.5; color: var(--ink); overflow-wrap: anywhere; }
 .admsg__when { font-size: 11.5px; color: var(--faint); margin-top: 7px; font-family: var(--mono); }
+
+/* Reply composer inside the same dialog — sits under the messages
+   rather than opening a second modal, so the prompt stays in view. */
+.admsg__reply {
+  margin-top: 14px; padding-top: 14px;
+  border-top: 1px solid var(--line-soft);
+}
+.admsg__reply .field__label { display: block; margin-bottom: 7px; }
+.admsg__reply textarea {
+  width: 100%; resize: vertical; min-height: 74px;
+  font: inherit; line-height: 1.45; padding: 10px 12px;
+}
+.admsg__replyfoot {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; margin-top: 8px; flex-wrap: wrap;
+}
+
+/* Thread on the Administrator page for the selected account. Admin
+   lines and user replies share one column so the exchange reads as a
+   conversation, not two lists. */
+.adminp__thread {
+  margin-top: 12px; display: flex; flex-direction: column; gap: 8px;
+  max-height: 280px; overflow-y: auto; padding-right: 2px;
+}
+.adminp__thread .admsg { margin-bottom: 0; }
+.adminp__thread .admsg--out {
+  background: var(--accent-soft);
+  border-color: transparent;
+}
+.adminp__thread .admsg--in {
+  background: var(--paper);
+}
+.adminp__thread .admsg__who {
+  font-size: 11.5px; color: var(--muted); margin-bottom: 4px;
+  font-family: var(--mono); letter-spacing: 0.01em;
+}
+.adminp__thread-empty {
+  font-size: 13px; color: var(--faint); padding: 4px 0 2px;
+}
