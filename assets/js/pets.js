@@ -12,7 +12,12 @@
 
    Dismiss rule (documented product choice for v0):
      C — until dismissed. localStorage key learngeo.pets.event.v0.dismissed
-     persists across sessions. No server sync in v0 (known limitation).
+     persists across sessions (homescreen / login update card). No server
+     sync in v0 (known limitation).
+
+   Rarity spread (LEA-17 — AJ: starters must NOT all be Mythical):
+     Common → Rare → Epic → Legendary → Mythical (+ "Brainrot" suffix).
+     Jill stays Mythical (ref-locked). Others get one tier each.
 
    XP / earn hook (LEA-14 demo — real game hooks not wired yet):
      Pet detail "Play" grants PLAY_XP each click. Curve: to leave level N
@@ -140,16 +145,19 @@
     { id: 'catch-chest', slot: 'catchphrase', name: 'Chest unlocked!', tier: 'Epic', text: 'Chest unlocked!' }
   ];
 
-  /* Starters (exact collab names) stay auto-granted. LEA-20 expands the
-     catalog beyond these five with school-safe names + a rarity spread —
-     not all Mythical. Parallel rarity/login work may retune starter tiers;
-     leave starter labels alone here so we do not stomp that branch. */
+  /* Ordered rarity ladder (LEA-17). Labels keep the collab "Brainrot"
+     suffix from the ref; CSS keys off the first word (tier). */
+  var RARITY_TIERS = ['Common', 'Rare', 'Epic', 'Legendary', 'Mythical'];
+
+  /* Starters stay auto-granted (LEA-20). Assignment (LEA-17): Jack Common
+     → Freddy Rare → Washingtoń Epic → Napoleon Legendary → Jill Mythical
+     (ref-locked). weight/starter fields feed chest pulls. */
   var STARTERS = [
-    { id: 'ding-dong-jill', name: 'Ding Dong Jill', rarity: 'Mythical Brainrot', art: 'jill', weight: 4, starter: true },
-    { id: 'knock-knock-jack', name: 'Knock Knock Jack', rarity: 'Mythical Brainrot', art: 'jack', weight: 4, starter: true },
-    { id: 'freaky-freaky-freddy', name: 'Freaky Freaky Freddy', rarity: 'Mythical Brainrot', art: 'freddy', weight: 4, starter: true },
-    { id: 'washington', name: 'Washingtoń', rarity: 'Mythical Brainrot', art: 'washington', weight: 4, starter: true },
-    { id: 'napoleon', name: 'Napoleon', rarity: 'Mythical Brainrot', art: 'napoleon', weight: 4, starter: true }
+    { id: 'knock-knock-jack', name: 'Knock Knock Jack', rarity: 'Common Brainrot', art: 'jack', weight: 4, starter: true },
+    { id: 'freaky-freaky-freddy', name: 'Freaky Freaky Freddy', rarity: 'Rare Brainrot', art: 'freddy', weight: 4, starter: true },
+    { id: 'washington', name: 'Washingtoń', rarity: 'Epic Brainrot', art: 'washington', weight: 4, starter: true },
+    { id: 'napoleon', name: 'Napoleon', rarity: 'Legendary Brainrot', art: 'napoleon', weight: 4, starter: true },
+    { id: 'ding-dong-jill', name: 'Ding Dong Jill', rarity: 'Mythical Brainrot', art: 'jill', weight: 4, starter: true }
   ];
 
   var EXTENDED = [
@@ -164,6 +172,9 @@
   ];
 
   var CATALOG = STARTERS.concat(EXTENDED);
+
+  /* Root-absolute so the img still loads on SPA routes like /home /pets. */
+  var UPDATE_HERO_SRC = '/assets/img/pets/update-hero.svg';
 
   /* School-safe mutation tags (plan §9 + LEA-20 Silver). Applied per
      instance — species identity stays Jill/Jack/etc. Golden kept. */
@@ -183,7 +194,7 @@
   var formNotice = null; /* { tone, text } flash after submit */
   var pendingUploadDataUrl = null;
   var pendingUploadMeta = null;
-  var marketFilter = 'all'; /* all | mutated | high */
+  var marketFilter = 'all'; /* all | mutated | high | rarity:<tier> */
   var lockerTab = 'aura'; /* active Fortnite-style locker category */
   var chestBusy = false;
   var chestReveal = null; /* { owned, species, mutation } while overlay open */
@@ -883,14 +894,30 @@
       '</span> <span class="pets-card__name-strong">' + esc(last.toUpperCase()) + '</span>';
   }
 
-  function rarityHtml(label) {
-    var parts = String(label).trim().split(/\s+/);
-    if (parts.length < 2) {
-      return '<span class="pets-card__rarity-strong">' + esc(label) + '</span>';
+  function rarityTier(label) {
+    var first = String(label || '').trim().split(/\s+/)[0] || '';
+    var i;
+    for (i = 0; i < RARITY_TIERS.length; i++) {
+      if (RARITY_TIERS[i].toLowerCase() === first.toLowerCase()) {
+        return RARITY_TIERS[i].toLowerCase();
+      }
     }
-    var last = parts.pop();
-    return '<span class="pets-card__rarity-soft">' + esc(parts.join(' ')) +
-      '</span> <span class="pets-card__rarity-strong">' + esc(last) + '</span>';
+    return 'common';
+  }
+
+  function rarityHtml(label) {
+    var tier = rarityTier(label);
+    var parts = String(label).trim().split(/\s+/);
+    var inner;
+    if (parts.length < 2) {
+      inner = '<span class="pets-card__rarity-strong">' + esc(label) + '</span>';
+    } else {
+      var last = parts.pop();
+      inner = '<span class="pets-card__rarity-soft">' + esc(parts.join(' ')) +
+        '</span> <span class="pets-card__rarity-strong">' + esc(last) + '</span>';
+    }
+    return '<div class="pets-card__rarity pets-card__rarity--' + esc(tier) +
+      '" data-rarity="' + esc(tier) + '">' + inner + '</div>';
   }
 
   function speciesById(id) {
@@ -1007,16 +1034,18 @@
     if (!s) return '';
     var stage = owned.skinStage || skinStageForLevel(owned.level);
     var mut = mutationById(owned.mutationId);
-    var aria = s.name + ', level ' + owned.level +
+    var tier = rarityTier(s.rarity);
+    var aria = s.name + ', ' + s.rarity + ', level ' + owned.level +
       (mut ? ', ' + mut.label + ' mutation' : '');
-    return '<button type="button" class="pets-card' +
+    return '<button type="button" class="pets-card pets-card--tier-' + esc(tier) +
       (mut ? ' pets-card--mutated' : '') +
       '" data-pet="' + esc(owned.instanceId) +
+      '" data-rarity="' + esc(tier) +
       '" aria-label="' + esc(aria) + '">' +
       artHtml(s, owned, '') +
       catchphraseHtml(owned.cosmetics) +
       '<h3 class="pets-card__name">' + nameHtml(s.name) + '</h3>' +
-      '<div class="pets-card__rarity">' + rarityHtml(s.rarity) + '</div>' +
+      rarityHtml(s.rarity) +
       '<div class="pets-card__meta">' +
         '<span class="pets-card__level">Lv ' + owned.level + '</span>' +
         '<span class="pets-card__stage">' + esc(stage) + '</span>' +
@@ -1032,17 +1061,40 @@
     return '';
   }
 
-  function eventBannerHtml(withActions) {
-    return '<div class="pets-event' + (withActions ? '' : '') + '">' +
-      '<h2 class="pets-event__title">Mongolian Brainrot x LearnGeo</h2>' +
-      '<div class="pets-event__sub">Limited Time Event*</div>' +
-      (withActions
-        ? '<div class="pets-event__actions">' +
-            '<button type="button" class="btn btn--sm btn--pets-primary" data-pets-meet>Meet the Pets</button>' +
-            '<button type="button" class="btn btn--sm btn--pets-ghost" data-pets-dismiss>Dismiss</button>' +
-          '</div>'
+  /* Product-update announcement card (LEA-17 follow-up): picture on top,
+     update blurb under it — not a neon gradient slab. Shared by homescreen
+     popup + Pets hub banner. */
+  function eventCardHtml(opts) {
+    var o = opts || {};
+    var withClose = !!o.withClose;
+    var withActions = !!o.withActions;
+    return '<div class="pets-event pets-event--update">' +
+      (withClose
+        ? '<button type="button" class="pets-event__close" data-pets-dismiss aria-label="Dismiss">' +
+            I.close + '</button>'
         : '') +
+      '<div class="pets-event__media">' +
+        '<img class="pets-event__img" src="' + UPDATE_HERO_SRC +
+          '" alt="Square starter brainrots lined up for the Mongolian Brainrot collab" width="640" height="280" decoding="async">' +
+      '</div>' +
+      '<div class="pets-event__body">' +
+        '<div class="pets-event__eyebrow">Limited-time collab · product update</div>' +
+        '<h2 class="pets-event__title">Mongolian Brainrot × LearnGeo</h2>' +
+        '<p class="pets-event__desc">What\'s new: a Pets tab with five starter brainrots ' +
+          '(Common → Mythical), chest pulls, levels 1–10 with evolving skins, school-safe ' +
+          'cosmetics, mutations, and a Pets Diamonds marketplace. Tap Meet the Pets to open your roster.</p>' +
+        (withActions
+          ? '<div class="pets-event__actions">' +
+              '<button type="button" class="btn btn--sm btn--pets-primary" data-pets-meet>Meet the Pets</button>' +
+              '<button type="button" class="btn btn--sm btn--pets-ghost" data-pets-dismiss>Dismiss</button>' +
+            '</div>'
+          : '') +
+      '</div>' +
     '</div>';
+  }
+
+  function eventBannerHtml() {
+    return eventCardHtml({ withClose: false, withActions: false });
   }
 
   function xpBarHtml(owned) {
@@ -1666,10 +1718,10 @@
             '<h1>Pets</h1>' +
           '</div>' +
         '</div>' +
-        '<p>Meet your starter brainrots, open chests for more, unlock Silver/Golden mutations, customize looks, and trade in the marketplace. Pets Diamonds sit in the top bar beside shop diamonds.</p>' +
+        '<p>Meet your starter brainrots — Common through Mythical. Open chests for more, unlock Silver/Golden mutations, customize looks, and trade in the marketplace. Pets Diamonds sit in the top bar beside shop diamonds.</p>' +
       '</div>' +
       noticeHtml() +
-      '<div class="pets__banner">' + eventBannerHtml(false) + '</div>' +
+      '<div class="pets__banner">' + eventBannerHtml() + '</div>' +
       '<div class="pets__chest-cta">' +
         '<div class="pets__create-head">' +
           '<span class="pets__toolbar-label">Brainrot chest</span>' +
@@ -1682,7 +1734,7 @@
       '</div>' +
       '<div class="pets__toolbar">' +
         '<span class="pets__toolbar-label">Your roster</span>' +
-        '<span class="t-sm t-muted">' + roster.owned.length + ' pets · ' + CATALOG.length + ' in catalog</span>' +
+        '<span class="t-sm t-muted">' + roster.owned.length + ' pets · rarity spread · ' + CATALOG.length + ' in catalog</span>' +
       '</div>' +
       (emptyRoster
         ? '<div class="pets-empty" role="status">' +
@@ -1768,11 +1820,11 @@
           '</div>'
         : '') +
       '<div class="pets-detail">' +
-        '<div class="pets-detail__hero">' +
+        '<div class="pets-detail__hero pets-detail__hero--tier-' + esc(rarityTier(s.rarity)) + '">' +
           artHtml(s, owned, 'pets-card__art--lg') +
           catchphraseHtml(owned.cosmetics) +
           '<h1 class="pets-detail__name">' + nameHtml(s.name) + '</h1>' +
-          '<div class="pets-card__rarity">' + rarityHtml(s.rarity) + '</div>' +
+          rarityHtml(s.rarity) +
           '<div class="pets-detail__stage-line">' +
             '<span class="pets-detail__stage-badge">Skin ' + esc(stage) + '</span>' +
             '<span class="pets-detail__stage-label">' + esc(SKIN_LABELS[stage] || stage) + '</span>' +
@@ -2042,11 +2094,13 @@
           esc(listing.id) + '">Cancel listing</button>'
       : '<button type="button" class="btn btn--sm btn--pets-primary" data-pets-buy="' +
           esc(listing.id) + '">Buy · ' + listing.price + ' ◆</button>';
-    return '<article class="pets-mcard">' +
+    var tier = rarityTier(s.rarity);
+    return '<article class="pets-mcard pets-mcard--tier-' + esc(tier) +
+      '" data-rarity="' + esc(tier) + '">' +
       '<div class="pets-mcard__art">' + artHtml(s, pet, '') + '</div>' +
       '<div class="pets-mcard__body">' +
         '<h3 class="pets-mcard__name">' + nameHtml(s.name) + '</h3>' +
-        '<div class="pets-card__rarity">' + rarityHtml(s.rarity) + '</div>' +
+        rarityHtml(s.rarity) +
         '<div class="pets-card__meta">' +
           '<span class="pets-card__level">Lv ' + pet.level + '</span>' +
           '<span class="pets-card__stage">' + esc(pet.skinStage) + '</span>' +
@@ -2063,24 +2117,44 @@
     '</article>';
   }
 
+  function listingSpecies(listing) {
+    return listing && listing.pet ? speciesById(listing.pet.speciesId) : null;
+  }
+
   function renderMarket() {
     var listings = activeListings(ensureMarket());
+    var rarityFilter = marketFilter.indexOf('rarity:') === 0
+      ? marketFilter.slice('rarity:'.length)
+      : null;
     var filtered = listings.filter(function (L) {
       if (marketFilter === 'mutated') return !!L.pet && !!L.pet.mutationId;
       if (marketFilter === 'high') return !!L.pet && L.pet.level >= MIN_LIST_LEVEL;
+      if (rarityFilter) {
+        var sp = listingSpecies(L);
+        return !!sp && rarityTier(sp.rarity) === rarityFilter;
+      }
       return true;
     });
     var yours = 0;
     for (var i = 0; i < listings.length; i++) {
       if (listings[i].sellerId === YOU_SELLER) yours++;
     }
+    var rarityChips = RARITY_TIERS.map(function (tier) {
+      var key = 'rarity:' + tier.toLowerCase();
+      var on = marketFilter === key;
+      return '<button type="button" class="pets-chip pets-chip--rarity-' +
+        esc(tier.toLowerCase()) + (on ? ' is-on' : '') +
+        '" data-pets-filter="' + esc(key) +
+        '" aria-pressed="' + (on ? 'true' : 'false') + '">' +
+        '<span class="pets-chip__name">' + esc(tier) + '</span></button>';
+    }).join('');
     var listHtml;
     if (!filtered.length) {
       listHtml = '<div class="pets-empty" role="status">' +
         '<strong>No listings here</strong>' +
         '<p>' +
           (listings.length
-            ? 'Nothing matches this filter. Try All, or list one of your high-level / mutated pets.'
+            ? 'Nothing matches this filter. Try All, another rarity, or list one of your high-level / mutated pets.'
             : 'The market is empty. List a level ' + MIN_LIST_LEVEL +
               '+ or mutated brainrot, or reset demo seeds by clearing local storage.') +
         '</p>' +
@@ -2104,7 +2178,7 @@
             '<h1>Marketplace</h1>' +
           '</div>' +
         '</div>' +
-        '<p>Browse high-level and mutated brainrots. Buy, list, or cancel — soft currency only, classroom-safe. Balance is in the top bar.</p>' +
+        '<p>Browse by rarity (Common → Mythical), mutation, or level. Buy, list, or cancel — soft currency only, classroom-safe. Balance is in the top bar.</p>' +
       '</div>' +
       '<div class="pets-market__filters" role="tablist" aria-label="Listing filters">' +
         '<button type="button" class="pets-chip' + (marketFilter === 'all' ? ' is-on' : '') +
@@ -2117,6 +2191,7 @@
         '<button type="button" class="pets-chip' + (marketFilter === 'high' ? ' is-on' : '') +
           '" data-pets-filter="high" aria-pressed="' + (marketFilter === 'high') + '">' +
           '<span class="pets-chip__name">Lv ' + MIN_LIST_LEVEL + '+</span></button>' +
+        rarityChips +
         '<button type="button" class="btn btn--sm btn--pets-secondary" data-pets-go-list>List a pet</button>' +
       '</div>' +
       listHtml +
@@ -2125,6 +2200,7 @@
         '<ul>' +
           '<li><strong>Pets Diamonds</strong> — local demo soft currency (' +
             'wallet key <code>learngeo.pets.wallet.v0</code>), separate from LearnGeo shop diamonds</li>' +
+          '<li>Starter rarities span Common → Mythical (not every listing is Mythical)</li>' +
           '<li>List gate: level ≥ ' + MIN_LIST_LEVEL + ' <em>or</em> any mutation</li>' +
           '<li>Platform fee ' + (FEE_BPS / 100) + '% shown before buy/list confirm</li>' +
           '<li>Price bounds ' + PRICE_MIN + '–' + PRICE_MAX + ' · cancel returns your pet</li>' +
@@ -2264,17 +2340,8 @@
     var ov = W.el('div', 'pets-event-overlay');
     ov.setAttribute('role', 'dialog');
     ov.setAttribute('aria-modal', 'true');
-    ov.setAttribute('aria-label', 'Mongolian Brainrot x LearnGeo');
-    ov.innerHTML =
-      '<div class="pets-event">' +
-        '<button type="button" class="pets-event__close" data-pets-dismiss aria-label="Dismiss">' + I.close + '</button>' +
-        '<h2 class="pets-event__title">Mongolian Brainrot x LearnGeo</h2>' +
-        '<div class="pets-event__sub">Limited Time Event*</div>' +
-        '<div class="pets-event__actions">' +
-          '<button type="button" class="btn btn--sm btn--pets-primary" data-pets-meet>Meet the Pets</button>' +
-          '<button type="button" class="btn btn--sm btn--pets-ghost" data-pets-dismiss>Dismiss</button>' +
-        '</div>' +
-      '</div>';
+    ov.setAttribute('aria-label', 'Mongolian Brainrot × LearnGeo update');
+    ov.innerHTML = eventCardHtml({ withClose: true, withActions: true });
     document.body.appendChild(ov);
     document.body.classList.add('no-scroll');
 
@@ -2327,6 +2394,7 @@
     starters: STARTERS,
     catalog: CATALOG,
     extended: EXTENDED,
+    rarityTiers: RARITY_TIERS,
     cosmeticCatalog: COSMETIC_CATALOG,
     mutations: MUTATIONS,
     skinStageForLevel: skinStageForLevel,
