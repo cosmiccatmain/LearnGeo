@@ -1,71 +1,81 @@
 /* ------------------------------------------------------------------
    LearnGeo — the Administrator page.
 
-   A full screen rather than another card inside UltraAdmin, because
-   the job is different. UltraAdmin is a column of switches for THIS
-   device. This reaches every account, and a search box, a results
-   table and a balance editor do not fit in a 560px dialog without
-   becoming unusable.
-
-   It sits at z-index 190, deliberately BELOW .overlay at 200, so a
-   confirm dialog opened from here lands on top of it rather than
-   underneath. Toasts are 320 and stay above both.
+   Sidebar layout (deep blue, profile, section nav, Leave Admin) with
+   server-backed command grants (0012). Owner
+   alexjschendel@gmail.com has every command. Screen monitoring is
+   owner-only. Other admins default to read-only accounts/stats/log
+   until the owner grants gems / ban / messages / etc.
 
    NOTHING HERE IS A PERMISSION CHECK. Every call goes through
    AdminOps to a security definer function that re-checks the session
    server side. The worst an edited copy of this file achieves is a
    nicer-looking way to be refused.
-
-   WHEN 0007 HAS NOT BEEN RUN
-
-   Which is true the moment this ships. Every call answers
-   kind:'nomigration' and the page says so, once, at the top, in
-   words that name the file to run. It does not disable itself and it
-   does not pretend to work: a dead console that explains itself is
-   worth more than a grey one that does not.
 -------------------------------------------------------------------*/
 (function (global) {
   'use strict';
   var W = global.WW, I = W.Icons;
 
-  var root = null;          /* the page element, or null when closed */
-  var rows = [];            /* last search result */
-  var picked = null;        /* the selected account row */
-  var stats = null;
-  var banner = '';          /* a sticky problem, shown until it changes */
+  var OWNER_EMAIL = 'alexjschendel@gmail.com';
+  var GRANTABLE = [
+    { id: 'gems',      label: 'Gems',      hint: 'Give, take, set, empty, override diamonds' },
+    { id: 'ban',       label: 'Bans',      hint: 'Ban or lift a ban' },
+    { id: 'messages',  label: 'Messages',  hint: 'Send messages and read threads' },
+    { id: 'staff',     label: 'Staff',     hint: 'Grant or remove the staff effect' },
+    { id: 'allow',     label: 'Allowlist', hint: 'Add or remove admin access' },
+    { id: 'moderate',  label: 'Moderate',  hint: 'Rename, wipe scores, reset, leave classes' },
+    { id: 'classes',   label: 'Classes',   hint: 'List and mark admin classrooms' }
+  ];
 
-  /* Never answers undefined. Every caller below would otherwise need
-     its own null check, and the one that forgot would throw inside a
-     click handler and leave the page looking merely unresponsive. */
+  var root = null;
+  var rows = [];
+  var picked = null;
+  var stats = null;
+  var banner = '';
+  var section = 'overview';
+  var access = { owner: false, email: '', commands: ['accounts', 'stats', 'log'] };
+  var grants = [];
+  var bans = {};
+
   var DEAD = {
     live: function () { return false; },
     minutesLeft: function () { return 0; },
     connect: no, disconnect: function () {},
     stats: no, find: no, recent: no, gems: no, staff: no, allowList: no, allow: no,
-    message: no, thread: no, override: no
+    message: no, thread: no, override: no, myAccess: no, grantsList: no, grantsSet: no,
+    activity: no, ban: no, banned: no, rename: no, wipeScores: no, resetProgress: no,
+    leaveClasses: no
   };
   function no() {
     return Promise.resolve({ ok: false, kind: 'error', message: 'admin-ops.js did not load.' });
   }
   function ops() { return global.AdminOps || DEAD; }
   function esc(s) { return W.escapeHtml(String(s == null ? '' : s)); }
-  /* Same bounds as admin.js, admin-inbox.js and 0007. */
   var CAP = 2000000000, MAX_STEP = 1000000000;
-  var MAX_SAFE = 9007199254740991;   /* the most override can set: the largest whole number a browser holds exactly */
-  var MSG_MAX = 500;        /* the server refuses longer; 0008, ultra_send_message */
-
-  /* Past 2^53 a number written out in full is partly invented: 1.35e36
-     prints as 1,350,000,000,000,000,800,000,… where the 8 is floating-
-     point residue, not a diamond. Those are shown as a power of ten.
-     Everything up to MAX_SAFE is exact and is shown in full, because
-     override can set it and the admin should see the figure they set. */
+  var MAX_SAFE = 9007199254740991;
+  var MSG_MAX = 500;
   var SUP = '⁰¹²³⁴⁵⁶⁷⁸⁹';
   function num(n) {
     var v = Number(n) || 0;
-    if (Math.abs(v) <= MAX_SAFE) return v.toLocaleString();     /* exact, so shown in full */
+    if (Math.abs(v) <= MAX_SAFE) return v.toLocaleString();
     var parts = v.toExponential(2).split('e');
     var exp = String(Math.abs(+parts[1])).replace(/[0-9]/g, function (d) { return SUP[+d]; });
     return parts[0] + ' × 10' + (+parts[1] < 0 ? '⁻' : '') + exp;
+  }
+
+  function can(cmd) {
+    if (access.owner) return true;
+    var list = access.commands || [];
+    for (var i = 0; i < list.length; i++) if (list[i] === cmd) return true;
+    return false;
+  }
+
+  function meProfile() {
+    var u = global.Cloud && global.Cloud.user;
+    var email = (u && u.email) || (access.email) || '';
+    var name = (W.state && W.state.profile && W.state.profile.displayName) ||
+               (email ? email.split('@')[0] : 'Admin');
+    return { name: name, email: email };
   }
 
   /* ============================== open ============================= */
@@ -83,105 +93,79 @@
     if (!root) return;
     root.remove();
     root = null; rows = []; picked = null; stats = null; banner = '';
+    section = 'overview'; grants = [];
     document.body.classList.remove('no-scroll');
   }
 
   /* ============================== shell ============================ */
+  function navItem(id, icon, label) {
+    return '<button type="button" class="adminp__nav' + (section === id ? ' is-on' : '') +
+      '" data-nav="' + id + '">' +
+      '<span class="adminp__nav-ic">' + icon + '</span>' +
+      '<span>' + esc(label) + '</span></button>';
+  }
+
   function build() {
+    var who = meProfile();
     root = W.el('div', 'adminp');
     root.innerHTML =
-      '<div class="adminp__bar">' +
-        '<div class="adminp__title">' + I.shield + '<b>Administrator</b>' +
-          '<span class="adminp__pill" id="ap-session">checking…</span></div>' +
-        '<div class="grow"></div>' +
-        '<button class="btn btn--ghost btn--sm" id="ap-refresh">' + I.refresh + ' Refresh</button>' +
-        '<button class="icon-btn" id="ap-close">' + I.close + '</button>' +
-      '</div>' +
-      '<div class="adminp__scroll">' +
-        '<div id="ap-banner"></div>' +
-        '<div class="adminp__grid" id="ap-stats"></div>' +
-
-        '<section class="adminp__sec">' +
-          '<h3>Accounts</h3>' +
-          '<p class="t-sm t-muted">Search a display name or an email. An empty box lists whoever was active most recently.</p>' +
-          '<div class="adminp__search">' +
-            '<input class="input" id="ap-q" type="search" placeholder="name or email" ' +
-              'autocomplete="off" spellcheck="false">' +
-            '<button class="btn btn--primary btn--sm" id="ap-go">Search</button>' +
+      '<aside class="adminp__side">' +
+        '<div class="adminp__profile">' +
+          '<div class="adminp__avatar" aria-hidden="true">' + (I.user || '') + '</div>' +
+          '<div class="adminp__whoami">' +
+            '<b id="ap-name">' + esc(who.name) + '</b>' +
+            '<span id="ap-email">' + esc(who.email || 'signed in') + '</span>' +
           '</div>' +
-          '<div id="ap-rows" class="adminp__rows"></div>' +
-        '</section>' +
-
-        '<section class="adminp__sec" id="ap-picked-sec" hidden>' +
-          '<h3>Selected account</h3>' +
-          '<div id="ap-picked"></div>' +
-        '</section>' +
-
-        /* 0009. Above Commands because it is the thing you watch while
-           you work, and below the selected account because picking
-           somebody is what you do with what you see here. */
-        '<section class="adminp__sec">' +
-          '<div class="row row--between">' +
-            '<h3 style="margin:0">Who is on now</h3>' +
-            '<button class="btn btn--ghost btn--sm" data-do="watch">' + I.refresh + ' Refresh</button>' +
-          '</div>' +
-          '<p class="t-sm t-muted">Which screen each signed-in account is on, and when they were ' +
-            'last there. Screen names only — not what they type, what they answer, or anything on ' +
-            'their screen.</p>' +
-          '<div id="ap-activity" class="adminp__rows"></div>' +
-        '</section>' +
-
-        '<section class="adminp__sec">' +
-          '<h3>Commands</h3>' +
-          '<p class="t-sm t-muted">Type <code>help</code> for the list. A command that needs an account uses the selected one.</p>' +
-          '<div class="adminp__search">' +
-            '<input class="input mono" id="ap-cmd" type="text" placeholder="take 500" ' +
-              'autocomplete="off" spellcheck="false">' +
-            '<button class="btn btn--sm" id="ap-run">Run</button>' +
-          '</div>' +
-          '<pre class="adminp__out" id="ap-out">Ready.</pre>' +
-        '</section>' +
-
-        '<section class="adminp__sec">' +
-          '<h3>LearnGeo staff</h3>' +
-          '<p class="t-sm t-muted">The staff profile effect is the one cosmetic with no price. ' +
-            'It cannot be bought at any balance and the shop refuses to sell it; it is on an account ' +
-            'because somebody on this page put it there.</p>' +
-          '<div id="ap-staff"></div>' +
-        '</section>' +
-
-        '<section class="adminp__sec">' +
-          '<h3>Recent admin actions</h3>' +
-          '<p class="t-sm t-muted">Everything any admin has done to anybody else. Written by the server, ' +
-            'not by this browser, and nothing can edit a line once it is here.</p>' +
-          '<div id="ap-log" class="adminp__rows"></div>' +
-        '</section>' +
+        '</div>' +
+        '<nav class="adminp__navlist" id="ap-nav">' +
+          navItem('overview', I.home || I.grid, 'Overview') +
+          navItem('monitor', I.monitor || I.eye, 'Screen monitoring') +
+          navItem('accounts', I.users, 'Accounts') +
+          navItem('gems', I.gem, 'Gems') +
+          navItem('messages', I.message || I.inbox, 'Messages') +
+          navItem('activity', I.list || I.chart, 'Activity') +
+          navItem('permissions', I.lock, 'Permissions') +
+          navItem('commands', I.bolt, 'Commands') +
+        '</nav>' +
+        '<div class="adminp__sidefoot">' +
+          '<span class="adminp__pill" id="ap-session">checking…</span>' +
+          '<button type="button" class="adminp__leave" id="ap-leave">' +
+            (I.logout || '') + ' Leave Admin</button>' +
+        '</div>' +
+      '</aside>' +
+      '<div class="adminp__main">' +
+        '<div class="adminp__bar">' +
+          '<div class="adminp__title">' + I.shield + '<b id="ap-heading">Administrator</b></div>' +
+          '<div class="grow"></div>' +
+          '<button class="btn btn--ghost btn--sm" id="ap-refresh">' + I.refresh + ' Refresh</button>' +
+          '<button class="icon-btn" id="ap-close" title="Leave Admin">' + I.close + '</button>' +
+        '</div>' +
+        '<div class="adminp__scroll">' +
+          '<div id="ap-banner"></div>' +
+          '<div id="ap-panel"></div>' +
+        '</div>' +
       '</div>';
 
     document.body.appendChild(root);
     document.body.classList.add('no-scroll');
     wire();
+    renderPanel();
   }
 
-  /* ============================== wiring =========================== */
   function wire() {
     W.$('#ap-close', root).addEventListener('click', close);
+    W.$('#ap-leave', root).addEventListener('click', close);
     W.$('#ap-refresh', root).addEventListener('click', refresh);
 
-    W.$('#ap-go', root).addEventListener('click', search);
-    W.$('#ap-q', root).addEventListener('keydown', function (e) {
-      if (e.key === 'Enter') { e.preventDefault(); search(); }
-    });
-
-    W.$('#ap-run', root).addEventListener('click', runCmd);
-    W.$('#ap-cmd', root).addEventListener('keydown', function (e) {
-      if (e.key === 'Enter') { e.preventDefault(); runCmd(); }
-    });
-
-    /* One delegated handler for the whole page. The rows and the
-       buttons inside them are rebuilt constantly, and rebinding after
-       every render is how a dead button happens. */
     root.addEventListener('click', function (e) {
+      var nav = e.target.closest('[data-nav]');
+      if (nav) {
+        section = nav.getAttribute('data-nav');
+        syncNav();
+        renderPanel();
+        return;
+      }
+
       var pick = e.target.closest('[data-pick]');
       if (pick) return select(pick.dataset.pick);
 
@@ -198,15 +182,26 @@
       if (d.do === 'resetprog')    return resetProgress();
       if (d.do === 'leaveclasses') return leaveClasses();
       if (d.do === 'watch')    return loadActivity(true);
+      if (d.do === 'search')   return search();
+      if (d.do === 'runcmd')   return runCmd();
+      if (d.do === 'savegrants') return saveGrants(d.email);
+      if (d.do === 'gemsonly') return saveGrants(d.email, ['gems']);
+      if (d.do === 'cleargrants') return saveGrants(d.email, []);
       if (d.do === 'msg') {
         var box = W.$('#ap-msg-text', root);
         return sendMessage(box ? box.value : '', box);
       }
     });
 
-    /* The counter under the message box. Delegated for the same reason
-       the clicks are: the box is rebuilt every time an account is
-       picked. */
+    root.addEventListener('keydown', function (e) {
+      if (e.target && e.target.id === 'ap-q' && e.key === 'Enter') {
+        e.preventDefault(); search();
+      }
+      if (e.target && e.target.id === 'ap-cmd' && e.key === 'Enter') {
+        e.preventDefault(); runCmd();
+      }
+    });
+
     root.addEventListener('input', function (e) {
       if (e.target && e.target.id === 'ap-msg-text') {
         var c = W.$('#ap-msg-count', root);
@@ -222,21 +217,211 @@
     if (e.key === 'Escape' && !document.querySelector('.overlay')) close();
   }
 
+  function syncNav() {
+    if (!root) return;
+    var nodes = root.querySelectorAll('[data-nav]');
+    for (var i = 0; i < nodes.length; i++) {
+      var id = nodes[i].getAttribute('data-nav');
+      var show = true;
+      if (id === 'monitor' || id === 'permissions') show = !!access.owner;
+      if (id === 'gems' && !access.owner && !can('gems')) show = false;
+      if (id === 'messages' && !access.owner && !can('messages')) show = false;
+      nodes[i].hidden = !show;
+      nodes[i].classList.toggle('is-on', show && section === id);
+    }
+    if ((section === 'monitor' || section === 'permissions') && !access.owner) {
+      section = 'overview';
+    }
+    if (section === 'gems' && !can('gems')) section = 'overview';
+    if (section === 'messages' && !can('messages')) section = 'overview';
+  }
+
+  var TITLES = {
+    overview: 'Overview',
+    monitor: 'Screen monitoring',
+    accounts: 'Accounts',
+    gems: 'Gems',
+    messages: 'Messages',
+    activity: 'Activity',
+    permissions: 'Permissions',
+    commands: 'Commands'
+  };
+
+  function renderPanel() {
+    if (!root) return;
+    syncNav();
+    var head = W.$('#ap-heading', root);
+    if (head) head.textContent = TITLES[section] || 'Administrator';
+    var host = W.$('#ap-panel', root);
+    if (!host) return;
+
+    if (section === 'overview') host.innerHTML = panelOverview();
+    else if (section === 'monitor') host.innerHTML = panelMonitor();
+    else if (section === 'accounts') host.innerHTML = panelAccounts();
+    else if (section === 'gems') host.innerHTML = panelGems();
+    else if (section === 'messages') host.innerHTML = panelMessages();
+    else if (section === 'activity') host.innerHTML = panelActivity();
+    else if (section === 'permissions') host.innerHTML = panelPermissions();
+    else if (section === 'commands') host.innerHTML = panelCommands();
+    else host.innerHTML = '';
+
+    /* Fill dynamic bits after the shell is in the DOM. */
+    if (section === 'overview') { renderStats(); renderStaff(); }
+    if (section === 'monitor') loadActivity(false);
+    if (section === 'accounts') {
+      renderRows();
+      if (picked) renderPicked();
+      else { var ps = W.$('#ap-picked-sec', root); if (ps) ps.hidden = true; }
+    }
+    if (section === 'gems' || section === 'messages') {
+      renderPickedMini();
+      if (section === 'messages' && picked) loadThread();
+    }
+    if (section === 'activity') {
+      ops().recent(30).then(function (r) { guard(r, renderLog); });
+    }
+    if (section === 'permissions') loadGrants();
+  }
+
+  function panelOverview() {
+    var note = access.owner
+      ? 'You are the owner account. Every administrator command is available, including screen monitoring and the permissions panel.'
+      : 'Your access is limited to what the owner has granted. Destructive gems, bans, and moderation stay off until granted.';
+    return '<div class="adminp__grid" id="ap-stats"></div>' +
+      '<section class="adminp__sec">' +
+        '<h3>Your access</h3>' +
+        '<p class="t-sm t-muted">' + esc(note) + '</p>' +
+        '<div class="adminp__chips" id="ap-access-chips">' + accessChips() + '</div>' +
+      '</section>' +
+      '<section class="adminp__sec">' +
+        '<h3>LearnGeo staff</h3>' +
+        '<p class="t-sm t-muted">The staff profile effect is the one cosmetic with no price.</p>' +
+        '<div id="ap-staff"></div>' +
+      '</section>';
+  }
+
+  function accessChips() {
+    var labels = {
+      accounts: 'Accounts', stats: 'Stats', log: 'Activity log', gems: 'Gems',
+      ban: 'Bans', messages: 'Messages', staff: 'Staff', allow: 'Allowlist',
+      moderate: 'Moderate', classes: 'Classes', activity: 'Screen monitoring',
+      permissions: 'Permissions'
+    };
+    var cmds = access.owner
+      ? Object.keys(labels)
+      : (access.commands || []);
+    var seen = {};
+    return cmds.filter(function (c) {
+      if (seen[c] || !labels[c]) return false;
+      seen[c] = true; return true;
+    }).map(function (c) {
+      return '<span class="adminp__chip">' + esc(labels[c]) + '</span>';
+    }).join('') || '<span class="t-sm t-muted">Read-only default</span>';
+  }
+
+  function panelMonitor() {
+    if (!access.owner) {
+      return '<section class="adminp__sec"><h3>Screen monitoring</h3>' +
+        '<p class="t-sm t-muted">Only the owner account can use screen monitoring.</p></section>';
+    }
+    return '<section class="adminp__sec">' +
+      '<div class="row row--between">' +
+        '<h3 style="margin:0">Who is on now</h3>' +
+        '<button class="btn btn--ghost btn--sm" data-do="watch">' + I.refresh + ' Refresh</button>' +
+      '</div>' +
+      '<p class="t-sm t-muted">Which screen each signed-in account is on, and when they were ' +
+        'last there. Screen names only — not what they type, what they answer, or anything on ' +
+        'their screen.</p>' +
+      '<div id="ap-activity" class="adminp__rows"></div>' +
+    '</section>';
+  }
+
+  function panelAccounts() {
+    return '<section class="adminp__sec">' +
+      '<h3>Accounts</h3>' +
+      '<p class="t-sm t-muted">Search a display name or an email. An empty box lists whoever was active most recently.</p>' +
+      '<div class="adminp__search">' +
+        '<input class="input" id="ap-q" type="search" placeholder="name or email" ' +
+          'autocomplete="off" spellcheck="false">' +
+        '<button class="btn btn--primary btn--sm" data-do="search">Search</button>' +
+      '</div>' +
+      '<div id="ap-rows" class="adminp__rows"></div>' +
+    '</section>' +
+    '<section class="adminp__sec" id="ap-picked-sec" hidden>' +
+      '<h3>Selected account</h3>' +
+      '<div id="ap-picked"></div>' +
+    '</section>';
+  }
+
+  function panelGems() {
+    return '<section class="adminp__sec">' +
+      '<h3>Gems</h3>' +
+      '<p class="t-sm t-muted">Pick an account under Accounts first, then adjust diamonds here. ' +
+        'Takes and empties need the gems grant.</p>' +
+      '<div id="ap-picked-mini"></div>' +
+      '<div class="adminp__search" style="margin-top:12px">' +
+        '<input class="input mono" id="ap-cmd" type="text" placeholder="take 500" ' +
+          'autocomplete="off" spellcheck="false">' +
+        '<button class="btn btn--sm" data-do="runcmd">Run</button>' +
+      '</div>' +
+      '<pre class="adminp__out" id="ap-out">Ready. Type help for the list.</pre>' +
+    '</section>';
+  }
+
+  function panelMessages() {
+    return '<section class="adminp__sec">' +
+      '<h3>Messages</h3>' +
+      '<p class="t-sm t-muted">Select an account under Accounts, then write here. ' +
+        'They see it on their screen within about 30 seconds if the app is open.</p>' +
+      '<div id="ap-picked-mini"></div>' +
+      '<div id="ap-msg-host"></div>' +
+    '</section>';
+  }
+
+  function panelActivity() {
+    return '<section class="adminp__sec">' +
+      '<h3>Recent admin actions</h3>' +
+      '<p class="t-sm t-muted">Everything any admin has done to anybody else. Written by the server.</p>' +
+      '<div id="ap-log" class="adminp__rows"></div>' +
+    '</section>';
+  }
+
+  function panelPermissions() {
+    return '<section class="adminp__sec">' +
+      '<h3>Permissions</h3>' +
+      '<p class="t-sm t-muted">Limit other admins to certain commands. Default is restricted: ' +
+        'no bans, no taking gems, no destructive moderation. Screen monitoring stays owner-only ' +
+        'and cannot be granted. Example: check only <b>Gems</b>, or use <b>Gems only</b>.</p>' +
+      '<div id="ap-grants" class="adminp__grants">Loading…</div>' +
+    '</section>';
+  }
+
+  function panelCommands() {
+    return '<section class="adminp__sec">' +
+      '<h3>Commands</h3>' +
+      '<p class="t-sm t-muted">Type <code>help</code> for the list. A command that needs an account uses the selected one. ' +
+        '<code>watch</code> refreshes screen monitoring (owner only).</p>' +
+      '<div class="adminp__search">' +
+        '<input class="input mono" id="ap-cmd" type="text" placeholder="take 500" ' +
+          'autocomplete="off" spellcheck="false">' +
+        '<button class="btn btn--sm" data-do="runcmd">Run</button>' +
+      '</div>' +
+      '<pre class="adminp__out" id="ap-out">Ready.</pre>' +
+    '</section>';
+  }
+
   /* ========================= server round trips ==================== */
-  /* Everything funnels through here so one failure is described once
-     and a stale "Loading…" can never be left on screen. */
   function guard(res, after) {
-    /* A success clears only the problems a success disproves: a missing
-       migration, a lost session, being signed out. It does NOT clear a
-       real error from a different call. refresh() fires three calls at
-       once, and the search answering fine after the stats failed used
-       to wipe the stats' error off the screen, leaving a row of dashes
-       with no explanation. */
     if (res && res.ok) {
       if (banner === 'nomigration' || banner === 'expired' || banner === 'notready') setBanner('');
       return after(res.data);
     }
     var kind = (res && res.kind) || 'error';
+    if (kind === 'forbidden') {
+      say((res && res.message) || 'You do not have permission for that.');
+      W.toast('Not permitted', (res && res.message) || 'That command is not granted to you.', I.lock, 3600);
+      return null;
+    }
     setBanner(kind, (res && res.message) || 'Something went wrong.');
     return null;
   }
@@ -252,8 +437,7 @@
               : 'That did not work';
     var extra = kind === 'nomigration'
       ? '<p class="t-sm" style="margin:8px 0 0">Run <code>supabase/migrations/0007_administrator.sql</code> ' +
-        'in the SQL editor. Until then this page can show its own layout and nothing else: every account ' +
-        'it would read lives behind functions that do not exist yet.</p>'
+        'and <code>0012_admin_command_grants.sql</code> in the SQL editor.</p>'
       : kind === 'expired'
       ? '<p class="t-sm" style="margin:8px 0 0">Sessions last 30 minutes and are not renewed by use. ' +
         'Close this page, open UltraAdmin and enter the code again.</p>'
@@ -272,68 +456,117 @@
     var o = ops();
     if (!o) return setBanner('error', 'admin-ops.js did not load.');
 
-    o.stats().then(function (r) {
-      guard(r, function (d) { stats = d; renderStats(); });
-      if (!r.ok) renderStats();
+    var who = meProfile();
+    var nm = W.$('#ap-name', root), em = W.$('#ap-email', root);
+    if (nm) nm.textContent = who.name;
+    if (em) em.textContent = who.email || 'signed in';
+
+    loadAccess().then(function () {
+      o.stats().then(function (r) {
+        guard(r, function (d) { stats = d; if (section === 'overview') renderStats(); });
+        if (!r.ok && section === 'overview') renderStats();
+      });
+      loadBans();
+      if (section === 'monitor') loadActivity(false);
+      if (section === 'overview') renderStaff();
+      if (section === 'accounts' || !rows.length) search();
+      if (section === 'permissions') loadGrants();
+      if (section === 'activity') o.recent(30).then(function (r) { guard(r, renderLog); });
+      renderPanel();
     });
-    o.recent(15).then(function (r) { guard(r, renderLog); });
-    loadBans();
-    loadActivity(false);
-    renderStaff();
-    search();
   }
 
-  /* Who is banned, kept so a row and the selected card can say so
-     without another round trip per account. */
-  var bans = {};
+  function loadAccess() {
+    var o = ops();
+    if (!o.myAccess) {
+      access = { owner: false, email: '', commands: ['accounts', 'stats', 'log'] };
+      return Promise.resolve();
+    }
+    return o.myAccess().then(function (r) {
+      if (r && r.ok && r.data) {
+        var d = r.data;
+        var cmds = d.commands;
+        if (cmds && typeof cmds === 'object' && !Array.isArray(cmds)) {
+          /* jsonb array sometimes arrives already parsed; object map unlikely */
+          cmds = Object.keys(cmds).map(function (k) { return cmds[k]; });
+        }
+        access = {
+          owner: !!d.owner,
+          email: d.email || '',
+          commands: Array.isArray(cmds) ? cmds : ['accounts', 'stats', 'log']
+        };
+        /* Client-side owner mirror from signed-in email, in case 0012
+           is not applied yet — still never trusted for server calls. */
+        var mail = ((global.Cloud && global.Cloud.user && global.Cloud.user.email) || '').toLowerCase();
+        if (mail === OWNER_EMAIL) {
+          access.owner = true;
+          access.commands = ['accounts','stats','log','gems','ban','messages','staff',
+            'allow','moderate','classes','activity','permissions'];
+        }
+      } else if (r && r.kind === 'nomigration') {
+        var m = ((global.Cloud && global.Cloud.user && global.Cloud.user.email) || '').toLowerCase();
+        access = {
+          owner: m === OWNER_EMAIL,
+          email: m,
+          commands: m === OWNER_EMAIL
+            ? ['accounts','stats','log','gems','ban','messages','staff','allow','moderate','classes','activity','permissions']
+            : ['accounts', 'stats', 'log']
+        };
+      }
+      syncNav();
+    });
+  }
+
   function loadBans() {
     var o = ops();
-    if (!o || !o.banned) return;
+    if (!o || !o.banned || !can('ban')) return;
     o.banned().then(function (r) {
-      if (!r || !r.ok) return;            /* 0009 not run yet: no bans to show */
+      if (!r || !r.ok) return;
       bans = {};
       (r.data || []).forEach(function (b) { bans[b.user_id] = b; });
       for (var i = 0; i < rows.length; i++) rows[i].banned = !!bans[rows[i].id];
       if (picked) picked.banned = !!bans[picked.id];
-      renderRows(); if (picked) renderPicked();
+      if (section === 'accounts') { renderRows(); if (picked) renderPicked(); }
     });
   }
 
   function loadActivity(loud) {
     var o = ops();
-    var host = W.$('#ap-activity', root);
-    if (!o || !o.activity || !host) return;
+    var host = root && W.$('#ap-activity', root);
+    if (!host) return;
+    if (!access.owner) {
+      host.innerHTML = '<div class="t-sm t-muted">Only the owner can use screen monitoring.</div>';
+      return;
+    }
+    if (!o || !o.activity) return;
     if (loud) host.innerHTML = '<div class="t-sm t-muted">Looking…</div>';
     o.activity(15).then(function (r) {
       if (!r || !r.ok) {
         host.innerHTML = '<div class="t-sm t-muted">' +
           (r && r.kind === 'nomigration'
-            ? 'This needs 0009, which has not been run on the database yet.'
+            ? 'This needs 0009 / 0012 on the database.'
+            : r && r.kind === 'forbidden'
+            ? 'Only the owner can use screen monitoring.'
             : 'Could not read who is on right now.') + '</div>';
         return;
       }
       var list = r.data || [];
       if (!list.length) {
-        host.innerHTML = '<div class="t-sm t-muted">Nobody signed in has been active in the last ' +
-          '15 minutes.</div>';
+        host.innerHTML = '<div class="t-sm t-muted">Nobody signed in has been active in the last 15 minutes.</div>';
         return;
       }
-      /* Same grid as the Accounts table above, so the two read as one
-         page rather than two designs. Six columns, same order. */
       host.innerHTML =
-        '<div class="adminp__row adminp__row--head">' +
-          '<span>Name</span><span>Email</span><span>On</span>' +
-          '<span class="num"></span><span class="num"></span><span>Last seen</span>' +
+        '<div class="adminp__row adminp__row--watch adminp__row--head">' +
+          '<span>Name</span><span>Email</span><span>On</span><span>Last seen</span>' +
         '</div>' +
         list.map(function (a) {
-          return '<button class="adminp__row' + (picked && picked.id === a.user_id ? ' is-picked' : '') +
+          return '<button type="button" class="adminp__row adminp__row--watch' +
+            (picked && picked.id === a.user_id ? ' is-picked' : '') +
             '" data-pick="' + esc(a.user_id) + '">' +
             '<span class="adminp__nm">' + esc(a.display_name || 'Explorer') +
-              (a.banned ? '<i class="adminp__staff" title="Banned">BANNED</i>' : '') + '</span>' +
+              (a.banned ? '<i class="adminp__ban" title="Banned">BANNED</i>' : '') + '</span>' +
             '<span class="t-muted">' + esc(a.email || '—') + '</span>' +
             '<span>' + esc(a.screen || '—') + '</span>' +
-            '<span class="num"></span>' +
-            '<span class="num"></span>' +
             '<span class="t-muted">' + esc(ago(a.seen_at)) + '</span>' +
           '</button>';
         }).join('');
@@ -349,103 +582,206 @@
     el.className = 'adminp__pill' + ((o && o.live()) ? ' is-live' : '');
   }
 
-  /* ============================== stats ============================ */
-  var TILES = [
-    ['accounts',  'Accounts',        'Every profile row on the server.'],
-    ['active24',  'Active today',    'Profiles whose save changed in the last 24 hours.'],
-    ['active7',   'Active this week','Profiles whose save changed in the last 7 days.'],
-    ['students',  'Students',        'role = student.'],
-    ['teachers',  'Teachers',        'role = teacher.'],
-    ['classes',   'Classes',         'Every class row. Production has no archived flag on a class.'],
-    ['members',   'Class seats',     'Every class_members row. Production has no status column, so pending and joined are not told apart.'],
-    ['diamonds',  'Diamonds in play','Every balance added together.'],
-    ['allowed',   'Admin list',      'Accounts that may open the admin panels, with the code or their Private Password.'],
-    ['staff',     'Staff marks',     'Accounts holding the staff cosmetic.'],
-    ['grants24',  'Self-grants 24h', 'Gems-panel grants logged in the last day.'],
-    ['actions24', 'Admin actions 24h','Cross-account actions in the last day.']
-  ];
-
   function renderStats() {
-    var host = W.$('#ap-stats', root);
+    var host = root && W.$('#ap-stats', root);
     if (!host) return;
-    host.innerHTML = TILES.map(function (t) {
-      var v = stats && stats[t[0]] != null ? num(stats[t[0]]) : '—';
+    var s = stats || {};
+    var tiles = [
+      [num(s.accounts), 'Accounts', 'Every profile row on the server.'],
+      [num(s.active24), 'Active 24h', 'Profiles updated in the last day.'],
+      [num(s.allowed), 'Admin list', 'Accounts that may open the admin panels.'],
+      [num(s.staff), 'Staff marks', 'Accounts holding the staff cosmetic.'],
+      [num(s.actions24), 'Admin actions 24h', 'Cross-account actions in the last day.']
+    ];
+    host.innerHTML = tiles.map(function (t) {
       return '<div class="adminp__tile" title="' + esc(t[2]) + '">' +
-        '<b>' + esc(v) + '</b><span>' + esc(t[1]) + '</span></div>';
+        '<b>' + esc(String(t[0])) + '</b><span>' + esc(t[1]) + '</span></div>';
     }).join('');
   }
 
-  /* ============================= accounts ========================== */
   function search() {
-    var q = root ? W.$('#ap-q', root).value : '';
-    var host = W.$('#ap-rows', root);
+    var qEl = root && W.$('#ap-q', root);
+    var q = qEl ? qEl.value : '';
+    var host = root && W.$('#ap-rows', root);
+    if (!host) {
+      /* Searching from Commands / monitor without the accounts panel —
+         still fetch so select() and who work. */
+      return ops().find(q).then(function (r) {
+        if (r && r.ok) {
+          rows = r.data || [];
+          for (var i = 0; i < rows.length; i++) rows[i].banned = !!bans[rows[i].id];
+        }
+      });
+    }
     host.innerHTML = '<div class="adminp__empty">Searching…</div>';
     ops().find(q).then(function (r) {
-      if (!root) return;
       if (!r.ok) { host.innerHTML = '<div class="adminp__empty">Nothing to show.</div>'; return guard(r, function () {}); }
       if (banner === 'nomigration' || banner === 'expired' || banner === 'notready') setBanner('');
       rows = r.data || [];
-      /* 0009. find() hands back fresh objects, so the ban marks that
-         loadBans() wrote onto the previous rows are not on these. Put
-         them back before the first paint: without this, searching for
-         somebody you banned a moment ago shows them clean, and the
-         selected card offers to ban them again. ultra_banned() returns
-         every ban, so the map is complete as of the last load. */
       for (var i = 0; i < rows.length; i++) rows[i].banned = !!bans[rows[i].id];
       renderRows();
     });
   }
 
   function renderRows() {
-    var host = W.$('#ap-rows', root);
+    var host = root && W.$('#ap-rows', root);
+    if (!host) return;
     if (!rows.length) {
       host.innerHTML = '<div class="adminp__empty">No account matched that.</div>';
       return;
     }
     host.innerHTML =
       '<div class="adminp__row adminp__row--head">' +
-        '<span>Name</span><span>Email</span><span>Role</span>' +
-        '<span class="num">Level</span><span class="num">Diamonds</span><span>Last seen</span>' +
+        '<span>Name</span><span>Email</span><span class="num">Level</span>' +
+        '<span class="num">💎</span><span class="num">XP</span><span>Seen</span>' +
       '</div>' +
       rows.map(function (a) {
-        return '<button class="adminp__row' + (picked && picked.id === a.id ? ' is-picked' : '') +
+        return '<button type="button" class="adminp__row' + (picked && picked.id === a.id ? ' is-picked' : '') +
           '" data-pick="' + esc(a.id) + '">' +
           '<span class="adminp__nm">' + esc(a.display_name || 'Explorer') +
             (a.staff ? '<i class="adminp__staff" title="LearnGeo staff">STAFF</i>' : '') +
             (a.banned ? '<i class="adminp__ban" title="Banned from LearnGeo">BANNED</i>' : '') + '</span>' +
           '<span class="t-muted">' + esc(a.email || '—') + '</span>' +
-          '<span>' + esc(a.role || '—') + '</span>' +
-          '<span class="num mono">' + num(a.level) + '</span>' +
-          '<span class="num mono">' + num(a.diamonds) + '</span>' +
-          '<span class="t-muted">' + esc(ago(a.updated_at)) + '</span>' +
+          '<span class="num">' + num(a.level) + '</span>' +
+          '<span class="num">' + num(a.diamonds) + '</span>' +
+          '<span class="num">' + num(a.xp) + '</span>' +
+          '<span class="t-muted">' + esc(ago(a.last_seen || a.seen_at)) + '</span>' +
         '</button>';
       }).join('');
   }
 
   function ago(ts) {
+    if (!ts) return '—';
     var t = Date.parse(ts);
     if (!t) return '—';
-    var m = Math.round((Date.now() - t) / 60000);
-    if (m < 1) return 'just now';
+    var s = Math.round((Date.now() - t) / 1000);
+    if (s < 45) return 'just now';
+    var m = Math.round(s / 60);
     if (m < 60) return m + 'm ago';
     var h = Math.round(m / 60);
     if (h < 24) return h + 'h ago';
     return Math.round(h / 24) + 'd ago';
   }
 
+  /* Clicking a screen-monitor row used to no-op when that account was
+     not in the current search results. Resolve via find by id/email. */
   function select(id) {
-    picked = null;
-    for (var i = 0; i < rows.length; i++) { if (rows[i].id === id) picked = rows[i]; }
-    renderRows();
-    renderPicked();
+    var found = null;
+    for (var i = 0; i < rows.length; i++) { if (rows[i].id === id) found = rows[i]; }
+    if (found) {
+      picked = found;
+      afterSelect();
+      return;
+    }
+    ops().find(id).then(function (r) {
+      if (r && r.ok && r.data && r.data.length) {
+        var hit = null;
+        for (var j = 0; j < r.data.length; j++) if (r.data[j].id === id) hit = r.data[j];
+        picked = hit || r.data[0];
+        picked.banned = !!bans[picked.id];
+        /* Keep a copy in rows so later renders stay coherent. */
+        var exists = false;
+        for (var k = 0; k < rows.length; k++) if (rows[k].id === picked.id) { rows[k] = picked; exists = true; }
+        if (!exists) rows.unshift(picked);
+      } else {
+        picked = { id: id, display_name: 'Account', email: '', diamonds: 0, level: 1, xp: 0 };
+      }
+      afterSelect();
+    });
+  }
+
+  function afterSelect() {
+    if (section === 'accounts') { renderRows(); renderPicked(); }
+    else if (section === 'gems' || section === 'messages') {
+      renderPickedMini();
+      if (section === 'messages') loadThread();
+    } else if (section === 'monitor') {
+      section = 'accounts';
+      renderPanel();
+    } else {
+      say(picked
+        ? 'Selected ' + (picked.display_name || picked.email || picked.id)
+        : 'Nothing selected.');
+    }
   }
 
   var TAKE = [100, 500, 1000, 5000];
 
   function renderPicked() {
-    var sec = W.$('#ap-picked-sec', root), host = W.$('#ap-picked', root);
+    var sec = root && W.$('#ap-picked-sec', root), host = root && W.$('#ap-picked', root);
+    if (!sec || !host) return;
     if (!picked) { sec.hidden = true; host.innerHTML = ''; return; }
     sec.hidden = false;
+
+    var gemsBtns = '';
+    if (can('gems')) {
+      gemsBtns =
+        '<div class="adminp__act">' +
+          '<span class="eyebrow">Take</span>' +
+          TAKE.map(function (n) {
+            return '<button class="btn btn--sm adminp__danger" data-do="gems" data-delta="-' + n +
+              '" data-label="took ' + n + '">−' + num(n) + '</button>';
+          }).join('') +
+          '<button class="btn btn--sm adminp__danger" data-do="gems" data-set="0" data-label="emptied">Empty it</button>' +
+        '</div>' +
+        '<div class="adminp__act">' +
+          '<span class="eyebrow">Give</span>' +
+          TAKE.map(function (n) {
+            return '<button class="btn btn--sm" data-do="gems" data-delta="' + n +
+              '" data-label="gave ' + n + '">+' + num(n) + '</button>';
+          }).join('') +
+        '</div>';
+    }
+
+    var marks = '';
+    if (can('staff') || can('allow')) {
+      marks = '<div class="adminp__act"><span class="eyebrow">Marks</span>';
+      if (can('staff')) {
+        marks += '<button class="btn btn--sm" data-do="staff" data-on="' + (picked.staff ? '0' : '1') + '">' +
+          (picked.staff ? 'Remove staff effect' : 'Grant staff effect') + '</button>';
+      }
+      if (can('allow')) {
+        marks +=
+          '<button class="btn btn--sm" data-do="allow" data-on="1">Give admin access</button>' +
+          '<button class="btn btn--sm" data-do="allow" data-on="0">Remove admin access</button>';
+      }
+      marks += '</div>';
+    }
+
+    var account = '';
+    if (can('ban') || can('moderate')) {
+      account = '<div class="adminp__act"><span class="eyebrow">Account</span>';
+      if (can('ban')) {
+        account += picked.banned
+          ? '<button class="btn btn--sm" data-do="ban" data-on="0">Lift the ban</button>'
+          : '<button class="btn btn--sm adminp__danger" data-do="ban" data-on="1">Ban this account</button>';
+      }
+      if (can('moderate')) {
+        account +=
+          '<button class="btn btn--sm" data-do="rename">Rename</button>' +
+          '<button class="btn btn--sm adminp__danger" data-do="wipescores">Wipe arcade scores</button>' +
+          '<button class="btn btn--sm adminp__danger" data-do="resetprog">Reset progress</button>' +
+          '<button class="btn btn--sm adminp__danger" data-do="leaveclasses">Remove from all classes</button>';
+      }
+      account += '</div>';
+    }
+
+    var msgBlock = '';
+    if (can('messages')) {
+      msgBlock =
+        '<div class="adminp__msg">' +
+          '<span class="eyebrow">Message</span>' +
+          '<textarea class="input" id="ap-msg-text" rows="3" maxlength="' + MSG_MAX + '" ' +
+            'placeholder="Shows up on their screen, from a LearnGeo administrator"></textarea>' +
+          '<div class="adminp__msgfoot">' +
+            '<span class="t-sm t-muted" id="ap-msg-count">0 / ' + MSG_MAX + '</span>' +
+            '<button class="btn btn--primary btn--sm" data-do="msg">Send message</button>' +
+          '</div>' +
+          '<div class="adminp__thread" id="ap-thread">' +
+            '<div class="adminp__thread-empty">Loading the conversation…</div>' +
+          '</div>' +
+        '</div>';
+    }
 
     host.innerHTML =
       '<div class="adminp__who">' +
@@ -454,88 +790,71 @@
         '<div class="grow"></div>' +
         '<div class="adminp__bal"><b class="mono">' + num(picked.diamonds) + '</b><span>diamonds</span></div>' +
       '</div>' +
-
-      '<div class="adminp__act">' +
-        '<span class="eyebrow">Take</span>' +
-        TAKE.map(function (n) {
-          return '<button class="btn btn--sm adminp__danger" data-do="gems" data-delta="-' + n +
-            '" data-label="took ' + n + '">−' + num(n) + '</button>';
-        }).join('') +
-        '<button class="btn btn--sm adminp__danger" data-do="gems" data-set="0" data-label="emptied">Empty it</button>' +
-      '</div>' +
-
-      '<div class="adminp__act">' +
-        '<span class="eyebrow">Give</span>' +
-        TAKE.map(function (n) {
-          return '<button class="btn btn--sm" data-do="gems" data-delta="' + n +
-            '" data-label="gave ' + n + '">+' + num(n) + '</button>';
-        }).join('') +
-      '</div>' +
-
-      '<div class="adminp__act">' +
-        '<span class="eyebrow">Marks</span>' +
-        '<button class="btn btn--sm" data-do="staff" data-on="' + (picked.staff ? '0' : '1') + '">' +
-          (picked.staff ? 'Remove staff effect' : 'Grant staff effect') + '</button>' +
-        '<button class="btn btn--sm" data-do="allow" data-on="1">Give admin access</button>' +
-        '<button class="btn btn--sm" data-do="allow" data-on="0">Remove admin access</button>' +
-      '</div>' +
-
-      /* 0009. The ban sits with the other account-level actions rather
-         than beside the gem buttons: taking diamonds is an adjustment,
-         and these four change what the account IS. */
-      '<div class="adminp__act">' +
-        '<span class="eyebrow">Account</span>' +
-        (picked.banned
-          ? '<button class="btn btn--sm" data-do="ban" data-on="0">Lift the ban</button>'
-          : '<button class="btn btn--sm adminp__danger" data-do="ban" data-on="1">Ban this account</button>') +
-        '<button class="btn btn--sm" data-do="rename">Rename</button>' +
-        '<button class="btn btn--sm adminp__danger" data-do="wipescores">Wipe arcade scores</button>' +
-        '<button class="btn btn--sm adminp__danger" data-do="resetprog">Reset progress</button>' +
-        '<button class="btn btn--sm adminp__danger" data-do="leaveclasses">Remove from all classes</button>' +
-      '</div>' +
-
+      gemsBtns + marks + account +
       (picked.banned
         ? '<div class="adminp__warn" style="margin:4px 0 12px"><b>Banned.</b> ' +
-          '<div class="t-sm" style="margin-top:2px">They are shown the banned screen when they sign in. ' +
-          'Their writes are not refused by the database, so this is a locked door rather than a wall.</div></div>'
+          '<div class="t-sm" style="margin-top:2px">They are shown the banned screen when they sign in.</div></div>'
         : '') +
+      msgBlock;
 
-      (Number(picked.diamonds) > MAX_SAFE
-        ? '<div class="adminp__warn adminp__warn--nomigration" style="margin:4px 0 12px"><b>Too large to count.</b> ' +
-          '<div class="t-sm" style="margin-top:2px">This balance is past what a browser can hold as a whole ' +
-          'number, so it came from the old unbounded box, not from playing. Any button here brings it to ' +
-          num(CAP) + ' first, or use <code>set</code> or <code>override set</code> below for an exact figure.</div></div>'
-        : Number(picked.diamonds) > CAP
-        ? '<div class="adminp__warn adminp__warn--expired" style="margin:4px 0 12px"><b>Above the cap, set with override.</b> ' +
-          '<div class="t-sm" style="margin-top:2px">Take and Empty work as normal. Give cannot raise it any ' +
-          'further; use <code>override set</code> for that.</div></div>'
-        : '') +
-      '<p class="t-sm t-muted" style="margin:10px 0 0">A balance or staff change reaches their app within about ' +
-      'two minutes if it is open, and the moment it next opens if not. A take is applied to whatever ' +
-      'balance their device actually has, so diamonds they earned since their last sync are not wiped.</p>' +
-
-      '<div class="adminp__msg">' +
-        '<span class="eyebrow">Message</span>' +
-        '<textarea class="input" id="ap-msg-text" rows="3" maxlength="' + MSG_MAX + '" ' +
-          'placeholder="Shows up on their screen, from a LearnGeo administrator"></textarea>' +
-        '<div class="adminp__msgfoot">' +
-          '<span class="t-sm t-muted" id="ap-msg-count">0 / ' + MSG_MAX + '</span>' +
-          '<button class="btn btn--primary btn--sm" data-do="msg">Send message</button>' +
-        '</div>' +
-        '<div class="adminp__thread" id="ap-thread">' +
-          '<div class="adminp__thread-empty">Loading the conversation…</div>' +
-        '</div>' +
-      '</div>';
-
-    loadThread();
+    if (can('messages')) loadThread();
   }
 
-  /* Messages to the selected account and their replies (0011). Soft-
-     fails when the migration has not been run: the send box still
-     works, the thread just stays empty. */
+  function renderPickedMini() {
+    var host = root && W.$('#ap-picked-mini', root);
+    if (!host) return;
+    if (!picked) {
+      host.innerHTML = '<div class="adminp__empty">No account selected. Open Accounts and pick one.</div>';
+      var msgHost = W.$('#ap-msg-host', root);
+      if (msgHost) msgHost.innerHTML = '';
+      return;
+    }
+    host.innerHTML =
+      '<div class="adminp__who">' +
+        '<div><b>' + esc(picked.display_name || 'Explorer') + '</b>' +
+          '<div class="t-sm t-muted">' + esc(picked.email || 'no email') + '</div></div>' +
+        '<div class="grow"></div>' +
+        '<div class="adminp__bal"><b class="mono">' + num(picked.diamonds) + '</b><span>diamonds</span></div>' +
+      '</div>';
+
+    if (section === 'gems' && can('gems')) {
+      host.innerHTML +=
+        '<div class="adminp__act">' +
+          TAKE.map(function (n) {
+            return '<button class="btn btn--sm adminp__danger" data-do="gems" data-delta="-' + n +
+              '" data-label="took ' + n + '">−' + num(n) + '</button>';
+          }).join('') +
+          '<button class="btn btn--sm adminp__danger" data-do="gems" data-set="0" data-label="emptied">Empty</button>' +
+          TAKE.map(function (n) {
+            return '<button class="btn btn--sm" data-do="gems" data-delta="' + n +
+              '" data-label="gave ' + n + '">+' + num(n) + '</button>';
+          }).join('') +
+        '</div>';
+    }
+
+    if (section === 'messages' && can('messages')) {
+      var msgHost2 = W.$('#ap-msg-host', root);
+      if (msgHost2) {
+        msgHost2.innerHTML =
+          '<div class="adminp__msg" style="border-top:0;padding-top:0;margin-top:8px">' +
+            '<textarea class="input" id="ap-msg-text" rows="3" maxlength="' + MSG_MAX + '" ' +
+              'placeholder="Shows up on their screen, from a LearnGeo administrator"></textarea>' +
+            '<div class="adminp__msgfoot">' +
+              '<span class="t-sm t-muted" id="ap-msg-count">0 / ' + MSG_MAX + '</span>' +
+              '<button class="btn btn--primary btn--sm" data-do="msg">Send message</button>' +
+            '</div>' +
+            '<div class="adminp__thread" id="ap-thread">' +
+              '<div class="adminp__thread-empty">Loading the conversation…</div>' +
+            '</div>' +
+          '</div>';
+        loadThread();
+      }
+    }
+  }
+
   function loadThread() {
     var host = root && W.$('#ap-thread', root);
-    if (!host || !picked) return;
+    if (!host || !picked || !ops().thread) return;
     var who = picked;
     ops().thread(who.id).then(function (r) {
       if (!root || !picked || picked.id !== who.id) return;
@@ -549,15 +868,11 @@
       }
       var list = r.data || [];
       if (!list.length) {
-        host.innerHTML = '<div class="adminp__thread-empty">No messages with this account yet. ' +
-          'When they reply, it shows up here.</div>';
+        host.innerHTML = '<div class="adminp__thread-empty">No messages with this account yet.</div>';
         return;
       }
       host.innerHTML = list.map(function (m) {
         var outgoing = m.action === 'message';
-        /* Outgoing lines are any admin → this account; the sender email
-           matters when more than one admin has written. Replies are
-           always from this account. */
         var label = outgoing
           ? (m.actor_email || 'Admin')
           : (who.display_name || who.email || m.actor_email || 'Them');
@@ -571,32 +886,114 @@
     });
   }
 
+  /* =========================== permissions ========================= */
+  function loadGrants() {
+    var host = root && W.$('#ap-grants', root);
+    if (!host) return;
+    if (!access.owner) {
+      host.innerHTML = '<div class="t-sm t-muted">Only the owner can edit permissions.</div>';
+      return;
+    }
+    ops().grantsList().then(function (r) {
+      if (!host) return;
+      if (!r || !r.ok) {
+        host.innerHTML = '<div class="t-sm t-muted">' +
+          (r && r.kind === 'nomigration'
+            ? 'Permissions need 0012_admin_command_grants.sql on the database.'
+            : esc((r && r.message) || 'Could not load grants.')) + '</div>';
+        return;
+      }
+      grants = r.data || [];
+      renderGrants();
+    });
+  }
+
+  function renderGrants() {
+    var host = root && W.$('#ap-grants', root);
+    if (!host) return;
+    if (!grants.length) {
+      host.innerHTML = '<div class="adminp__empty">Nobody else is on the admin allowlist yet.</div>';
+      return;
+    }
+    host.innerHTML = grants.map(function (g) {
+      var cmds = g.commands || [];
+      var checks = GRANTABLE.map(function (c) {
+        var on = cmds.indexOf(c.id) !== -1;
+        return '<label class="adminp__grant">' +
+          '<input type="checkbox" data-grant="' + esc(c.id) + '" ' + (on ? 'checked' : '') + '>' +
+          '<span><b>' + esc(c.label) + '</b><i>' + esc(c.hint) + '</i></span></label>';
+      }).join('');
+      return '<div class="adminp__grantcard" data-grant-email="' + esc(g.email) + '">' +
+        '<div class="row row--between" style="margin-bottom:10px">' +
+          '<div><b>' + esc(g.email) + '</b>' +
+            '<div class="t-sm t-muted">' +
+              (cmds.length ? esc(cmds.join(', ')) : 'Restricted (default)') +
+            '</div></div>' +
+        '</div>' +
+        '<div class="adminp__grantlist">' + checks + '</div>' +
+        '<div class="adminp__act" style="margin-top:12px">' +
+          '<button class="btn btn--primary btn--sm" data-do="savegrants" data-email="' + esc(g.email) + '">Save</button>' +
+          '<button class="btn btn--sm" data-do="gemsonly" data-email="' + esc(g.email) + '">Gems only</button>' +
+          '<button class="btn btn--ghost btn--sm" data-do="cleargrants" data-email="' + esc(g.email) + '">Clear (restricted)</button>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+  }
+
+  function saveGrants(email, forced) {
+    if (!access.owner) return;
+    var cmds = forced;
+    if (!cmds) {
+      var cards = root.querySelectorAll('[data-grant-email]');
+      var card = null;
+      for (var i = 0; i < cards.length; i++) {
+        if (cards[i].getAttribute('data-grant-email') === email) card = cards[i];
+      }
+      cmds = [];
+      if (card) {
+        var boxes = card.querySelectorAll('input[data-grant]');
+        for (var j = 0; j < boxes.length; j++) {
+          if (boxes[j].checked) cmds.push(boxes[j].getAttribute('data-grant'));
+        }
+      }
+    }
+    ops().grantsSet(email, cmds).then(function (r) {
+      guard(r, function (saved) {
+        say(email + ' → ' + ((saved && saved.length) ? saved.join(', ') : 'restricted'));
+        W.toast('Permissions saved', email + (saved && saved.length ? ': ' + saved.join(', ') : ' is restricted'), I.check, 3600);
+        loadGrants();
+      });
+    });
+  }
+
   /* =========================== the actions ========================= */
   function needPicked() {
     if (picked) return true;
-    say('No account selected. Search for one and click its row first.');
+    say('No account selected. Search for one under Accounts and click its row first.');
     return false;
   }
 
   function gems(opts, label) {
+    if (!can('gems')) return say('Gems commands are not granted to you.');
     if (!needPicked()) return;
-    var o = ops();
-    o.gems(picked.id, { delta: opts.delta, set: opts.set, reason: label }).then(function (r) {
+    ops().gems(picked.id, { delta: opts.delta, set: opts.set, reason: label }).then(function (r) {
       guard(r, function (left) {
         var was = picked.diamonds;
         picked.diamonds = left;
         for (var i = 0; i < rows.length; i++) { if (rows[i].id === picked.id) rows[i].diamonds = left; }
-        renderRows(); renderPicked();
+        if (section === 'accounts') { renderRows(); renderPicked(); }
+        if (section === 'gems') renderPickedMini();
         say(esc(picked.display_name) + ': ' + num(was) + ' → ' + num(left) +
             ' (' + (left - was >= 0 ? '+' : '') + num(left - was) + ')');
         W.toast('Balance changed', (picked.display_name || 'That account') + ' now has ' + num(left) + ' 💎',
           I.gem, 3600);
-        ops().recent(15).then(function (x) { guard(x, renderLog); });
+        refreshLog();
       });
     });
   }
 
   function overrideGems(amount) {
+    if (!can('gems')) return say('Gems commands are not granted to you.');
     if (!needPicked()) return;
     var who = picked;
     ops().override(who.id, amount, 'override to ' + amount).then(function (r) {
@@ -605,16 +1002,18 @@
         left = Number(left);
         who.diamonds = left;
         for (var i = 0; i < rows.length; i++) { if (rows[i].id === who.id) rows[i].diamonds = left; }
-        renderRows(); renderPicked();
+        if (section === 'accounts') { renderRows(); renderPicked(); }
+        if (section === 'gems') renderPickedMini();
         say((who.display_name || 'That account') + ': ' + num(was) + ' → ' + num(left) + ' (override)');
         W.toast('Balance overridden', (who.display_name || 'That account') + ' now has ' + num(left) + ' 💎',
           I.gem, 3600);
-        ops().recent(15).then(function (x) { guard(x, renderLog); });
+        refreshLog();
       });
     });
   }
 
   function setStaff(on) {
+    if (!can('staff')) return say('Staff commands are not granted to you.');
     if (!needPicked()) return;
     ops().staff(picked.id, on).then(function (r) {
       guard(r, function (now) {
@@ -622,17 +1021,10 @@
         for (var i = 0; i < rows.length; i++) { if (rows[i].id === picked.id) rows[i].staff = now; }
         renderRows(); renderPicked();
         say(esc(picked.display_name) + ': staff effect ' + (now ? 'granted' : 'removed'));
-        ops().recent(15).then(function (x) { guard(x, renderLog); });
+        refreshLog();
       });
     });
   }
-
-  /* ===================== 0009 commands ==========================
-     Each one asks first, because none of them can be undone from this
-     page: a wiped score is gone, reset progress is gone, and a student
-     removed from their classes has to be given the code again. The
-     server re-checks the token on every one of them, so a confirm that
-     was skipped buys nothing. */
 
   function ask(title, body, label, run, extra) {
     global.UI.modal({
@@ -646,6 +1038,7 @@
   }
 
   function setBan(on) {
+    if (!can('ban')) return say('Ban commands are not granted to you.');
     if (!needPicked()) return;
     var who = picked;
     if (!on) {
@@ -660,13 +1053,10 @@
       });
     }
     ask('Ban ' + esc(who.display_name) + '?',
-        'They will be shown "You have been banned from LearnGeo" when they sign in, and ' +
-        'cannot get past it. You can lift it again from here at any time.',
+        'They will be shown "You have been banned from LearnGeo" when they sign in.',
         'Ban the account',
-        function (root) {
-          var why = W.$('#ap-ban-why', root);
-          /* The reason is shown to them on the banned screen, so it is
-             worth writing as something a person can read. */
+        function (modalRoot) {
+          var why = W.$('#ap-ban-why', modalRoot);
           ops().ban(who.id, true, why ? why.value : '').then(function (r) {
             guard(r, function () {
               who.banned = true;
@@ -684,17 +1074,18 @@
   }
 
   function renameAccount() {
+    if (!can('moderate')) return say('Moderate commands are not granted to you.');
     if (!needPicked()) return;
     var who = picked;
     global.UI.modal({
       title: 'Rename ' + esc(who.display_name), icon: I.user,
       body: '<div class="field"><label class="field__label">Display name</label>' +
         '<input class="input" id="ap-name" maxlength="40" value="' + esc(who.display_name || '') + '">' +
-        '<div class="field__hint">Leave it empty to put them back to Explorer, the app\'s own default.</div></div>',
+        '<div class="field__hint">Leave it empty to put them back to Explorer.</div></div>',
       actions: [
         { label: 'Cancel', cls: 'btn--ghost', close: true },
-        { label: 'Rename', cls: 'btn--accent', close: true, onClick: function (root) {
-            var box = W.$('#ap-name', root);
+        { label: 'Rename', cls: 'btn--accent', close: true, onClick: function (modalRoot) {
+            var box = W.$('#ap-name', modalRoot);
             ops().rename(who.id, box ? box.value : '').then(function (r) {
               guard(r, function (now) {
                 who.display_name = now;
@@ -706,23 +1097,21 @@
             });
           } }
       ],
-      onMount: function (root) { setTimeout(function () { W.$('#ap-name', root).focus(); }, 60); }
+      onMount: function (modalRoot) { setTimeout(function () { var el = W.$('#ap-name', modalRoot); if (el) el.focus(); }, 60); }
     });
   }
 
   function wipeScores() {
+    if (!can('moderate')) return say('Moderate commands are not granted to you.');
     if (!needPicked()) return;
     var who = picked;
     ask('Wipe ' + esc(who.display_name) + '\'s arcade scores?',
-        'Their gamertag and every game score go, so they drop off the leaderboards. Learning ' +
-        'progress is untouched. Note that the boards are keyed on device, so this clears the ' +
-        'device they last synced from, not a second one they may have played on.',
+        'Their gamertag and every game score go. Learning progress is untouched.',
         'Wipe the scores',
         function () {
           ops().wipeScores(who.id).then(function (r) {
             guard(r, function (n) {
-              say(esc(who.display_name) + ': ' + (n ? n + ' score' + (n === 1 ? '' : 's') + ' wiped'
-                                                    : 'nothing on the boards'));
+              say(esc(who.display_name) + ': ' + (n ? n + ' score' + (n === 1 ? '' : 's') + ' wiped' : 'nothing on the boards'));
               refreshLog();
             });
           });
@@ -730,11 +1119,11 @@
   }
 
   function resetProgress() {
+    if (!can('moderate')) return say('Moderate commands are not granted to you.');
     if (!needPicked()) return;
     var who = picked;
     ask('Reset ' + esc(who.display_name) + '\'s progress?',
-        'Level, XP, diamonds, mastery, streaks and achievements go back to a new account. ' +
-        'The account, its name and its classes stay. Cosmetics they own are left alone.',
+        'Level, XP, diamonds, mastery, streaks and achievements go back to a new account.',
         'Reset it',
         function () {
           ops().resetProgress(who.id).then(function (r) {
@@ -750,11 +1139,11 @@
   }
 
   function leaveClasses() {
+    if (!can('moderate')) return say('Moderate commands are not granted to you.');
     if (!needPicked()) return;
     var who = picked;
     ask('Remove ' + esc(who.display_name) + ' from every class?',
-        'They come out of every class they have joined. Marks they already handed in stay in ' +
-        'those gradebooks. To get back in they need the class code again.',
+        'They come out of every class they have joined. Marks stay in those gradebooks.',
         'Remove them',
         function () {
           ops().leaveClasses(who.id).then(function (r) {
@@ -766,8 +1155,6 @@
         });
   }
 
-  /* Keep the row in the results table in step with the card above it,
-     so a ban or a rename does not need a fresh search to show up. */
   function markRow(id, key, value) {
     for (var i = 0; i < rows.length; i++) { if (rows[i].id === id) rows[i][key] = value; }
   }
@@ -776,10 +1163,8 @@
     ops().recent(15).then(function (x) { guard(x, renderLog); });
   }
 
-  /* Sends to the selected account. The text is checked here only so a
-     mistake is caught before a round trip; the server checks it again
-     and its answer is the one that counts. */
   function sendMessage(text, box) {
+    if (!can('messages')) return say('Message commands are not granted to you.');
     if (!needPicked()) return;
     var body = String(text || '').trim();
     if (!body) return say('Type a message first.');
@@ -792,36 +1177,34 @@
           var c = W.$('#ap-msg-count', root);
           if (c) c.textContent = '0 / ' + MSG_MAX;
         }
-        say('Message sent to ' + (who.display_name || who.email || 'that account') +
-            '. It appears on their screen within about 30 seconds if their app is open, ' +
-            'otherwise the next time it opens. They can reply from the same dialog.');
+        say('Message sent to ' + (who.display_name || who.email || 'that account') + '.');
         W.toast('Message sent', (who.display_name || 'That account') + ' will see it on their screen.', I.check, 3600);
-        ops().recent(15).then(function (x) { guard(x, renderLog); });
+        refreshLog();
         if (picked && picked.id === who.id) loadThread();
       });
     });
   }
 
   function setAllow(on) {
+    if (!can('allow')) return say('Allowlist commands are not granted to you.');
     if (!needPicked()) return;
     if (!picked.email) return say('That account has no email, so it cannot go on the allowlist.');
     ops().allow(picked.email, on).then(function (r) {
       guard(r, function () {
         say(picked.email + (on ? ' now has admin access' : ' no longer has admin access'));
-        ops().recent(15).then(function (x) { guard(x, renderLog); });
+        refreshLog();
         ops().stats().then(function (x) { guard(x, function (d) { stats = d; renderStats(); }); });
       });
     });
   }
 
-  /* ============================ the log ============================ */
   function trim(s, n) {
     s = String(s || '');
     return s.length > n ? s.slice(0, n - 1) + '…' : s;
   }
 
   function renderLog(list) {
-    var host = W.$('#ap-log', root);
+    var host = root && W.$('#ap-log', root);
     if (!host) return;
     if (!list || !list.length) {
       host.innerHTML = '<div class="adminp__empty">Nothing yet.</div>';
@@ -834,6 +1217,7 @@
         : a.action === 'private-password' ? (d.on ? 'set a Private Password on a device' : 'removed a Private Password from a device')
         : a.action === 'staff' ? (d.on ? 'staff effect granted' : 'staff effect removed')
         : a.action === 'allow' ? (d.on ? 'given admin access' : 'admin access removed')
+        : a.action === 'grants' ? ('commands: ' + esc(((d.commands || []).join(', ')) || 'restricted'))
         : a.action === 'message' ? 'message: “' + esc(trim(d.text, 80)) + '”'
         : a.action === 'reply'   ? 'reply: “' + esc(trim(d.text, 80)) + '”'
         : esc(a.action);
@@ -847,7 +1231,6 @@
     }).join('');
   }
 
-  /* =========================== staff, on me ======================== */
   function hasStaff() {
     return !!(W.state.flags && W.state.flags.staff);
   }
@@ -857,8 +1240,6 @@
     W.state.flags.staff = !!on;
     W.saveNow();
     if (global.Cloud && global.Cloud.push) { try { global.Cloud.push(); } catch (e) {} }
-    /* The shop reads the flag live, but anything already on screen was
-       drawn before it changed. */
     if (global.UI && global.UI.refreshHud) global.UI.refreshHud();
     if (global.Portal && global.Portal.render) { try { global.Portal.render(); } catch (e) {} }
     renderStaff();
@@ -879,39 +1260,50 @@
         '<button class="btn btn--sm' + (hasStaff() ? '' : ' btn--primary') + '" ' +
           'data-do="selfstaff" data-on="' + (hasStaff() ? '0' : '1') + '">' +
           (hasStaff() ? 'Remove from me' : 'Give it to me') + '</button>' +
-      '</div>' +
-      '<p class="t-sm t-muted" style="margin:10px 0 0">Granting it to somebody else is the ' +
-      '<b>Grant staff effect</b> button on a selected account above. This one is your own device, ' +
-      'and it takes effect immediately rather than on a reload.</p>';
+      '</div>';
   }
 
   /* ============================ commands =========================== */
-  var HELP = [
-    'find <text>        search names and emails',
-    'take <n>           take n diamonds from the selected account',
-    'give <n>           give n diamonds',
-    'set <n>            set the balance to exactly n',
-    'empty              set the balance to 0',
-    'staff on|off       grant or remove the staff effect',
-    'msg <text>         send a message to their screen',
-    'override set <n>   set diamonds past the ' + num(CAP) + ' cap, up to ' + num(MAX_SAFE),
-    'allow <email>      give that address admin access',
-    'unallow <email>    take admin access away',
-    'stats              reload the numbers at the top',
-    'log                reload the action list',
-    'who                show the selected account',
-    'help               this'
-  ].join('\n');
+  function helpText() {
+    var lines = [
+      'find <text>        search names and emails',
+      'who                show the selected account',
+      'stats              reload the numbers at the top',
+      'log                reload the action list',
+      'help               this'
+    ];
+    if (access.owner) lines.push('watch              refresh screen monitoring');
+    if (can('gems')) {
+      lines = lines.concat([
+        'take <n>           take n diamonds from the selected account',
+        'give <n>           give n diamonds',
+        'set <n>            set the balance to exactly n',
+        'empty              set the balance to 0',
+        'override set <n>   set diamonds past the ' + num(CAP) + ' cap, up to ' + num(MAX_SAFE)
+      ]);
+    }
+    if (can('staff')) lines.push('staff on|off       grant or remove the staff effect');
+    if (can('messages')) lines.push('msg <text>         send a message to their screen');
+    if (can('allow')) {
+      lines.push('allow <email>      give that address admin access');
+      lines.push('unallow <email>    take admin access away');
+    }
+    return lines.join('\n');
+  }
 
   function say(text) {
     var out = root && W.$('#ap-out', root);
-    if (!out) return;
+    if (!out) {
+      if (text) W.toast('Administrator', String(text).slice(0, 120), I.info, 3200);
+      return;
+    }
     out.textContent = String(text);
     out.scrollTop = out.scrollHeight;
   }
 
   function runCmd() {
     var box = W.$('#ap-cmd', root);
+    if (!box) return;
     var line = String(box.value || '').trim();
     if (!line) return;
     box.value = '';
@@ -919,10 +1311,6 @@
     var bits = line.split(/\s+/);
     var cmd = bits.shift().toLowerCase();
     var rest = bits.join(' ');
-    /* Number(), not parseInt(): parseInt reads "1e9" as 1 and "500abc"
-       as 500, and a command that quietly acts on a different amount
-       than the one typed is worse than one that refuses. Commas are
-       allowed because people type them. */
     var n = rest === '' ? NaN : Number(rest.replace(/,/g, ''));
     var bad = 'Not a whole number. Try "take 500".';
     if (!Number.isInteger(n)) n = NaN;
@@ -933,10 +1321,23 @@
       return say('The most a balance can be is ' + num(CAP) + '.');
     }
 
-    if (cmd === 'help') return say(HELP);
-    if (cmd === 'stats') { refreshStats(); return say('Reloading the numbers…'); }
-    if (cmd === 'log') { ops().recent(15).then(function (r) { guard(r, renderLog); }); return say('Reloading the log…'); }
-    if (cmd === 'find') { W.$('#ap-q', root).value = rest; search(); return say('Searching for "' + rest + '"…'); }
+    if (cmd === 'help') return say(helpText());
+    if (cmd === 'stats') { refresh(); return say('Reloading…'); }
+    if (cmd === 'log') {
+      section = 'activity'; renderPanel();
+      return say('Opening Activity…');
+    }
+    if (cmd === 'watch') {
+      if (!access.owner) return say('Screen monitoring is owner-only.');
+      section = 'monitor'; renderPanel();
+      loadActivity(true);
+      return say('Refreshing screen monitoring…');
+    }
+    if (cmd === 'find') {
+      section = 'accounts'; renderPanel();
+      var q = W.$('#ap-q', root); if (q) q.value = rest;
+      search(); return say('Searching for "' + rest + '"…');
+    }
     if (cmd === 'who') {
       return say(picked
         ? picked.display_name + '  <' + (picked.email || 'no email') + '>  ' +
@@ -948,10 +1349,6 @@
     if (cmd === 'give')  return isNaN(n) ? say(bad) : gems({ delta:  Math.abs(n) }, 'gave ' + Math.abs(n));
     if (cmd === 'set')   return isNaN(n) ? say(bad) : gems({ set: Math.max(0, n) }, 'set to ' + Math.max(0, n));
     if (cmd === 'empty') return gems({ set: 0 }, 'emptied');
-    /* `override set 5000000000`, or just `override 5000000000`. Read
-       with Number.isSafeInteger, so anything a browser would round —
-       9007199254740993 becomes …992 — is refused rather than quietly
-       changed into a different number. */
     if (cmd === 'override') {
       var parts = bits.slice();
       if (parts[0] && parts[0].toLowerCase() === 'set') parts.shift();
@@ -971,20 +1368,16 @@
       return setStaff(rest === 'on');
     }
     if (cmd === 'allow' || cmd === 'unallow') {
+      if (!can('allow')) return say('Allowlist commands are not granted to you.');
       if (!rest) return say('Which address? Try "allow someone@example.com".');
       return ops().allow(rest, cmd === 'allow').then(function (r) {
         guard(r, function () {
           say(rest + (cmd === 'allow' ? ' now has admin access' : ' no longer has admin access'));
-          refreshStats();
+          refresh();
         });
       });
     }
     say('No command called "' + cmd + '". Type help.');
-  }
-
-  function refreshStats() {
-    ops().stats().then(function (r) { guard(r, function (d) { stats = d; renderStats(); }); });
-    sessionPill();
   }
 
   global.Administrator = { open: open, close: close };

@@ -75,7 +75,15 @@
 
   function denied(err) {
     if (!err) return false;
+    /* Permission denials use "not permitted" (P0001) and must NOT end
+       the session — the token is still good, just for fewer commands. */
+    if (forbidden(err)) return false;
     return err.code === '42501' || /not authorised|not authorized/i.test(String(err.message || ''));
+  }
+
+  function forbidden(err) {
+    if (!err) return false;
+    return /not permitted/i.test(String(err.message || ''));
   }
 
   function fault(kind, message) { return { ok: false, kind: kind, message: message }; }
@@ -265,6 +273,9 @@
         if (missing(res.error, fn)) {
           return fault('nomigration', 'That needs 0007, which has not been run on the database yet.');
         }
+        if (forbidden(res.error)) {
+          return fault('forbidden', 'You do not have permission for that command.');
+        }
         if (denied(res.error)) {
           token = null; until = 0;    /* it is gone; do not keep pretending */
           return fault('expired', 'The admin session has ended. Open UltraAdmin again.');
@@ -330,6 +341,13 @@
     rename:   function (id, name)         { return call('ultra_set_name', { p_target: id, p_name: String(name || '') }); },
     wipeScores:    function (id)          { return call('ultra_wipe_scores', { p_target: id }); },
     resetProgress: function (id)          { return call('ultra_reset_progress', { p_target: id }); },
-    leaveClasses:  function (id)          { return call('ultra_leave_classes', { p_target: id }); }
+    leaveClasses:  function (id)          { return call('ultra_leave_classes', { p_target: id }); },
+
+    /* 0012 — who this session is and which commands they may run. */
+    myAccess: function ()                 { return call('ultra_my_access', {}); },
+    grantsList: function ()               { return call('ultra_grants_list', {}); },
+    grantsSet: function (email, cmds)     {
+      return call('ultra_grants_set', { p_email: email, p_commands: cmds || [] });
+    }
   };
 })(window);
