@@ -8,7 +8,6 @@
     { "source": "/learn", "destination": "/index.html" },
     { "source": "/test", "destination": "/index.html" },
     { "source": "/quiz", "destination": "/index.html" },
-    { "source": "/games", "destination": "/index.html" },
-    { "source": "/pets", "destination": "/index.html" }
+    { "source": "/games", "destination": "/index.html" }
   ]
 }

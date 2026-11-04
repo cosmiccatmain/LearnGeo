@@ -177,7 +177,7 @@
     }
 
     /* A teacher arriving from a link lands on their class, including
-       /learn, /games, /pets and ?view=learn. go() still decides what they may
+       /learn, /games and ?view=learn. go() still decides what they may
        open afterwards, so the study tabs keep working once they are in. */
     if (W.state.role === 'teacher') {
       global.UI.showApp('teacher', opts);

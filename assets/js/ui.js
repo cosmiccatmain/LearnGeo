@@ -147,11 +147,10 @@
        class they are in and what its code is instead. */
     var fireEl = document.getElementById('hud-fire');
     if (fireEl) fireEl.classList.toggle('hidden', teacher || s.streak.current < 2);
-    ['hud-xp-chip', 'hud-gem-chip', 'hud-pets-gem-chip'].forEach(function (id) {
+    ['hud-xp-chip', 'hud-gem-chip'].forEach(function (id) {
       var n = document.getElementById(id);
       if (n) n.classList.toggle('hidden', teacher);
     });
-    if (global.Pets && global.Pets.refreshHudChip) global.Pets.refreshHudChip();
     classChip(teacher, s);
 
     var av = document.getElementById('avatar-slot');
@@ -1161,7 +1160,7 @@
   }
 
   /* ============================ NAVIGATION ========================== */
-  var VIEWS = ['portal', 'codex', 'classroom', 'teacher', 'learn', 'test', 'quiz', 'games', 'pets'];
+  var VIEWS = ['portal', 'codex', 'classroom', 'teacher', 'learn', 'test', 'quiz', 'games'];
 
   /* The switcher shows Classroom to students and Teacher to teachers, so
      teacher mode is a place you can leave and come back to rather than a
@@ -1177,8 +1176,7 @@
     { view: 'learn',     icon: 'book',   label: 'Learn',         role: null },
     { view: 'test',      icon: 'clip',   label: 'Practice test', role: null },
     { view: 'quiz',      icon: 'target', label: 'Class quiz',    role: null },
-    { view: 'games',     icon: 'gamepad', label: 'Games',        role: null },
-    { view: 'pets',      icon: 'paw',    label: 'Pets',          role: null }
+    { view: 'games',     icon: 'gamepad', label: 'Games',        role: null }
   ];
 
   function refreshTabs() {
@@ -1376,7 +1374,6 @@
 
     /* a game runs its own animation loop, which must not outlive its view */
     if (currentView === 'games' && view !== 'games' && global.Games) global.Games.stop();
-    if (currentView === 'pets' && view !== 'pets' && global.Pets && global.Pets.stop) global.Pets.stop();
 
     currentView = view;
     global.AppRouter.record(view, opts);
@@ -1393,10 +1390,7 @@
        start should never leave the switcher pointing at the wrong tab */
     positionThumb();
 
-    if (view === 'portal') {
-      global.Portal.render();
-      if (global.Pets && global.Pets.maybeShowEventPopup) global.Pets.maybeShowEventPopup();
-    }
+    if (view === 'portal') global.Portal.render();
     if (view === 'codex') global.Codex.render();
     if (view === 'teacher') global.Teacher.render();
     if (view === 'classroom') global.Classroom.render();
@@ -1404,7 +1398,6 @@
     if (view === 'test') global.TestMode.start();
     if (view === 'quiz') global.QuizMode.start();
     if (view === 'games') global.Games.start();
-    if (view === 'pets' && global.Pets) global.Pets.start();
     settleThumb();                     /* correct for any reflow the mode caused */
     global.GeoMap.invalidate();
     refreshHud();
@@ -1495,7 +1488,6 @@
     if (global.QuizMode && global.QuizMode.active && global.QuizMode.active()) global.QuizMode.abandon();
     if (global.Games && global.Games.playing && global.Games.playing() && global.Games.abandon) global.Games.abandon();
     else if (global.Games && global.Games.stop) global.Games.stop();
-    if (global.Pets && global.Pets.dismissOverlayIfOpen) global.Pets.dismissOverlayIfOpen();
     document.getElementById('app').classList.remove('is-open');
     document.getElementById('landing').classList.remove('hidden');
     global.AppRouter.record(null, opts);
