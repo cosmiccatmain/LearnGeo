@@ -20,6 +20,56 @@
   var TARGETS = [['countries', 'Countries'], ['capitals', 'Capitals'], ['mix', 'Mix']];
   var HOLES = [['6', '6 holes'], ['9', '9 holes'], ['18', '18 holes']];
   var LEVELS = [['1', 'Level 1 difficulty'], ['2', 'Level 2 difficulty'], ['3', 'Level 3 difficulty'], ['4', 'Level 4 difficulty'], ['5', 'Level 5 difficulty']];
+  /* Named rungs for the shared DifficultySlider (values stay 1–5). */
+  var CHESS_DIFF = [
+    { value: 1, name: 'Beginner', blurb: 'Plays random legal moves' },
+    { value: 2, name: 'Easy', blurb: 'Mostly random, with occasional stronger moves' },
+    { value: 3, name: 'Intermediate', blurb: 'A gentle Stockfish opponent' },
+    { value: 4, name: 'Advanced', blurb: 'A sharper Stockfish opponent' },
+    { value: 5, name: 'Expert', blurb: 'The strongest Stockfish opponent' }
+  ];
+  var CHESS_DIFF_HINT = 'Level 1 plays random legal moves. Level 2 plays mostly random moves. Levels 3–5 use increasingly strong Stockfish opponents.';
+  var RATE_DIFF = [
+    { value: 'calm', name: 'Calm', blurb: 'Countries drift down slowly' },
+    { value: 'brisk', name: 'Brisk', blurb: 'A steady fall pace' },
+    { value: 'frantic', name: 'Frantic', blurb: 'Countries rain down fast' }
+  ];
+  var SPEED_DIFF = [
+    { value: 'relaxed', name: 'Relaxed', blurb: 'A slower game tempo' },
+    { value: 'normal', name: 'Normal', blurb: 'The standard pace' },
+    { value: 'fast', name: 'Fast', blurb: 'A quicker game tempo' }
+  ];
+  var ROWS_DIFF = [
+    { value: '2', name: '2 rows', blurb: 'A shallow first wall' },
+    { value: '3', name: '3 rows', blurb: 'A medium first wall' },
+    { value: '4', name: '4 rows', blurb: 'A deep first wall' }
+  ];
+  var SIZE_DIFF = [
+    { value: '6', name: '6 pairs', blurb: 'A small memory board' },
+    { value: '8', name: '8 pairs', blurb: 'A standard memory board' },
+    { value: '10', name: '10 pairs', blurb: 'A large memory board' }
+  ];
+  var PADS_DIFF = [
+    { value: '4', name: '4 flags', blurb: 'A short sequence board' },
+    { value: '6', name: '6 flags', blurb: 'A standard sequence board' },
+    { value: '8', name: '8 flags', blurb: 'A wide sequence board' }
+  ];
+  var LENGTH_DIFF = [
+    { value: '60', name: '60s', blurb: 'A short round' },
+    { value: '90', name: '90s', blurb: 'A standard round' },
+    { value: '120', name: '120s', blurb: 'A long round' }
+  ];
+  var EVERY_DIFF = [
+    { value: 10, name: 'Every 10s', blurb: 'Capital gates come often' },
+    { value: 20, name: 'Every 20s', blurb: 'A regular capital gate' },
+    { value: 30, name: 'Every 30s', blurb: 'Gates are less frequent' },
+    { value: 45, name: 'Every 45s', blurb: 'Gates are rare' }
+  ];
+  var HOLES_DIFF = [
+    { value: '6', name: '6 holes', blurb: 'A short course' },
+    { value: '9', name: '9 holes', blurb: 'A half-round course' },
+    { value: '18', name: '18 holes', blurb: 'A full course' }
+  ];
   /* the ten added alongside the first five */
   var ROWS_ = [['2', '2 rows'], ['3', '3 rows'], ['4', '4 rows']];
   var RATES_ = [['calm', 'Calm'], ['brisk', 'Brisk'], ['frantic', 'Frantic']];
@@ -27,6 +77,25 @@
   var SIZES = [['6', '6 pairs'], ['8', '8 pairs'], ['10', '10 pairs']];
   var SHOWS = [['name', 'Country'], ['flag', 'Flag'], ['capital', 'Capital']];
   var PADS = [['4', '4 flags'], ['6', '6 flags'], ['8', '8 flags']];
+
+  function sliderHtml(opts, fallbackName, fallbackList, active) {
+    if (global.DifficultySlider) return global.DifficultySlider.html(opts);
+    return '<div class="panel__head"><h3>' + esc(opts.label || 'Difficulty') + '</h3></div>' +
+      segHtml(fallbackName, fallbackList, active);
+  }
+
+  function wireSlider(el, opts, fallbackSel, set) {
+    if (global.DifficultySlider) {
+      global.DifficultySlider.wire(el, {
+        name: opts.name,
+        levels: opts.levels,
+        commitOnly: !!opts.commitOnly,
+        onChange: function (v) { set(v); W.save(); }
+      });
+    } else {
+      seg(el, fallbackSel, set);
+    }
+  }
 
   var GAMES = [
     {
@@ -38,15 +107,23 @@
       keys: [[['Click / tap'], 'a piece, then its destination'], [['Arrow keys'], 'explore the board; Enter or Space selects a square']],
       filters: { title: 'Chess question filters', heading: 'Move questions', typed: true },
       side: function (r) {
-        return '<div class="panel"><div class="panel__head"><h3>Difficulty</h3></div>' +
-          segHtml('level', LEVELS, pick(LEVELS, String(r.level), '1')) +
-          '<p class="field__hint">Level 1 plays random legal moves. Level 2 plays mostly random moves. Levels 3–5 use increasingly strong Stockfish opponents.</p></div>' +
+        var level = +pick(LEVELS, String(r.level), '1');
+        var slider = global.DifficultySlider
+          ? global.DifficultySlider.html({
+              name: 'level',
+              value: level,
+              levels: CHESS_DIFF,
+              ends: ['Beginner', 'Expert +'],
+              hint: CHESS_DIFF_HINT
+            })
+          : segHtml('level', LEVELS, String(level));
+        return '<div class="panel">' + slider + '</div>' +
           '<div class="panel"><div class="panel__head"><h3>Questions</h3></div>' +
           segHtml('kind', KINDS, kind_(r)) + '</div>' +
           stats([[r.wins || 0, 'Wins'], [r.draws || 0, 'Draws'], [r.completed || 0, 'Finished games']]);
       },
       wire: function (el, r) {
-        seg(el, '[data-level]', function (v) { r.level = +v; });
+        wireSlider(el, { name: 'level', levels: CHESS_DIFF }, '[data-level]', function (v) { r.level = +v; });
         seg(el, '[data-kind]', function (v) { r.kind = v; });
       },
       mount: function (stage, r) {
@@ -74,17 +151,18 @@
       side: function (r) {
         var every = EVERY.indexOf(r.every) !== -1 ? r.every : 20;
         return '<div class="panel">' +
-            '<div class="panel__head"><h3>A capital gate every</h3></div>' +
-            '<div class="seg game-seg" data-every>' +
-              EVERY.map(function (s) {
-                return '<button data-v="' + s + '" class="' + (s === every ? 'is-active' : '') + '">' + s + 's</button>';
-              }).join('') +
-            '</div>' +
+            sliderHtml({
+              name: 'every',
+              label: 'A capital gate every',
+              value: every,
+              levels: EVERY_DIFF,
+              ends: ['Every 10s', 'Every 45s']
+            }, 'every', EVERY.map(function (s) { return [String(s), s + 's']; }), String(every)) +
           '</div>' +
           stats([[(r.best || 0) + ' m', 'Best distance'], [r.bestCaps || 0, 'Most capitals'], [r.runs || 0, 'Runs']]);
       },
       wire: function (el, r) {
-        seg(el, '[data-every]', function (v) { r.every = +v; });
+        wireSlider(el, { name: 'every', levels: EVERY_DIFF }, '[data-every]', function (v) { r.every = +v; });
       },
       mount: function (stage, r) {
         return global.GeoDash.mount(stage, {
@@ -155,8 +233,13 @@
             '<div class="field__hint" style="margin-top:10px">Capitals: eat the capital of the country named. Flags: eat its flag. Mix: either.</div>' +
           '</div>' +
           '<div class="panel">' +
-            '<div class="panel__head"><h3>Speed</h3></div>' +
-            segHtml('speed', SPEEDS, pick(SPEEDS, r.speed, 'normal')) +
+            sliderHtml({
+              name: 'speed',
+              label: 'Speed',
+              value: pick(SPEEDS, r.speed, 'normal'),
+              levels: SPEED_DIFF,
+              ends: ['Relaxed', 'Fast']
+            }, 'speed', SPEEDS, pick(SPEEDS, r.speed, 'normal')) +
             '<div class="panel__head" style="margin-top:14px"><h3>Walls</h3></div>' +
             segHtml('walls', WALLS, pick(WALLS, r.walls, 'solid')) +
           '</div>' +
@@ -164,7 +247,7 @@
       },
       wire: function (el, r) {
         seg(el, '[data-food]', function (v) { r.food = v; });
-        seg(el, '[data-speed]', function (v) { r.speed = v; });
+        wireSlider(el, { name: 'speed', levels: SPEED_DIFF }, '[data-speed]', function (v) { r.speed = v; });
         seg(el, '[data-walls]', function (v) { r.walls = v; });
       },
       mount: function (stage, r) {
@@ -206,14 +289,24 @@
             '<div class="panel__head"><h3>Putt to</h3></div>' +
             segHtml('target', TARGETS, pick(TARGETS, r.target, 'countries')) +
             '<div class="field__hint" style="margin-top:10px">Countries: the hole names the country. Capitals: it names a capital, and you land in its country. Mix: either.</div>' +
-            '<div class="panel__head" style="margin-top:14px"><h3>Round</h3></div>' +
-            segHtml('holes', HOLES, holes) +
+            '<div style="margin-top:14px">' +
+            sliderHtml({
+              name: 'holes',
+              label: 'Round',
+              value: holes,
+              levels: HOLES_DIFF,
+              ends: ['6 holes', '18 holes']
+            }, 'holes', HOLES, holes) +
+            '</div>' +
           '</div>' +
           stats([[best === undefined ? '–' : parToText(best), 'Best, ' + holes + ' holes'], [r.aces || 0, 'Holes in one'], [r.rounds || 0, 'Rounds']]);
       },
       wire: function (el, r) {
         seg(el, '[data-target]', function (v) { r.target = v; });
-        seg(el, '[data-holes]', function (v) { r.holes = +v; renderSetup(); });
+        wireSlider(el, { name: 'holes', levels: HOLES_DIFF, commitOnly: true }, '[data-holes]', function (v) {
+          r.holes = +v;
+          renderSetup();
+        });
       },
       mount: function (stage, r) {
         return global.GeoGolf.mount(stage, {
@@ -260,12 +353,22 @@
       keys: [[['←', '→'], 'or the mouse, to move the paddle'], [['Space'], 'serve'], [['Esc'], 'pause']],
       filters: { title: 'Breakout wall filters', heading: 'The wall', typed: false },
       side: function (r) {
-        return '<div class="panel"><div class="panel__head"><h3>Wall depth</h3></div>' +
-          segHtml('rows', ROWS_, pick(ROWS_, String(r.rows), '3')) +
-          '<div class="field__hint" style="margin-top:10px">How many rows the first wave starts with. It grows every other wave.</div></div>' +
+        var rows = pick(ROWS_, String(r.rows), '3');
+        return '<div class="panel">' +
+          sliderHtml({
+            name: 'rows',
+            label: 'Wall depth',
+            value: rows,
+            levels: ROWS_DIFF,
+            ends: ['2 rows', '4 rows'],
+            hint: 'How many rows the first wave starts with. It grows every other wave.'
+          }, 'rows', ROWS_, rows) +
+          '</div>' +
           stats([[r.best || 0, 'Best score'], [r.runs || 0, 'Games']]);
       },
-      wire: function (el, r) { seg(el, '[data-rows]', function (v) { r.rows = +v; }); },
+      wire: function (el, r) {
+        wireSlider(el, { name: 'rows', levels: ROWS_DIFF }, '[data-rows]', function (v) { r.rows = +v; });
+      },
       mount: function (stage, r) {
         return global.GeoBreakout.mount(stage, {
           rows: function () { return +pick(ROWS_, String(r.rows), '3'); },
@@ -305,11 +408,21 @@
       keys: [[['A', '–', 'Z'], 'type the capital'], [['Enter'], 'submit'], [['Esc'], 'pause']],
       filters: { title: 'Typer question filters', heading: 'Falling countries', typed: false },
       side: function (r) {
-        return '<div class="panel"><div class="panel__head"><h3>How fast they come</h3></div>' +
-          segHtml('rate', RATES_, pick(RATES_, r.rate, 'brisk')) + '</div>' +
+        var rate = pick(RATES_, r.rate, 'brisk');
+        return '<div class="panel">' +
+          sliderHtml({
+            name: 'rate',
+            label: 'How fast they come',
+            value: rate,
+            levels: RATE_DIFF,
+            ends: ['Calm', 'Frantic']
+          }, 'rate', RATES_, rate) +
+          '</div>' +
           stats([[r.best || 0, 'Best score'], [r.runs || 0, 'Games']]);
       },
-      wire: function (el, r) { seg(el, '[data-rate]', function (v) { r.rate = v; }); },
+      wire: function (el, r) {
+        wireSlider(el, { name: 'rate', levels: RATE_DIFF }, '[data-rate]', function (v) { r.rate = v; });
+      },
       mount: function (stage, r) {
         return global.GeoTyper.mount(stage, {
           rate: function () { return pick(RATES_, r.rate, 'brisk'); },
@@ -349,11 +462,21 @@
       keys: [[['1', '–', '9'], 'whack that hole'], [['Click'], 'or tap a head'], [['Esc'], 'pause']],
       filters: { title: 'Whack question filters', heading: 'What pops up', typed: false },
       side: function (r) {
-        return '<div class="panel"><div class="panel__head"><h3>Round length</h3></div>' +
-          segHtml('length', LENGTHS, pick(LENGTHS, String(r.length), '90')) + '</div>' +
+        var length = pick(LENGTHS, String(r.length), '90');
+        return '<div class="panel">' +
+          sliderHtml({
+            name: 'length',
+            label: 'Round length',
+            value: length,
+            levels: LENGTH_DIFF,
+            ends: ['60s', '120s']
+          }, 'length', LENGTHS, length) +
+          '</div>' +
           stats([[r.best || 0, 'Best score'], [r.runs || 0, 'Games']]);
       },
-      wire: function (el, r) { seg(el, '[data-length]', function (v) { r.length = +v; }); },
+      wire: function (el, r) {
+        wireSlider(el, { name: 'length', levels: LENGTH_DIFF }, '[data-length]', function (v) { r.length = +v; });
+      },
       mount: function (stage, r) {
         return global.GeoWhack.mount(stage, {
           length: function () { return +pick(LENGTHS, String(r.length), '90'); },
@@ -371,11 +494,21 @@
       keys: [[['Click'], 'or tap a tile to turn it over'], [['Esc'], 'pause']],
       filters: { title: 'Match board filters', heading: 'The board', typed: false },
       side: function (r) {
-        return '<div class="panel"><div class="panel__head"><h3>Board size</h3></div>' +
-          segHtml('size', SIZES, pick(SIZES, String(r.size), '8')) + '</div>' +
+        var size = pick(SIZES, String(r.size), '8');
+        return '<div class="panel">' +
+          sliderHtml({
+            name: 'size',
+            label: 'Board size',
+            value: size,
+            levels: SIZE_DIFF,
+            ends: ['6 pairs', '10 pairs']
+          }, 'size', SIZES, size) +
+          '</div>' +
           stats([[r.best || 0, 'Best score'], [r.runs || 0, 'Games']]);
       },
-      wire: function (el, r) { seg(el, '[data-size]', function (v) { r.size = +v; }); },
+      wire: function (el, r) {
+        wireSlider(el, { name: 'size', levels: SIZE_DIFF }, '[data-size]', function (v) { r.size = +v; });
+      },
       mount: function (stage, r) {
         return global.GeoMatch.mount(stage, {
           size: function () { return +pick(SIZES, String(r.size), '8'); },
@@ -393,15 +526,24 @@
       keys: [[['1', '–', '6'], 'drop into that bin'], [['Click'], 'or tap a bin'], [['Esc'], 'pause']],
       filters: { title: 'Sort belt filters', heading: 'On the belt', typed: false },
       side: function (r) {
+        var length = pick(LENGTHS, String(r.length), '90');
         return '<div class="panel"><div class="panel__head"><h3>The parcel shows</h3></div>' +
           segHtml('show', SHOWS, pick(SHOWS, r.show, 'name')) +
-          '<div class="panel__head" style="margin-top:14px"><h3>Round length</h3></div>' +
-          segHtml('length', LENGTHS, pick(LENGTHS, String(r.length), '90')) + '</div>' +
+          '<div style="margin-top:14px">' +
+          sliderHtml({
+            name: 'length',
+            label: 'Round length',
+            value: length,
+            levels: LENGTH_DIFF,
+            ends: ['60s', '120s']
+          }, 'length', LENGTHS, length) +
+          '</div>' +
+          '</div>' +
           stats([[r.best || 0, 'Best score'], [r.runs || 0, 'Games']]);
       },
       wire: function (el, r) {
         seg(el, '[data-show]', function (v) { r.show = v; });
-        seg(el, '[data-length]', function (v) { r.length = +v; });
+        wireSlider(el, { name: 'length', levels: LENGTH_DIFF }, '[data-length]', function (v) { r.length = +v; });
       },
       mount: function (stage, r) {
         return global.GeoSort.mount(stage, {
@@ -421,11 +563,21 @@
       keys: [[['←', '→'], 'or A / D, to slide'], [['Space'], 'drop it now'], [['1', '–', '4'], 'send it to that column'], [['Esc'], 'pause']],
       filters: { title: 'Stack question filters', heading: 'The columns', typed: false },
       side: function (r) {
-        return '<div class="panel"><div class="panel__head"><h3>Speed</h3></div>' +
-          segHtml('speed', SPEEDS, pick(SPEEDS, r.speed, 'normal')) + '</div>' +
+        var speed = pick(SPEEDS, r.speed, 'normal');
+        return '<div class="panel">' +
+          sliderHtml({
+            name: 'speed',
+            label: 'Speed',
+            value: speed,
+            levels: SPEED_DIFF,
+            ends: ['Relaxed', 'Fast']
+          }, 'speed', SPEEDS, speed) +
+          '</div>' +
           stats([[r.best || 0, 'Best score'], [r.runs || 0, 'Games']]);
       },
-      wire: function (el, r) { seg(el, '[data-speed]', function (v) { r.speed = v; }); },
+      wire: function (el, r) {
+        wireSlider(el, { name: 'speed', levels: SPEED_DIFF }, '[data-speed]', function (v) { r.speed = v; });
+      },
       mount: function (stage, r) {
         return global.GeoStack.mount(stage, {
           speed: function () { return pick(SPEEDS, r.speed, 'normal'); },
@@ -443,12 +595,22 @@
       keys: [[['1', '–', '9'], 'press that flag'], [['Click'], 'or tap a flag'], [['Esc'], 'pause']],
       filters: { title: 'Echo board filters', heading: 'The board', typed: false },
       side: function (r) {
-        return '<div class="panel"><div class="panel__head"><h3>Flags on the board</h3></div>' +
-          segHtml('pads', PADS, pick(PADS, String(r.pads), '6')) +
-          '<div class="field__hint" style="margin-top:10px">More flags make a longer sequence harder to hold.</div></div>' +
+        var pads = pick(PADS, String(r.pads), '6');
+        return '<div class="panel">' +
+          sliderHtml({
+            name: 'pads',
+            label: 'Flags on the board',
+            value: pads,
+            levels: PADS_DIFF,
+            ends: ['4 flags', '8 flags'],
+            hint: 'More flags make a longer sequence harder to hold.'
+          }, 'pads', PADS, pads) +
+          '</div>' +
           stats([[r.longest || 0, 'Longest echo'], [r.best || 0, 'Best score'], [r.runs || 0, 'Games']]);
       },
-      wire: function (el, r) { seg(el, '[data-pads]', function (v) { r.pads = +v; }); },
+      wire: function (el, r) {
+        wireSlider(el, { name: 'pads', levels: PADS_DIFF }, '[data-pads]', function (v) { r.pads = +v; });
+      },
       mount: function (stage, r) {
         return global.GeoEcho.mount(stage, {
           pads: function () { return +pick(PADS, String(r.pads), '6'); },

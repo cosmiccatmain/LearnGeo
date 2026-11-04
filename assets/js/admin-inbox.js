@@ -193,6 +193,11 @@
      Checked every 30 seconds while the tab is visible — more often than
      balance changes, because a message is somebody waiting for a reply
      and a balance is not. One small indexed query per check.
+
+     0011 adds a reply box in the same dialog. The reply is stored as
+     admin_actions.action = 'reply' and shows up on the Administrator
+     page's selected-account thread. Got it still dismisses without
+     answering.
   ------------------------------------------------------------------ */
   var MSG_EVERY = 30e3;
   var MSG_GAP = 10e3;
@@ -237,6 +242,21 @@
     return d + (d === 1 ? ' day ago' : ' days ago');
   }
 
+  var MSG_MAX = 500;        /* same bound as ultra_send_message / 0011 */
+
+  /* Advance the cursor past these rows and free the dialog. Only for
+     the account they were fetched for — an account switch with the
+     dialog open must not mark messages read in somebody else's save. */
+  function markRead(rows, who) {
+    showing = false;
+    if (!C() || !C().user || C().user.id !== who) return;
+    if (!W.state.flags || typeof W.state.flags !== 'object') W.state.flags = {};
+    W.state.flags.adminMsgAt = rows[rows.length - 1].created_at;
+    W.saveNow();
+    /* Twenty at a time; if there were more, show the next lot. */
+    if (rows.length >= 20) setTimeout(function () { checkMessages(true); }, 400);
+  }
+
   function showMessages(rows, who) {
     if (!global.UI || !global.UI.modal) return;
     showing = true;
@@ -249,25 +269,89 @@
       '</div>';
     }).join('');
 
+    /* Reply attaches to the newest message on screen. Older ones in
+       the same batch stay visible as context; the admin sees the whole
+       thread on the selected account. */
+    var parentId = rows[rows.length - 1] && rows[rows.length - 1].id;
+    var closed = false;
+
     global.UI.modal({
       title: rows.length === 1 ? 'A message from LearnGeo' : rows.length + ' messages from LearnGeo',
       icon: I.inbox,
-      body: '<p class="t-sm t-muted" style="margin:-4px 0 12px">From a LearnGeo administrator.</p>' + body,
-      actions: [{ label: 'Got it', cls: 'btn--primary', close: true }],
+      body:
+        '<p class="t-sm t-muted" style="margin:-4px 0 12px">From a LearnGeo administrator. You can reply below.</p>' +
+        body +
+        '<div class="admsg__reply">' +
+          '<label class="field__label" for="admsg-reply">Your reply</label>' +
+          '<textarea class="input" id="admsg-reply" rows="3" maxlength="' + MSG_MAX + '" ' +
+            'placeholder="Write a reply…"></textarea>' +
+          '<div class="admsg__replyfoot">' +
+            '<span class="t-sm t-muted" id="admsg-count">0 / ' + MSG_MAX + '</span>' +
+            '<span class="t-sm" id="admsg-err" style="color:var(--danger);display:none"></span>' +
+          '</div>' +
+        '</div>',
+      actions: [
+        { label: 'Got it', cls: 'btn--ghost', close: true },
+        { label: 'Send reply', cls: 'btn--primary', onClick: function (m, close) {
+            return sendReply(m, close, parentId, rows, who, function () { closed = true; });
+          } }
+      ],
+      onMount: function (m) {
+        var ta = W.$('#admsg-reply', m), c = W.$('#admsg-count', m);
+        if (!ta || !c) return;
+        ta.addEventListener('input', function () {
+          c.textContent = ta.value.length + ' / ' + MSG_MAX;
+        });
+        setTimeout(function () { try { ta.focus(); } catch (e) {} }, 60);
+      },
       onClose: function () {
-        showing = false;
-        /* Moved only now, and only for the account it was fetched for:
-           an account switch with this open must not mark messages read
-           in somebody else's save. */
-        if (!C() || !C().user || C().user.id !== who) return;
-        if (!W.state.flags || typeof W.state.flags !== 'object') W.state.flags = {};
-        W.state.flags.adminMsgAt = rows[rows.length - 1].created_at;
-        W.saveNow();
-        /* Twenty at a time; if there were more, show the next lot. */
-        if (rows.length >= 20) setTimeout(function () { checkMessages(true); }, 400);
+        if (closed) return;          /* sendReply already marked them read */
+        markRead(rows, who);
       }
     });
     if (W.Sound && W.Sound.gem) { try { W.Sound.gem(); } catch (e) {} }
+  }
+
+  function sendReply(modalRoot, close, parentId, rows, who, onSent) {
+    var ta = W.$('#admsg-reply', modalRoot);
+    var err = W.$('#admsg-err', modalRoot);
+    var body = String((ta && ta.value) || '').trim();
+    function fail(msg) {
+      if (err) { err.style.display = ''; err.textContent = msg; }
+      return false;
+    }
+    if (!parentId) return fail('That message is gone.');
+    if (!body) return fail('Type a reply first.');
+    if (body.length > MSG_MAX) return fail('A reply is at most ' + MSG_MAX + ' characters.');
+
+    var cl = C();
+    if (!cl || !cl.sb || !cl.user || cl.user.id !== who) {
+      return fail('Signed out. Sign in again to reply.');
+    }
+
+    var btn = W.$('[data-act="1"]', modalRoot);
+    if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
+    if (err) err.style.display = 'none';
+
+    cl.sb.rpc('reply_to_admin_message', { p_message: parentId, p_text: body })
+      .then(function (res) {
+        if (res.error) {
+          if (btn) { btn.disabled = false; btn.textContent = 'Send reply'; }
+          if (missing(res.error, 'reply_to_admin_message')) {
+            return fail('Replies need an update on the server. An admin can still read the Got it.');
+          }
+          return fail(res.error.message || 'That did not send.');
+        }
+        if (onSent) onSent();
+        markRead(rows, who);
+        close();
+        W.toast('Reply sent', 'A LearnGeo administrator will see it.', I.check, 3600);
+      })
+      .catch(function () {
+        if (btn) { btn.disabled = false; btn.textContent = 'Send reply'; }
+        fail('Could not reach the server. Try again in a moment.');
+      });
+    return false;   /* keep the dialog open until the call finishes */
   }
 
   /* After every successful sync, which includes the one right after
