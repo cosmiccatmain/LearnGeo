@@ -41,7 +41,8 @@
     live: function () { return false; },
     minutesLeft: function () { return 0; },
     connect: no, disconnect: function () {},
-    stats: no, find: no, recent: no, gems: no, staff: no, allowList: no, allow: no, message: no, override: no
+    stats: no, find: no, recent: no, gems: no, staff: no, allowList: no, allow: no,
+    message: no, thread: no, override: no
   };
   function no() {
     return Promise.resolve({ ok: false, kind: 'error', message: 'admin-ops.js did not load.' });
@@ -521,7 +522,53 @@
           '<span class="t-sm t-muted" id="ap-msg-count">0 / ' + MSG_MAX + '</span>' +
           '<button class="btn btn--primary btn--sm" data-do="msg">Send message</button>' +
         '</div>' +
+        '<div class="adminp__thread" id="ap-thread">' +
+          '<div class="adminp__thread-empty">Loading the conversation…</div>' +
+        '</div>' +
       '</div>';
+
+    loadThread();
+  }
+
+  /* Messages to the selected account and their replies (0011). Soft-
+     fails when the migration has not been run: the send box still
+     works, the thread just stays empty. */
+  function loadThread() {
+    var host = root && W.$('#ap-thread', root);
+    if (!host || !picked) return;
+    var who = picked;
+    ops().thread(who.id).then(function (r) {
+      if (!root || !picked || picked.id !== who.id) return;
+      host = W.$('#ap-thread', root);
+      if (!host) return;
+      if (!r || !r.ok) {
+        host.innerHTML = r && r.kind === 'nomigration'
+          ? '<div class="adminp__thread-empty">Conversation history needs 0011 on the database.</div>'
+          : '<div class="adminp__thread-empty">Could not load the conversation.</div>';
+        return;
+      }
+      var list = r.data || [];
+      if (!list.length) {
+        host.innerHTML = '<div class="adminp__thread-empty">No messages with this account yet. ' +
+          'When they reply, it shows up here.</div>';
+        return;
+      }
+      host.innerHTML = list.map(function (m) {
+        var outgoing = m.action === 'message';
+        /* Outgoing lines are any admin → this account; the sender email
+           matters when more than one admin has written. Replies are
+           always from this account. */
+        var label = outgoing
+          ? (m.actor_email || 'Admin')
+          : (who.display_name || who.email || m.actor_email || 'Them');
+        var text = W.escapeHtml(String(m.body || '')).replace(/\n/g, '<br>');
+        return '<div class="admsg admsg--' + (outgoing ? 'out' : 'in') + '">' +
+          '<div class="admsg__who">' + esc(label) + ' · ' + esc(ago(m.created_at)) + '</div>' +
+          '<div class="admsg__text">' + text + '</div>' +
+        '</div>';
+      }).join('');
+      host.scrollTop = host.scrollHeight;
+    });
   }
 
   /* =========================== the actions ========================= */
@@ -747,9 +794,10 @@
         }
         say('Message sent to ' + (who.display_name || who.email || 'that account') +
             '. It appears on their screen within about 30 seconds if their app is open, ' +
-            'otherwise the next time it opens.');
+            'otherwise the next time it opens. They can reply from the same dialog.');
         W.toast('Message sent', (who.display_name || 'That account') + ' will see it on their screen.', I.check, 3600);
         ops().recent(15).then(function (x) { guard(x, renderLog); });
+        if (picked && picked.id === who.id) loadThread();
       });
     });
   }
@@ -787,6 +835,7 @@
         : a.action === 'staff' ? (d.on ? 'staff effect granted' : 'staff effect removed')
         : a.action === 'allow' ? (d.on ? 'given admin access' : 'admin access removed')
         : a.action === 'message' ? 'message: “' + esc(trim(d.text, 80)) + '”'
+        : a.action === 'reply'   ? 'reply: “' + esc(trim(d.text, 80)) + '”'
         : esc(a.action);
       return '<div class="adminp__logrow">' +
         '<span class="t-muted">' + esc(ago(a.created_at)) + '</span>' +

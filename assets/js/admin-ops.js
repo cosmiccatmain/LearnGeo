@@ -298,6 +298,8 @@
 
     staff:    function (id, on)           { return call('ultra_set_staff', { p_target: id, p_on: !!on }); },
     message:  function (id, text)         { return call('ultra_send_message', { p_target: id, p_text: String(text || '') }); },
+    /* 0011. Messages to this account and their replies, oldest first. */
+    thread:   function (id)               { return call('ultra_message_thread', { p_target: id }); },
     /* Past the 2,000,000,000 cap, up to the largest whole number a browser
        holds exactly. The caller checks the range first; the server
        checks it again and its answer is the one that counts. */
