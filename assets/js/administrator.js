@@ -126,6 +126,7 @@
           navItem('activity', I.list || I.chart, 'Activity') +
           navItem('permissions', I.lock, 'Permissions') +
           navItem('commands', I.bolt, 'Commands') +
+          navItem('development', I.flask || I.bolt, 'Development') +
         '</nav>' +
         '<div class="adminp__sidefoot">' +
           '<span class="adminp__pill" id="ap-session">checking…</span>' +
@@ -191,6 +192,7 @@
         var box = W.$('#ap-msg-text', root);
         return sendMessage(box ? box.value : '', box);
       }
+      if (d.do === 'subdev') return openSubscriptionDev();
     });
 
     root.addEventListener('keydown', function (e) {
@@ -244,7 +246,8 @@
     messages: 'Messages',
     activity: 'Activity',
     permissions: 'Permissions',
-    commands: 'Commands'
+    commands: 'Commands',
+    development: 'Development'
   };
 
   function renderPanel() {
@@ -263,6 +266,7 @@
     else if (section === 'activity') host.innerHTML = panelActivity();
     else if (section === 'permissions') host.innerHTML = panelPermissions();
     else if (section === 'commands') host.innerHTML = panelCommands();
+    else if (section === 'development') host.innerHTML = panelDevelopment();
     else host.innerHTML = '';
 
     /* Fill dynamic bits after the shell is in the DOM. */
@@ -400,7 +404,8 @@
     return '<section class="adminp__sec">' +
       '<h3>Commands</h3>' +
       '<p class="t-sm t-muted">Type <code>help</code> for the list. A command that needs an account uses the selected one. ' +
-        '<code>watch</code> refreshes screen monitoring (owner only).</p>' +
+        '<code>watch</code> refreshes screen monitoring (owner only). ' +
+        '<code>plans</code> opens the TEST subscription preview.</p>' +
       '<div class="adminp__search">' +
         '<input class="input mono" id="ap-cmd" type="text" placeholder="take 500" ' +
           'autocomplete="off" spellcheck="false">' +
@@ -408,6 +413,41 @@
       '</div>' +
       '<pre class="adminp__out" id="ap-out">Ready.</pre>' +
     '</section>';
+  }
+
+  function panelDevelopment() {
+    return '<section class="adminp__sec">' +
+      '<h3>Development</h3>' +
+      '<p class="t-sm t-muted">Internal previews that must <b>not</b> appear on the public site. ' +
+        'Owner <code>alexjschendel@gmail.com</code> and admins with UltraAdmin access only.</p>' +
+      '<div class="adminp__warn adminp__warn--expired" style="margin-bottom:14px">' +
+        '<div class="row" style="gap:10px;align-items:flex-start">' + (I.info || '') +
+          '<div class="grow"><b>TEST only.</b> These tools are gated behind Administrator. ' +
+            'No public nav, landing CTA, or student/teacher paywall.</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="adminp__who" style="align-items:flex-start">' +
+        '<div class="grow">' +
+          '<div class="adminp__nm">' + (I.shop || I.flask || '') +
+            '<span>Subscription plans (mock)</span></div>' +
+          '<p class="t-sm t-muted" style="margin:6px 0 0">Full pricing page UI with Free / Pro / School, ' +
+            'feature comparison, and a mock checkout. Labeled <b>TEST / Development</b>. ' +
+            'No Stripe charges in v1 — see <code>assets/js/subscription-dev.js</code>.</p>' +
+        '</div>' +
+        '<button type="button" class="btn btn--accent btn--sm" data-do="subdev">' +
+          (I.arrowR || '') + ' Open plans preview</button>' +
+      '</div>' +
+      '<p class="t-sm t-muted" style="margin:0">Also available from Commands: <code>plans</code> or <code>subscription</code>.</p>' +
+    '</section>';
+  }
+
+  function openSubscriptionDev() {
+    if (!global.SubscriptionDev || !global.SubscriptionDev.open) {
+      say('subscription-dev.js did not load.');
+      W.toast('Missing preview', 'subscription-dev.js did not load.', I.info, 3200);
+      return;
+    }
+    global.SubscriptionDev.open();
   }
 
   /* ========================= server round trips ==================== */
@@ -1270,7 +1310,9 @@
       'who                show the selected account',
       'stats              reload the numbers at the top',
       'log                reload the action list',
-      'help               this'
+      'help               this',
+      'plans              open TEST subscription preview (Development)',
+      'subscription       same as plans'
     ];
     if (access.owner) lines.push('watch              refresh screen monitoring');
     if (can('gems')) {
@@ -1322,6 +1364,10 @@
     }
 
     if (cmd === 'help') return say(helpText());
+    if (cmd === 'plans' || cmd === 'subscription' || cmd === 'subdev') {
+      openSubscriptionDev();
+      return say('Opened TEST subscription preview (Development). No real charges.');
+    }
     if (cmd === 'stats') { refresh(); return say('Reloading…'); }
     if (cmd === 'log') {
       section = 'activity'; renderPanel();
