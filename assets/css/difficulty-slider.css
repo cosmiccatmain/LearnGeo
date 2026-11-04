@@ -54,6 +54,8 @@
   color: var(--muted);
 }
 
+.diff-slider__blurb:empty { display: none; margin: 0; }
+
 .diff-slider__control { display: grid; gap: 8px; }
 
 .diff-slider__track {
