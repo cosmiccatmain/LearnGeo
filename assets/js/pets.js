@@ -4,7 +4,9 @@
    v0 shell: top-level Pets tab + homescreen event popup + starter roster.
    LEA-14: levels 1–10, XP, on-character skin stages A–D, pet detail UX.
    LEA-15: customize cosmetics/traits; request a brainrot; upload design
-     with moderation states. No marketplace / mutations trading (LEA-16).
+     with moderation states.
+   LEA-16: mutations (on-instance modifiers + blocky visual cues) and a
+     local marketplace to list / buy / cancel high-level or mutated pets.
 
    Dismiss rule (documented product choice for v0):
      C — until dismissed. localStorage key learngeo.pets.event.v0.dismissed
@@ -23,6 +25,15 @@
      Limits (documented in UI): PNG/JPEG/WebP, max UPLOAD_MAX_BYTES,
      max UPLOAD_MAX_PENDING pending items, school-safe affirmation required.
      Nothing goes public without a human approve action on the queue screen.
+
+   Economy (LEA-16 v1 — local demo):
+     Pets Diamonds live in learngeo.pets.wallet.v0 (soft currency for this
+     collab surface). Kept separate from LearnGeo shop diamonds to avoid
+     double-charge / shop-path bugs in v1. Starting balance START_DIAMONDS.
+     Listings: learngeo.pets.market.v0. Fee FEE_BPS (10%). List gate:
+     level >= MIN_LIST_LEVEL OR has mutation. Price bounds PRICE_MIN–MAX.
+     Demo NPC listings seed once so Buy works without a second account.
+     No real-money / crypto / off-platform trades.
 -------------------------------------------------------------------*/
 (function (global) {
   'use strict';
@@ -33,10 +44,24 @@
   var DISMISS_KEY = 'learngeo.pets.event.v0.dismissed';
   var ROSTER_KEY = 'learngeo.pets.roster.v0';
   var DESIGNS_KEY = 'learngeo.pets.designs.v0';
+  var WALLET_KEY = 'learngeo.pets.wallet.v0';
+  var MARKET_KEY = 'learngeo.pets.market.v0';
 
   var MAX_LEVEL = 10;
   var BASE_XP = 40;
   var PLAY_XP = 25;
+
+  /* Marketplace / mutation demo knobs (classroom-safe soft currency). */
+  var START_DIAMONDS = 320;
+  var MIN_LIST_LEVEL = 7;
+  var PRICE_MIN = 10;
+  var PRICE_MAX = 9999;
+  var FEE_BPS = 1000; /* 10% platform fee shown before confirm */
+  var MUTATION_ROLL_COST = 20;
+  var MUTATION_ROLL_CHANCE = 0.4; /* paid attempt on detail */
+  var MUTATION_PROC_STAGE = 0.14; /* free proc when crossing a skin stage */
+  var MUTATION_PROC_MAX = 0.3; /* free proc when hitting level 10 */
+  var YOU_SELLER = 'you';
 
   /* Upload / request limits for v1 local storage. */
   var UPLOAD_MAX_BYTES = 400 * 1024; /* ~400KB data URL payload */
@@ -95,13 +120,24 @@
     { id: 'napoleon', name: 'Napoleon', rarity: 'Mythical Brainrot', art: 'napoleon' }
   ];
 
-  /* Screen: { name: 'hub'|'detail'|'customize'|'request'|'upload'|'queue',
-     speciesId?: string }. Hub uses name hub / null species. */
-  var screen = { name: 'hub', speciesId: null };
+  /* School-safe mutation tags (plan §9 flavor). Applied per instance —
+     species identity stays Jill/Jack/etc. */
+  var MUTATIONS = [
+    { id: 'glitched', label: 'Glitched', hint: 'Offset block shimmer' },
+    { id: 'golden', label: 'Golden', hint: 'Warm metallic blocks' },
+    { id: 'echo', label: 'Echo', hint: 'Soft after-image twin' },
+    { id: 'static', label: 'Static', hint: 'Speckled TV snow' }
+  ];
+
+  /* Screen: hub | detail | customize | request | upload | queue | market | list
+     instanceId for pet-scoped screens; listingId optional for market focus. */
+  var screen = { name: 'hub', instanceId: null, listingId: null };
   var lastLevelUpFlash = null;
+  var lastMutationFlash = null;
   var formNotice = null; /* { tone, text } flash after submit */
   var pendingUploadDataUrl = null;
   var pendingUploadMeta = null;
+  var marketFilter = 'all'; /* all | mutated | high */
 
   function emptyCosmetics() {
     return { aura: 'aura-none', hat: 'hat-none', frame: 'frame-none',
@@ -148,16 +184,35 @@
     return base;
   }
 
+  function mutationById(id) {
+    if (!id) return null;
+    for (var i = 0; i < MUTATIONS.length; i++) {
+      if (MUTATIONS[i].id === id) return MUTATIONS[i];
+    }
+    return null;
+  }
+
+  function pickRandomMutation() {
+    return MUTATIONS[Math.floor(Math.random() * MUTATIONS.length)];
+  }
+
+  function newInstanceId() {
+    return 'i' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  }
+
   function normalizeOwned(entry) {
     var level = Math.max(1, Math.min(MAX_LEVEL, Number(entry && entry.level) || 1));
     var xp = Math.max(0, Number(entry && entry.xp) || 0);
     if (level >= MAX_LEVEL) xp = 0;
+    var mut = mutationById(entry && entry.mutationId);
     return {
+      instanceId: (entry && entry.instanceId) || ('legacy-' + (entry && entry.speciesId || 'pet')),
       speciesId: entry.speciesId,
       level: level,
       xp: xp,
       skinStage: skinStageForLevel(level),
-      cosmetics: normalizeCosmetics(entry && entry.cosmetics)
+      cosmetics: normalizeCosmetics(entry && entry.cosmetics),
+      mutationId: mut ? mut.id : null
     };
   }
 
@@ -177,7 +232,7 @@
 
   /* First Pets visit grants the five starters locally so the roster is
      visible. Earn/grant rules remain OPEN in the plan. Migrates older
-     v0 rows (level/skin only) by filling xp + cosmetics + recomputing skin. */
+     v0 rows by filling xp, cosmetics, instanceId, mutationId + skin. */
   function ensureRoster() {
     var data = readRoster();
     if (data && data.owned && data.owned.length) {
@@ -189,24 +244,29 @@
       eventId: EVENT_ID,
       grantedAt: Date.now(),
       owned: STARTERS.map(function (s) {
-        return normalizeOwned({ speciesId: s.id, level: 1, xp: 0 });
+        return normalizeOwned({
+          instanceId: newInstanceId(),
+          speciesId: s.id,
+          level: 1,
+          xp: 0
+        });
       })
     };
     writeRoster(data);
     return data;
   }
 
-  function findOwned(roster, speciesId) {
+  function findOwned(roster, instanceId) {
     for (var i = 0; i < roster.owned.length; i++) {
-      if (roster.owned[i].speciesId === speciesId) return roster.owned[i];
+      if (roster.owned[i].instanceId === instanceId) return roster.owned[i];
     }
     return null;
   }
 
-  function saveOwned(speciesId, owned) {
+  function saveOwned(instanceId, owned) {
     var roster = ensureRoster();
     for (var i = 0; i < roster.owned.length; i++) {
-      if (roster.owned[i].speciesId === speciesId) {
+      if (roster.owned[i].instanceId === instanceId) {
         roster.owned[i] = normalizeOwned(owned);
         writeRoster(roster);
         return roster.owned[i];
@@ -215,18 +275,45 @@
     return null;
   }
 
-  /* Apply delta XP; returns { owned, levelsGained, capped }. */
-  function grantXp(speciesId, amount) {
+  function removeOwned(instanceId) {
     var roster = ensureRoster();
-    var owned = findOwned(roster, speciesId);
+    var next = [];
+    var removed = null;
+    for (var i = 0; i < roster.owned.length; i++) {
+      if (roster.owned[i].instanceId === instanceId) removed = roster.owned[i];
+      else next.push(roster.owned[i]);
+    }
+    if (!removed) return null;
+    roster.owned = next;
+    writeRoster(roster);
+    return removed;
+  }
+
+  function addOwned(entry) {
+    var roster = ensureRoster();
+    var row = normalizeOwned(entry);
+    roster.owned.push(row);
+    writeRoster(roster);
+    return row;
+  }
+
+  function canListPet(owned) {
+    if (!owned) return false;
+    return owned.level >= MIN_LIST_LEVEL || !!owned.mutationId;
+  }
+
+  /* Apply delta XP; returns { owned, levelsGained, capped, mutation }. */
+  function grantXp(instanceId, amount) {
+    var roster = ensureRoster();
+    var owned = findOwned(roster, instanceId);
     if (!owned) return null;
     var before = owned.level;
     var add = Math.max(0, Number(amount) || 0);
     if (owned.level >= MAX_LEVEL) {
       owned.xp = 0;
       owned.skinStage = skinStageForLevel(owned.level);
-      saveOwned(speciesId, owned);
-      return { owned: owned, levelsGained: 0, capped: true };
+      saveOwned(instanceId, owned);
+      return { owned: owned, levelsGained: 0, capped: true, mutation: null };
     }
     owned.xp += add;
     while (owned.level < MAX_LEVEL) {
@@ -240,22 +327,325 @@
       owned.xp = 0;
     }
     owned.skinStage = skinStageForLevel(owned.level);
-    saveOwned(speciesId, owned);
+    var mutGain = null;
+    if (!owned.mutationId && owned.level > before) {
+      var stageBefore = skinStageForLevel(before);
+      var stageAfter = skinStageForLevel(owned.level);
+      var hitMax = owned.level >= MAX_LEVEL && before < MAX_LEVEL;
+      var crossed = stageBefore !== stageAfter || hitMax;
+      if (crossed) {
+        var chance = hitMax ? MUTATION_PROC_MAX : MUTATION_PROC_STAGE;
+        if (Math.random() < chance) {
+          var picked = pickRandomMutation();
+          owned.mutationId = picked.id;
+          mutGain = picked;
+        }
+      }
+    }
+    saveOwned(instanceId, owned);
     return {
       owned: owned,
       levelsGained: owned.level - before,
-      capped: owned.level >= MAX_LEVEL && before >= MAX_LEVEL
+      capped: owned.level >= MAX_LEVEL && before >= MAX_LEVEL,
+      mutation: mutGain
     };
   }
 
-  function equipCosmetic(speciesId, slot, cosmeticId) {
-    var owned = findOwned(ensureRoster(), speciesId);
+  function equipCosmetic(instanceId, slot, cosmeticId) {
+    var owned = findOwned(ensureRoster(), instanceId);
     if (!owned) return null;
     var item = cosmeticById(cosmeticId);
     if (!item || item.slot !== slot) return null;
     owned.cosmetics = normalizeCosmetics(owned.cosmetics);
     owned.cosmetics[slot] = item.id;
-    return saveOwned(speciesId, owned);
+    return saveOwned(instanceId, owned);
+  }
+
+  /* -------------------- Pets Diamonds wallet (local demo) --------- */
+  function readWallet() {
+    try {
+      var raw = global.localStorage.getItem(WALLET_KEY);
+      if (!raw) return null;
+      var parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed.diamonds !== 'number') return null;
+      return parsed;
+    } catch (e) { return null; }
+  }
+
+  function writeWallet(data) {
+    try { global.localStorage.setItem(WALLET_KEY, JSON.stringify(data)); } catch (e) {}
+  }
+
+  function ensureWallet() {
+    var w = readWallet();
+    if (w) {
+      w.diamonds = Math.max(0, Math.floor(Number(w.diamonds) || 0));
+      writeWallet(w);
+      return w;
+    }
+    w = { diamonds: START_DIAMONDS, seededAt: Date.now() };
+    writeWallet(w);
+    return w;
+  }
+
+  function adjustDiamonds(delta) {
+    var w = ensureWallet();
+    w.diamonds = Math.max(0, Math.floor(w.diamonds + (Number(delta) || 0)));
+    w.updatedAt = Date.now();
+    writeWallet(w);
+    return w;
+  }
+
+  function feeOf(price) {
+    return Math.floor(Number(price) * FEE_BPS / 10000);
+  }
+
+  function netOf(price) {
+    return Math.max(0, Number(price) - feeOf(price));
+  }
+
+  /* -------------------- marketplace listings ---------------------- */
+  function readMarket() {
+    try {
+      var raw = global.localStorage.getItem(MARKET_KEY);
+      if (!raw) return null;
+      var parsed = JSON.parse(raw);
+      if (!parsed || !Array.isArray(parsed.listings)) return null;
+      return parsed;
+    } catch (e) { return null; }
+  }
+
+  function writeMarket(data) {
+    try { global.localStorage.setItem(MARKET_KEY, JSON.stringify(data)); } catch (e) {}
+  }
+
+  function listingUid() {
+    return 'l' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  }
+
+  function petSnapshot(owned) {
+    return {
+      instanceId: owned.instanceId,
+      speciesId: owned.speciesId,
+      level: owned.level,
+      xp: owned.xp,
+      skinStage: owned.skinStage,
+      cosmetics: normalizeCosmetics(owned.cosmetics),
+      mutationId: owned.mutationId || null
+    };
+  }
+
+  function seedDemoListings() {
+    /* NPC stock so Buy works in a single-device classroom demo. */
+    return [
+      {
+        id: listingUid(),
+        sellerId: 'demo-maya',
+        sellerLabel: 'Maya (demo)',
+        price: 85,
+        feeBps: FEE_BPS,
+        status: 'active',
+        createdAt: Date.now() - 86400000,
+        pet: {
+          instanceId: newInstanceId(),
+          speciesId: 'ding-dong-jill',
+          level: 8,
+          xp: 0,
+          skinStage: 'C',
+          cosmetics: emptyCosmetics(),
+          mutationId: 'golden'
+        }
+      },
+      {
+        id: listingUid(),
+        sellerId: 'demo-leo',
+        sellerLabel: 'Leo (demo)',
+        price: 120,
+        feeBps: FEE_BPS,
+        status: 'active',
+        createdAt: Date.now() - 3600000,
+        pet: {
+          instanceId: newInstanceId(),
+          speciesId: 'napoleon',
+          level: 10,
+          xp: 0,
+          skinStage: 'D',
+          cosmetics: emptyCosmetics(),
+          mutationId: 'glitched'
+        }
+      },
+      {
+        id: listingUid(),
+        sellerId: 'demo-sam',
+        sellerLabel: 'Sam (demo)',
+        price: 45,
+        feeBps: FEE_BPS,
+        status: 'active',
+        createdAt: Date.now() - 7200000,
+        pet: {
+          instanceId: newInstanceId(),
+          speciesId: 'knock-knock-jack',
+          level: 7,
+          xp: 0,
+          skinStage: 'C',
+          cosmetics: emptyCosmetics(),
+          mutationId: null
+        }
+      }
+    ];
+  }
+
+  function ensureMarket() {
+    var data = readMarket();
+    if (data && data.seeded) return data;
+    data = {
+      seeded: true,
+      listings: seedDemoListings(),
+      trades: []
+    };
+    writeMarket(data);
+    return data;
+  }
+
+  function activeListings(data) {
+    var out = [];
+    var list = (data || ensureMarket()).listings;
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].status === 'active') out.push(list[i]);
+    }
+    return out;
+  }
+
+  function findListing(id) {
+    var data = ensureMarket();
+    for (var i = 0; i < data.listings.length; i++) {
+      if (data.listings[i].id === id) return data.listings[i];
+    }
+    return null;
+  }
+
+  function listPet(instanceId, price) {
+    var owned = findOwned(ensureRoster(), instanceId);
+    if (!owned) return { ok: false, error: 'Pet not found on your roster.' };
+    if (!canListPet(owned)) {
+      return {
+        ok: false,
+        error: 'Listable pets need level ' + MIN_LIST_LEVEL + '+ or a mutation.'
+      };
+    }
+    var p = Math.floor(Number(price) || 0);
+    if (p < PRICE_MIN || p > PRICE_MAX) {
+      return {
+        ok: false,
+        error: 'Price must be between ' + PRICE_MIN + ' and ' + PRICE_MAX + ' Pets Diamonds.'
+      };
+    }
+    var removed = removeOwned(instanceId);
+    if (!removed) return { ok: false, error: 'Could not move pet to the market.' };
+    var data = ensureMarket();
+    var listing = {
+      id: listingUid(),
+      sellerId: YOU_SELLER,
+      sellerLabel: 'You',
+      price: p,
+      feeBps: FEE_BPS,
+      status: 'active',
+      createdAt: Date.now(),
+      pet: petSnapshot(removed)
+    };
+    data.listings.unshift(listing);
+    writeMarket(data);
+    return { ok: true, listing: listing };
+  }
+
+  function cancelListing(listingId) {
+    var data = ensureMarket();
+    var listing = null;
+    for (var i = 0; i < data.listings.length; i++) {
+      if (data.listings[i].id === listingId) { listing = data.listings[i]; break; }
+    }
+    if (!listing || listing.status !== 'active') {
+      return { ok: false, error: 'Listing is not active.' };
+    }
+    if (listing.sellerId !== YOU_SELLER) {
+      return { ok: false, error: 'You can only cancel your own listings.' };
+    }
+    listing.status = 'cancelled';
+    listing.cancelledAt = Date.now();
+    writeMarket(data);
+    addOwned(listing.pet);
+    return { ok: true, listing: listing };
+  }
+
+  function buyListing(listingId) {
+    var data = ensureMarket();
+    var listing = null;
+    for (var i = 0; i < data.listings.length; i++) {
+      if (data.listings[i].id === listingId) { listing = data.listings[i]; break; }
+    }
+    if (!listing || listing.status !== 'active') {
+      return { ok: false, error: 'That listing is gone.' };
+    }
+    if (listing.sellerId === YOU_SELLER) {
+      return { ok: false, error: 'You cannot buy your own listing. Cancel it instead.' };
+    }
+    var wallet = ensureWallet();
+    if (wallet.diamonds < listing.price) {
+      return {
+        ok: false,
+        error: 'Not enough Pets Diamonds (need ' + listing.price + ', have ' + wallet.diamonds + ').'
+      };
+    }
+    adjustDiamonds(-listing.price);
+    /* Demo NPC sellers: fee + price are sunk (no peer wallet). Documented. */
+    listing.status = 'sold';
+    listing.soldAt = Date.now();
+    listing.buyerId = YOU_SELLER;
+    var fee = feeOf(listing.price);
+    data.trades = data.trades || [];
+    data.trades.unshift({
+      listingId: listing.id,
+      buyerId: YOU_SELLER,
+      sellerId: listing.sellerId,
+      gross: listing.price,
+      fee: fee,
+      net: listing.price - fee,
+      at: Date.now()
+    });
+    writeMarket(data);
+    var pet = normalizeOwned(listing.pet);
+    pet.instanceId = newInstanceId(); /* fresh id so buyer never collides */
+    addOwned(pet);
+    return { ok: true, listing: listing, pet: pet, fee: fee };
+  }
+
+  function tryMutationRoll(instanceId) {
+    var owned = findOwned(ensureRoster(), instanceId);
+    if (!owned) return { ok: false, error: 'Pet not found.' };
+    if (owned.mutationId) {
+      return { ok: false, error: 'This pet already has a mutation.' };
+    }
+    if (owned.level < MIN_LIST_LEVEL && owned.level < MAX_LEVEL) {
+      return {
+        ok: false,
+        error: 'Mutation rolls unlock at level ' + MIN_LIST_LEVEL + '+ (or try leveling into a new skin stage).'
+      };
+    }
+    var wallet = ensureWallet();
+    if (wallet.diamonds < MUTATION_ROLL_COST) {
+      return {
+        ok: false,
+        error: 'Need ' + MUTATION_ROLL_COST + ' Pets Diamonds for a mutation attempt.'
+      };
+    }
+    adjustDiamonds(-MUTATION_ROLL_COST);
+    if (Math.random() < MUTATION_ROLL_CHANCE) {
+      var picked = pickRandomMutation();
+      owned.mutationId = picked.id;
+      saveOwned(instanceId, owned);
+      return { ok: true, mutation: picked, owned: owned };
+    }
+    return { ok: true, mutation: null, owned: owned, miss: true };
   }
 
   /* -------------------- design request / upload queue ------------- */
@@ -371,16 +761,28 @@
     return '<div class="pets-catch" aria-hidden="true">' + esc(item.text) + '</div>';
   }
 
+  function mutationBadgeHtml(mutationId) {
+    var m = mutationById(mutationId);
+    if (!m) return '';
+    return '<span class="pets-mut-badge pets-mut-badge--' + esc(m.id) + '">' +
+      esc(m.label) + '</span>';
+  }
+
   /* Blox Fruits–adjacent placeholder: chunky square head/torso/limbs
-     (CSS blocks). Not smooth round avatars. Species tint via art class. */
+     (CSS blocks). Not smooth round avatars. Species tint via art class.
+     Mutations add a visual cue class — identity stays on-character. */
   function artHtml(s, owned, sizeClass) {
     var stage = owned.skinStage || skinStageForLevel(owned.level);
     var cos = cosmeticsClasses(owned.cosmetics);
+    var mut = mutationById(owned.mutationId);
     return '<div class="pets-card__art pets-card__art--' + esc(s.art) +
       ' pets-card__art--stage-' + esc(stage) +
+      (mut ? ' pets-card__art--mut-' + esc(mut.id) : '') +
       (cos ? ' ' + cos : '') +
       (sizeClass ? ' ' + sizeClass : '') +
-      '" data-stage="' + esc(stage) + '" aria-hidden="true">' +
+      '" data-stage="' + esc(stage) + '"' +
+      (mut ? ' data-mutation="' + esc(mut.id) + '"' : '') +
+      ' aria-hidden="true">' +
       '<div class="pets-blox">' +
         '<span class="pets-blox__hat"></span>' +
         '<span class="pets-blox__head">' +
@@ -399,6 +801,7 @@
       '</div>' +
       '<span class="pets-card__art-flare"></span>' +
       '<span class="pets-card__art-trail"></span>' +
+      (mut ? '<span class="pets-mut-cue" title="' + esc(mut.label) + '"></span>' : '') +
     '</div>';
   }
 
@@ -406,8 +809,13 @@
     var s = speciesById(owned.speciesId);
     if (!s) return '';
     var stage = owned.skinStage || skinStageForLevel(owned.level);
-    return '<button type="button" class="pets-card" data-pet="' + esc(s.id) +
-      '" aria-label="' + esc(s.name) + ', level ' + owned.level + '">' +
+    var mut = mutationById(owned.mutationId);
+    var aria = s.name + ', level ' + owned.level +
+      (mut ? ', ' + mut.label + ' mutation' : '');
+    return '<button type="button" class="pets-card' +
+      (mut ? ' pets-card--mutated' : '') +
+      '" data-pet="' + esc(owned.instanceId) +
+      '" aria-label="' + esc(aria) + '">' +
       artHtml(s, owned, '') +
       catchphraseHtml(owned.cosmetics) +
       '<h3 class="pets-card__name">' + nameHtml(s.name) + '</h3>' +
@@ -415,8 +823,18 @@
       '<div class="pets-card__meta">' +
         '<span class="pets-card__level">Lv ' + owned.level + '</span>' +
         '<span class="pets-card__stage">' + esc(stage) + '</span>' +
+        (mut ? mutationBadgeHtml(mut.id) : '') +
       '</div>' +
     '</button>';
+  }
+
+  function walletChipHtml() {
+    var w = ensureWallet();
+    return '<span class="pets-wallet" title="Pets Diamonds — local demo currency">' +
+      '<span class="pets-wallet__gem" aria-hidden="true">◆</span>' +
+      '<span class="pets-wallet__n">' + w.diamonds + '</span>' +
+      '<span class="pets-wallet__lbl">Pets Diamonds</span>' +
+    '</span>';
   }
 
   function eventBannerHtml(withActions) {
@@ -462,34 +880,35 @@
   }
 
   function goHub() {
-    screen = { name: 'hub', speciesId: null };
+    screen = { name: 'hub', instanceId: null, listingId: null };
     lastLevelUpFlash = null;
+    lastMutationFlash = null;
     formNotice = null;
     pendingUploadDataUrl = null;
     pendingUploadMeta = null;
     render();
   }
 
-  function goDetail(speciesId) {
-    screen = { name: 'detail', speciesId: speciesId };
+  function goDetail(instanceId) {
+    screen = { name: 'detail', instanceId: instanceId, listingId: null };
     formNotice = null;
     render();
   }
 
-  function goCustomize(speciesId) {
-    screen = { name: 'customize', speciesId: speciesId };
+  function goCustomize(instanceId) {
+    screen = { name: 'customize', instanceId: instanceId, listingId: null };
     formNotice = null;
     render();
   }
 
   function goRequest() {
-    screen = { name: 'request', speciesId: null };
+    screen = { name: 'request', instanceId: null, listingId: null };
     formNotice = null;
     render();
   }
 
   function goUpload() {
-    screen = { name: 'upload', speciesId: null };
+    screen = { name: 'upload', instanceId: null, listingId: null };
     formNotice = null;
     pendingUploadDataUrl = null;
     pendingUploadMeta = null;
@@ -497,7 +916,21 @@
   }
 
   function goQueue() {
-    screen = { name: 'queue', speciesId: null };
+    screen = { name: 'queue', instanceId: null, listingId: null };
+    formNotice = null;
+    render();
+  }
+
+  function goMarket() {
+    screen = { name: 'market', instanceId: null, listingId: null };
+    formNotice = null;
+    ensureWallet();
+    ensureMarket();
+    render();
+  }
+
+  function goList(instanceId) {
+    screen = { name: 'list', instanceId: instanceId, listingId: null };
     formNotice = null;
     render();
   }
@@ -506,6 +939,7 @@
     W.$$('[data-pet]', el).forEach(function (card) {
       card.addEventListener('click', function () {
         lastLevelUpFlash = null;
+        lastMutationFlash = null;
         goDetail(card.getAttribute('data-pet'));
       });
     });
@@ -515,19 +949,21 @@
     if (up) up.addEventListener('click', goUpload);
     var q = el.querySelector('[data-pets-queue]');
     if (q) q.addEventListener('click', goQueue);
+    var m = el.querySelector('[data-pets-market]');
+    if (m) m.addEventListener('click', goMarket);
   }
 
-  function bindDetail(el, speciesId) {
+  function bindDetail(el, instanceId) {
     var back = el.querySelector('[data-pets-back]');
     if (back) back.addEventListener('click', goHub);
     var play = el.querySelector('[data-pets-play]');
     if (play) {
       play.addEventListener('click', function () {
-        var result = grantXp(speciesId, PLAY_XP);
+        var result = grantXp(instanceId, PLAY_XP);
         if (!result) return;
         if (result.levelsGained > 0) {
           lastLevelUpFlash = {
-            speciesId: speciesId,
+            instanceId: instanceId,
             level: result.owned.level,
             stage: result.owned.skinStage,
             gained: result.levelsGained
@@ -535,27 +971,68 @@
         } else {
           lastLevelUpFlash = null;
         }
+        if (result.mutation) {
+          lastMutationFlash = {
+            instanceId: instanceId,
+            label: result.mutation.label,
+            id: result.mutation.id
+          };
+        }
         render();
       });
     }
     var custom = el.querySelector('[data-pets-customize]');
     if (custom) {
       custom.addEventListener('click', function () {
-        goCustomize(speciesId);
+        goCustomize(instanceId);
+      });
+    }
+    var roll = el.querySelector('[data-pets-mut-roll]');
+    if (roll) {
+      roll.addEventListener('click', function () {
+        var result = tryMutationRoll(instanceId);
+        if (!result.ok) {
+          formNotice = { tone: 'err', text: result.error };
+          render();
+          return;
+        }
+        if (result.mutation) {
+          lastMutationFlash = {
+            instanceId: instanceId,
+            label: result.mutation.label,
+            id: result.mutation.id
+          };
+          formNotice = {
+            tone: 'ok',
+            text: 'Mutation unlocked: ' + result.mutation.label + '!'
+          };
+        } else {
+          formNotice = {
+            tone: 'err',
+            text: 'No mutation this time (−' + MUTATION_ROLL_COST + ' Pets Diamonds). Try again later.'
+          };
+        }
+        render();
+      });
+    }
+    var listBtn = el.querySelector('[data-pets-list]');
+    if (listBtn) {
+      listBtn.addEventListener('click', function () {
+        goList(instanceId);
       });
     }
   }
 
-  function bindCustomize(el, speciesId) {
+  function bindCustomize(el, instanceId) {
     var back = el.querySelector('[data-pets-back]');
     if (back) {
-      back.addEventListener('click', function () { goDetail(speciesId); });
+      back.addEventListener('click', function () { goDetail(instanceId); });
     }
     W.$$('[data-pets-equip]', el).forEach(function (btn) {
       btn.addEventListener('click', function () {
         var slot = btn.getAttribute('data-slot');
         var id = btn.getAttribute('data-pets-equip');
-        equipCosmetic(speciesId, slot, id);
+        equipCosmetic(instanceId, slot, id);
         render();
       });
     });
@@ -739,21 +1216,137 @@
     });
   }
 
+  function bindMarket(el) {
+    var back = el.querySelector('[data-pets-back]');
+    if (back) back.addEventListener('click', goHub);
+    W.$$('[data-pets-filter]', el).forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        marketFilter = btn.getAttribute('data-pets-filter') || 'all';
+        render();
+      });
+    });
+    W.$$('[data-pets-buy]', el).forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var id = btn.getAttribute('data-pets-buy');
+        var listing = findListing(id);
+        if (!listing) return;
+        var fee = feeOf(listing.price);
+        var ok = global.confirm(
+          'Buy for ' + listing.price + ' Pets Diamonds?\n' +
+          'Platform fee on this sale: ' + fee + ' (seller would net ' + netOf(listing.price) + ').'
+        );
+        if (!ok) return;
+        var result = buyListing(id);
+        if (!result.ok) {
+          formNotice = { tone: 'err', text: result.error };
+          render();
+          return;
+        }
+        formNotice = {
+          tone: 'ok',
+          text: 'Purchased! The brainrot is on your roster (−' + listing.price + ' Pets Diamonds).'
+        };
+        render();
+      });
+    });
+    W.$$('[data-pets-cancel-listing]', el).forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var result = cancelListing(btn.getAttribute('data-pets-cancel-listing'));
+        if (!result.ok) {
+          formNotice = { tone: 'err', text: result.error };
+        } else {
+          formNotice = { tone: 'ok', text: 'Listing cancelled. Pet returned to your roster.' };
+        }
+        render();
+      });
+    });
+    var listEligible = el.querySelector('[data-pets-go-list]');
+    if (listEligible) {
+      listEligible.addEventListener('click', function () {
+        var roster = ensureRoster();
+        var eligible = null;
+        for (var i = 0; i < roster.owned.length; i++) {
+          if (canListPet(roster.owned[i])) { eligible = roster.owned[i]; break; }
+        }
+        if (!eligible) {
+          formNotice = {
+            tone: 'err',
+            text: 'No listable pets yet. Reach level ' + MIN_LIST_LEVEL +
+              '+ or unlock a mutation first.'
+          };
+          render();
+          return;
+        }
+        goList(eligible.instanceId);
+      });
+    }
+  }
+
+  function bindList(el, instanceId) {
+    var back = el.querySelector('[data-pets-back]');
+    if (back) {
+      back.addEventListener('click', function () { goDetail(instanceId); });
+    }
+    var form = el.querySelector('[data-pets-list-form]');
+    if (!form) return;
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var price = form.querySelector('[name="price"]').value;
+      var result = listPet(instanceId, price);
+      if (!result.ok) {
+        formNotice = { tone: 'err', text: result.error };
+        render();
+        return;
+      }
+      formNotice = {
+        tone: 'ok',
+        text: 'Listed for ' + result.listing.price +
+          ' Pets Diamonds (fee ' + feeOf(result.listing.price) +
+          ' · you would net ' + netOf(result.listing.price) + ').'
+      };
+      goMarket();
+    });
+  }
+
   function renderHub(roster) {
     var pending = countPending();
+    var live = activeListings(ensureMarket()).length;
+    var emptyRoster = !roster.owned.length;
     return '<div class="portal__inner pets">' +
       '<div class="pets__head">' +
-        '<div class="eyebrow">Limited-time collab</div>' +
-        '<h1>Pets</h1>' +
-        '<p>Meet your starter brainrots. Level them up, customize looks, and send school-safe design ideas for review.</p>' +
+        '<div class="pets__head-row">' +
+          '<div>' +
+            '<div class="eyebrow">Limited-time collab</div>' +
+            '<h1>Pets</h1>' +
+          '</div>' +
+          walletChipHtml() +
+        '</div>' +
+        '<p>Meet your starter brainrots. Level them up, unlock mutations, customize looks, and trade high-level pets in the marketplace.</p>' +
       '</div>' +
       '<div class="pets__banner">' + eventBannerHtml(false) + '</div>' +
       '<div class="pets__toolbar">' +
-        '<span class="pets__toolbar-label">Starter roster</span>' +
+        '<span class="pets__toolbar-label">Your roster</span>' +
         '<span class="t-sm t-muted">' + roster.owned.length + ' pets</span>' +
       '</div>' +
-      '<div class="pets__grid">' +
-        roster.owned.map(petCard).join('') +
+      (emptyRoster
+        ? '<div class="pets-empty" role="status">' +
+            '<strong>Roster empty</strong>' +
+            '<p>Your pets may be listed on the marketplace. Cancel a listing or buy a demo listing to fill the roster.</p>' +
+            '<button type="button" class="btn btn--sm btn--pets-primary" data-pets-market>Open marketplace</button>' +
+          '</div>'
+        : '<div class="pets__grid">' +
+            roster.owned.map(petCard).join('') +
+          '</div>') +
+      '<div class="pets__market-cta">' +
+        '<div class="pets__create-head">' +
+          '<span class="pets__toolbar-label">Marketplace</span>' +
+          '<span class="t-sm t-muted">' + live + ' live listing' + (live === 1 ? '' : 's') + '</span>' +
+        '</div>' +
+        '<div class="pets__create-actions">' +
+          '<button type="button" class="btn btn--sm btn--pets-primary" data-pets-market>Browse market</button>' +
+        '</div>' +
+        '<p class="pets__note pets__note--tight">Sell level ' + MIN_LIST_LEVEL +
+          '+ or mutated brainrots for <strong>Pets Diamonds</strong> (local demo currency, separate from the main diamond shop).</p>' +
       '</div>' +
       '<div class="pets__create">' +
         '<div class="pets__create-head">' +
@@ -767,24 +1360,31 @@
             'Review queue' + (pending ? ' (' + pending + ')' : '') +
           '</button>' +
         '</div>' +
-        '<p class="pets__note pets__note--tight">Requests and uploads stay <strong>pending</strong> until approved. Nothing goes live unmoderated. Marketplace and mutations trading come later.</p>' +
+        '<p class="pets__note pets__note--tight">Requests and uploads stay <strong>pending</strong> until approved. Nothing goes live unmoderated.</p>' +
       '</div>' +
-      '<p class="pets__note">Tap a pet to train or customize. XP comes from Play on pet detail for now — geography / Games hooks are not wired yet.</p>' +
+      '<p class="pets__note">Tap a pet to train, mutate, customize, or list. Mutations can proc when you cross a skin stage; paid rolls cost ' +
+        MUTATION_ROLL_COST + ' Pets Diamonds from level ' + MIN_LIST_LEVEL + '+.</p>' +
     '</div>';
   }
 
-  function renderDetail(roster, speciesId) {
-    var s = speciesById(speciesId);
-    var owned = findOwned(roster, speciesId);
+  function renderDetail(roster, instanceId) {
+    var owned = findOwned(roster, instanceId);
+    var s = owned ? speciesById(owned.speciesId) : null;
     if (!s || !owned) {
-      screen = { name: 'hub', speciesId: null };
+      screen = { name: 'hub', instanceId: null, listingId: null };
       return renderHub(roster);
     }
     var stage = owned.skinStage || skinStageForLevel(owned.level);
-    var flash = lastLevelUpFlash && lastLevelUpFlash.speciesId === speciesId
+    var flash = lastLevelUpFlash && lastLevelUpFlash.instanceId === instanceId
       ? lastLevelUpFlash
       : null;
+    var mutFlash = lastMutationFlash && lastMutationFlash.instanceId === instanceId
+      ? lastMutationFlash
+      : null;
     var atMax = owned.level >= MAX_LEVEL;
+    var mut = mutationById(owned.mutationId);
+    var listable = canListPet(owned);
+    var canRoll = !mut && owned.level >= MIN_LIST_LEVEL;
     var cos = normalizeCosmetics(owned.cosmetics);
     var equippedBits = SLOT_ORDER.map(function (slot) {
       var item = cosmeticById(cos[slot]);
@@ -796,11 +1396,18 @@
       '<button type="button" class="pets-back" data-pets-back>' +
         '<span aria-hidden="true">←</span> Back to roster' +
       '</button>' +
+      noticeHtml() +
       (flash
         ? '<div class="pets-levelup" role="status">' +
             '<strong>Level up!</strong> Now Lv ' + flash.level +
             (flash.gained > 1 ? ' (+' + flash.gained + ')' : '') +
             ' · skin ' + esc(flash.stage) +
+          '</div>'
+        : '') +
+      (mutFlash
+        ? '<div class="pets-mutflash" role="status">' +
+            '<strong>Mutation!</strong> ' + esc(mutFlash.label) +
+            ' — still the same brainrot, louder look.' +
           '</div>'
         : '') +
       '<div class="pets-detail">' +
@@ -812,9 +1419,11 @@
           '<div class="pets-detail__stage-line">' +
             '<span class="pets-detail__stage-badge">Skin ' + esc(stage) + '</span>' +
             '<span class="pets-detail__stage-label">' + esc(SKIN_LABELS[stage] || stage) + '</span>' +
+            (mut ? mutationBadgeHtml(mut.id) : '') +
           '</div>' +
         '</div>' +
         '<div class="pets-detail__panel">' +
+          walletChipHtml() +
           xpBarHtml(owned) +
           '<div class="pets-detail__bands" aria-label="Skin stage bands">' +
             '<span class="' + (stage === 'A' ? 'is-active' : '') + '">1–3 A</span>' +
@@ -828,28 +1437,40 @@
               (atMax ? 'Max level' : 'Play (+' + PLAY_XP + ' XP)') +
             '</button>' +
             '<button type="button" class="btn btn--sm btn--pets-secondary" data-pets-customize>Customize</button>' +
+            (canRoll
+              ? '<button type="button" class="btn btn--sm btn--pets-secondary" data-pets-mut-roll>' +
+                  'Mutation roll (−' + MUTATION_ROLL_COST + ' ◆)' +
+                '</button>'
+              : '') +
+            (listable
+              ? '<button type="button" class="btn btn--sm btn--pets-ghost-dark" data-pets-list>List on market</button>'
+              : '') +
           '</div>' +
           '<p class="pets-detail__equipped">' +
+            (mut
+              ? 'Mutation — ' + esc(mut.label) + ' (' + esc(mut.hint) + '). '
+              : 'No mutation yet. Crossing a skin stage can proc one for free. ') +
             (equippedBits.length
               ? 'Equipped — ' + esc(equippedBits.join(' · '))
               : 'No cosmetics equipped yet.') +
           '</p>' +
           '<p class="pets-detail__hint">Demo XP only — Play grants ' + PLAY_XP +
-            ' XP locally. Curve: level N needs ' + 'N×' + BASE_XP +
-            ' XP. Real LearnGeo activity hooks come later.</p>' +
+            ' XP locally. Market list gate: Lv ' + MIN_LIST_LEVEL +
+            '+ or any mutation. Pets Diamonds are a local soft currency (not the main shop).</p>' +
         '</div>' +
       '</div>' +
     '</div>';
   }
 
-  function renderCustomize(roster, speciesId) {
-    var s = speciesById(speciesId);
-    var owned = findOwned(roster, speciesId);
+  function renderCustomize(roster, instanceId) {
+    var owned = findOwned(roster, instanceId);
+    var s = owned ? speciesById(owned.speciesId) : null;
     if (!s || !owned) {
-      screen = { name: 'hub', speciesId: null };
+      screen = { name: 'hub', instanceId: null, listingId: null };
       return renderHub(roster);
     }
     var cos = normalizeCosmetics(owned.cosmetics);
+    var mut = mutationById(owned.mutationId);
     var slotsHtml = SLOT_ORDER.map(function (slot) {
       var options = COSMETIC_CATALOG.filter(function (c) { return c.slot === slot; });
       var chips = options.map(function (item) {
@@ -874,13 +1495,16 @@
       '<div class="pets__head pets__head--compact">' +
         '<div class="eyebrow">Customize</div>' +
         '<h1>' + esc(s.name) + '</h1>' +
-        '<p>Pick school-safe cosmetics and traits. Looks change on this pet only — identity stays the same.</p>' +
+        '<p>Pick school-safe cosmetics and traits. Looks change on this pet only — identity stays the same.' +
+          (mut ? ' Mutation <strong>' + esc(mut.label) + '</strong> stays on.' : '') +
+        '</p>' +
       '</div>' +
       '<div class="pets-customize">' +
         '<div class="pets-customize__preview">' +
           artHtml(s, owned, 'pets-card__art--lg') +
           catchphraseHtml(owned.cosmetics) +
           '<div class="pets-card__name">' + nameHtml(s.name) + '</div>' +
+          (mut ? '<div class="pets-card__meta">' + mutationBadgeHtml(mut.id) + '</div>' : '') +
         '</div>' +
         '<div class="pets-customize__slots">' + slotsHtml + '</div>' +
       '</div>' +
@@ -1034,17 +1658,184 @@
     '</div>';
   }
 
+  function marketListingCard(listing) {
+    var pet = normalizeOwned(listing.pet);
+    var s = speciesById(pet.speciesId);
+    if (!s) return '';
+    var mut = mutationById(pet.mutationId);
+    var mine = listing.sellerId === YOU_SELLER;
+    var actions = mine
+      ? '<button type="button" class="btn btn--sm btn--pets-ghost-dark" data-pets-cancel-listing="' +
+          esc(listing.id) + '">Cancel listing</button>'
+      : '<button type="button" class="btn btn--sm btn--pets-primary" data-pets-buy="' +
+          esc(listing.id) + '">Buy · ' + listing.price + ' ◆</button>';
+    return '<article class="pets-mcard">' +
+      '<div class="pets-mcard__art">' + artHtml(s, pet, '') + '</div>' +
+      '<div class="pets-mcard__body">' +
+        '<h3 class="pets-mcard__name">' + nameHtml(s.name) + '</h3>' +
+        '<div class="pets-card__rarity">' + rarityHtml(s.rarity) + '</div>' +
+        '<div class="pets-card__meta">' +
+          '<span class="pets-card__level">Lv ' + pet.level + '</span>' +
+          '<span class="pets-card__stage">' + esc(pet.skinStage) + '</span>' +
+          (mut ? mutationBadgeHtml(mut.id) : '') +
+        '</div>' +
+        '<div class="pets-mcard__price">' +
+          '<strong>' + listing.price + '</strong> Pets Diamonds' +
+          '<span class="pets-mcard__fee">Fee ' + feeOf(listing.price) +
+            ' · net ' + netOf(listing.price) + '</span>' +
+        '</div>' +
+        '<div class="pets-mcard__seller">Seller · ' + esc(listing.sellerLabel || listing.sellerId) + '</div>' +
+        '<div class="pets-mcard__actions">' + actions + '</div>' +
+      '</div>' +
+    '</article>';
+  }
+
+  function renderMarket() {
+    var listings = activeListings(ensureMarket());
+    var filtered = listings.filter(function (L) {
+      if (marketFilter === 'mutated') return !!L.pet && !!L.pet.mutationId;
+      if (marketFilter === 'high') return !!L.pet && L.pet.level >= MIN_LIST_LEVEL;
+      return true;
+    });
+    var yours = 0;
+    for (var i = 0; i < listings.length; i++) {
+      if (listings[i].sellerId === YOU_SELLER) yours++;
+    }
+    var listHtml;
+    if (!filtered.length) {
+      listHtml = '<div class="pets-empty" role="status">' +
+        '<strong>No listings here</strong>' +
+        '<p>' +
+          (listings.length
+            ? 'Nothing matches this filter. Try All, or list one of your high-level / mutated pets.'
+            : 'The market is empty. List a level ' + MIN_LIST_LEVEL +
+              '+ or mutated brainrot, or reset demo seeds by clearing local storage.') +
+        '</p>' +
+        '<button type="button" class="btn btn--sm btn--pets-secondary" data-pets-go-list>List a pet</button>' +
+      '</div>';
+    } else {
+      listHtml = '<div class="pets-market__grid">' +
+        filtered.map(marketListingCard).join('') +
+      '</div>';
+    }
+
+    return '<div class="portal__inner pets pets--market">' +
+      '<button type="button" class="pets-back" data-pets-back>' +
+        '<span aria-hidden="true">←</span> Back to roster' +
+      '</button>' +
+      noticeHtml() +
+      '<div class="pets__head pets__head--compact">' +
+        '<div class="pets__head-row">' +
+          '<div>' +
+            '<div class="eyebrow">Trade</div>' +
+            '<h1>Marketplace</h1>' +
+          '</div>' +
+          walletChipHtml() +
+        '</div>' +
+        '<p>Browse high-level and mutated brainrots. Buy, list, or cancel — soft currency only, classroom-safe.</p>' +
+      '</div>' +
+      '<div class="pets-market__filters" role="tablist" aria-label="Listing filters">' +
+        '<button type="button" class="pets-chip' + (marketFilter === 'all' ? ' is-on' : '') +
+          '" data-pets-filter="all" aria-pressed="' + (marketFilter === 'all') + '">' +
+          '<span class="pets-chip__name">All</span>' +
+          '<span class="pets-chip__tier">' + listings.length + '</span></button>' +
+        '<button type="button" class="pets-chip' + (marketFilter === 'mutated' ? ' is-on' : '') +
+          '" data-pets-filter="mutated" aria-pressed="' + (marketFilter === 'mutated') + '">' +
+          '<span class="pets-chip__name">Has mutation</span></button>' +
+        '<button type="button" class="pets-chip' + (marketFilter === 'high' ? ' is-on' : '') +
+          '" data-pets-filter="high" aria-pressed="' + (marketFilter === 'high') + '">' +
+          '<span class="pets-chip__name">Lv ' + MIN_LIST_LEVEL + '+</span></button>' +
+        '<button type="button" class="btn btn--sm btn--pets-secondary" data-pets-go-list>List a pet</button>' +
+      '</div>' +
+      listHtml +
+      '<div class="pets-limits" role="note">' +
+        '<strong>v1 economy notes</strong>' +
+        '<ul>' +
+          '<li><strong>Pets Diamonds</strong> — local demo soft currency (' +
+            'wallet key <code>learngeo.pets.wallet.v0</code>), separate from LearnGeo shop diamonds</li>' +
+          '<li>List gate: level ≥ ' + MIN_LIST_LEVEL + ' <em>or</em> any mutation</li>' +
+          '<li>Platform fee ' + (FEE_BPS / 100) + '% shown before buy/list confirm</li>' +
+          '<li>Price bounds ' + PRICE_MIN + '–' + PRICE_MAX + ' · cancel returns your pet</li>' +
+          '<li>Demo NPC listings seed once so Buy works without a second account</li>' +
+          '<li>No real money, crypto, or off-platform trades</li>' +
+          '<li>Your active listings: ' + yours + '</li>' +
+        '</ul>' +
+      '</div>' +
+    '</div>';
+  }
+
+  function renderList(roster, instanceId) {
+    var owned = findOwned(roster, instanceId);
+    var s = owned ? speciesById(owned.speciesId) : null;
+    if (!s || !owned) {
+      screen = { name: 'hub', instanceId: null, listingId: null };
+      return renderHub(roster);
+    }
+    if (!canListPet(owned)) {
+      formNotice = {
+        tone: 'err',
+        text: 'This pet needs level ' + MIN_LIST_LEVEL + '+ or a mutation to list.'
+      };
+      screen = { name: 'detail', instanceId: instanceId, listingId: null };
+      return renderDetail(roster, instanceId);
+    }
+    var mut = mutationById(owned.mutationId);
+    var sample = 100;
+    return '<div class="portal__inner pets pets--form">' +
+      '<button type="button" class="pets-back" data-pets-back>' +
+        '<span aria-hidden="true">←</span> Back to ' + esc(s.name) +
+      '</button>' +
+      noticeHtml() +
+      '<div class="pets__head pets__head--compact">' +
+        '<div class="eyebrow">Sell</div>' +
+        '<h1>List on marketplace</h1>' +
+        '<p>Set a Pets Diamonds price. Your pet leaves the roster until someone buys or you cancel.</p>' +
+      '</div>' +
+      '<div class="pets-list-preview">' +
+        artHtml(s, owned, '') +
+        '<div>' +
+          '<div class="pets-card__name">' + nameHtml(s.name) + '</div>' +
+          '<div class="pets-card__meta">' +
+            '<span class="pets-card__level">Lv ' + owned.level + '</span>' +
+            (mut ? mutationBadgeHtml(mut.id) : '') +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+      '<form class="pets-form" data-pets-list-form>' +
+        '<label class="pets-form__field">' +
+          '<span>Price (Pets Diamonds)</span>' +
+          '<input name="price" type="number" min="' + PRICE_MIN + '" max="' + PRICE_MAX +
+            '" step="1" required value="75" inputmode="numeric">' +
+        '</label>' +
+        '<div class="pets-limits" role="note">' +
+          '<strong>Before you list</strong>' +
+          '<ul>' +
+            '<li>Bounds: ' + PRICE_MIN + '–' + PRICE_MAX + '</li>' +
+            '<li>Example at ' + sample + ': fee ' + feeOf(sample) +
+              ' (' + (FEE_BPS / 100) + '%) · seller net ' + netOf(sample) + '</li>' +
+            '<li>You cannot buy your own listing — use Cancel instead</li>' +
+            '<li>Classroom-safe soft currency only</li>' +
+          '</ul>' +
+        '</div>' +
+        '<div class="pets-form__actions">' +
+          '<button type="submit" class="btn btn--sm btn--pets-primary">Confirm listing</button>' +
+        '</div>' +
+      '</form>' +
+    '</div>';
+  }
+
   function render() {
     var el = host();
     if (!el) return;
     var roster = ensureRoster();
+    ensureWallet();
     var name = screen.name || 'hub';
     if (name === 'detail') {
-      el.innerHTML = renderDetail(roster, screen.speciesId);
-      bindDetail(el, screen.speciesId);
+      el.innerHTML = renderDetail(roster, screen.instanceId);
+      bindDetail(el, screen.instanceId);
     } else if (name === 'customize') {
-      el.innerHTML = renderCustomize(roster, screen.speciesId);
-      bindCustomize(el, screen.speciesId);
+      el.innerHTML = renderCustomize(roster, screen.instanceId);
+      bindCustomize(el, screen.instanceId);
     } else if (name === 'request') {
       el.innerHTML = renderRequest();
       bindRequest(el);
@@ -1054,6 +1845,13 @@
     } else if (name === 'queue') {
       el.innerHTML = renderQueue();
       bindQueue(el);
+    } else if (name === 'market') {
+      el.innerHTML = renderMarket();
+      bindMarket(el);
+    } else if (name === 'list') {
+      el.innerHTML = renderList(roster, screen.instanceId);
+      if (screen.name === 'detail') bindDetail(el, screen.instanceId);
+      else bindList(el, screen.instanceId);
     } else {
       el.innerHTML = renderHub(roster);
       bindHub(el);
@@ -1065,11 +1863,13 @@
   }
 
   function stop() {
-    screen = { name: 'hub', speciesId: null };
+    screen = { name: 'hub', instanceId: null, listingId: null };
     lastLevelUpFlash = null;
+    lastMutationFlash = null;
     formNotice = null;
     pendingUploadDataUrl = null;
     pendingUploadMeta = null;
+    marketFilter = 'all';
   }
 
   var popupOpen = false;
@@ -1153,21 +1953,33 @@
     dismissOverlayIfOpen: dismissOverlayIfOpen,
     starters: STARTERS,
     cosmeticCatalog: COSMETIC_CATALOG,
+    mutations: MUTATIONS,
     skinStageForLevel: skinStageForLevel,
     xpToAdvance: xpToAdvance,
     grantXp: grantXp,
     equipCosmetic: equipCosmetic,
+    tryMutationRoll: tryMutationRoll,
+    listPet: listPet,
+    buyListing: buyListing,
+    cancelListing: cancelListing,
     /* test / ops helpers */
     _dismissKey: DISMISS_KEY,
     _rosterKey: ROSTER_KEY,
     _designsKey: DESIGNS_KEY,
+    _walletKey: WALLET_KEY,
+    _marketKey: MARKET_KEY,
     _ensureRoster: ensureRoster,
+    _ensureWallet: ensureWallet,
+    _ensureMarket: ensureMarket,
     _readDismissed: readDismissed,
     _readDesigns: readDesigns,
     _updateDesignStatus: updateDesignStatus,
     _MAX_LEVEL: MAX_LEVEL,
     _BASE_XP: BASE_XP,
     _PLAY_XP: PLAY_XP,
+    _MIN_LIST_LEVEL: MIN_LIST_LEVEL,
+    _FEE_BPS: FEE_BPS,
+    _START_DIAMONDS: START_DIAMONDS,
     _UPLOAD_MAX_BYTES: UPLOAD_MAX_BYTES,
     _UPLOAD_MAX_PENDING: UPLOAD_MAX_PENDING
   };
