@@ -131,7 +131,7 @@
   position: relative;
   border-radius: 26px;
   padding: 22px 18px 18px;
-  min-height: 188px;
+  min-height: 220px;
   background: linear-gradient(100deg, var(--pets-pet-from) 0%, var(--pets-pet-mid) 48%, var(--pets-pet-to) 100%);
   border: 1.5px solid rgba(255, 255, 255, .55);
   box-shadow: 0 8px 22px rgba(30, 80, 60, .18);
@@ -162,108 +162,290 @@
   background: linear-gradient(180deg, rgba(255, 255, 255, .18), transparent 45%);
   pointer-events: none;
 }
+/* Blox Fruits–style placeholders: chunky SQUARE head/torso/limbs.
+   Zero border-radius on figure parts. Soft round avatars are out. */
 .pets-card__art {
+  --blox-skin: #6a8cff;
+  --blox-skin-deep: #4a6ad9;
+  --blox-accent: #3b2780;
   position: relative;
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  margin-bottom: 12px;
-  background: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, .55), transparent 50%),
-    linear-gradient(145deg, rgba(255, 255, 255, .35), rgba(40, 60, 120, .15));
-  border: 2px solid rgba(255, 255, 255, .65);
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .06);
-  transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease;
+  width: 72px;
+  height: 92px;
+  margin-bottom: 10px;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  transition: transform .25s ease, filter .25s ease;
 }
-.pets-card__art--jill { background-color: #6a8cff; }
-.pets-card__art--jack { background-color: #ff8a5c; }
-.pets-card__art--freddy { background-color: #c46bff; }
-.pets-card__art--washington { background-color: #4ec9a0; }
-.pets-card__art--napoleon { background-color: #ffd45c; }
+.pets-card__art--jill {
+  --blox-skin: #7a92ff;
+  --blox-skin-deep: #5168d8;
+  --blox-accent: #2a3f9e;
+}
+.pets-card__art--jack {
+  --blox-skin: #ff9a6c;
+  --blox-skin-deep: #e06a3a;
+  --blox-accent: #a84820;
+}
+.pets-card__art--freddy {
+  --blox-skin: #d07aff;
+  --blox-skin-deep: #9a48d4;
+  --blox-accent: #6a2098;
+}
+.pets-card__art--washington {
+  --blox-skin: #4ed9b0;
+  --blox-skin-deep: #2aaa80;
+  --blox-accent: #187858;
+}
+.pets-card__art--napoleon {
+  --blox-skin: #ffd86a;
+  --blox-skin-deep: #e0b030;
+  --blox-accent: #9a7010;
+}
 
-/* On-character skin stages (CSS only — no new art files). Same color
-   family / silhouette cues; richer presentation as stage rises. */
-.pets-card__art-flare,
-.pets-card__art-mark {
+.pets-blox {
+  position: relative;
+  width: 52px;
+  height: 80px;
+  z-index: 1;
+}
+.pets-blox__head,
+.pets-blox__torso,
+.pets-blox__arm,
+.pets-blox__leg,
+.pets-blox__eye,
+.pets-blox__mouth,
+.pets-blox__hat {
   position: absolute;
-  pointer-events: none;
+  border-radius: 0; /* hard square — Roblox / Blox Fruits silhouette */
+  box-sizing: border-box;
 }
-.pets-card__art-flare {
-  inset: -4px;
-  border-radius: 50%;
-  opacity: 0;
-}
-.pets-card__art-mark {
-  width: 18px;
-  height: 10px;
+/* Chunky near-cube head (slightly taller than wide reads “block” at small size). */
+.pets-blox__head {
   left: 50%;
-  top: 10%;
+  top: 2px;
+  width: 32px;
+  height: 30px;
   transform: translateX(-50%);
-  border-radius: 6px 6px 2px 2px;
-  background: rgba(255, 255, 255, .55);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, .35) 0 42%, transparent 42%),
+    var(--blox-skin);
+  border: 2px solid rgba(10, 10, 11, .28);
+  box-shadow:
+    3px 3px 0 rgba(0, 0, 0, .18),
+    inset -4px -4px 0 rgba(0, 0, 0, .14),
+    inset 3px 3px 0 rgba(255, 255, 255, .22);
+  z-index: 3;
+}
+.pets-blox__eye {
+  width: 6px;
+  height: 6px;
+  top: 10px;
+  background: #0a0a0b;
+  border-radius: 0;
+  box-shadow: 1px 1px 0 rgba(255, 255, 255, .35);
+}
+.pets-blox__eye--l { left: 6px; }
+.pets-blox__eye--r { right: 6px; }
+.pets-blox__mouth {
+  left: 50%;
+  bottom: 6px;
+  width: 12px;
+  height: 4px;
+  transform: translateX(-50%);
+  background: rgba(10, 10, 11, .6);
+}
+.pets-blox__torso {
+  left: 50%;
+  top: 30px;
+  width: 38px;
+  height: 28px;
+  transform: translateX(-50%);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, .22) 0 40%, transparent 40%),
+    var(--blox-skin-deep);
+  border: 2px solid rgba(10, 10, 11, .28);
+  box-shadow:
+    3px 3px 0 rgba(0, 0, 0, .16),
+    inset -4px -4px 0 rgba(0, 0, 0, .16),
+    inset 2px 2px 0 rgba(255, 255, 255, .16);
+  z-index: 2;
+}
+.pets-blox__arm {
+  width: 12px;
+  height: 24px;
+  top: 2px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, .25) 0 45%, transparent 45%),
+    var(--blox-skin);
+  border: 2px solid rgba(10, 10, 11, .25);
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, .14);
+  z-index: 1;
+}
+.pets-blox__arm--l { left: -12px; }
+.pets-blox__arm--r { right: -12px; }
+.pets-blox__legs {
+  position: absolute;
+  left: 50%;
+  top: 56px;
+  width: 38px;
+  height: 24px;
+  transform: translateX(-50%);
+  z-index: 1;
+}
+.pets-blox__leg {
+  width: 16px;
+  height: 22px;
+  top: 0;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, .18) 0 40%, transparent 40%),
+    var(--blox-accent);
+  border: 2px solid rgba(10, 10, 11, .28);
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, .16);
+}
+.pets-blox__leg--l { left: 0; }
+.pets-blox__leg--r { right: 0; }
+.pets-blox__hat {
+  left: 50%;
+  top: -4px;
+  width: 36px;
+  height: 12px;
+  transform: translateX(-50%);
+  background: transparent;
   opacity: 0;
+  z-index: 4;
+  border: none;
 }
-.pets-card__art--stage-A { /* base */ }
-.pets-card__art--stage-B {
+
+/* Skin stages add blocky flair (outlines / shoulder studs), not soft glow balls. */
+.pets-card__art-flare {
+  position: absolute;
+  inset: 4px 6px;
+  border-radius: 0;
+  opacity: 0;
+  pointer-events: none;
+  border: 2px dashed transparent;
+  z-index: 0;
+}
+.pets-card__art-trail {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 40px;
+  height: 8px;
+  transform: translateX(-50%);
+  opacity: 0;
+  pointer-events: none;
+  border-radius: 0;
+  z-index: 0;
+}
+.pets-card__art--stage-A { /* base blocks */ }
+.pets-card__art--stage-B .pets-blox__head {
   border-width: 3px;
-  border-color: rgba(255, 255, 255, .9);
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .06), 0 0 0 3px rgba(255, 255, 255, .28);
+  border-color: rgba(10, 10, 11, .35);
 }
-.pets-card__art--stage-B .pets-card__art-mark { opacity: .85; }
+.pets-card__art--stage-B .pets-blox__torso::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 6px;
+  width: 8px;
+  height: 8px;
+  transform: translateX(-50%);
+  background: rgba(255, 255, 255, .35);
+  border: 1px solid rgba(10, 10, 11, .2);
+}
 .pets-card__art--stage-C {
-  border-width: 3px;
-  border-color: #fff;
   transform: scale(1.04);
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .06), 0 0 0 4px rgba(110, 240, 255, .35),
-    0 6px 16px rgba(20, 40, 80, .2);
-}
-.pets-card__art--stage-C .pets-card__art-mark {
-  opacity: 1;
-  width: 22px;
-  background: linear-gradient(90deg, #fff, var(--pets-cyan));
 }
 .pets-card__art--stage-C .pets-card__art-flare {
   opacity: 1;
-  background: conic-gradient(from 20deg, transparent, rgba(255, 255, 255, .45), transparent 40%);
-  animation: pets-spin 8s linear infinite;
+  border-color: rgba(110, 240, 255, .7);
+}
+.pets-card__art--stage-C .pets-blox__arm {
+  background: linear-gradient(180deg, var(--blox-skin), var(--pets-cyan));
 }
 .pets-card__art--stage-D {
-  border-width: 3px;
-  border-color: #fff;
   transform: scale(1.08);
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .06), 0 0 0 5px rgba(240, 216, 74, .45),
-    0 0 24px rgba(110, 240, 255, .45), 0 8px 20px rgba(20, 40, 80, .25);
-}
-.pets-card__art--stage-D .pets-card__art-mark {
-  opacity: 1;
-  width: 26px;
-  height: 12px;
-  background: linear-gradient(90deg, #fff, var(--pets-pet-to), var(--pets-cyan));
+  filter: drop-shadow(0 0 6px rgba(240, 216, 74, .55));
 }
 .pets-card__art--stage-D .pets-card__art-flare {
   opacity: 1;
-  inset: -8px;
-  background: conic-gradient(from 0deg, rgba(110, 240, 255, .5), transparent 25%,
-    rgba(240, 216, 74, .55), transparent 55%, rgba(126, 217, 106, .4), transparent 80%);
-  animation: pets-spin 5s linear infinite;
+  border-style: solid;
+  border-color: rgba(240, 216, 74, .85);
+  box-shadow: 0 0 0 2px rgba(110, 240, 255, .35);
 }
-@keyframes pets-spin {
-  to { transform: rotate(360deg); }
+.pets-card__art--stage-D .pets-blox__head {
+  box-shadow: inset -3px -3px 0 rgba(0, 0, 0, .12), inset 2px 2px 0 rgba(255, 255, 255, .35),
+    0 0 0 2px rgba(240, 216, 74, .55);
 }
 
 .pets-card__art--lg {
-  width: 112px;
-  height: 112px;
-  margin-bottom: 18px;
+  width: 140px;
+  height: 168px;
+  margin-bottom: 14px;
 }
-.pets-card__art--lg .pets-card__art-mark {
+.pets-card__art--lg .pets-blox {
+  width: 92px;
+  height: 148px;
+}
+.pets-card__art--lg .pets-blox__head {
+  width: 56px;
+  height: 52px;
+  top: 6px;
+  border-width: 3px;
+  box-shadow:
+    5px 5px 0 rgba(0, 0, 0, .18),
+    inset -5px -5px 0 rgba(0, 0, 0, .14),
+    inset 4px 4px 0 rgba(255, 255, 255, .22);
+}
+.pets-card__art--lg .pets-blox__eye {
+  width: 10px;
+  height: 10px;
+  top: 16px;
+}
+.pets-card__art--lg .pets-blox__eye--l { left: 11px; }
+.pets-card__art--lg .pets-blox__eye--r { right: 11px; }
+.pets-card__art--lg .pets-blox__mouth {
+  width: 20px;
+  height: 6px;
+  bottom: 10px;
+}
+.pets-card__art--lg .pets-blox__torso {
+  width: 68px;
+  height: 52px;
+  top: 54px;
+  border-width: 3px;
+  box-shadow:
+    5px 5px 0 rgba(0, 0, 0, .16),
+    inset -5px -5px 0 rgba(0, 0, 0, .16),
+    inset 3px 3px 0 rgba(255, 255, 255, .16);
+}
+.pets-card__art--lg .pets-blox__arm {
+  width: 20px;
+  height: 42px;
+  top: 4px;
+  border-width: 3px;
+}
+.pets-card__art--lg .pets-blox__arm--l { left: -20px; }
+.pets-card__art--lg .pets-blox__arm--r { right: -20px; }
+.pets-card__art--lg .pets-blox__legs {
+  width: 68px;
+  height: 40px;
+  top: 102px;
+}
+.pets-card__art--lg .pets-blox__leg {
   width: 28px;
-  height: 14px;
-  top: 12%;
+  height: 38px;
+  border-width: 3px;
 }
-.pets-card__art--lg.pets-card__art--stage-C .pets-card__art-mark,
-.pets-card__art--lg.pets-card__art--stage-D .pets-card__art-mark {
-  width: 36px;
-  height: 16px;
+.pets-card__art--lg .pets-blox__hat {
+  width: 62px;
+  height: 18px;
+  top: -2px;
 }
 
 .pets-card__name {
@@ -526,8 +708,434 @@
   color: #fff;
 }
 
+/* ------------------------- LEA-15 customize / UGC ----------------- */
+.pets__head--compact { margin-bottom: 16px; }
+.pets__head--compact h1 {
+  font-size: clamp(22px, 3vw, 28px);
+  letter-spacing: -.03em;
+  margin-top: 4px;
+}
+
+.pets__create {
+  margin-top: 28px;
+  padding-top: 8px;
+}
+.pets__create-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+.pets__create-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.pets__note--tight { margin-top: 12px; }
+.pets__note strong { font-weight: 700; color: var(--text, #0a0a0b); }
+
+.btn--pets-secondary {
+  background: linear-gradient(100deg, rgba(62, 207, 196, .22), rgba(240, 216, 74, .28));
+  color: #0a0a0b;
+  border: 1px solid rgba(62, 207, 196, .4);
+  font-weight: 700;
+}
+.btn--pets-secondary:hover {
+  filter: brightness(1.04);
+}
+.btn--pets-ghost-dark {
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid rgba(20, 30, 60, .14);
+  font-weight: 600;
+}
+.btn--pets-ghost-dark:hover {
+  background: rgba(20, 30, 60, .05);
+  color: var(--text, #0a0a0b);
+}
+
+.pets-detail__actions .btn--pets-secondary {
+  background: linear-gradient(100deg, rgba(62, 207, 196, .22), rgba(240, 216, 74, .28));
+  color: #0a0a0b;
+  border: 1px solid rgba(62, 207, 196, .4);
+  font-weight: 700;
+}
+.pets-detail__equipped {
+  margin-top: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(10, 10, 11, .72);
+  line-height: 1.4;
+}
+
+/* Catchphrase chip + blocky cosmetic overlays */
+.pets-catch {
+  position: relative;
+  display: inline-block;
+  margin: 0 0 8px;
+  padding: 4px 10px;
+  border-radius: 0; /* square chip to match blox language */
+  background: rgba(10, 10, 11, .16);
+  color: #0a0a0b;
+  font-size: 12.5px;
+  font-weight: 800;
+  letter-spacing: .02em;
+  border: 2px solid rgba(10, 10, 11, .2);
+}
+.pets-cos--hat-cap .pets-blox__hat {
+  opacity: 1;
+  height: 12px;
+  top: -4px;
+  background: #3b6fd9;
+  border: 2px solid rgba(10, 10, 11, .28);
+  box-shadow: inset 0 -2px 0 #24165a;
+}
+.pets-cos--hat-crown .pets-blox__hat {
+  opacity: 1;
+  height: 14px;
+  top: -6px;
+  background: #f0d84a;
+  border: 2px solid rgba(10, 10, 11, .28);
+  clip-path: polygon(0 100%, 12% 35%, 28% 100%, 42% 20%, 58% 100%, 72% 35%, 88% 100%, 100% 40%, 100% 100%);
+}
+.pets-cos--aura-spark .pets-blox {
+  filter: drop-shadow(0 0 4px rgba(255, 240, 120, .85));
+}
+.pets-cos--aura-spark .pets-blox__head {
+  box-shadow: inset -3px -3px 0 rgba(0, 0, 0, .12), inset 2px 2px 0 rgba(255, 255, 255, .28),
+    0 0 0 3px rgba(255, 240, 150, .65);
+}
+.pets-cos--aura-mint .pets-blox {
+  filter: drop-shadow(0 0 4px rgba(62, 207, 196, .75));
+}
+.pets-cos--aura-mint .pets-blox__head {
+  box-shadow: inset -3px -3px 0 rgba(0, 0, 0, .12), inset 2px 2px 0 rgba(255, 255, 255, .28),
+    0 0 0 3px rgba(62, 207, 196, .7);
+}
+.pets-cos--frame-sticker .pets-card__art-flare {
+  opacity: 1;
+  border: 2px dashed rgba(10, 10, 11, .45);
+}
+.pets-cos--frame-stars .pets-card__art-flare {
+  opacity: 1;
+  border: 3px dotted rgba(240, 216, 74, .95);
+}
+.pets-cos--trail-dots .pets-card__art-trail {
+  opacity: 1;
+  background:
+    linear-gradient(90deg, #0a0a0b 0 6px, transparent 6px 12px) 0 0 / 12px 6px repeat-x;
+  animation: pets-trail 1.1s steps(2) infinite;
+}
+.pets-cos--trail-confetti .pets-card__art-trail {
+  opacity: 1;
+  height: 10px;
+  background: repeating-linear-gradient(90deg,
+    #3ecfc4 0 6px, #f0d84a 6px 12px, #c46bff 12px 18px);
+  animation: pets-confetti 1.6s steps(4) infinite;
+}
+@keyframes pets-trail {
+  0%, 100% { transform: translateX(-50%) translateY(0); }
+  50% { transform: translateX(-50%) translateY(3px); }
+}
+@keyframes pets-confetti {
+  to { background-position: 18px 0; }
+}
+
+/* Customize screen */
+.pets-customize {
+  display: grid;
+  gap: 20px;
+  max-width: 640px;
+}
+.pets-customize__preview {
+  border-radius: 28px;
+  padding: 26px 20px 22px;
+  background: linear-gradient(100deg, var(--pets-pet-from) 0%, var(--pets-pet-mid) 48%, var(--pets-pet-to) 100%);
+  border: 1.5px solid rgba(255, 255, 255, .55);
+  box-shadow: 0 10px 28px rgba(30, 80, 60, .2);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.pets-slot {
+  margin-bottom: 16px;
+}
+.pets-slot__label {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.pets-slot__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.pets-chip {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 8px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(20, 30, 60, .12);
+  background: var(--panel, rgba(255, 255, 255, .8));
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+  transition: border-color .15s ease, background .15s ease, transform .15s ease;
+}
+.pets-chip:hover {
+  transform: translateY(-1px);
+  border-color: rgba(62, 207, 196, .55);
+}
+.pets-chip.is-on {
+  border-color: rgba(59, 39, 128, .55);
+  background: linear-gradient(165deg, rgba(74, 50, 153, .12), rgba(62, 207, 196, .16));
+  box-shadow: 0 0 0 1px rgba(59, 39, 128, .2);
+}
+.pets-chip__name {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text, #0a0a0b);
+}
+.pets-chip__tier {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  letter-spacing: .03em;
+  text-transform: uppercase;
+}
+
+/* Forms + notices */
+.pets-notice {
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  font-size: 13.5px;
+  font-weight: 600;
+  background: rgba(20, 30, 60, .06);
+  border: 1px solid rgba(20, 30, 60, .1);
+}
+.pets-notice--ok {
+  background: rgba(62, 207, 196, .16);
+  border-color: rgba(62, 207, 196, .4);
+}
+.pets-notice--err {
+  background: rgba(220, 70, 70, .1);
+  border-color: rgba(220, 70, 70, .35);
+  color: #8a1f1f;
+}
+.pets-form {
+  max-width: 480px;
+  display: grid;
+  gap: 14px;
+}
+.pets-form__field {
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--muted);
+}
+.pets-form__field input,
+.pets-form__field textarea {
+  font: inherit;
+  font-weight: 500;
+  color: var(--text, #0a0a0b);
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(20, 30, 60, .14);
+  background: var(--panel, #fff);
+}
+.pets-form__field input:focus,
+.pets-form__field textarea:focus {
+  outline: 2px solid rgba(62, 207, 196, .55);
+  outline-offset: 1px;
+}
+.pets-form__check {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  font-size: 13.5px;
+  line-height: 1.4;
+  color: var(--text, #0a0a0b);
+  font-weight: 500;
+}
+.pets-form__check input {
+  margin-top: 3px;
+  flex-shrink: 0;
+}
+.pets-form__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 4px;
+}
+.pets-form__actions .btn--pets-primary {
+  background: linear-gradient(165deg, var(--pets-event-mid), var(--pets-event-to));
+  color: #fff;
+  border: none;
+  font-weight: 700;
+}
+.pets-limits {
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(59, 39, 128, .06);
+  border: 1px solid rgba(59, 39, 128, .12);
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.45;
+}
+.pets-limits strong {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--text, #0a0a0b);
+  font-size: 12.5px;
+  letter-spacing: .03em;
+  text-transform: uppercase;
+}
+.pets-limits ul {
+  margin: 0;
+  padding-left: 18px;
+}
+.pets-limits li { margin: 2px 0; }
+
+.pets-upload__preview { min-height: 0; }
+.pets-upload__img {
+  display: block;
+  max-width: 220px;
+  max-height: 160px;
+  width: auto;
+  height: auto;
+  border-radius: 16px;
+  border: 1.5px solid rgba(20, 30, 60, .12);
+  object-fit: contain;
+  background: rgba(20, 30, 60, .04);
+}
+.pets-upload__meta {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+/* Review queue */
+.pets-queue {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+  max-width: 640px;
+}
+.pets-queue__empty {
+  color: var(--muted);
+  font-size: 14px;
+}
+.pets-queue__item {
+  display: flex;
+  gap: 14px;
+  padding: 14px;
+  border-radius: 18px;
+  background: var(--panel, rgba(255, 255, 255, .8));
+  border: 1px solid rgba(20, 30, 60, .1);
+  box-shadow: 0 4px 14px rgba(20, 30, 60, .05);
+}
+.pets-queue__thumb {
+  width: 64px;
+  height: 64px;
+  border-radius: 14px;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: linear-gradient(145deg, var(--pets-event-mid), var(--pets-event-to));
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  font-size: 18px;
+}
+.pets-queue__thumb--req { letter-spacing: .02em; }
+.pets-queue__thumb--cleared {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  opacity: .75;
+}
+.pets-queue__body { flex: 1; min-width: 0; }
+.pets-queue__top {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+}
+.pets-queue__top strong {
+  font-size: 15px;
+  font-weight: 800;
+}
+.pets-queue__meta {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 600;
+}
+.pets-queue__desc,
+.pets-queue__ref,
+.pets-queue__reason {
+  margin: 8px 0 0;
+  font-size: 13.5px;
+  line-height: 1.4;
+  color: rgba(10, 10, 11, .78);
+  word-break: break-word;
+}
+.pets-queue__ref { color: var(--pets-blue); font-size: 12.5px; }
+.pets-queue__reason { color: var(--muted); font-style: italic; }
+.pets-queue__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+.pets-queue__actions .btn--pets-primary {
+  background: linear-gradient(165deg, var(--pets-event-mid), var(--pets-event-to));
+  color: #fff;
+  border: none;
+  font-weight: 700;
+}
+
+.pets-status {
+  display: inline-block;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+.pets-status--pending {
+  background: rgba(240, 216, 74, .35);
+  color: #5a4a00;
+}
+.pets-status--approved {
+  background: rgba(62, 207, 196, .28);
+  color: #0a5a50;
+}
+.pets-status--rejected {
+  background: rgba(220, 70, 70, .16);
+  color: #8a1f1f;
+}
+
 @media (max-width: 560px) {
   .pets-event { border-radius: 22px; padding: 24px 18px 22px; }
   .pets-card { border-radius: 22px; min-height: 170px; }
   .pets-detail__hero { border-radius: 22px; padding: 22px 16px 20px; }
+  .pets-customize__preview { border-radius: 22px; }
+  .pets-queue__item { flex-direction: column; }
 }
