@@ -235,9 +235,9 @@
     var startId = games.some(function (g) { return g.id === gameId; }) ? gameId : ALL;
 
     global.UI.modal({
-      title: 'Arcade leaderboards', icon: I.trophy, wide: true,
+      title: 'Game leaderboards', icon: I.trophy, wide: true,
       body:
-        '<div class="gb">' +
+        '<div class="gboards">' +
           '<div class="gb__screen">' +
             '<div class="gb__rail" role="tablist" aria-label="Games" id="lb-rail">' +
               chip(ALL, 'All games', startId === ALL) +
@@ -276,7 +276,7 @@
           var id = current, mine = ++token;
           body.innerHTML = '<div class="lb-empty lb-empty--loading"><span class="gb__pulse" aria-hidden="true"></span>Loading…</div>';
           if (id === ALL) {
-            metric.textContent = 'Top scores across every game in the arcade';
+            metric.textContent = 'Top scores across every game';
             loadAll(mine);
             return;
           }

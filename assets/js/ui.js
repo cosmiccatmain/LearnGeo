@@ -1427,7 +1427,7 @@
               '<button class="role-opt" data-role="games">' +
                 '<span class="role-opt__i">' + I.gamepad + '</span>' +
                 '<b>I’m here for the games</b>' +
-                '<span>Jump straight into the arcade. You pick a gamertag and get on every leaderboard.</span>' +
+                '<span>Jump straight into Games. You pick a gamertag and get on every leaderboard.</span>' +
               '</button>' +
             '</div>' +
             (global.Cloud && global.Cloud.available && !signedIn()
