@@ -1375,6 +1375,7 @@
 
     /* a game runs its own animation loop, which must not outlive its view */
     if (currentView === 'games' && view !== 'games' && global.Games) global.Games.stop();
+    if (currentView === 'pets' && view !== 'pets' && global.Pets && global.Pets.stop) global.Pets.stop();
 
     currentView = view;
     global.AppRouter.record(view, opts);
