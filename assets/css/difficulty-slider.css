@@ -1,12 +1,16 @@
 /* Shared difficulty slider — progressive fill, white thumb.
    Nebula/galaxy fill only at the maximum step. Thumb motion is
-   continuous; discrete levels commit on release (see JS). */
+   continuous; discrete levels commit on release (see JS).
+   Fill width tracks the thumb center (not raw % of the track). */
 
 .diff-slider {
   --diff-purple: #7c3aed;
   --diff-purple-deep: #4c1d95;
   --diff-lilac: #c4b5fd;
-  --pct: 0%;
+  --thumb-size: 28px;
+  --track-h: 36px;
+  /* Unitless 0–100 — used in calc() with thumb inset. */
+  --pct: 0;
   display: grid;
   gap: 14px;
 }
@@ -60,7 +64,7 @@
 
 .diff-slider__track {
   position: relative;
-  height: 36px;
+  height: var(--track-h);
   border-radius: 999px;
   border: 1.5px solid #ddd6fe;
   background: linear-gradient(180deg, #f3f0ff 0%, #ebe4ff 100%);
@@ -73,10 +77,16 @@
   left: 0;
   top: 0;
   bottom: 0;
-  width: var(--pct);
+  /* Match native range thumb center: inset by half thumb, then
+     travel across (track − thumb). Flat right edge sits under thumb. */
+  width: calc(
+    (var(--thumb-size) * 0.5) +
+    (100% - var(--thumb-size)) * var(--pct) / 100
+  );
   min-width: 0;
-  border-radius: inherit;
+  border-radius: 999px 0 0 999px;
   pointer-events: none;
+  z-index: 0;
   /* Plain fill for every non-max position — no stars, streaks, or nebula. */
   background: linear-gradient(90deg, #a78bfa 0%, #8b5cf6 55%, #7c3aed 100%);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, .28);
@@ -113,12 +123,43 @@
   border-color: #d4c4f7;
 }
 
+/* Translucent step markers — same horizontal math as the thumb center. */
+.diff-slider__ticks {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.diff-slider__tick {
+  position: absolute;
+  top: 50%;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(255, 255, 255, .55);
+  box-shadow:
+    0 0 0 1px rgba(76, 29, 149, .18),
+    inset 0 0 0 1px rgba(255, 255, 255, .35);
+  opacity: .85;
+}
+
+/* Stronger dots on the galaxy fill so steps stay readable at max. */
+.diff-slider.is-max .diff-slider__tick {
+  background: rgba(255, 255, 255, .7);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, .35),
+    0 0 0 2px rgba(46, 16, 101, .35);
+  opacity: .95;
+}
+
 .diff-slider__input {
   -webkit-appearance: none;
   appearance: none;
   position: absolute;
   inset: 0;
-  z-index: 1;
+  z-index: 2;
   width: 100%;
   height: 100%;
   margin: 0;
@@ -138,29 +179,29 @@
 }
 
 .diff-slider__input::-webkit-slider-runnable-track {
-  height: 36px;
+  height: var(--track-h);
   background: transparent;
   border: 0;
 }
 
 .diff-slider__input::-moz-range-track {
-  height: 36px;
+  height: var(--track-h);
   background: transparent;
   border: 0;
 }
 
 .diff-slider__input::-moz-range-progress {
   background: transparent;
-  height: 36px;
+  height: var(--track-h);
   border: 0;
 }
 
 .diff-slider__input::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 28px;
-  height: 28px;
-  margin-top: 4px;
+  width: var(--thumb-size);
+  height: var(--thumb-size);
+  margin-top: calc((var(--track-h) - var(--thumb-size)) / 2);
   border-radius: 50%;
   border: 0;
   background: #fff;
@@ -173,8 +214,8 @@
 }
 
 .diff-slider__input::-moz-range-thumb {
-  width: 28px;
-  height: 28px;
+  width: var(--thumb-size);
+  height: var(--thumb-size);
   border-radius: 50%;
   border: 0;
   background: #fff;
@@ -205,12 +246,10 @@
 }
 
 @media (max-width: 480px) {
-  .diff-slider__name { font-size: 24px; }
-  .diff-slider__track { height: 32px; }
-  .diff-slider__input::-webkit-slider-runnable-track { height: 32px; }
-  .diff-slider__input::-moz-range-track { height: 32px; }
-  .diff-slider__input::-webkit-slider-thumb {
-    width: 24px; height: 24px; margin-top: 4px;
+  .diff-slider {
+    --thumb-size: 24px;
+    --track-h: 32px;
   }
-  .diff-slider__input::-moz-range-thumb { width: 24px; height: 24px; }
+  .diff-slider__name { font-size: 24px; }
+  .diff-slider__tick { width: 6px; height: 6px; }
 }
