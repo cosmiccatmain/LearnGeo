@@ -3,17 +3,103 @@
 
    z-index 190 is chosen, not inherited. .overlay (modals) is 200 and
    the toast stack is 320, so a confirm dialog opened from this page
-   lands above it and a toast lands above both. Raising this past 200
-   puts the page over its own dialogs.
+   lands above it and a toast lands above both.
+
+   Sidebar: deep blue, profile header, icon+label nav, Leave Admin.
 -------------------------------------------------------------------*/
 
 .adminp {
   position: fixed; inset: 0; z-index: 190;
   background: var(--paper);
-  display: flex; flex-direction: column;
+  display: flex; flex-direction: row;
   animation: apIn .18s var(--ease);
 }
 @keyframes apIn { from { opacity: 0; transform: translateY(6px); } }
+
+/* ------------------------------- sidebar ------------------------- */
+.adminp__side {
+  flex: none; width: 248px;
+  display: flex; flex-direction: column;
+  background: #0B3A82;
+  color: #fff;
+  padding: 18px 14px 14px;
+  border-right: 1px solid rgba(0,0,0,.18);
+}
+.adminp__profile {
+  display: flex; align-items: center; gap: 11px;
+  padding: 4px 8px 16px;
+  border-bottom: 1px solid rgba(255,255,255,.14);
+  margin-bottom: 12px;
+}
+.adminp__avatar {
+  width: 42px; height: 42px; border-radius: 50%; flex: none;
+  background: rgba(255,255,255,.14);
+  display: flex; align-items: center; justify-content: center;
+  color: #9EC5FF;
+}
+.adminp__avatar svg { width: 22px; height: 22px; }
+.adminp__whoami { min-width: 0; }
+.adminp__whoami b {
+  display: block; font-size: 14.5px; font-weight: 650;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.adminp__whoami span {
+  display: block; font-size: 11.5px; color: #8EB8F5;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  margin-top: 2px;
+}
+
+.adminp__navlist {
+  flex: 1; overflow-y: auto;
+  display: flex; flex-direction: column; gap: 2px;
+  padding: 4px 0 12px;
+}
+.adminp__nav {
+  display: flex; align-items: center; gap: 11px;
+  width: 100%; text-align: left;
+  padding: 10px 12px; border: 0; border-radius: 10px;
+  background: transparent; color: #fff;
+  font: inherit; font-size: 13.5px; font-weight: 520;
+  cursor: pointer;
+}
+.adminp__nav:hover { background: rgba(255,255,255,.08); }
+.adminp__nav.is-on { background: rgba(255,255,255,.16); }
+.adminp__nav-ic {
+  width: 20px; height: 20px; flex: none;
+  display: flex; align-items: center; justify-content: center;
+  color: #9EC5FF;
+}
+.adminp__nav-ic svg { width: 18px; height: 18px; }
+
+.adminp__sidefoot {
+  border-top: 1px solid rgba(255,255,255,.14);
+  padding-top: 12px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.adminp__sidefoot .adminp__pill {
+  align-self: flex-start;
+  background: rgba(255,255,255,.12); color: #C9DCFF;
+}
+.adminp__sidefoot .adminp__pill.is-live {
+  background: rgba(52, 211, 153, .2); color: #A7F3D0;
+}
+.adminp__leave {
+  display: flex; align-items: center; gap: 11px;
+  width: 100%; text-align: left;
+  padding: 10px 12px; border: 0; border-radius: 10px;
+  background: transparent; color: #fff;
+  font: inherit; font-size: 13.5px; font-weight: 520;
+  cursor: pointer;
+}
+.adminp__leave:hover { background: rgba(255,255,255,.08); }
+.adminp__leave svg { width: 18px; height: 18px; color: #9EC5FF; flex: none; }
+
+/* -------------------------------- main --------------------------- */
+.adminp__main {
+  flex: 1; min-width: 0;
+  display: flex; flex-direction: column;
+  background: var(--paper);
+}
 
 .adminp__bar {
   flex: none; display: flex; align-items: center; gap: 10px;
@@ -26,7 +112,6 @@
 .adminp__pill {
   font-family: var(--mono); font-size: 11px; padding: 3px 8px;
   border-radius: 999px; background: var(--line-soft); color: var(--faint);
-  /* "27 min left" wraps to two lines at 375px and pushes the bar taller */
   white-space: nowrap; flex: none;
 }
 .adminp__pill.is-live { background: var(--success-soft); color: var(--success); }
@@ -65,6 +150,12 @@
 }
 .adminp__tile span { display: block; font-size: 11.5px; color: var(--faint); margin-top: 3px; }
 
+.adminp__chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.adminp__chip {
+  font-size: 12px; padding: 4px 9px; border-radius: 999px;
+  background: var(--line-soft); color: var(--ink); font-weight: 540;
+}
+
 /* ------------------------------ sections ------------------------- */
 .adminp__sec {
   background: var(--white); border: 1px solid var(--line);
@@ -90,6 +181,9 @@
   background: var(--white); border: 0; border-bottom: 1px solid var(--line-soft);
   cursor: pointer; font-family: inherit; color: inherit;
 }
+.adminp__row--watch {
+  grid-template-columns: 1.3fr 1.8fr 1fr .9fr;
+}
 .adminp__row:last-child { border-bottom: 0; }
 .adminp__row:hover { background: var(--paper); }
 .adminp__row.is-picked { background: var(--accent-soft); }
@@ -109,11 +203,6 @@
   padding: 1.5px 4px; border-radius: 4px; flex: none;
   background: var(--ink); color: var(--white);
 }
-
-/* 0009. Same shape as the staff chip so the row reads as one line of
-   marks, in the danger colour the ban buttons already use. Without it
-   the list cannot say who is banned and you have to click each
-   account in turn to find out. */
 .adminp__ban {
   font-family: var(--mono); font-style: normal; font-size: 9px; letter-spacing: .06em;
   padding: 1.5px 4px; border-radius: 4px; flex: none;
@@ -138,7 +227,6 @@
 }
 .adminp__act .eyebrow { width: 52px; flex: none; }
 
-/* Taking somebody's diamonds should not look like any other button. */
 .adminp__danger:not(.btn--primary) {
   border-color: #FBD5D5; color: #9B1C1C; background: var(--danger-soft);
 }
@@ -161,29 +249,30 @@
 .adminp__logrow:last-child { border-bottom: 0; }
 .adminp__logrow span:first-child { width: 72px; flex: none; font-family: var(--mono); font-size: 11px; }
 
-/* ------------------------------- phones -------------------------- */
-@media (max-width: 760px) {
-  .adminp__scroll { padding: 14px 12px 56px; }
-  .adminp__sec { padding: 14px; border-radius: var(--r); }
-  .adminp__grid { grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 8px; }
-  .adminp__tile b { font-size: 18px; }
-
-  /* The table stops being a table. Six columns inside 360px is six
-     columns of ellipsis, so each row becomes two lines with the
-     numbers on the right where they can still be compared. */
-  .adminp__row { grid-template-columns: 1fr auto; gap: 2px 10px; padding: 11px 12px; }
-  .adminp__row--head { display: none; }
-  .adminp__row span:nth-child(2) { grid-column: 1; font-size: 11.5px; }
-  .adminp__row span:nth-child(3) { grid-column: 1; font-size: 11px; color: var(--faint); }
-  .adminp__row span:nth-child(4) { grid-row: 1; grid-column: 2; text-align: right; }
-  .adminp__row span:nth-child(5) { grid-row: 2; grid-column: 2; text-align: right; font-weight: 600; }
-  .adminp__row span:nth-child(6) { grid-row: 3; grid-column: 2; text-align: right; font-size: 11px; }
-  .adminp__act .eyebrow { width: 100%; }
-  .adminp__logrow { flex-wrap: wrap; gap: 4px 8px; }
+/* --------------------------- permissions ------------------------- */
+.adminp__grants { display: flex; flex-direction: column; gap: 12px; }
+.adminp__grantcard {
+  border: 1px solid var(--line); border-radius: var(--r);
+  padding: 14px 15px; background: var(--paper);
+}
+.adminp__grantlist {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 8px;
+}
+.adminp__grant {
+  display: flex; gap: 9px; align-items: flex-start;
+  padding: 8px 10px; border-radius: var(--r-sm);
+  background: var(--white); border: 1px solid var(--line-soft);
+  cursor: pointer; font-size: 13px;
+}
+.adminp__grant input { margin-top: 3px; flex: none; }
+.adminp__grant b { display: block; font-weight: 600; }
+.adminp__grant i {
+  display: block; font-style: normal; font-size: 11.5px;
+  color: var(--faint); margin-top: 2px;
 }
 
 /* ------------------------------ messages ------------------------- */
-/* The box on the Administrator page. */
 .adminp__msg { margin: 14px 0 4px; padding-top: 14px; border-top: 1px solid var(--line-soft); }
 .adminp__msg .eyebrow { display: block; margin-bottom: 7px; }
 .adminp__msg textarea {
@@ -195,10 +284,6 @@
   gap: 10px; margin-top: 8px;
 }
 
-/* What the recipient sees, inside an ordinary dialog. Pre-wrapped so a
-   message keeps the line breaks it was written with, and broken
-   anywhere so one long unbroken word cannot push the dialog wider than
-   a phone. */
 .admsg {
   border: 1px solid var(--line); border-radius: var(--r);
   background: var(--paper); padding: 13px 15px; margin-bottom: 10px;
@@ -207,8 +292,6 @@
 .admsg__text { font-size: 15px; line-height: 1.5; color: var(--ink); overflow-wrap: anywhere; }
 .admsg__when { font-size: 11.5px; color: var(--faint); margin-top: 7px; font-family: var(--mono); }
 
-/* Reply composer inside the same dialog — sits under the messages
-   rather than opening a second modal, so the prompt stays in view. */
 .admsg__reply {
   margin-top: 14px; padding-top: 14px;
   border-top: 1px solid var(--line-soft);
@@ -223,9 +306,6 @@
   gap: 10px; margin-top: 8px; flex-wrap: wrap;
 }
 
-/* Thread on the Administrator page for the selected account. Admin
-   lines and user replies share one column so the exchange reads as a
-   conversation, not two lists. */
 .adminp__thread {
   margin-top: 12px; display: flex; flex-direction: column; gap: 8px;
   max-height: 280px; overflow-y: auto; padding-right: 2px;
@@ -244,4 +324,46 @@
 }
 .adminp__thread-empty {
   font-size: 13px; color: var(--faint); padding: 4px 0 2px;
+}
+
+/* ------------------------------- phones -------------------------- */
+@media (max-width: 860px) {
+  .adminp { flex-direction: column; }
+  .adminp__side {
+    width: 100%; max-height: none;
+    padding: 12px 12px 8px;
+  }
+  .adminp__profile { margin-bottom: 8px; padding-bottom: 12px; }
+  .adminp__navlist {
+    flex: none; flex-direction: row; flex-wrap: wrap; gap: 4px;
+    overflow: visible; padding-bottom: 8px;
+  }
+  .adminp__nav {
+    width: auto; padding: 8px 10px; font-size: 12.5px;
+  }
+  .adminp__sidefoot {
+    flex-direction: row; align-items: center; justify-content: space-between;
+    gap: 8px;
+  }
+  .adminp__leave { width: auto; }
+}
+
+@media (max-width: 760px) {
+  .adminp__scroll { padding: 14px 12px 56px; }
+  .adminp__sec { padding: 14px; border-radius: var(--r); }
+  .adminp__grid { grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 8px; }
+  .adminp__tile b { font-size: 18px; }
+
+  .adminp__row { grid-template-columns: 1fr auto; gap: 2px 10px; padding: 11px 12px; }
+  .adminp__row--head { display: none; }
+  .adminp__row span:nth-child(2) { grid-column: 1; font-size: 11.5px; }
+  .adminp__row span:nth-child(3) { grid-column: 1; font-size: 11px; color: var(--faint); }
+  .adminp__row span:nth-child(4) { grid-row: 1; grid-column: 2; text-align: right; }
+  .adminp__row span:nth-child(5) { grid-row: 2; grid-column: 2; text-align: right; font-weight: 600; }
+  .adminp__row span:nth-child(6) { grid-row: 3; grid-column: 2; text-align: right; font-size: 11px; }
+  .adminp__row--watch span:nth-child(3) { grid-column: 1; }
+  .adminp__row--watch span:nth-child(4) { grid-row: 1; grid-column: 2; }
+  .adminp__act .eyebrow { width: 100%; }
+  .adminp__logrow { flex-wrap: wrap; gap: 4px 8px; }
+  .adminp__grantlist { grid-template-columns: 1fr; }
 }

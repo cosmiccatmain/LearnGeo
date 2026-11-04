@@ -51,7 +51,13 @@
     inbox:  svg('<path d="M3 12h5l2 3h4l2-3h5"/><path d="M5 5h14l2 7v7H3v-7z"/>'),
     hex:    svg('<path d="M12 2.5 20 7v10l-8 4.5L4 17V7z"/><path d="M12 7.5 16 10v4l-4 2.5L8 14v-4z"/>'),
     /* Pets tab — simple paw so the switcher stays line-art with the rest */
-    paw:    svg('<path d="M8.5 8.5a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM15.5 8.5a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM5.5 13a2.1 2.1 0 1 0 0-4.2 2.1 2.1 0 0 0 0 4.2zM18.5 13a2.1 2.1 0 1 0 0-4.2 2.1 2.1 0 0 0 0 4.2z"/><path d="M12 21c-3.2 0-5.5-2.1-5.5-4.6 0-2.1 1.6-3.6 3.3-4.2.7-.25 1.5-.4 2.2-.4s1.5.15 2.2.4c1.7.6 3.3 2.1 3.3 4.2C17.5 18.9 15.2 21 12 21z"/>')
+    paw:    svg('<path d="M8.5 8.5a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM15.5 8.5a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM5.5 13a2.1 2.1 0 1 0 0-4.2 2.1 2.1 0 0 0 0 4.2zM18.5 13a2.1 2.1 0 1 0 0-4.2 2.1 2.1 0 0 0 0 4.2z"/><path d="M12 21c-3.2 0-5.5-2.1-5.5-4.6 0-2.1 1.6-3.6 3.3-4.2.7-.25 1.5-.4 2.2-.4s1.5.15 2.2.4c1.7.6 3.3 2.1 3.3 4.2C17.5 18.9 15.2 21 12 21z"/>'),
+    /* Administrator sidebar */
+    eye:    svg('<path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/>'),
+    monitor: svg('<rect x="2" y="4" width="20" height="14" rx="2"/><path d="M8 21h8M12 18v3"/>'),
+    message: svg('<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>'),
+    list:   svg('<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>'),
+    home:   svg('<path d="M3 11.5 12 4l9 7.5"/><path d="M6 10.5V20h12v-9.5"/>')
   };
 
   /* The verified seal. Solid rather than line art, because it has to read as
