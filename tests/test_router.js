@@ -39,7 +39,7 @@ function fixture(url = 'https://learngeo.example/') {
 
 test('all app routes match the deployed rewrites, including trailing slashes', () => {
   const { router } = fixture();
-  const views = ['portal', 'codex', 'classroom', 'teacher', 'learn', 'test', 'quiz', 'games'];
+  const views = ['portal', 'codex', 'classroom', 'teacher', 'learn', 'test', 'quiz', 'games', 'pets'];
   const rewrites = JSON.parse(fs.readFileSync(path.join(root, 'vercel.json'))).rewrites;
   assert.deepEqual(views.map(view => router.pathForView(view)).sort(),
     rewrites.map(entry => entry.source).sort());
