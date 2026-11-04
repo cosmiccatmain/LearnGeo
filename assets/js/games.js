@@ -720,22 +720,11 @@
     });
   }
 
-  /* ------------------------------ hub ------------------------------- */
   /* ------------------------------ hub -------------------------------
-     The hub is drawn as an arcade cabinet: a lit marquee, a CRT holding
-     the game list, and a control deck underneath.
-
-     The cabinet is decoration and says so. The marquee carries the real
-     <h1>, and everything else of it — bulbs, joystick, buttons, coin
-     slot — is aria-hidden, so what a screen reader walks is the heading
-     and then a plain list of buttons. The buttons are the same
-     .game-card markup the landing page uses, restyled by arcade.css
-     rather than rebuilt, which is also what keeps Games.art() honest
-     for the landing section.
-
-     The arrow keys move focus between the cards, because a cabinet you
-     cannot drive with a stick is a poster. Enter and Space are the
-     buttons' own, so they need no wiring. */
+     Same shell language as Home and Learn: eyebrow, heading, panels,
+     light game cards. The cards reuse the landing .game-card markup so
+     Games.art() stays honest. Arrow keys move focus between cards;
+     Enter and Space are the buttons' own. */
   function renderHub() {
     stop();
     screen = 'hub';
@@ -745,46 +734,23 @@
     var hi = 0;
     GAMES.forEach(function (g) { hi = Math.max(hi, record(g.id).best || 0); });
 
-    var bulbs = '';
-    for (var b = 0; b < 16; b++) bulbs += '<i></i>';
-
     el.innerHTML =
-      '<div class="portal__inner games arcade">' +
-        '<div class="cab">' +
-
-          '<div class="cab__marquee">' +
-            '<h1 class="cab__title">LearnGeo <em>Arcade</em></h1>' +
-            '<div class="cab__sub">' + GAMES.length + ' games · everything you answer counts</div>' +
-            '<div class="cab__bulbs" aria-hidden="true">' + bulbs + '</div>' +
-          '</div>' +
-
-          '<div class="cab__screen">' +
-            '<div class="cab__crt">' +
-              '<div class="cab__row">' +
-                '<span class="cab__blink">\u25B6 Select game</span>' +
-                '<button class="btn btn--ghost btn--sm cab__boards" data-boards type="button">' + I.trophy + ' Leaderboards</button>' +
-                '<b>Hi ' + hi.toLocaleString() + '</b>' +
-              '</div>' +
-              '<div class="games__grid">' +
-                GAMES.map(card).join('') +
-              '</div>' +
-              '<div class="cab__row" style="margin:16px 0 0">' +
-                '<span>Mastery · XP · gems, same as the study modes</span>' +
-                '<b>' + W.masteredCount() + ' / ' + global.GeoData.counts.total + ' mastered</b>' +
-              '</div>' +
-            '</div>' +
-          '</div>' +
-
-          '<div class="cab__deck" aria-hidden="true">' +
-            '<div class="cab__stick"><i></i><b></b></div>' +
-            '<div class="cab__buttons"><span></span><span></span><span></span></div>' +
-            '<div class="cab__hint">' +
-              '<kbd>\u2190</kbd> <kbd>\u2192</kbd> to choose · <kbd>Enter</kbd> to play' +
-            '</div>' +
-          '</div>' +
-          '<div class="cab__slot" aria-hidden="true"></div>' +
-
+      '<div class="portal__inner games">' +
+        '<div class="games__head">' +
+          '<div class="eyebrow">Practice</div>' +
+          '<h1>Games</h1>' +
+          '<p>' + GAMES.length + ' games · everything you answer counts toward mastery, XP, and gems, same as the study modes.</p>' +
         '</div>' +
+        '<div class="games__toolbar">' +
+          '<span class="games__toolbar-label">Choose a game</span>' +
+          '<button class="btn btn--ghost btn--sm" data-boards type="button">' + I.trophy + ' Leaderboards</button>' +
+          '<span class="games__toolbar-meta mono">Best ' + hi.toLocaleString() +
+            ' · ' + W.masteredCount() + ' / ' + global.GeoData.counts.total + ' mastered</span>' +
+        '</div>' +
+        '<div class="games__grid">' +
+          GAMES.map(card).join('') +
+        '</div>' +
+        '<p class="games__hint"><kbd>\u2190</kbd> <kbd>\u2192</kbd> to choose · <kbd>Enter</kbd> to play</p>' +
       '</div>';
 
     W.$('[data-boards]', el).addEventListener('click', function () {

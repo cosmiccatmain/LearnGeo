@@ -64,7 +64,7 @@
       frame('<div class="lb-empty">Sign in and put this class online to block games for it.</div>');
       return;
     }
-    if (!games.length) { frame('<div class="lb-empty">The arcade has not loaded yet.</div>'); return; }
+    if (!games.length) { frame('<div class="lb-empty">Games have not loaded yet.</div>'); return; }
 
     frame('<div class="lb-empty">Loading…</div>');
     sb().rpc('list_class_game_blocks', { p_class: classId }).then(function (res) {
