@@ -1,10 +1,12 @@
-/* Shared difficulty slider — nebula track, white thumb.
-   Used by game setup panels; keep thumb sync on input/change (no rAF). */
+/* Shared difficulty slider — progressive fill, white thumb.
+   Nebula/galaxy fill only at the maximum step. Thumb motion is
+   continuous; discrete levels commit on release (see JS). */
 
 .diff-slider {
   --diff-purple: #7c3aed;
   --diff-purple-deep: #4c1d95;
   --diff-lilac: #c4b5fd;
+  --pct: 0%;
   display: grid;
   gap: 14px;
 }
@@ -39,7 +41,11 @@
   width: 18px;
   height: 18px;
   color: var(--diff-purple);
+  opacity: .35;
+  transition: opacity .18s ease;
 }
+
+.diff-slider.is-max .diff-slider__spark { opacity: 1; }
 
 .diff-slider__blurb {
   margin: 6px 0 0;
@@ -54,7 +60,29 @@
   position: relative;
   height: 36px;
   border-radius: 999px;
-  border: 1.5px solid #d4c4f7;
+  border: 1.5px solid #ddd6fe;
+  background: linear-gradient(180deg, #f3f0ff 0%, #ebe4ff 100%);
+  box-shadow: inset 0 1px 2px rgba(76, 29, 149, .06);
+  overflow: hidden;
+}
+
+.diff-slider__fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: var(--pct);
+  min-width: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  /* Plain fill for every non-max position — no stars, streaks, or nebula. */
+  background: linear-gradient(90deg, #a78bfa 0%, #8b5cf6 55%, #7c3aed 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .28);
+}
+
+/* Galaxy look only when the committed/nearest value is the max step. */
+.diff-slider.is-max .diff-slider__fill {
+  border: 0;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, .18);
   background:
     radial-gradient(1.5px 1.5px at 12% 38%, rgba(255, 255, 255, .95) 50%, transparent 52%),
@@ -77,7 +105,10 @@
     radial-gradient(90% 110% at 72% 40%, #6366f1 0%, transparent 58%),
     radial-gradient(80% 100% at 92% 70%, #db2777 0%, transparent 50%),
     linear-gradient(90deg, #2e1065 0%, #4c1d95 28%, #3730a3 58%, #5b21b6 78%, #312e81 100%);
-  overflow: hidden;
+}
+
+.diff-slider.is-max .diff-slider__track {
+  border-color: #d4c4f7;
 }
 
 .diff-slider__input {
@@ -85,6 +116,7 @@
   appearance: none;
   position: absolute;
   inset: 0;
+  z-index: 1;
   width: 100%;
   height: 100%;
   margin: 0;
@@ -99,7 +131,7 @@
 
 .diff-slider__track:has(.diff-slider__input:focus-visible) {
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, .18),
+    inset 0 1px 2px rgba(76, 29, 149, .06),
     0 0 0 3px rgba(124, 58, 237, .28);
 }
 
@@ -112,6 +144,12 @@
 .diff-slider__input::-moz-range-track {
   height: 36px;
   background: transparent;
+  border: 0;
+}
+
+.diff-slider__input::-moz-range-progress {
+  background: transparent;
+  height: 36px;
   border: 0;
 }
 
@@ -128,6 +166,8 @@
     0 1px 2px rgba(15, 23, 42, .18),
     0 6px 14px rgba(15, 23, 42, .22);
   cursor: grab;
+  /* Avoid layout “tick” feel; thumb follows the continuous value. */
+  transition: none;
 }
 
 .diff-slider__input::-moz-range-thumb {
@@ -140,6 +180,7 @@
     0 1px 2px rgba(15, 23, 42, .18),
     0 6px 14px rgba(15, 23, 42, .22);
   cursor: grab;
+  transition: none;
 }
 
 .diff-slider__input:active::-webkit-slider-thumb { cursor: grabbing; }

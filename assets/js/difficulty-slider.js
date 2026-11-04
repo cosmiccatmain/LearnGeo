@@ -1,9 +1,14 @@
 /* ------------------------------------------------------------------
    LearnGeo — Difficulty slider
-   Reusable nebula-track level control for game setup panels.
-   Thumb position comes from the native range input (input/change),
-   not from requestAnimationFrame, so background-tab throttle cannot
-   leave labels or the value out of sync with what the player sees.
+   Reusable progressive-fill level control for game setup panels.
+
+   Motion is continuous (step=any) while dragging. Discrete option
+   values snap on pointer/key release. Labels follow the nearest
+   option during the drag; persistence should use the snapped value.
+
+   Visual sync uses --pct + class toggles on input/change — never
+   requestAnimationFrame alone — so background-tab throttle cannot
+   leave the thumb/fill out of sync with stored state.
 -------------------------------------------------------------------*/
 (function (global) {
   'use strict';
@@ -13,11 +18,23 @@
       '<path fill="currentColor" d="M12 1.6l1.7 6.2 6.3 1.7-6.3 1.7L12 17.4l-1.7-6.2L4 9.5l6.3-1.7L12 1.6z"/>' +
     '</svg>';
 
-  function clamp(n, min, max) {
+  function clampDiscrete(n, min, max) {
     n = +n;
     if (!(n >= min)) return min;
     if (!(n <= max)) return max;
     return Math.round(n);
+  }
+
+  function clampContinuous(n, min, max) {
+    n = +n;
+    if (!(n >= min)) return min;
+    if (!(n <= max)) return max;
+    return n;
+  }
+
+  function pctOf(value, min, max) {
+    if (max === min) return 100;
+    return ((value - min) / (max - min)) * 100;
   }
 
   function findLevel(levels, value) {
@@ -36,19 +53,22 @@
 
     var min = opts.min != null ? +opts.min : +levels[0].value;
     var max = opts.max != null ? +opts.max : +levels[levels.length - 1].value;
-    var value = clamp(opts.value != null ? opts.value : min, min, max);
+    var value = clampDiscrete(opts.value != null ? opts.value : min, min, max);
     var active = findLevel(levels, value);
     var ends = opts.ends || [levels[0].name, levels[levels.length - 1].name];
     var name = opts.name || 'level';
     var label = opts.label || 'Difficulty';
     var hint = opts.hint || '';
+    var atMax = value === max;
     var esc = (global.WW && global.WW.escapeHtml) || function (s) {
       return String(s).replace(/[&<>"']/g, function (c) {
         return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c];
       });
     };
 
-    return '<div class="diff-slider" data-diff-slider data-diff-name="' + esc(name) + '">' +
+    return '<div class="diff-slider' + (atMax ? ' is-max' : '') +
+      '" data-diff-slider data-diff-name="' + esc(name) +
+      '" style="--pct: ' + pctOf(value, min, max) + '%">' +
       '<div class="diff-slider__label">' + esc(label) + '</div>' +
       '<div class="diff-slider__status">' +
         '<div class="diff-slider__name-row">' +
@@ -59,8 +79,10 @@
       '</div>' +
       '<div class="diff-slider__control">' +
         '<div class="diff-slider__track">' +
+          '<div class="diff-slider__fill" aria-hidden="true"></div>' +
+          /* step=any → fluid drag; discrete snap happens in wire() on release */
           '<input class="diff-slider__input" type="range" min="' + min + '" max="' + max +
-            '" step="1" value="' + value + '" aria-label="' + esc(label) +
+            '" step="any" value="' + value + '" aria-label="' + esc(label) +
             '" aria-valuetext="' + esc(active.name) + '">' +
         '</div>' +
         '<div class="diff-slider__ends">' +
@@ -72,18 +94,24 @@
     '</div>';
   }
 
-  function paint(root, levels, value) {
-    var active = findLevel(levels, value);
+  /* continuous: thumb/fill position. discrete: nearest option for labels/nebula. */
+  function paint(root, levels, continuous, discrete) {
+    var input = root.querySelector('.diff-slider__input');
+    var min = input ? +input.min : +levels[0].value;
+    var max = input ? +input.max : +levels[levels.length - 1].value;
+    continuous = clampContinuous(continuous, min, max);
+    discrete = clampDiscrete(discrete != null ? discrete : continuous, min, max);
+    var active = findLevel(levels, discrete);
     var title = root.querySelector('[data-diff-title]');
     var blurb = root.querySelector('[data-diff-blurb]');
-    var input = root.querySelector('.diff-slider__input');
+
+    root.style.setProperty('--pct', pctOf(continuous, min, max) + '%');
+    root.classList.toggle('is-max', discrete === max);
+
     if (title) title.textContent = active.name;
     if (blurb) blurb.textContent = active.blurb;
     if (input) {
-      /* Keep the control’s value attribute and live value aligned so a
-         later re-read or form restore cannot drift from the labels. */
-      input.value = String(active.value);
-      input.setAttribute('value', String(active.value));
+      input.value = String(continuous);
       input.setAttribute('aria-valuetext', active.name);
     }
   }
@@ -104,25 +132,58 @@
 
     var min = +input.min;
     var max = +input.max;
+    var lastDiscrete = clampDiscrete(input.value, min, max);
+    var dragging = false;
 
-    function apply(raw, notify) {
-      var value = clamp(raw, min, max);
-      paint(root, levels, value);
-      if (notify && typeof opts.onChange === 'function') opts.onChange(value);
-      return value;
+    function live(raw) {
+      var continuous = clampContinuous(raw, min, max);
+      var discrete = clampDiscrete(continuous, min, max);
+      paint(root, levels, continuous, discrete);
+      return discrete;
     }
 
-    /* Synchronous updates on both events: input covers drag, change
-       covers keyboard commit / release. Never gate this on rAF. */
-    input.addEventListener('input', function () { apply(input.value, true); });
-    input.addEventListener('change', function () { apply(input.value, true); });
+    function commit(raw, notify) {
+      var discrete = clampDiscrete(raw, min, max);
+      /* Snap the control onto the option; keep attribute for later restores. */
+      input.value = String(discrete);
+      input.setAttribute('value', String(discrete));
+      paint(root, levels, discrete, discrete);
+      if (notify && discrete !== lastDiscrete && typeof opts.onChange === 'function') {
+        opts.onChange(discrete);
+      }
+      lastDiscrete = discrete;
+      return discrete;
+    }
 
-    apply(input.value, false);
+    function endDrag() {
+      if (!dragging) return;
+      dragging = false;
+      window.removeEventListener('pointerup', endDrag, true);
+      window.removeEventListener('pointercancel', endDrag, true);
+      commit(input.value, true);
+    }
+
+    input.addEventListener('pointerdown', function () {
+      dragging = true;
+      window.addEventListener('pointerup', endDrag, true);
+      window.addEventListener('pointercancel', endDrag, true);
+    });
+
+    /* Fluid visuals only — never snap here, or the thumb jumps tick-to-tick. */
+    input.addEventListener('input', function () { live(input.value); });
+
+    /* change: keyboard steps and browsers that commit on release. */
+    input.addEventListener('change', function () {
+      if (dragging) endDrag();
+      else commit(input.value, true);
+    });
+
+    commit(input.value, false);
 
     return {
       root: root,
-      get: function () { return clamp(input.value, min, max); },
-      set: function (v) { return apply(v, false); }
+      get: function () { return lastDiscrete; },
+      set: function (v) { return commit(v, false); }
     };
   }
 
@@ -130,6 +191,6 @@
     html: html,
     wire: wire,
     paint: paint,
-    clamp: clamp
+    clamp: clampDiscrete
   };
 })(window);
