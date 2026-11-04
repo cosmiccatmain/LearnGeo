@@ -233,9 +233,6 @@
   flex-wrap: wrap; margin-bottom: 9px;
 }
 .adminp__act .eyebrow { width: 52px; flex: none; }
-/* Pets Diamonds labels are longer than Take / Give. */
-.adminp__act--pets .eyebrow,
-.adminp__act--pets-ops .eyebrow { width: 78px; }
 
 .adminp__danger:not(.btn--primary) {
   border-color: #FBD5D5; color: #9B1C1C; background: var(--danger-soft);
