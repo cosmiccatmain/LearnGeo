@@ -24,6 +24,8 @@ lane can read it. Write things down rather than assuming they will be asked for.
 LearnGeo is a static JavaScript app, no build step. Accounts and data are in
 Supabase. GitHub is cosmiccatmain/LearnGeo. Vercel deploys `main` to
 www.learngeo.app automatically, usually within two minutes of a push.
+Preview URL naming, what is immutable, and how to share clearer branch
+previews are documented in `agents/VERCEL-NAMING.md`.
 
 There is no staging. A merge into `main` is a release to real users. Treat
 every landing decision as a deploy decision, because it is one.
