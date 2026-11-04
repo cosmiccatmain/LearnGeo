@@ -7,6 +7,8 @@
      with moderation states.
    LEA-16: mutations (on-instance modifiers + blocky visual cues) and a
      local marketplace to list / buy / cancel high-level or mutated pets.
+   LEA-20: expanded catalog + rarities, flatter Pets chrome, dopamine
+     chest-open pulls, Silver mutation (keeps Golden).
 
    Dismiss rule (documented product choice for v0):
      C — until dismissed. localStorage key learngeo.pets.event.v0.dismissed
@@ -34,6 +36,13 @@
      level >= MIN_LIST_LEVEL OR has mutation. Price bounds PRICE_MIN–MAX.
      Demo NPC listings seed once so Buy works without a second account.
      No real-money / crypto / off-platform trades.
+
+   Chest pulls (LEA-20 — local demo):
+     Hub "Open chest" spends CHEST_COST Pets Diamonds, runs a suspense →
+     reveal overlay, then adds a weighted catalog brainrot (duplicates OK).
+     Small chance the new instance also rolls a mutation (incl. Silver /
+     Golden). Starters still auto-grant on first visit; extended roster is
+     chest-earn. Classroom-safe motion only (no jump-scare audio required).
 -------------------------------------------------------------------*/
 (function (global) {
   'use strict';
@@ -61,6 +70,8 @@
   var MUTATION_ROLL_CHANCE = 0.4; /* paid attempt on detail */
   var MUTATION_PROC_STAGE = 0.14; /* free proc when crossing a skin stage */
   var MUTATION_PROC_MAX = 0.3; /* free proc when hitting level 10 */
+  var CHEST_COST = 35;
+  var CHEST_MUTATION_CHANCE = 0.22; /* bonus mutation on the pulled instance */
   var YOU_SELLER = 'you';
 
   /* Upload / request limits for v1 local storage. */
@@ -81,50 +92,77 @@
   var SLOT_ORDER = ['aura', 'hat', 'frame', 'trail', 'catchphrase'];
   var SLOT_LABELS = {
     aura: 'Aura',
-    hat: 'Hat / accessory',
+    hat: 'Hat',
     frame: 'Frame',
-    trail: 'Trail / idle VFX',
-    catchphrase: 'Catchphrase chip'
+    trail: 'Trail',
+    catchphrase: 'Phrase'
   };
+  /* Locker tab copy (Fortnite-style category rail). */
+  var LOCKER_TABS = [
+    { id: 'aura', label: 'Aura' },
+    { id: 'hat', label: 'Hat' },
+    { id: 'frame', label: 'Frame' },
+    { id: 'trail', label: 'Trail' },
+    { id: 'catchphrase', label: 'Phrase' }
+  ];
 
   /* LearnGeo-authored catalog — school-safe only. Equipping never changes
-     species identity. */
+     species identity. Tiers drive locker tile borders. */
   var COSMETIC_CATALOG = [
     { id: 'aura-none', slot: 'aura', name: 'None', tier: 'Common', css: '' },
     { id: 'aura-spark', slot: 'aura', name: 'Sparkle Ring', tier: 'Common', css: 'spark' },
     { id: 'aura-mint', slot: 'aura', name: 'Mint Glow', tier: 'Rare', css: 'mint' },
+    { id: 'aura-pulse', slot: 'aura', name: 'Pulse Ring', tier: 'Epic', css: 'pulse' },
     { id: 'hat-none', slot: 'hat', name: 'None', tier: 'Common', css: '' },
     { id: 'hat-cap', slot: 'hat', name: 'Class Cap', tier: 'Common', css: 'cap' },
+    { id: 'hat-beanie', slot: 'hat', name: 'Soft Beanie', tier: 'Rare', css: 'beanie' },
     { id: 'hat-crown', slot: 'hat', name: 'Paper Crown', tier: 'Epic', css: 'crown' },
     { id: 'frame-none', slot: 'frame', name: 'None', tier: 'Common', css: '' },
     { id: 'frame-sticker', slot: 'frame', name: 'Sticker Border', tier: 'Common', css: 'sticker' },
     { id: 'frame-stars', slot: 'frame', name: 'Star Stickers', tier: 'Rare', css: 'stars' },
+    { id: 'frame-pixel', slot: 'frame', name: 'Pixel Frame', tier: 'Epic', css: 'pixel' },
     { id: 'trail-none', slot: 'trail', name: 'None', tier: 'Common', css: '' },
     { id: 'trail-dots', slot: 'trail', name: 'Dot Bounce', tier: 'Common', css: 'dots' },
     { id: 'trail-confetti', slot: 'trail', name: 'Confetti Drift', tier: 'Rare', css: 'confetti' },
+    { id: 'trail-spark', slot: 'trail', name: 'Spark Trail', tier: 'Epic', css: 'sparktrail' },
     { id: 'catch-none', slot: 'catchphrase', name: 'None', tier: 'Common', text: '' },
     { id: 'catch-ding', slot: 'catchphrase', name: 'Ding!', tier: 'Common', text: 'Ding!' },
     { id: 'catch-knock', slot: 'catchphrase', name: 'Who\'s there?', tier: 'Common', text: 'Who\'s there?' },
-    { id: 'catch-geo', slot: 'catchphrase', name: 'Geo go!', tier: 'Rare', text: 'Geo go!' }
+    { id: 'catch-geo', slot: 'catchphrase', name: 'Geo go!', tier: 'Rare', text: 'Geo go!' },
+    { id: 'catch-chest', slot: 'catchphrase', name: 'Chest unlocked!', tier: 'Epic', text: 'Chest unlocked!' }
   ];
 
-  /* Exact starter names from the collab plan. Tier language: Mythical
-     for launch shell (Jill is locked Mythical in the ref; others TBD —
-     v0 shows Mythical Brainrot across the set so the rarity line matches
-     the card language). */
+  /* Starters (exact collab names) stay auto-granted. LEA-20 expands the
+     catalog beyond these five with school-safe names + a rarity spread —
+     not all Mythical. Parallel rarity/login work may retune starter tiers;
+     leave starter labels alone here so we do not stomp that branch. */
   var STARTERS = [
-    { id: 'ding-dong-jill', name: 'Ding Dong Jill', rarity: 'Mythical Brainrot', art: 'jill' },
-    { id: 'knock-knock-jack', name: 'Knock Knock Jack', rarity: 'Mythical Brainrot', art: 'jack' },
-    { id: 'freaky-freaky-freddy', name: 'Freaky Freaky Freddy', rarity: 'Mythical Brainrot', art: 'freddy' },
-    { id: 'washington', name: 'Washingtoń', rarity: 'Mythical Brainrot', art: 'washington' },
-    { id: 'napoleon', name: 'Napoleon', rarity: 'Mythical Brainrot', art: 'napoleon' }
+    { id: 'ding-dong-jill', name: 'Ding Dong Jill', rarity: 'Mythical Brainrot', art: 'jill', weight: 4, starter: true },
+    { id: 'knock-knock-jack', name: 'Knock Knock Jack', rarity: 'Mythical Brainrot', art: 'jack', weight: 4, starter: true },
+    { id: 'freaky-freaky-freddy', name: 'Freaky Freaky Freddy', rarity: 'Mythical Brainrot', art: 'freddy', weight: 4, starter: true },
+    { id: 'washington', name: 'Washingtoń', rarity: 'Mythical Brainrot', art: 'washington', weight: 4, starter: true },
+    { id: 'napoleon', name: 'Napoleon', rarity: 'Mythical Brainrot', art: 'napoleon', weight: 4, starter: true }
   ];
 
-  /* School-safe mutation tags (plan §9 flavor). Applied per instance —
-     species identity stays Jill/Jack/etc. */
+  var EXTENDED = [
+    { id: 'ping-pong-penny', name: 'Ping Pong Penny', rarity: 'Common Brainrot', art: 'penny', weight: 28 },
+    { id: 'tip-tap-tim', name: 'Tip Tap Tim', rarity: 'Common Brainrot', art: 'tim', weight: 26 },
+    { id: 'skip-skip-sam', name: 'Skip Skip Sam', rarity: 'Common Brainrot', art: 'sam', weight: 24 },
+    { id: 'zoom-zoom-zara', name: 'Zoom Zoom Zara', rarity: 'Rare Brainrot', art: 'zara', weight: 16 },
+    { id: 'wiggle-wiggle-will', name: 'Wiggle Wiggle Will', rarity: 'Rare Brainrot', art: 'will', weight: 14 },
+    { id: 'boing-boing-bea', name: 'Boing Boing Bea', rarity: 'Epic Brainrot', art: 'bea', weight: 9 },
+    { id: 'click-clack-claire', name: 'Click Clack Claire', rarity: 'Epic Brainrot', art: 'claire', weight: 8 },
+    { id: 'hello-hello-hank', name: 'Hello Hello Hank', rarity: 'Mythical Brainrot', art: 'hank', weight: 3 }
+  ];
+
+  var CATALOG = STARTERS.concat(EXTENDED);
+
+  /* School-safe mutation tags (plan §9 + LEA-20 Silver). Applied per
+     instance — species identity stays Jill/Jack/etc. Golden kept. */
   var MUTATIONS = [
     { id: 'glitched', label: 'Glitched', hint: 'Offset block shimmer' },
     { id: 'golden', label: 'Golden', hint: 'Warm metallic blocks' },
+    { id: 'silver', label: 'Silver', hint: 'Cool chrome blocks' },
     { id: 'echo', label: 'Echo', hint: 'Soft after-image twin' },
     { id: 'static', label: 'Static', hint: 'Speckled TV snow' }
   ];
@@ -138,6 +176,9 @@
   var pendingUploadDataUrl = null;
   var pendingUploadMeta = null;
   var marketFilter = 'all'; /* all | mutated | high */
+  var lockerTab = 'aura'; /* active Fortnite-style locker category */
+  var chestBusy = false;
+  var chestReveal = null; /* { owned, species, mutation } while overlay open */
 
   function emptyCosmetics() {
     return { aura: 'aura-none', hat: 'hat-none', frame: 'frame-none',
@@ -491,6 +532,24 @@
           cosmetics: emptyCosmetics(),
           mutationId: null
         }
+      },
+      {
+        id: listingUid(),
+        sellerId: 'demo-rio',
+        sellerLabel: 'Rio (demo)',
+        price: 95,
+        feeBps: FEE_BPS,
+        status: 'active',
+        createdAt: Date.now() - 5400000,
+        pet: {
+          instanceId: newInstanceId(),
+          speciesId: 'zoom-zoom-zara',
+          level: 6,
+          xp: 0,
+          skinStage: 'B',
+          cosmetics: emptyCosmetics(),
+          mutationId: 'silver'
+        }
       }
     ];
   }
@@ -737,10 +796,50 @@
   }
 
   function speciesById(id) {
-    for (var i = 0; i < STARTERS.length; i++) {
-      if (STARTERS[i].id === id) return STARTERS[i];
+    for (var i = 0; i < CATALOG.length; i++) {
+      if (CATALOG[i].id === id) return CATALOG[i];
     }
     return null;
+  }
+
+  function weightedPickSpecies() {
+    var total = 0;
+    for (var i = 0; i < CATALOG.length; i++) {
+      total += Math.max(1, Number(CATALOG[i].weight) || 1);
+    }
+    var roll = Math.random() * total;
+    var acc = 0;
+    for (var j = 0; j < CATALOG.length; j++) {
+      acc += Math.max(1, Number(CATALOG[j].weight) || 1);
+      if (roll < acc) return CATALOG[j];
+    }
+    return CATALOG[CATALOG.length - 1];
+  }
+
+  /* Spend CHEST_COST, mint a weighted catalog brainrot (dupes OK).
+     Small chance to also stamp a mutation (Silver / Golden included). */
+  function openChestPull() {
+    var w = ensureWallet();
+    if (w.diamonds < CHEST_COST) {
+      return {
+        ok: false,
+        error: 'Need ' + CHEST_COST + ' Pets Diamonds to open a chest.'
+      };
+    }
+    adjustDiamonds(-CHEST_COST);
+    var species = weightedPickSpecies();
+    var mut = null;
+    if (Math.random() < CHEST_MUTATION_CHANCE) {
+      mut = pickRandomMutation();
+    }
+    var owned = addOwned({
+      instanceId: newInstanceId(),
+      speciesId: species.id,
+      level: 1,
+      xp: 0,
+      mutationId: mut ? mut.id : null
+    });
+    return { ok: true, owned: owned, species: species, mutation: mut };
   }
 
   function cosmeticsClasses(cosmetics) {
@@ -898,7 +997,38 @@
   function goCustomize(instanceId) {
     screen = { name: 'customize', instanceId: instanceId, listingId: null };
     formNotice = null;
+    lockerTab = 'aura';
     render();
+  }
+
+  function tierClass(tier) {
+    var t = String(tier || 'Common').toLowerCase();
+    if (t.indexOf('myth') === 0) return 'mythic';
+    if (t.indexOf('epic') === 0) return 'epic';
+    if (t.indexOf('rare') === 0) return 'rare';
+    return 'common';
+  }
+
+  function lockerTileHtml(item, equipped) {
+    var isNone = item.id.indexOf('-none') !== -1 || item.id.indexOf('catch-none') === 0;
+    var tier = tierClass(item.tier);
+    return '<button type="button" class="pets-locker__tile pets-locker__tile--' + esc(tier) +
+      (equipped ? ' is-equipped' : '') +
+      '" data-pets-equip="' + esc(item.id) + '" data-slot="' + esc(item.slot) + '"' +
+      ' aria-pressed="' + (equipped ? 'true' : 'false') + '"' +
+      ' aria-label="' + esc(item.name) + (equipped ? ', equipped' : ', equip') + '">' +
+      '<span class="pets-locker__tile-art" aria-hidden="true">' +
+        (isNone
+          ? '<span class="pets-locker__tile-none">∅</span>'
+          : '<span class="pets-locker__tile-icon pets-locker__tile-icon--' +
+              esc(item.slot) + '"></span>') +
+      '</span>' +
+      '<span class="pets-locker__tile-name">' + esc(item.name) + '</span>' +
+      '<span class="pets-locker__tile-tier">' + esc(item.tier) + '</span>' +
+      (equipped
+        ? '<span class="pets-locker__equipped-tag">Equipped</span>'
+        : '<span class="pets-locker__equip-hint">Equip</span>') +
+    '</button>';
   }
 
   function goRequest() {
@@ -935,6 +1065,107 @@
     render();
   }
 
+  function closeChestOverlay(keepNotice) {
+    var ov = document.querySelector('.pets-chest-overlay');
+    if (ov && ov.parentNode) ov.parentNode.removeChild(ov);
+    document.body.classList.remove('no-scroll');
+    chestBusy = false;
+    chestReveal = null;
+    if (!keepNotice) formNotice = null;
+    render();
+  }
+
+  function runChestSequence() {
+    if (chestBusy) return;
+    var result = openChestPull();
+    if (!result.ok) {
+      formNotice = { tone: 'err', text: result.error };
+      render();
+      return;
+    }
+    chestBusy = true;
+    chestReveal = result;
+    formNotice = null;
+    document.body.classList.add('no-scroll');
+
+    var ov = W.el('div', 'pets-chest-overlay');
+    ov.setAttribute('role', 'dialog');
+    ov.setAttribute('aria-modal', 'true');
+    ov.setAttribute('aria-label', 'Opening brainrot chest');
+    ov.innerHTML =
+      '<div class="pets-chest" data-chest-stage="idle">' +
+        '<div class="pets-chest__glow" aria-hidden="true"></div>' +
+        '<div class="pets-chest__box" aria-hidden="true">' +
+          '<div class="pets-chest__lid"></div>' +
+          '<div class="pets-chest__body"></div>' +
+          '<div class="pets-chest__band"></div>' +
+          '<div class="pets-chest__burst"></div>' +
+        '</div>' +
+        '<p class="pets-chest__status">Shaking…</p>' +
+        '<div class="pets-chest__reveal" hidden></div>' +
+        '<div class="pets-chest__actions" hidden>' +
+          '<button type="button" class="btn btn--sm btn--pets-primary" data-chest-claim>Add to roster</button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(ov);
+
+    var stageEl = ov.querySelector('[data-chest-stage]');
+    var statusEl = ov.querySelector('.pets-chest__status');
+    var revealEl = ov.querySelector('.pets-chest__reveal');
+    var actionsEl = ov.querySelector('.pets-chest__actions');
+
+    function setStage(name, status) {
+      stageEl.setAttribute('data-chest-stage', name);
+      if (status) statusEl.textContent = status;
+    }
+
+    /* Suspense timeline: idle → shake → crack → reveal. */
+    setTimeout(function () { setStage('shake', 'Something\'s inside…'); }, 180);
+    setTimeout(function () { setStage('crack', 'Almost!'); }, 1100);
+    setTimeout(function () {
+      setStage('open', 'New brainrot!');
+      var owned = result.owned;
+      var s = result.species;
+      var mut = result.mutation;
+      revealEl.hidden = false;
+      revealEl.innerHTML =
+        '<div class="pets-chest__prize">' +
+          artHtml(s, owned, 'pets-card__art--lg') +
+          '<h3 class="pets-card__name">' + nameHtml(s.name) + '</h3>' +
+          '<div class="pets-card__rarity">' + rarityHtml(s.rarity) + '</div>' +
+          (mut
+            ? '<div class="pets-card__meta">' + mutationBadgeHtml(mut.id) + '</div>'
+            : '') +
+        '</div>';
+      actionsEl.hidden = false;
+      statusEl.textContent = mut
+        ? 'Pulled ' + s.name + ' · ' + mut.label + ' mutation!'
+        : 'Pulled ' + s.name + '!';
+    }, 1680);
+
+    var claim = ov.querySelector('[data-chest-claim]');
+    if (claim) {
+      claim.addEventListener('click', function () {
+        formNotice = {
+          tone: 'ok',
+          text: 'Added ' + result.species.name + ' to your roster' +
+            (result.mutation ? ' (' + result.mutation.label + ')' : '') +
+            ' (−' + CHEST_COST + ' Pets Diamonds).'
+        };
+        closeChestOverlay(true);
+      });
+    }
+    ov.addEventListener('mousedown', function (e) {
+      if (e.target === ov && stageEl.getAttribute('data-chest-stage') === 'open') {
+        formNotice = {
+          tone: 'ok',
+          text: 'Added ' + result.species.name + ' to your roster (−' + CHEST_COST + ' Pets Diamonds).'
+        };
+        closeChestOverlay(true);
+      }
+    });
+  }
+
   function bindHub(el) {
     W.$$('[data-pet]', el).forEach(function (card) {
       card.addEventListener('click', function () {
@@ -951,6 +1182,8 @@
     if (q) q.addEventListener('click', goQueue);
     var m = el.querySelector('[data-pets-market]');
     if (m) m.addEventListener('click', goMarket);
+    var chest = el.querySelector('[data-pets-chest]');
+    if (chest) chest.addEventListener('click', runChestSequence);
   }
 
   function bindDetail(el, instanceId) {
@@ -1028,11 +1261,28 @@
     if (back) {
       back.addEventListener('click', function () { goDetail(instanceId); });
     }
+    W.$$('[data-pets-locker-tab]', el).forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        lockerTab = btn.getAttribute('data-pets-locker-tab') || 'aura';
+        render();
+      });
+    });
     W.$$('[data-pets-equip]', el).forEach(function (btn) {
       btn.addEventListener('click', function () {
         var slot = btn.getAttribute('data-slot');
         var id = btn.getAttribute('data-pets-equip');
+        var already = findOwned(ensureRoster(), instanceId);
+        if (already && already.cosmetics && already.cosmetics[slot] === id) {
+          formNotice = { tone: 'ok', text: 'Already equipped.' };
+          render();
+          return;
+        }
         equipCosmetic(instanceId, slot, id);
+        var item = cosmeticById(id);
+        formNotice = {
+          tone: 'ok',
+          text: item ? 'Equipped ' + item.name + '.' : 'Equipped.'
+        };
         render();
       });
     });
@@ -1321,18 +1571,30 @@
           '</div>' +
           walletChipHtml() +
         '</div>' +
-        '<p>Meet your starter brainrots. Level them up, unlock mutations, customize looks, and trade high-level pets in the marketplace.</p>' +
+        '<p>Meet your starter brainrots, open chests for more, unlock Silver/Golden mutations, customize looks, and trade in the marketplace.</p>' +
       '</div>' +
+      noticeHtml() +
       '<div class="pets__banner">' + eventBannerHtml(false) + '</div>' +
+      '<div class="pets__chest-cta">' +
+        '<div class="pets__create-head">' +
+          '<span class="pets__toolbar-label">Brainrot chest</span>' +
+          '<span class="t-sm t-muted">' + CHEST_COST + ' Pets Diamonds</span>' +
+        '</div>' +
+        '<p class="pets__chest-cta-copy">Suspense pull for a school-safe brainrot — Commons through Mythical, with a chance at Silver or Golden.</p>' +
+        '<div class="pets__create-actions">' +
+          '<button type="button" class="btn btn--sm btn--pets-primary" data-pets-chest>Open chest</button>' +
+        '</div>' +
+      '</div>' +
       '<div class="pets__toolbar">' +
         '<span class="pets__toolbar-label">Your roster</span>' +
-        '<span class="t-sm t-muted">' + roster.owned.length + ' pets</span>' +
+        '<span class="t-sm t-muted">' + roster.owned.length + ' pets · ' + CATALOG.length + ' in catalog</span>' +
       '</div>' +
       (emptyRoster
         ? '<div class="pets-empty" role="status">' +
             '<strong>Roster empty</strong>' +
-            '<p>Your pets may be listed on the marketplace. Cancel a listing or buy a demo listing to fill the roster.</p>' +
-            '<button type="button" class="btn btn--sm btn--pets-primary" data-pets-market>Open marketplace</button>' +
+            '<p>Open a chest, cancel a listing, or buy a demo listing to fill the roster.</p>' +
+            '<button type="button" class="btn btn--sm btn--pets-primary" data-pets-chest>Open chest</button> ' +
+            '<button type="button" class="btn btn--sm btn--pets-ghost-dark" data-pets-market>Open marketplace</button>' +
           '</div>'
         : '<div class="pets__grid">' +
             roster.owned.map(petCard).join('') +
@@ -1362,7 +1624,7 @@
         '</div>' +
         '<p class="pets__note pets__note--tight">Requests and uploads stay <strong>pending</strong> until approved. Nothing goes live unmoderated.</p>' +
       '</div>' +
-      '<p class="pets__note">Tap a pet to train, mutate, customize, or list. Mutations can proc when you cross a skin stage; paid rolls cost ' +
+      '<p class="pets__note">Tap a pet to train, mutate, customize, or list. Mutations (Glitched, Golden, Silver, Echo, Static) can proc when you cross a skin stage; paid rolls cost ' +
         MUTATION_ROLL_COST + ' Pets Diamonds from level ' + MIN_LIST_LEVEL + '+.</p>' +
     '</div>';
   }
@@ -1436,7 +1698,7 @@
               (atMax ? ' disabled' : '') + '>' +
               (atMax ? 'Max level' : 'Play (+' + PLAY_XP + ' XP)') +
             '</button>' +
-            '<button type="button" class="btn btn--sm btn--pets-secondary" data-pets-customize>Customize</button>' +
+            '<button type="button" class="btn btn--sm btn--pets-secondary" data-pets-customize>Open locker</button>' +
             (canRoll
               ? '<button type="button" class="btn btn--sm btn--pets-secondary" data-pets-mut-roll>' +
                   'Mutation roll (−' + MUTATION_ROLL_COST + ' ◆)' +
@@ -1471,42 +1733,59 @@
     }
     var cos = normalizeCosmetics(owned.cosmetics);
     var mut = mutationById(owned.mutationId);
-    var slotsHtml = SLOT_ORDER.map(function (slot) {
-      var options = COSMETIC_CATALOG.filter(function (c) { return c.slot === slot; });
-      var chips = options.map(function (item) {
-        var on = cos[slot] === item.id;
-        return '<button type="button" class="pets-chip' + (on ? ' is-on' : '') +
-          '" data-pets-equip="' + esc(item.id) + '" data-slot="' + esc(slot) + '"' +
-          ' aria-pressed="' + (on ? 'true' : 'false') + '">' +
-          '<span class="pets-chip__name">' + esc(item.name) + '</span>' +
-          '<span class="pets-chip__tier">' + esc(item.tier) + '</span>' +
-        '</button>';
-      }).join('');
-      return '<div class="pets-slot">' +
-        '<h3 class="pets-slot__label">' + esc(SLOT_LABELS[slot]) + '</h3>' +
-        '<div class="pets-slot__chips">' + chips + '</div>' +
-      '</div>';
+    var tab = lockerTab;
+    if (SLOT_ORDER.indexOf(tab) < 0) tab = 'aura';
+    var options = COSMETIC_CATALOG.filter(function (c) { return c.slot === tab; });
+    var tabsHtml = LOCKER_TABS.map(function (t) {
+      var on = t.id === tab;
+      var eqId = cos[t.id];
+      var eqItem = cosmeticById(eqId);
+      var filled = eqItem && eqItem.id.indexOf('-none') === -1 && eqItem.id !== 'catch-none';
+      return '<button type="button" class="pets-locker__tab' + (on ? ' is-on' : '') +
+        (filled ? ' has-item' : '') +
+        '" data-pets-locker-tab="' + esc(t.id) + '"' +
+        ' aria-pressed="' + (on ? 'true' : 'false') + '">' +
+        '<span class="pets-locker__tab-label">' + esc(t.label) + '</span>' +
+      '</button>';
     }).join('');
+    var gridHtml = options.map(function (item) {
+      return lockerTileHtml(item, cos[tab] === item.id);
+    }).join('');
+    var equippedNow = cosmeticById(cos[tab]);
 
     return '<div class="portal__inner pets pets--customize">' +
       '<button type="button" class="pets-back" data-pets-back>' +
         '<span aria-hidden="true">←</span> Back to ' + esc(s.name) +
       '</button>' +
+      noticeHtml() +
       '<div class="pets__head pets__head--compact">' +
-        '<div class="eyebrow">Customize</div>' +
+        '<div class="eyebrow">Locker</div>' +
         '<h1>' + esc(s.name) + '</h1>' +
-        '<p>Pick school-safe cosmetics and traits. Looks change on this pet only — identity stays the same.' +
+        '<p>Fortnite-style locker for school-safe cosmetics. Big preview left, item tiles right.' +
           (mut ? ' Mutation <strong>' + esc(mut.label) + '</strong> stays on.' : '') +
         '</p>' +
       '</div>' +
-      '<div class="pets-customize">' +
-        '<div class="pets-customize__preview">' +
-          artHtml(s, owned, 'pets-card__art--lg') +
-          catchphraseHtml(owned.cosmetics) +
-          '<div class="pets-card__name">' + nameHtml(s.name) + '</div>' +
-          (mut ? '<div class="pets-card__meta">' + mutationBadgeHtml(mut.id) + '</div>' : '') +
-        '</div>' +
-        '<div class="pets-customize__slots">' + slotsHtml + '</div>' +
+      '<div class="pets-locker">' +
+        '<aside class="pets-locker__stage" aria-label="Character preview">' +
+          '<div class="pets-locker__preview">' +
+            artHtml(s, owned, 'pets-card__art--locker') +
+            catchphraseHtml(owned.cosmetics) +
+          '</div>' +
+          '<div class="pets-locker__stage-meta">' +
+            '<div class="pets-card__name">' + nameHtml(s.name) + '</div>' +
+            '<div class="pets-card__rarity">' + rarityHtml(s.rarity) + '</div>' +
+            (mut ? '<div class="pets-card__meta">' + mutationBadgeHtml(mut.id) + '</div>' : '') +
+            '<p class="pets-locker__equipped-line">' +
+              (equippedNow && equippedNow.id.indexOf('-none') === -1 && equippedNow.id !== 'catch-none'
+                ? 'Equipped · ' + esc(SLOT_LABELS[tab]) + ': <strong>' + esc(equippedNow.name) + '</strong>'
+                : 'Nothing equipped in ' + esc(SLOT_LABELS[tab])) +
+            '</p>' +
+          '</div>' +
+        '</aside>' +
+        '<section class="pets-locker__panel" aria-label="Cosmetic locker">' +
+          '<div class="pets-locker__tabs" role="tablist">' + tabsHtml + '</div>' +
+          '<div class="pets-locker__grid" role="list">' + gridHtml + '</div>' +
+        '</section>' +
       '</div>' +
       '<p class="pets__note">Want a brand-new brainrot? Use Request or Upload from the Pets hub — those go to the review queue first.</p>' +
     '</div>';
@@ -1952,6 +2231,8 @@
     maybeShowEventPopup: maybeShowEventPopup,
     dismissOverlayIfOpen: dismissOverlayIfOpen,
     starters: STARTERS,
+    catalog: CATALOG,
+    extended: EXTENDED,
     cosmeticCatalog: COSMETIC_CATALOG,
     mutations: MUTATIONS,
     skinStageForLevel: skinStageForLevel,
@@ -1959,6 +2240,7 @@
     grantXp: grantXp,
     equipCosmetic: equipCosmetic,
     tryMutationRoll: tryMutationRoll,
+    openChestPull: openChestPull,
     listPet: listPet,
     buyListing: buyListing,
     cancelListing: cancelListing,
@@ -1980,6 +2262,7 @@
     _MIN_LIST_LEVEL: MIN_LIST_LEVEL,
     _FEE_BPS: FEE_BPS,
     _START_DIAMONDS: START_DIAMONDS,
+    _CHEST_COST: CHEST_COST,
     _UPLOAD_MAX_BYTES: UPLOAD_MAX_BYTES,
     _UPLOAD_MAX_PENDING: UPLOAD_MAX_PENDING
   };
