@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 280" role="img" aria-label="Rivers and lakes in study filters">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#e8f4fb"/>
+      <stop offset="100%" stop-color="#eef7f1"/>
+    </linearGradient>
+    <linearGradient id="water" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#7ec8e3"/>
+      <stop offset="100%" stop-color="#3a8fb7"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="280" fill="url(#sky)"/>
+  <ellipse cx="170" cy="150" rx="120" ry="78" fill="#d7e7cf"/>
+  <ellipse cx="470" cy="145" rx="140" ry="88" fill="#dce9d4"/>
+  <path d="M40 70 C120 90, 140 40, 210 80 S300 160, 360 120 S450 60, 520 110 S600 180, 620 150"
+        fill="none" stroke="url(#water)" stroke-width="14" stroke-linecap="round"/>
+  <path d="M40 70 C120 90, 140 40, 210 80 S300 160, 360 120 S450 60, 520 110 S600 180, 620 150"
+        fill="none" stroke="#b9e4f5" stroke-width="4" stroke-linecap="round" opacity="0.7"/>
+  <ellipse cx="250" cy="185" rx="54" ry="34" fill="url(#water)"/>
+  <ellipse cx="238" cy="176" rx="18" ry="10" fill="#c9eaf6" opacity="0.55"/>
+  <rect x="72" y="214" width="150" height="36" rx="10" fill="#fff" stroke="#E6E8EC" stroke-width="2"/>
+  <text x="147" y="237" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="13" font-weight="700" fill="#0A0A0B">River to Country</text>
+  <rect x="418" y="214" width="150" height="36" rx="10" fill="#fff" stroke="#E6E8EC" stroke-width="2"/>
+  <text x="493" y="237" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="13" font-weight="700" fill="#0A0A0B">Lake to Country</text>
+</svg>

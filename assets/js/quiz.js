@@ -1,31 +1,57 @@
 /* ------------------------------------------------------------------
    LearnGeo — question generator
 
-   Six question shapes, all built from the same pool:
-     capital   country -> capital
-     country   capital -> country
-     locate    click the named country on the map
-     identify  a country is shaded -> which one is it?
-     flag      a flag is shown -> which country is it?
-     flagpick  a country is named -> which of four flags is its?
+   Ten question shapes, all built from the same country pool (rivers and
+   lakes hang off the countries they touch):
+     capital     country -> capital
+     country     capital -> country
+     locate      click the named country on the map
+     identify    a country is shaded -> which one is it?
+     flag        a flag is shown -> which country is it?
+     flagpick    a country is named -> which of four flags is its?
+     river       a river is named -> which country does it flow through?
+     riverpick   a country is named -> which river flows through it?
+     lake        a lake is named -> which country borders it?
+     lakepick    a country is named -> which lake is in or beside it?
 -------------------------------------------------------------------*/
 (function (global) {
   'use strict';
   var W = global.WW;
 
   var TYPES = {
-    capital:  { id: 'capital',  label: 'Country → Capital',    icon: 'pin' },
-    country:  { id: 'country',  label: 'Capital → Country',    icon: 'globe' },
-    locate:   { id: 'locate',   label: 'Locate on map',        icon: 'target' },
-    identify: { id: 'identify', label: 'Identify the country', icon: 'layers' },
-    flag:     { id: 'flag',     label: 'Flag → Country',       icon: 'flag' },
-    flagpick: { id: 'flagpick', label: 'Country → Flag',       icon: 'flag' }
+    capital:   { id: 'capital',   label: 'Country → Capital',    icon: 'pin' },
+    country:   { id: 'country',   label: 'Capital → Country',    icon: 'globe' },
+    locate:    { id: 'locate',    label: 'Locate on map',        icon: 'target' },
+    identify:  { id: 'identify',  label: 'Identify the country', icon: 'layers' },
+    flag:      { id: 'flag',      label: 'Flag → Country',       icon: 'flag' },
+    flagpick:  { id: 'flagpick',  label: 'Country → Flag',       icon: 'flag' },
+    river:     { id: 'river',     label: 'River → Country',      icon: 'water' },
+    riverpick: { id: 'riverpick', label: 'Country → River',      icon: 'water' },
+    lake:      { id: 'lake',      label: 'Lake → Country',       icon: 'water' },
+    lakepick:  { id: 'lakepick',  label: 'Country → Lake',       icon: 'water' }
   };
+
+  var HYDRO = { river: 1, riverpick: 1, lake: 1, lakepick: 1 };
 
   /* Only these can be answered by typing. A typed locate question would
      print its own answer in the prompt, and a flag cannot be typed. */
   function typeable(type) {
-    return type === 'capital' || type === 'country' || type === 'flag';
+    return type === 'capital' || type === 'country' || type === 'flag' ||
+      type === 'river' || type === 'riverpick' || type === 'lake' || type === 'lakepick';
+  }
+
+  function riversFor(c) {
+    var map = global.GeoData && global.GeoData.riversByCountry;
+    return (map && c && map[c.name]) || [];
+  }
+
+  function lakesFor(c) {
+    var map = global.GeoData && global.GeoData.lakesByCountry;
+    return (map && c && map[c.name]) || [];
+  }
+
+  function pickHydro(list) {
+    return list && list.length ? W.pick(list) : null;
   }
 
   /* Pairs that are the same flag to the eye: Chad and Romania differ by a
@@ -169,6 +195,8 @@
     if (type === 'locate' || type === 'identify') return mappable(c);
     if (type === 'capital' || type === 'country') return !givesAway(c);
     if (type === 'flag' || type === 'flagpick') return !!c.flag;
+    if (type === 'river' || type === 'riverpick') return riversFor(c).length > 0;
+    if (type === 'lake' || type === 'lakepick') return lakesFor(c).length > 0;
     return true;
   }
 
@@ -176,12 +204,51 @@
     if (fits(type, c)) return type;
     var alts = (type === 'locate' || type === 'identify')
       ? ['capital', 'country']
-      : (type === 'flag' || type === 'flagpick') ? ['identify', 'capital'] : ['identify', 'locate'];
+      : (type === 'flag' || type === 'flagpick') ? ['identify', 'capital']
+      : HYDRO[type] ? ['capital', 'country', 'identify']
+      : ['identify', 'locate'];
     for (var i = 0; i < alts.length; i++) if (fits(alts[i], c)) return alts[i];
     /* Gibraltar is the one place that fails both tests: no outline, and its
        own capital. A question that gives the answer away still beats one that
        cannot be answered at all, so the map shapes give way. */
     return (type === 'locate' || type === 'identify') ? alts[0] : type;
+  }
+
+  /* Wrong answers for a river or lake name. Prefer the same region so the
+     choice is a real test, and never re-offer the correct feature. */
+  function hydroNameDistractors(feature, kind, n) {
+    var all = (kind === 'lake' ? (global.GeoData.lakes || []) : (global.GeoData.rivers || []));
+    var same = all.filter(function (h) {
+      return h.name !== feature.name && h.region === feature.region;
+    });
+    var other = all.filter(function (h) {
+      return h.name !== feature.name && h.region !== feature.region;
+    });
+    var out = W.sample(same, n);
+    if (out.length < n) out = out.concat(W.sample(other, n - out.length));
+    var seen = {}, uniq = [];
+    out.forEach(function (h) {
+      if (seen[W.tight(h.name)]) return;
+      seen[W.tight(h.name)] = 1;
+      uniq.push(h);
+    });
+    return uniq.slice(0, n);
+  }
+
+  /* Country distractors for River/Lake → Country. Skip every country the
+     feature also touches — those would also be correct. */
+  function hydroCountryDistractors(feature, answer, all, n) {
+    var onFeature = {};
+    (feature.countries || []).forEach(function (nm) { onFeature[nm] = 1; });
+    var same = all.filter(function (c) {
+      return c.region === answer.region && !onFeature[c.name] && !clashes(c, answer, 'name');
+    });
+    var other = all.filter(function (c) {
+      return c.region !== answer.region && !onFeature[c.name] && !clashes(c, answer, 'name');
+    });
+    var out = W.sample(same, n);
+    if (out.length < n) out = out.concat(W.sample(other, n - out.length));
+    return out.slice(0, n);
   }
 
   function make(type, answer, all, opts) {
@@ -241,6 +308,66 @@
       q.answerText = answer.name;
       q.choices = build(answer, all, 'flag');
       q.flagChoices = true;
+    } else if (type === 'river') {
+      /* River → Country */
+      var river = pickHydro(riversFor(answer));
+      if (!river) return make('capital', answer, all, opts);
+      q.hydro = river;
+      q.prompt = 'Which country does this river flow through?';
+      q.subject = river.name;
+      q.sub = river.region + ' · river';
+      q.answerText = answer.name;
+      q.aliases = answer.nameAliases;
+      if (!q.typed) {
+        q.choices = W.shuffle([answer].concat(hydroCountryDistractors(river, answer, all, 3))).map(function (c) {
+          return { text: c.name, correct: c.name === answer.name, country: c };
+        });
+      }
+    } else if (type === 'riverpick') {
+      /* Country → River */
+      var riverAsk = pickHydro(riversFor(answer));
+      if (!riverAsk) return make('capital', answer, all, opts);
+      q.hydro = riverAsk;
+      q.prompt = 'Which river flows through';
+      q.subject = answer.name;
+      q.sub = answer.region;
+      q.answerText = riverAsk.name;
+      q.aliases = riverAsk.aliases || [];
+      if (!q.typed) {
+        q.choices = W.shuffle([riverAsk].concat(hydroNameDistractors(riverAsk, 'river', 3))).map(function (h) {
+          return { text: h.name, correct: h.name === riverAsk.name, hydro: h, country: answer };
+        });
+      }
+    } else if (type === 'lake') {
+      /* Lake → Country */
+      var lake = pickHydro(lakesFor(answer));
+      if (!lake) return make('capital', answer, all, opts);
+      q.hydro = lake;
+      q.prompt = 'Which country borders this lake?';
+      q.subject = lake.name;
+      q.sub = lake.region + ' · lake';
+      q.answerText = answer.name;
+      q.aliases = answer.nameAliases;
+      if (!q.typed) {
+        q.choices = W.shuffle([answer].concat(hydroCountryDistractors(lake, answer, all, 3))).map(function (c) {
+          return { text: c.name, correct: c.name === answer.name, country: c };
+        });
+      }
+    } else if (type === 'lakepick') {
+      /* Country → Lake */
+      var lakeAsk = pickHydro(lakesFor(answer));
+      if (!lakeAsk) return make('capital', answer, all, opts);
+      q.hydro = lakeAsk;
+      q.prompt = 'Which lake is in or beside';
+      q.subject = answer.name;
+      q.sub = answer.region;
+      q.answerText = lakeAsk.name;
+      q.aliases = lakeAsk.aliases || [];
+      if (!q.typed) {
+        q.choices = W.shuffle([lakeAsk].concat(hydroNameDistractors(lakeAsk, 'lake', 3))).map(function (h) {
+          return { text: h.name, correct: h.name === lakeAsk.name, hydro: h, country: answer };
+        });
+      }
     }
     return q;
 
@@ -282,10 +409,23 @@
     var picked = ordered.slice(0, n);
     if (config.shuffleAfterWeighting !== false) picked = W.shuffle(picked);
 
+    /* Rivers and lakes only exist for some countries. When a slot wants a
+       hydro question, prefer a place from the study set that actually has
+       one, so Filters → River/Lake does not quietly turn into capitals. */
+    var used = {};
     return picked.map(function (c, i) {
       var t = types[i % types.length];
+      var answer = c;
+      if (HYDRO[t] && !fits(t, c)) {
+        for (var j = 0; j < ordered.length; j++) {
+          var cand = ordered[j];
+          if (used[cand.name]) continue;
+          if (fits(t, cand)) { answer = cand; break; }
+        }
+      }
+      used[answer.name] = 1;
       /* make() settles the final shape and whether it can be typed */
-      return make(t, c, all, {
+      return make(t, answer, all, {
         typed: config.typed,
         nearbyMapChoices: !!config.nearbyMapChoices
       });

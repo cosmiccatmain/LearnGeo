@@ -59,7 +59,9 @@
     list:   svg('<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>'),
     home:   svg('<path d="M3 11.5 12 4l9 7.5"/><path d="M6 10.5V20h12v-9.5"/>'),
     /* Development / lab previews (Administrator → Development) */
-    flask:  svg('<path d="M9 3h6"/><path d="M10 3v6.5L4.8 18.2A2 2 0 0 0 6.5 21h11a2 2 0 0 0 1.7-2.8L14 9.5V3"/><path d="M7.5 14h9"/>')
+    flask:  svg('<path d="M9 3h6"/><path d="M10 3v6.5L4.8 18.2A2 2 0 0 0 6.5 21h11a2 2 0 0 0 1.7-2.8L14 9.5V3"/><path d="M7.5 14h9"/>'),
+    /* Rivers & lakes in study filters */
+    water:  svg('<path d="M12 2.5S7 9 7 13.2a5 5 0 0 0 10 0C17 9 12 2.5 12 2.5z"/>')
   };
 
   /* The verified seal. Solid rather than line art, because it has to read as

@@ -17,6 +17,13 @@
   /* Newest first. Bump `id` when shipping so returning users see it. */
   var UPDATES = [
     {
+      id: '2026-11-rivers-lakes-select',
+      title: 'Rivers & lakes in Select',
+      body: 'Study filters now include rivers and lakes alongside countries, capitals, and flags — turn them on when you set what to practise.',
+      image: '/assets/img/updates/rivers-lakes.svg',
+      date: '2026-11-05'
+    },
+    {
       id: '2026-11-border-crossing-gates',
       title: 'Border Crossing: clearer gates',
       body: 'The crossing gates now sit below the question sign, so the prompt stays readable while you pick a gate.',
