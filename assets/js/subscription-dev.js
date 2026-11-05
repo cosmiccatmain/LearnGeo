@@ -208,7 +208,7 @@
           '<p>The owner account <code>alexjschendel@gmail.com</code> and any admin who can open ' +
           'Administrator (UltraAdmin access).</p></article>' +
         '<article><h3>Pets / Mongolian Brainrot?</h3>' +
-          '<p>Not part of this preview. Those features stay removed and are not reintroduced here.</p></article>' +
+          '<p>Not part of this preview. Pets is a separate collab and is not gated by these test plans.</p></article>' +
       '</div>' +
 
       '<p class="subdev__foot">' +

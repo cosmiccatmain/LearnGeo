@@ -71,12 +71,27 @@
     document.body.appendChild(ov);
     document.body.classList.add('no-scroll');
     openModals.push(ov);
+    /* A homescreen pet event must not sit on top of Settings or any modal,
+       and a retry queued from Home has to die when this dialog opens. */
+    if (global.Pets && global.Pets.cancelEventPopup) global.Pets.cancelEventPopup();
 
     function close(reason) {
       ov.remove();
       openModals = openModals.filter(function (x) { return x !== ov; });
       if (!openModals.length) document.body.classList.remove('no-scroll');
       if (opts.onClose) opts.onClose(reason === 'navigation' ? reason : undefined);
+      /* After the dialog is gone, a student still on Home may see the pet
+         event. Teachers and any other view never do — maybeShow bails. */
+      if (!openModals.length && reason !== 'navigation' &&
+          global.Pets && global.Pets.maybeShowEventPopup &&
+          W.state.role !== 'teacher') {
+        var portalEl = document.getElementById('view-portal');
+        if (portalEl && !portalEl.classList.contains('hidden') &&
+            document.getElementById('app') &&
+            document.getElementById('app').classList.contains('is-open')) {
+          global.Pets.maybeShowEventPopup();
+        }
+      }
     }
     modalClosers.set(ov, close);
 
@@ -147,10 +162,11 @@
        class they are in and what its code is instead. */
     var fireEl = document.getElementById('hud-fire');
     if (fireEl) fireEl.classList.toggle('hidden', teacher || s.streak.current < 2);
-    ['hud-xp-chip', 'hud-gem-chip'].forEach(function (id) {
+    ['hud-xp-chip', 'hud-gem-chip', 'hud-pets-gem-chip'].forEach(function (id) {
       var n = document.getElementById(id);
       if (n) n.classList.toggle('hidden', teacher);
     });
+    if (global.Pets && global.Pets.refreshHudChip) global.Pets.refreshHudChip();
     classChip(teacher, s);
 
     var av = document.getElementById('avatar-slot');
@@ -1160,7 +1176,7 @@
   }
 
   /* ============================ NAVIGATION ========================== */
-  var VIEWS = ['portal', 'codex', 'classroom', 'teacher', 'learn', 'test', 'quiz', 'games'];
+  var VIEWS = ['portal', 'codex', 'classroom', 'teacher', 'learn', 'test', 'quiz', 'games', 'pets'];
 
   /* The switcher shows Classroom to students and Teacher to teachers, so
      teacher mode is a place you can leave and come back to rather than a
@@ -1176,7 +1192,8 @@
     { view: 'learn',     icon: 'book',   label: 'Learn',         role: null },
     { view: 'test',      icon: 'clip',   label: 'Practice test', role: null },
     { view: 'quiz',      icon: 'target', label: 'Class quiz',    role: null },
-    { view: 'games',     icon: 'gamepad', label: 'Games',        role: null }
+    { view: 'games',     icon: 'gamepad', label: 'Games',        role: null },
+    { view: 'pets',      icon: 'paw',    label: 'Pets',          role: null }
   ];
 
   function refreshTabs() {
@@ -1374,6 +1391,10 @@
 
     /* a game runs its own animation loop, which must not outlive its view */
     if (currentView === 'games' && view !== 'games' && global.Games) global.Games.stop();
+    if (currentView === 'pets' && view !== 'pets' && global.Pets && global.Pets.stop) global.Pets.stop();
+    /* Leaving Home, or opening any view as a teacher, drops a queued pet
+       event so it cannot land on My class, Settings, or another modal. */
+    if (view !== 'portal' && global.Pets && global.Pets.cancelEventPopup) global.Pets.cancelEventPopup();
 
     currentView = view;
     global.AppRouter.record(view, opts);
@@ -1390,7 +1411,10 @@
        start should never leave the switcher pointing at the wrong tab */
     positionThumb();
 
-    if (view === 'portal') global.Portal.render();
+    if (view === 'portal') {
+      global.Portal.render();
+      if (!isTeacher && global.Pets && global.Pets.maybeShowEventPopup) global.Pets.maybeShowEventPopup();
+    }
     if (view === 'codex') global.Codex.render();
     if (view === 'teacher') global.Teacher.render();
     if (view === 'classroom') global.Classroom.render();
@@ -1398,6 +1422,7 @@
     if (view === 'test') global.TestMode.start();
     if (view === 'quiz') global.QuizMode.start();
     if (view === 'games') global.Games.start();
+    if (view === 'pets' && global.Pets) global.Pets.start();
     settleThumb();                     /* correct for any reflow the mode caused */
     global.GeoMap.invalidate();
     refreshHud();
@@ -1488,6 +1513,7 @@
     if (global.QuizMode && global.QuizMode.active && global.QuizMode.active()) global.QuizMode.abandon();
     if (global.Games && global.Games.playing && global.Games.playing() && global.Games.abandon) global.Games.abandon();
     else if (global.Games && global.Games.stop) global.Games.stop();
+    if (global.Pets && global.Pets.cancelEventPopup) global.Pets.cancelEventPopup();
     document.getElementById('app').classList.remove('is-open');
     document.getElementById('landing').classList.remove('hidden');
     global.AppRouter.record(null, opts);
