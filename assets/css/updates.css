@@ -1,0 +1,145 @@
+/* ------------------------------------------------------------------
+   LearnGeo — product update announcement card (LEA-28).
+   Hero image on top, title + short body underneath. Paper card, not a
+   gradient slab — same announcement polish as a real product update.
+-------------------------------------------------------------------*/
+
+.lg-update-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 190; /* below .overlay (200); above pets event (typically ~180) */
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(10, 10, 11, .42);
+  animation: lg-update-fade .22s var(--ease, ease) both;
+}
+
+.lg-update {
+  position: relative;
+  width: 100%;
+  max-width: 460px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  border-radius: 22px;
+  padding: 0;
+  background: #f7f8fb;
+  border: 1.5px solid rgba(30, 40, 70, .12);
+  box-shadow: 0 16px 40px rgba(20, 24, 40, .14);
+  color: var(--ink, #12141a);
+  text-align: left;
+  overflow: hidden;
+  isolation: isolate;
+  animation: lg-update-rise .28s var(--spring, ease) both;
+}
+
+.lg-update__media {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 7;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, .25), transparent 42%),
+    linear-gradient(120deg, #eef2ff 0%, #e7f7f1 52%, #fff8e8 100%);
+  overflow: hidden;
+  border-bottom: 1px solid rgba(30, 40, 70, .08);
+}
+
+.lg-update__img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center center;
+}
+
+.lg-update__body {
+  position: relative;
+  padding: 18px 20px 20px;
+}
+
+.lg-update__eyebrow {
+  font-family: var(--mono, ui-monospace, monospace);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--muted, #5b6578);
+  margin: 0 0 8px;
+}
+
+.lg-update__title {
+  position: relative;
+  font-size: clamp(18px, 2.8vw, 24px);
+  font-weight: 800;
+  letter-spacing: -.02em;
+  line-height: 1.2;
+  margin: 0;
+  color: var(--ink, #12141a);
+}
+
+.lg-update__desc {
+  margin: 10px 0 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ink-2, #3a4254);
+  max-width: 54ch;
+}
+
+.lg-update__actions {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-start;
+  margin-top: 16px;
+}
+
+.lg-update__close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 2;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .92);
+  color: var(--ink-2, #3a4254);
+  border: 1px solid rgba(30, 40, 70, .12);
+  box-shadow: 0 1px 3px rgba(10, 10, 11, .08);
+}
+
+.lg-update__close:hover {
+  background: #fff;
+  color: var(--ink, #12141a);
+}
+
+.lg-update__close svg {
+  width: 16px;
+  height: 16px;
+}
+
+@keyframes lg-update-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes lg-update-rise {
+  from { opacity: 0; transform: translateY(12px) scale(.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (max-width: 520px) {
+  .lg-update { border-radius: 18px; }
+  .lg-update__body { padding: 16px 16px 18px; }
+  .lg-update__media { aspect-ratio: 16 / 8; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lg-update-overlay,
+  .lg-update {
+    animation: none !important;
+  }
+}

@@ -2817,7 +2817,9 @@
   }
 
   function blockingOverlay() {
-    return !!(document.querySelector('.overlay, .role-pick, .menu, .pets-chest-overlay, .pets-event-overlay'));
+    return !!(document.querySelector(
+      '.overlay, .role-pick, .menu, .pets-chest-overlay, .pets-event-overlay, .lg-update-overlay'
+    ));
   }
 
   function showEventPopup() {

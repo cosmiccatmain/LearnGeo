@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 280" role="img" aria-label="Border Crossing gates under a question sign">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#dce9ff"/>
+      <stop offset="55%" stop-color="#eef4ff"/>
+      <stop offset="100%" stop-color="#f7fafc"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="280" fill="url(#sky)"/>
+  <rect x="0" y="210" width="640" height="70" fill="#d7e4cf"/>
+  <rect x="0" y="210" width="640" height="8" fill="#b9c9ae"/>
+  <!-- question sign -->
+  <g transform="translate(288 36)">
+    <rect x="28" y="0" width="8" height="52" rx="2" fill="#1B4DFF"/>
+    <rect x="0" y="0" width="64" height="44" rx="10" fill="#0A0A0B"/>
+    <text x="32" y="31" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="26" font-weight="700" fill="#fff">?</text>
+  </g>
+  <!-- left gate -->
+  <g transform="translate(110 118)">
+    <rect x="0" y="0" width="150" height="96" rx="14" fill="#fff" stroke="#E6E8EC" stroke-width="3"/>
+    <rect x="18" y="22" width="114" height="10" rx="5" fill="#1B4DFF"/>
+    <rect x="28" y="44" width="94" height="8" rx="4" fill="#E6E8EC"/>
+    <rect x="38" y="62" width="74" height="8" rx="4" fill="#F1F2F5"/>
+  </g>
+  <!-- right gate -->
+  <g transform="translate(380 118)">
+    <rect x="0" y="0" width="150" height="96" rx="14" fill="#fff" stroke="#E6E8EC" stroke-width="3"/>
+    <rect x="18" y="22" width="114" height="10" rx="5" fill="#0E9F6E"/>
+    <rect x="28" y="44" width="94" height="8" rx="4" fill="#E6E8EC"/>
+    <rect x="38" y="62" width="74" height="8" rx="4" fill="#F1F2F5"/>
+  </g>
+</svg>

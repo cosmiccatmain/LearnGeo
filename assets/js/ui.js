@@ -71,24 +71,31 @@
     document.body.appendChild(ov);
     document.body.classList.add('no-scroll');
     openModals.push(ov);
-    /* A homescreen pet event must not sit on top of Settings or any modal,
-       and a retry queued from Home has to die when this dialog opens. */
+    /* A homescreen pet event / product update must not sit on top of
+       Settings or any modal, and a retry queued from Home has to die
+       when this dialog opens. */
     if (global.Pets && global.Pets.cancelEventPopup) global.Pets.cancelEventPopup();
+    if (global.LearnGeoUpdates && global.LearnGeoUpdates.cancel) global.LearnGeoUpdates.cancel();
 
     function close(reason) {
       ov.remove();
       openModals = openModals.filter(function (x) { return x !== ov; });
       if (!openModals.length) document.body.classList.remove('no-scroll');
       if (opts.onClose) opts.onClose(reason === 'navigation' ? reason : undefined);
-      /* After the dialog is gone, a student still on Home may see the pet
-         event. Teachers and any other view never do — maybeShow bails. */
-      if (!openModals.length && reason !== 'navigation' &&
-          global.Pets && global.Pets.maybeShowEventPopup &&
-          W.state.role !== 'teacher') {
+      /* After the dialog is gone, Home may show a product update (then
+         the pet event). Teachers get the public update on their class home. */
+      if (!openModals.length && reason !== 'navigation') {
+        var appEl = document.getElementById('app');
+        var appOpen = appEl && appEl.classList.contains('is-open');
         var portalEl = document.getElementById('view-portal');
-        if (portalEl && !portalEl.classList.contains('hidden') &&
-            document.getElementById('app') &&
-            document.getElementById('app').classList.contains('is-open')) {
+        var teacherEl = document.getElementById('view-teacher');
+        var onPortal = portalEl && !portalEl.classList.contains('hidden');
+        var onTeacher = teacherEl && !teacherEl.classList.contains('hidden');
+        if (appOpen && (onPortal || onTeacher) &&
+            global.LearnGeoUpdates && global.LearnGeoUpdates.maybeShow) {
+          global.LearnGeoUpdates.maybeShow();
+        } else if (appOpen && onPortal && W.state.role !== 'teacher' &&
+            global.Pets && global.Pets.maybeShowEventPopup) {
           global.Pets.maybeShowEventPopup();
         }
       }
@@ -1396,9 +1403,18 @@
     /* a game runs its own animation loop, which must not outlive its view */
     if (currentView === 'games' && view !== 'games' && global.Games) global.Games.stop();
     if (currentView === 'pets' && view !== 'pets' && global.Pets && global.Pets.stop) global.Pets.stop();
-    /* Leaving Home, or opening any view as a teacher, drops a queued pet
-       event so it cannot land on My class, Settings, or another modal. */
+    /* Leaving Home drops a queued pet event / product update so it cannot
+       land on Settings, Games, or another modal. Teachers keep updates on
+       their class home; cancel only when leaving that view. */
     if (view !== 'portal' && global.Pets && global.Pets.cancelEventPopup) global.Pets.cancelEventPopup();
+    if (view !== 'portal' && view !== 'teacher' &&
+        global.LearnGeoUpdates && global.LearnGeoUpdates.cancel) {
+      global.LearnGeoUpdates.cancel();
+    }
+    if (view === 'portal' && isTeacher &&
+        global.LearnGeoUpdates && global.LearnGeoUpdates.cancel) {
+      global.LearnGeoUpdates.cancel();
+    }
 
     currentView = view;
     global.AppRouter.record(view, opts);
@@ -1417,10 +1433,19 @@
 
     if (view === 'portal') {
       global.Portal.render();
-      if (!isTeacher && global.Pets && global.Pets.maybeShowEventPopup) global.Pets.maybeShowEventPopup();
+      if (global.LearnGeoUpdates && global.LearnGeoUpdates.maybeShow) global.LearnGeoUpdates.maybeShow();
+      /* Pets waits while a product update is pending; dismiss hands off. */
+      if (!isTeacher && global.Pets && global.Pets.maybeShowEventPopup &&
+          !(global.LearnGeoUpdates && global.LearnGeoUpdates.needsShow &&
+            global.LearnGeoUpdates.needsShow())) {
+        global.Pets.maybeShowEventPopup();
+      }
     }
     if (view === 'codex') global.Codex.render();
-    if (view === 'teacher') global.Teacher.render();
+    if (view === 'teacher') {
+      global.Teacher.render();
+      if (global.LearnGeoUpdates && global.LearnGeoUpdates.maybeShow) global.LearnGeoUpdates.maybeShow();
+    }
     if (view === 'classroom') global.Classroom.render();
     if (view === 'learn') global.LearnMode.start();
     if (view === 'test') global.TestMode.start();
@@ -1518,6 +1543,7 @@
     if (global.Games && global.Games.playing && global.Games.playing() && global.Games.abandon) global.Games.abandon();
     else if (global.Games && global.Games.stop) global.Games.stop();
     if (global.Pets && global.Pets.cancelEventPopup) global.Pets.cancelEventPopup();
+    if (global.LearnGeoUpdates && global.LearnGeoUpdates.cancel) global.LearnGeoUpdates.cancel();
     document.getElementById('app').classList.remove('is-open');
     document.getElementById('landing').classList.remove('hidden');
     global.AppRouter.record(null, opts);
