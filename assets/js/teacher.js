@@ -331,7 +331,11 @@
       return p;
     }
 
-    (c.members || []).forEach(function (m) { if (m && m.name) add(m.id || '', m.name); });
+    (c.members || []).forEach(function (m) {
+      if (!m || !m.name) return;
+      var p = add(m.id || '', m.name);
+      if (Array.isArray(m.secrets)) p.secrets = m.secrets;
+    });
     c.roster.forEach(function (n) { if (n) add('', n); });
     c.results.forEach(function (r) { if (r && r.name) add(r.studentId || '', r.name); });
     return out.sort(function (a, b) { return a.name < b.name ? -1 : a.name > b.name ? 1 : 0; });
@@ -950,7 +954,8 @@
                 '<div class="person__av">' + W.escapeHtml(initials(p.name)) + '</div>' +
                 '<div class="person__t"><b>' + W.escapeHtml(p.name) + '</b>' +
                   '<span>' + done + ' of ' + list.length + ' handed in' +
-                  (mean !== null ? ' · average ' + mean + '%' : '') + '</span></div>' +
+                  (mean !== null ? ' · average ' + mean + '%' : '') +
+                  secretsNote(p) + '</span></div>' +
                 '<span class="pill-tag ' + (list.length && done === list.length ? 'pill-tag--done' : '') + '">' +
                   (list.length ? Math.round((done / list.length) * 100) + '%' : '—') + '</span>' +
                 '<button class="icon-btn" data-rmperson="1" ' + who(p) + ' title="Remove">' +
@@ -960,6 +965,20 @@
           : emptyCta(I.users, 'No students yet',
               'Add students by name, or they’ll show up here once they send in results.')) +
       '</div>';
+  }
+
+  /* How many of the hidden secrets (secrets.js) a student has found,
+     with their names on hover. Nothing for a student who has found none. */
+  function secretsNote(p) {
+    var ids = p.secrets || [];
+    if (!ids.length) return '';
+    var S = global.Secrets;
+    var names = ids.map(function (id) {
+      var x = S && S.find(id);
+      return x ? x.name : id;
+    }).join(', ');
+    return ' · <span title="' + W.escapeHtml('Secrets found: ' + names) + '">🥚 ' + ids.length +
+      '/' + (S ? S.total : 12) + ' secrets</span>';
   }
 
   /* ============================ analytics =========================== */

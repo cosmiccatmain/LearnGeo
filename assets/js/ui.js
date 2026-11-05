@@ -229,6 +229,10 @@
             (global.Badges ? global.Badges.markup(null, 12) : '') + '</div>' +
           '<div class="menu__meta">' + roleLabel + ' · Lv ' + s.economy.level + ' · ' + lp.have + '/' + lp.need + ' XP · ' +
             s.economy.diamonds.toLocaleString() + ' 💎</div>' +
+          (global.Secrets && s.role !== 'teacher'
+            ? '<div class="menu__meta" style="opacity:.75">Secrets found: ' +
+                global.Secrets.count() + '/' + global.Secrets.total + '</div>'
+            : '') +
         '</div>' +
       '</div>' +
       acctBlock() +
