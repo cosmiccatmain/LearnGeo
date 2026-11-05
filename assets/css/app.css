@@ -1,22 +1,23 @@
 /* ==================================================================
    LearnGeo
-   Design language: white paper, hairline rules, one accent,
-   monospace for anything numeric. Restraint over decoration.
+   Design language: cool atlas paper, teal accent, expressive display,
+   monospace for anything numeric. Atmosphere over flat white.
    ================================================================== */
 
 :root {
-  --ink:        #0A0A0B;
-  --ink-2:      #3F4147;
-  --muted:      #6B7280;
-  --faint:      #9CA3AF;
-  --line:       #E6E8EC;
-  --line-soft:  #F1F2F5;
-  --paper:      #FAFAFB;
-  --white:      #FFFFFF;
+  --ink:        #0B1520;
+  --ink-2:      #3A4A56;
+  --muted:      #5B6B76;
+  --faint:      #8A9AA6;
+  --line:       #D5E0E6;
+  --line-soft:  #E8EEF1;
+  --paper:      #EEF3F5;
+  --white:      #FCFDFE;
 
-  --accent:      #1B4DFF;
-  --accent-ink:  #143BC4;
-  --accent-soft: #EEF2FF;
+  --accent:      #0C8F7F;
+  --accent-ink:  #0A6F63;
+  --accent-soft: #E4F5F2;
+  --accent-rgb:  12, 143, 127;
 
   --success:      #0E9F6E;
   --success-soft: #E7F7F1;
@@ -30,19 +31,18 @@
   --r-lg: 16px;
   --r-xl: 24px;
 
-  --shadow-sm: 0 1px 2px rgba(10,10,11,.05);
-  --shadow:    0 2px 8px rgba(10,10,11,.06), 0 1px 2px rgba(10,10,11,.04);
-  --shadow-lg: 0 12px 40px rgba(10,10,11,.10), 0 2px 8px rgba(10,10,11,.05);
-  --shadow-xl: 0 24px 70px rgba(10,10,11,.16);
+  --shadow-sm: 0 1px 2px rgba(11,21,32,.05);
+  --shadow:    0 2px 10px rgba(11,21,32,.06), 0 1px 2px rgba(11,21,32,.04);
+  --shadow-lg: 0 14px 42px rgba(11,21,32,.10), 0 2px 8px rgba(11,21,32,.05);
+  --shadow-xl: 0 24px 70px rgba(11,21,32,.15);
 
   --emoji: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', 'Twemoji Mozilla', sans-serif;
-  --sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif, var(--emoji);
+  --sans: 'Plus Jakarta Sans', 'Segoe UI', Helvetica, Arial, sans-serif, var(--emoji);
   --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace, var(--emoji);
-  --serif: 'Instrument Serif', 'EB Garamond', Georgia, 'Times New Roman', serif;
-  /* --serif is a display face: one weight, condensed, built for big sizes.
-     Paragraphs set in it come out cramped and thin, so running text that
-     wants to look like a book uses --serif-text instead. */
-  --serif-text: 'EB Garamond', Georgia, 'Times New Roman', serif;
+  /* Display face for brand + big headlines. Codex still reads --serif /
+     --serif-text; both now point at the same expressive family stack. */
+  --serif: 'Syne', 'Plus Jakarta Sans', sans-serif;
+  --serif-text: 'Plus Jakarta Sans', 'Segoe UI', Helvetica, Arial, sans-serif;
 
   --topbar-h: 60px;
   --ease: cubic-bezier(.22,.61,.36,1);
@@ -53,7 +53,7 @@
 
 html, body {
   margin: 0; padding: 0; height: 100%;
-  background: var(--white);
+  background: var(--paper);
   color: var(--ink);
   font-family: var(--sans);
   font-size: 15px;
@@ -98,7 +98,7 @@ a { color: inherit; text-decoration: none; }
 .btn:active { transform: translateY(1px); }
 .btn--primary { background: var(--ink); color: #fff; }
 .btn--primary:hover { background: #26272B; }
-.btn--accent  { background: var(--accent); color: #fff; box-shadow: 0 1px 2px rgba(27,77,255,.3); }
+.btn--accent  { background: var(--accent); color: #fff; box-shadow: 0 1px 2px rgba(var(--accent-rgb),.3); }
 .btn--accent:hover { background: var(--accent-ink); }
 .btn--ghost   { border-color: var(--line); background: var(--white); color: var(--ink); }
 .btn--ghost:hover { border-color: #D3D7DE; background: var(--paper); }
@@ -118,21 +118,23 @@ a { color: inherit; text-decoration: none; }
   height: var(--topbar-h);
   display: flex; align-items: center; gap: 28px;
   padding: 0 32px;
-  background: rgba(255,255,255,.82);
-  backdrop-filter: saturate(180%) blur(14px);
-  -webkit-backdrop-filter: saturate(180%) blur(14px);
-  border-bottom: 1px solid var(--line);
+  background: rgba(252,253,254,.78);
+  backdrop-filter: saturate(160%) blur(16px);
+  -webkit-backdrop-filter: saturate(160%) blur(16px);
+  border-bottom: 1px solid rgba(213,224,230,.72);
 }
 .nav__links { display: flex; gap: 26px; margin-left: 8px; }
 .nav__links a { font-size: 14px; color: var(--muted); font-weight: 500; transition: color .15s; }
 .nav__links a:hover { color: var(--ink); }
 .nav__spacer { flex: 1; }
 
-.brand { display: inline-flex; align-items: center; gap: 9px; font-weight: 660; letter-spacing: -.028em; font-size: 16px; }
+.brand { display: inline-flex; align-items: center; gap: 9px; font-family: var(--serif); font-weight: 700; letter-spacing: -.03em; font-size: 17px; }
 .brand__mark {
-  width: 24px; height: 24px; border-radius: 7px;
-  background: var(--ink); color: #fff;
+  width: 26px; height: 26px; border-radius: 8px;
+  background: linear-gradient(145deg, #0C8F7F 0%, #0B1520 100%);
+  color: #fff;
   display: grid; place-items: center;
+  box-shadow: 0 1px 0 rgba(255,255,255,.18) inset, 0 4px 12px rgba(var(--accent-rgb),.22);
 }
 .brand__mark svg { width: 15px; height: 15px; }
 
@@ -194,11 +196,11 @@ a { color: inherit; text-decoration: none; }
 .hero__grid {
   position: absolute; inset: 0; z-index: 0; pointer-events: none;
   background-image:
-    linear-gradient(var(--line-soft) 1px, transparent 1px),
-    linear-gradient(90deg, var(--line-soft) 1px, transparent 1px);
-  background-size: 64px 64px;
-  -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 35%, #000 25%, transparent 78%);
-          mask-image: radial-gradient(ellipse 70% 60% at 50% 35%, #000 25%, transparent 78%);
+    linear-gradient(rgba(12,143,127,.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(12,143,127,.07) 1px, transparent 1px);
+  background-size: 72px 72px;
+  -webkit-mask-image: radial-gradient(ellipse 72% 62% at 50% 35%, #000 22%, transparent 78%);
+          mask-image: radial-gradient(ellipse 72% 62% at 50% 35%, #000 22%, transparent 78%);
 }
 /* The colour wash lives in here rather than on .hero itself. Its blur
    paints far outside its own box, and the hero no longer clips anything,
@@ -213,7 +215,7 @@ a { color: inherit; text-decoration: none; }
   margin: 0 auto; max-width: 16ch;
   font-family: var(--serif);
   font-size: clamp(52px, 8.4vw, 108px);
-  font-weight: 400; letter-spacing: -.018em; line-height: 1.02;
+  font-weight: 700; letter-spacing: -.03em; line-height: 1.02;
   text-wrap: balance;
 }
 .hero h1 em { font-style: normal; color: var(--accent); }
@@ -226,16 +228,18 @@ a { color: inherit; text-decoration: none; }
    quiet as a note on white would be. */
 .hero__note { margin-top: 16px; font-size: 13px; color: var(--muted); }
 
-/* stat strip — a card tucked under the hero rather than four numbers
-   floating in the white space between two sections */
+/* stat strip under the hero — quiet rail, not a floating card */
 .stats {
   position: relative; z-index: 2;
-  width: min(940px, calc(100% - 40px)); margin: -34px auto 0;
+  width: min(940px, calc(100% - 40px)); margin: -18px auto 0;
   display: grid; grid-template-columns: repeat(4, 1fr);
-  background: var(--white);
-  border: 1px solid var(--line); border-radius: var(--r-xl);
-  box-shadow: var(--shadow-lg);
-  overflow: hidden;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  overflow: visible;
+  border-top: 1px solid rgba(213,224,230,.9);
+  border-bottom: 1px solid rgba(213,224,230,.9);
 }
 .stat {
   padding: 26px 10px; text-align: center;
@@ -381,7 +385,10 @@ a { color: inherit; text-decoration: none; }
 .topbar {
   height: var(--topbar-h); flex: none;
   display: flex; align-items: center; gap: 10px; padding: 0 18px;
-  border-bottom: 1px solid var(--line); background: var(--white);
+  border-bottom: 1px solid rgba(213,224,230,.85);
+  background: rgba(252,253,254,.92);
+  backdrop-filter: saturate(150%) blur(12px);
+  -webkit-backdrop-filter: saturate(150%) blur(12px);
   position: relative; z-index: 60;
 }
 /* Mode switcher: a single pill slides between the three tabs rather than
@@ -453,7 +460,7 @@ a { color: inherit; text-decoration: none; }
    chip's title carries the exact figure either way. */
 #hud-gems-short { display: none; }
 #hud-pets-gems-short { display: none; }
-.hud__xp   { color: var(--accent); border-color: #C7D2FE; background: var(--accent-soft); }
+.hud__xp   { color: var(--accent); border-color: rgba(var(--accent-rgb),.28); background: var(--accent-soft); }
 .hud__fire { color: #B45309; border-color: #FDE68A; background: #FFFBEB; }
 
 /* the teacher's half of the top bar: which class, and the code for it */
@@ -558,7 +565,10 @@ a { color: inherit; text-decoration: none; }
 
 .sidebar {
   width: 400px; flex: none; border-right: 1px solid var(--line);
-  display: flex; flex-direction: column; min-height: 0; background: var(--white);
+  display: flex; flex-direction: column; min-height: 0;
+  background:
+    linear-gradient(180deg, rgba(var(--accent-rgb),.035), transparent 120px),
+    var(--white);
 }
 .sidebar__head { padding: 18px 22px 14px; border-bottom: 1px solid var(--line); flex: none; }
 .sidebar__title { font-size: 17px; font-weight: 620; letter-spacing: -.022em; }
@@ -705,7 +715,7 @@ a { color: inherit; text-decoration: none; }
   border: 1px solid var(--line); border-radius: 11px; background: var(--white);
   font-size: 15px; transition: border-color .14s, box-shadow .14s;
 }
-.answer-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(27,77,255,.12); }
+.answer-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(var(--accent-rgb),.12); }
 
 /* feedback strip */
 .feedback {
@@ -769,7 +779,7 @@ a { color: inherit; text-decoration: none; }
 .check.is-on {
   border-color: var(--accent); background: var(--accent-soft);
   color: var(--accent-ink); font-weight: 550;
-  box-shadow: 0 0 0 3px rgba(27,77,255,.08);
+  box-shadow: 0 0 0 3px rgba(var(--accent-rgb),.08);
 }
 /* The tick is drawn on, not faded in, and the box springs slightly as it
    fills. Sized so the glyph sits inside the box instead of overflowing it. */
@@ -801,12 +811,12 @@ select.input, input.input {
   border: 1px solid var(--line); border-radius: 9px; background: var(--white);
   font-size: 14px;
 }
-select.input:focus, input.input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(27,77,255,.12); }
+select.input:focus, input.input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(var(--accent-rgb),.12); }
 textarea.input {
   width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 9px;
   font-size: 14px; resize: vertical; min-height: 84px;
 }
-textarea.input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(27,77,255,.12); }
+textarea.input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(var(--accent-rgb),.12); }
 
 /* ---------------- test mode: navigator + report ------------------ */
 /* Test mode question navigator: a full-width strip directly under the
@@ -1158,8 +1168,8 @@ textarea.input:focus { outline: none; border-color: var(--accent); box-shadow: 0
   animation: rise .4s var(--ease), glow 2.4s ease-in-out infinite;
 }
 @keyframes glow {
-  0%,100% { box-shadow: 0 0 0 0 rgba(27,77,255,.32); }
-  50%     { box-shadow: 0 0 0 20px rgba(27,77,255,0); }
+  0%,100% { box-shadow: 0 0 0 0 rgba(var(--accent-rgb),.32); }
+  50%     { box-shadow: 0 0 0 20px rgba(var(--accent-rgb),0); }
 }
 .levelup h3 { font-size: 24px; letter-spacing: -.03em; }
 .levelup p  { margin-top: 8px; color: var(--muted); font-size: 14.5px; }
@@ -1310,7 +1320,11 @@ textarea.input:focus { outline: none; border-color: var(--accent); box-shadow: 0
    PORTAL — the study centre home screen
    ================================================================ */
 .portal {
-  flex: 1; overflow-y: auto; background: var(--paper);
+  flex: 1; overflow-y: auto;
+  background:
+    radial-gradient(ellipse 70% 40% at 12% -10%, rgba(var(--accent-rgb),.08), transparent 55%),
+    radial-gradient(ellipse 50% 35% at 90% 0%, rgba(56,189,248,.07), transparent 50%),
+    var(--paper);
 }
 .portal__inner { max-width: 1080px; margin: 0 auto; padding: 38px 32px 60px; }
 
@@ -1796,7 +1810,7 @@ textarea.input:focus { outline: none; border-color: var(--accent); box-shadow: 0
   display: grid; place-items: center; width: 16px; height: 16px;
   border-radius: 4px; color: var(--accent); opacity: .65;
 }
-.token button:hover { opacity: 1; background: rgba(27,77,255,.12); }
+.token button:hover { opacity: 1; background: rgba(var(--accent-rgb),.12); }
 .token svg { width: 11px; height: 11px; stroke-width: 2.5; }
 
 .picker__hits { border-top: 1px solid var(--line-soft); max-height: 190px; overflow-y: auto; }
@@ -1824,7 +1838,7 @@ textarea.input:focus { outline: none; border-color: var(--accent); box-shadow: 0
 .teacher-hero {
   border-bottom: 1px solid var(--line);
   background:
-    radial-gradient(ellipse 80% 60% at 50% 0%, #F3F6FF 0%, transparent 70%),
+    radial-gradient(ellipse 80% 60% at 50% 0%, rgba(var(--accent-rgb),.10) 0%, transparent 70%),
     var(--white);
 }
 .tcard {
@@ -1879,7 +1893,7 @@ textarea.input:focus { outline: none; border-color: var(--accent); box-shadow: 0
 /* ---- class banner ---- */
 .cr-banner {
   position: relative; border-radius: 16px; overflow: hidden;
-  background: linear-gradient(120deg, #1B4DFF 0%, #3B6BFF 45%, #22D3EE 100%);
+  background: linear-gradient(120deg, #0A6F63 0%, #0C8F7F 45%, #38BDF8 100%);
   color: #fff; padding: 26px 28px; min-height: 148px;
   display: flex; align-items: flex-end; justify-content: space-between; gap: 20px;
 }
@@ -2063,7 +2077,7 @@ textarea.input:focus { outline: none; border-color: var(--accent); box-shadow: 0
 }
 .st-post:last-child { margin-bottom: 0; }
 .st-post--pinned { border-color: #F2DA96; background: #FFFDF4; }
-.st-post--new { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(27,77,255,.07); }
+.st-post--new { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(var(--accent-rgb),.07); }
 .st-post__body {
   font-size: 14.5px; line-height: 1.6; color: var(--ink); overflow-wrap: anywhere;
 }
@@ -2143,7 +2157,7 @@ textarea.input:focus { outline: none; border-color: var(--accent); box-shadow: 0
   transition: border-color .16s, box-shadow .18s var(--ease), transform .16s var(--ease);
 }
 .role-opt:hover {
-  border-color: var(--accent); box-shadow: 0 0 0 3px rgba(27,77,255,.08);
+  border-color: var(--accent); box-shadow: 0 0 0 3px rgba(var(--accent-rgb),.08);
   transform: translateY(-2px);
 }
 .role-opt__i {

@@ -1,0 +1,205 @@
+/* ==================================================================
+   LearnGeo — public shell refresh (LEA-29)
+   Loaded after shared CSS so landing + app chrome pick up atmosphere
+   without rewriting every feature stylesheet. Keep update-popup /
+   feature CSS free to land alongside this file.
+   ================================================================== */
+
+:root {
+  --shell-mist: #E7F1F0;
+  --shell-deep: #07131C;
+}
+
+/* Soft atlas atmosphere behind the whole public landing page */
+.landing {
+  position: relative;
+  isolation: isolate;
+  background:
+    radial-gradient(ellipse 90% 55% at 8% -8%, rgba(var(--accent-rgb),.14), transparent 58%),
+    radial-gradient(ellipse 70% 45% at 92% 8%, rgba(56,189,248,.10), transparent 55%),
+    radial-gradient(ellipse 60% 40% at 50% 100%, rgba(var(--accent-rgb),.06), transparent 60%),
+    linear-gradient(180deg, #F7FBFC 0%, var(--paper) 38%, #F3F7F8 100%);
+}
+
+.landing::before {
+  content: "";
+  position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  opacity: .45;
+  background-image:
+    radial-gradient(rgba(11,21,32,.035) 0.7px, transparent 0.8px);
+  background-size: 18px 18px;
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, transparent 72%);
+          mask-image: linear-gradient(180deg, #000 0%, transparent 72%);
+}
+
+.landing > * { position: relative; z-index: 1; }
+
+/* Hero wash: living teal mist instead of flat white */
+.hero__wash::before,
+.hero__wash::after {
+  content: "";
+  position: absolute; border-radius: 50%; pointer-events: none;
+  filter: blur(40px);
+  animation: shell-drift 18s var(--ease) infinite alternate;
+}
+.hero__wash::before {
+  width: min(62vw, 720px); height: min(62vw, 720px);
+  left: -8%; top: -18%;
+  background: radial-gradient(circle, rgba(var(--accent-rgb),.22), transparent 68%);
+}
+.hero__wash::after {
+  width: min(48vw, 560px); height: min(48vw, 560px);
+  right: -6%; top: 8%;
+  background: radial-gradient(circle, rgba(56,189,248,.16), transparent 70%);
+  animation-delay: -6s;
+  animation-duration: 22s;
+}
+
+@keyframes shell-drift {
+  from { transform: translate3d(0, 0, 0) scale(1); }
+  to   { transform: translate3d(3%, 4%, 0) scale(1.06); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero__wash::before,
+  .hero__wash::after,
+  .brand__mark { animation: none !important; }
+}
+
+/* Brand mark: tiny presence motion */
+.brand__mark {
+  animation: shell-mark 5.5s var(--ease) infinite;
+}
+@keyframes shell-mark {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-1.5px); }
+}
+
+.nav .brand__text,
+.topbar .brand__text {
+  background: linear-gradient(120deg, var(--ink) 20%, var(--accent) 120%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Landing sections sit on the mist without extra card chrome */
+.landing .section {
+  position: relative;
+}
+.landing .section__head h2,
+.landing .try__copy h2 {
+  font-family: var(--serif);
+  font-weight: 700;
+  letter-spacing: -.028em;
+}
+
+/* Mode tiles: soft surface, not heavy cards */
+.landing .mode-card {
+  background: rgba(252,253,254,.72);
+  border-color: rgba(213,224,230,.85);
+  box-shadow: none;
+  backdrop-filter: blur(6px);
+}
+.landing .mode-card:hover {
+  border-color: rgba(var(--accent-rgb),.35);
+  box-shadow: var(--shadow);
+  background: var(--white);
+}
+
+.landing .section--paper {
+  background:
+    linear-gradient(180deg, rgba(var(--accent-rgb),.04), transparent 40%),
+    rgba(238,243,245,.85);
+  border-block-color: rgba(213,224,230,.8);
+}
+
+.stats .stat {
+  border-right-color: rgba(213,224,230,.85);
+}
+.stat__n { color: var(--ink); }
+.stat__l { letter-spacing: .01em; }
+
+/* App chrome: top bar already frosted in app.css; deepen the mode tabs */
+.app .tabs {
+  background: rgba(232,238,241,.9);
+  border: 1px solid rgba(213,224,230,.8);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.7);
+}
+.app .tabs__thumb {
+  background: linear-gradient(160deg, #123040, #0B1520 70%);
+  box-shadow: 0 2px 8px rgba(11,21,32,.28);
+}
+
+.app .hud__xp {
+  border-color: rgba(var(--accent-rgb),.28);
+}
+
+.app .sidebar__title {
+  font-family: var(--serif);
+  font-weight: 700;
+  letter-spacing: -.025em;
+}
+
+.app .panel,
+.app .home-hero,
+.app .portal-mode {
+  border-color: rgba(213,224,230,.95);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.92), rgba(252,253,254,.98));
+  box-shadow: var(--shadow-sm);
+}
+
+.app .portal-mode:hover {
+  border-color: rgba(var(--accent-rgb),.35);
+}
+
+.app .home-map {
+  background:
+    radial-gradient(ellipse 80% 70% at 50% 30%, rgba(var(--accent-rgb),.06), transparent 70%),
+    linear-gradient(180deg, #F4F8F9, #EAF1F3);
+}
+
+/* Auth screens share the public atmosphere */
+.auth-screen {
+  background:
+    radial-gradient(ellipse 70% 50% at 20% 0%, rgba(var(--accent-rgb),.12), transparent 55%),
+    radial-gradient(ellipse 50% 40% at 90% 10%, rgba(56,189,248,.08), transparent 50%),
+    var(--paper) !important;
+}
+
+/* Update popup (LEA-28): keep card chrome from updates.css; only nudge
+   the indigo media wash toward the atlas teal so it matches the shell. */
+.lg-update__media {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, .25), transparent 42%),
+    linear-gradient(120deg, #e4f5f2 0%, #e7f7f1 52%, #eaf6fb 100%);
+}
+.lg-update__title {
+  font-family: var(--serif);
+  font-weight: 700;
+}
+
+/* Mobile: keep brand readable, tighten spacing */
+@media (max-width: 860px) {
+  .landing {
+    background:
+      radial-gradient(ellipse 100% 40% at 50% -5%, rgba(var(--accent-rgb),.14), transparent 60%),
+      linear-gradient(180deg, #F7FBFC, var(--paper));
+  }
+  .hero--gem { padding-top: 56px; }
+  .nav { padding: 0 16px; gap: 12px; }
+}
+
+@media (max-width: 600px) {
+  .stats {
+    grid-template-columns: repeat(2, 1fr);
+    margin-top: 8px;
+  }
+  .stat:nth-child(2) { border-right: none; }
+  .stat:nth-child(1),
+  .stat:nth-child(2) {
+    border-bottom: 1px solid rgba(213,224,230,.9);
+  }
+  .topbar .brand__mark { width: 24px; height: 24px; }
+}

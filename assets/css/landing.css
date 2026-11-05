@@ -23,11 +23,17 @@
 
 .hero--gem h1 {
   max-width: none; margin: 0;
+  font-family: var(--serif);
   font-size: clamp(54px, 6.6vw, 92px);
-  line-height: 1.0; letter-spacing: -.02em;
+  font-weight: 700;
+  line-height: 1.0; letter-spacing: -.03em;
   text-wrap: wrap;
 }
 .hero__brand, .hero__for { display: block; }
+.hero__brand {
+  font-size: 1.08em;
+  letter-spacing: -.035em;
+}
 
 /* Each phrase is laid over the same cell. The cell takes the width of the
    longest one, so nothing shifts when the phrase changes. */
@@ -50,7 +56,7 @@
 }
 .hero__gem::before {
   content: ""; position: absolute; inset: 12%; border-radius: 50%;
-  background: radial-gradient(closest-side, rgba(27,77,255,.2), rgba(27,77,255,0));
+  background: radial-gradient(closest-side, rgba(var(--accent-rgb),.22), rgba(var(--accent-rgb),0));
   filter: blur(8px); pointer-events: none;
 }
 .hero__gem canvas {
@@ -63,7 +69,9 @@
 @media (max-width: 860px) {
   .hero--gem { padding: 64px 20px 56px; text-align: center; }
   .hero__inner { grid-template-columns: 1fr; justify-items: center; text-align: center; gap: 12px; }
-  .hero--gem h1 { font-size: clamp(44px, 13vw, 70px); }
+  .hero--gem h1 { font-size: clamp(40px, 11vw, 64px); }
+  .cycle { text-align: center; }
+  .cycle > span { white-space: normal; }
   .hero--gem .hero__sub { margin: 26px auto 0; }
   .hero--gem .hero__cta { justify-content: center; }
   .hero--gem .hero__note { text-align: center; }

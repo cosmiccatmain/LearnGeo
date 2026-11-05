@@ -17,7 +17,7 @@
 -------------------------------------------------------------------*/
 
 .cr--bg-default .cr-banner {
-  background: linear-gradient(120deg, #1B4DFF 0%, #3B6BFF 45%, #22D3EE 100%);
+  background: linear-gradient(120deg, #0A6F63 0%, #0C8F7F 45%, #38BDF8 100%);
 }
 .cr--bg-slate .cr-banner {
   background: linear-gradient(120deg, #334155 0%, #475569 45%, #94A3B8 100%);
@@ -64,7 +64,7 @@
 .bg-swatch.is-on { border-color: var(--accent); }
 .bg-swatch.is-on .bg-swatch__name { color: var(--ink); font-weight: 600; }
 
-.bg-swatch--default .bg-swatch__fill { background: linear-gradient(120deg, #1B4DFF, #3B6BFF 45%, #22D3EE); }
+.bg-swatch--default .bg-swatch__fill { background: linear-gradient(120deg, #0A6F63, #0C8F7F 45%, #38BDF8); }
 .bg-swatch--slate   .bg-swatch__fill { background: linear-gradient(120deg, #334155, #475569 45%, #94A3B8); }
 .bg-swatch--forest  .bg-swatch__fill { background: linear-gradient(120deg, #065F46, #0F8A5F 45%, #6EE7B7); }
 .bg-swatch--sunset  .bg-swatch__fill { background: linear-gradient(120deg, #B91C1C, #EA580C 45%, #FBBF24); }
@@ -116,7 +116,7 @@
 .cr-switch__sep { height: 1px; margin: 6px 4px; background: var(--line); }
 .cr-switch__add { color: var(--accent); font-weight: 600; }
 
-.cr-switch__dot--default { background: linear-gradient(120deg, #1B4DFF, #22D3EE); }
+.cr-switch__dot--default { background: linear-gradient(120deg, #0C8F7F, #38BDF8); }
 .cr-switch__dot--slate   { background: linear-gradient(120deg, #334155, #94A3B8); }
 .cr-switch__dot--forest  { background: linear-gradient(120deg, #065F46, #6EE7B7); }
 .cr-switch__dot--sunset  { background: linear-gradient(120deg, #B91C1C, #FBBF24); }

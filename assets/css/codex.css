@@ -1,10 +1,7 @@
 /* ==================================================================
    LearnGeo — the Codex tab: the hexagon evaluation and the Guild lore.
-   Same paper as the rest of the app. The only new idea here is that
-   the lore is set in a serif, so the archive reads as a different kind
-   of writing from the interface around it. Two serifs do that job:
-   --serif (Instrument Serif) for the big titles it was cut for, and
-   --serif-text (EB Garamond) for anything with more than a line in it.
+   Same paper as the rest of the app. Lore titles use --serif (Syne
+   display) and longer passages use --serif-text (Plus Jakarta Sans).
    ================================================================== */
 
 /* ============================= hexagon ============================ */
