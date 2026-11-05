@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>UltraAdmin bulk accounts harness</title>
+  <link rel="stylesheet" href="/assets/css/app.css">
+  <link rel="stylesheet" href="/assets/css/administrator.css">
+</head>
+<body>
+  <script src="/assets/js/core.js"></script>
+  <script src="/assets/js/ui.js"></script>
+  <script src="/tests/fixtures/ultra-bulk-stub.js"></script>
+  <script src="/assets/js/admin-ops.js"></script>
+  <script src="/assets/js/administrator.js"></script>
+  <script>
+    window.AdminOps.connect('test-code').then(function (r) {
+      window.__session = r;
+      window.Administrator.open();
+    });
+  </script>
+</body>
+</html>
