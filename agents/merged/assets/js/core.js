@@ -636,6 +636,36 @@
 
   function tight(s) { return normalise(s).replace(/ /g, ''); }
 
+  /* A canonical answer that lists three or more comma-separated names
+     (South Africa) is right only when every name is present. Order does
+     not matter, and commas, "and" and "&" fall out with the other
+     punctuation. Two-part answers such as "Washington, D.C." stay exact
+     matches, so this leaves them alone. */
+  function listsEveryName(inputNorm, canonical) {
+    var parts = String(canonical || '').split(',');
+    if (parts.length < 3) return false;
+    for (var i = 0; i < parts.length; i++) {
+      var phrase = normalise(parts[i]);
+      if (!phrase || !containsPhrase(inputNorm, phrase)) return false;
+    }
+    return true;
+  }
+
+  function containsPhrase(inputNorm, phraseNorm) {
+    var words = inputNorm.split(' ');
+    var goal = phraseNorm.replace(/ /g, '');
+    if (!goal) return false;
+    for (var i = 0; i < words.length; i++) {
+      var acc = '';
+      for (var j = i; j < words.length; j++) {
+        acc += words[j];
+        if (acc === goal) return true;
+        if (acc.length > goal.length) break;
+      }
+    }
+    return false;
+  }
+
   function matches(input, canonical, aliases) {
     var n = normalise(input);
     if (!n) return false;
@@ -644,6 +674,7 @@
     for (var i = 0; i < pool.length; i++) {
       /* accept either the spaced or the run-together spelling: "N'Djamena" / "ndjamena" */
       if (n === normalise(pool[i]) || t === tight(pool[i])) return true;
+      if (listsEveryName(n, pool[i])) return true;
     }
     return false;
   }

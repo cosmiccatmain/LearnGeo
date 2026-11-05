@@ -27,7 +27,7 @@
     ["Côte d'Ivoire", 'Yamoussoukro', 6.83, -5.29, 'Africa', 0],
     ['Djibouti', 'Djibouti', 11.59, 43.15, 'Africa', 0],
     ['Egypt', 'Cairo', 30.04, 31.24, 'Africa', 0],
-    ['Equatorial Guinea', 'Malabo', 3.75, 8.78, 'Africa', 0],
+    ['Equatorial Guinea', 'Ciudad de la Paz', 1.59, 10.82, 'Africa', 0],
     ['Eritrea', 'Asmara', 15.34, 38.93, 'Africa', 0],
     ['Eswatini', 'Mbabane', -26.32, 31.14, 'Africa', 0],
     ['Ethiopia', 'Addis Ababa', 9.03, 38.74, 'Africa', 0],
@@ -56,7 +56,8 @@
     ['Seychelles', 'Victoria', -4.62, 55.45, 'Africa', 0],
     ['Sierra Leone', 'Freetown', 8.48, -13.23, 'Africa', 0],
     ['Somalia', 'Mogadishu', 2.05, 45.32, 'Africa', 0],
-    ['South Africa', 'Pretoria', -25.75, 28.19, 'Africa', 0],
+    /* All three capitals are required. The coordinate is Pretoria, the administrative one. */
+    ['South Africa', 'Pretoria, Cape Town, Bloemfontein', -25.75, 28.19, 'Africa', 0],
     ['South Sudan', 'Juba', 4.85, 31.58, 'Africa', 0],
     ['Sudan', 'Khartoum', 15.50, 32.56, 'Africa', 0],
     ['Tanzania', 'Dodoma', -6.16, 35.75, 'Africa', 0],
@@ -279,12 +280,15 @@
     'Taiwan': ['republic of china', 'chinese taipei']
   };
 
-  /* Capitals with more than one defensible answer. */
+  /* Capitals with more than one defensible answer. An alias counts on its
+     own, in place of the capital above. South Africa is not in this list:
+     its capital string names all three, and a typed answer has to include
+     every one of them (see matches() in core.js). */
   var CAPITAL_ALIASES = {
     'Bolivia': ['la paz'],
     'Benin': ['cotonou'],
     "Côte d'Ivoire": ['abidjan'],
-    'South Africa': ['cape town', 'bloemfontein'],
+    'Equatorial Guinea': ['oyala', 'djibloho'],
     'Eswatini': ['lobamba'],
     'Netherlands': ['the hague'],
     'Sri Lanka': ['colombo', 'kotte', 'sri jayawardenepura'],
@@ -309,7 +313,8 @@
   /* Notes surfaced in Learn mode where the "right" answer needs context. */
   var NOTES = {
     'Bolivia': 'Sucre is the constitutional capital, but the government sits in La Paz.',
-    'South Africa': 'South Africa has three capitals. Pretoria is the executive one, Cape Town is legislative and Bloemfontein is judicial.',
+    'Equatorial Guinea': 'The capital moved from Malabo to Ciudad de la Paz (formerly Oyala) in 2026.',
+    'South Africa': 'South Africa has three capitals, and the answer has to name all three. Pretoria is administrative, Cape Town is legislative and Bloemfontein is judicial.',
     'Netherlands': 'Amsterdam is the capital in the constitution, but the government is based in The Hague.',
     'Benin': 'Porto-Novo is the official capital, but Cotonou is the seat of government.',
     "Côte d'Ivoire": 'Yamoussoukro is the official capital. Abidjan is the biggest city and the economic center.',
