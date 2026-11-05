@@ -132,12 +132,15 @@ a { color: inherit; text-decoration: none; }
 .brand { display: inline-flex; align-items: center; gap: 9px; font-weight: 660; letter-spacing: -.028em; font-size: 16px; }
 .brand__mark {
   width: 26px; height: 26px; border-radius: 8px;
-  background: linear-gradient(145deg, #0C8F7F 0%, #0B1520 100%);
+  background: transparent;
   color: #fff;
   display: grid; place-items: center;
-  box-shadow: 0 1px 0 rgba(255,255,255,.18) inset, 0 4px 12px rgba(var(--accent-rgb),.22);
+  flex: none;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(var(--accent-rgb),.22);
 }
-.brand__mark svg { width: 15px; height: 15px; }
+.brand__mark img,
+.brand__mark svg { width: 100%; height: 100%; display: block; }
 
 /* hero */
 /* Full width, not a 1180 column: the wash behind the words has to reach
