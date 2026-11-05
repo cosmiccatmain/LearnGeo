@@ -30,7 +30,7 @@
       }
     });
 
-    var run = null, E = null, cw = 0, ch = 0;
+    var run = null, E = null, cw = 0, ch = 0, top = 48;
 
     function fresh() {
       run = {
@@ -98,7 +98,7 @@
 
       var correct = !!gate.c.correct;
       var gains = K.award(correct, r.q.country.name);
-      var px = gate.x * cw * 0 + gate.x * E.view.w, py = ch * 0.5;
+      var px = gate.x * E.view.w, py = top + ch * 0.5;
 
       if (correct) {
         r.right += 1;
@@ -165,9 +165,14 @@
     }
 
     /* ------------------------------ draw ----------------------------- */
+    /* The question banner floats over the top of the canvas (game-banner
+       in app.css, top 52px, 46px on a phone) and grows a line when it shows
+       the last answer, two on a phone. The gates start below its tallest
+       so it never covers one. */
     function layout(view) {
       cw = view.w;
-      ch = (view.h - 54) / ROWS;
+      top = view.w < 620 ? 124 : 132;
+      ch = (view.h - top - 6) / ROWS;
     }
 
     function draw(ctx, view, clock) {
@@ -177,7 +182,6 @@
       if (!r) return;
       ctx.save();
       if (r.shake > 0) ctx.translate((Math.random() - 0.5) * r.shake * 12, 0);
-      var top = 48;
 
       /* rows */
       for (var row = 0; row < ROWS; row++) {
@@ -266,7 +270,9 @@
 
     E = K.engine(host, {
       cls: 'gk-crossing',
-      aspect: 1.35,
+      /* taller on a phone, so the room left for the banner does not
+         squeeze the lanes flat */
+      get aspect() { return (host.clientWidth || 800) < 620 ? 0.9 : 1.35; },
       stats: [['score', 'points'], ['right', 'right'], ['round', 'crossing']],
       intro: {
         eyebrow: 'Border Crossing', icon: I.pin,
@@ -288,7 +294,7 @@
       },
       pointer: function (kind, x, y) {
         if (kind !== 'down') return;
-        var myY = 48 + run.me.row * ch + ch / 2;
+        var myY = top + run.me.row * ch + ch / 2;
         var dx = x - run.me.x * E.view.w, dy = y - myY;
         if (Math.abs(dy) > ch * 0.5 && Math.abs(dy) > Math.abs(dx)) move(0, dy > 0 ? 1 : -1);
         else move(dx > 0 ? 1 : -1, 0);
