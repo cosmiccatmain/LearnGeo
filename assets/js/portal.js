@@ -99,7 +99,7 @@
       '<div class="home-hero__top">' +
         '<div class="portal__avatar">' + W.avatarHtml(s.profile) + '</div>' +
         '<div class="home-hero__hello grow">' +
-          '<div aria-hidden="true" style="font-size:1px;line-height:1px;color:#9ca3af;user-select:none">Tayt Scheflen</div>' +
+          '<div class="secret-tayt" aria-hidden="true" style="font-size:1px;line-height:1px;color:#9ca3af;user-select:none">Tayt Scheflen</div>' +
           '<h1>' + greeting() + ', ' + W.escapeHtml(s.profile.displayName || 'Explorer') + '.' +
             W.verifiedMark(s.profile, 20) +
             (global.Badges ? global.Badges.markup(null, 17) : '') + '</h1>' +

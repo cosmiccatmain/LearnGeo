@@ -20,7 +20,10 @@
     { id: 'sakura', name: 'Sakura', price: 900, kind: 'badge', badge: 'bloom', c1: '#F472B6' },
     { id: 'crown', name: 'Summit Crown', price: 1400, kind: 'badge', badge: 'crown', c1: '#F5B301' },
     { id: 'ring-glacier', name: 'Glacier', price: 1400, kind: 'ring', c1: '#38BDF8', c2: '#E0F2FE' },
-    { id: 'ring-magma', name: 'Magma', price: 2000, kind: 'ring', c1: '#DC2626', c2: '#F59E0B' }
+    { id: 'ring-magma', name: 'Magma', price: 2000, kind: 'ring', c1: '#DC2626', c2: '#F59E0B' },
+    /* secrets (secrets.js). Never sold; held once the secret is found. */
+    { id: 'ring-tayt', name: 'Tayt', price: 0, kind: 'ring', c1: '#A855F7', c2: '#F472B6', earn: 'secret', secret: 'tayt' },
+    { id: 'ring-keeper', name: 'Secret Keeper', price: 0, kind: 'ring', c1: '#F5B301', c2: '#7C3AED', earn: 'secret', secret: '*' }
   ];
 
   /* --------------------- earned, never bought ----------------------
@@ -130,7 +133,9 @@
     { id: 'staff', name: 'LearnGeo Staff', price: 0, shape: 'crest',
       colors: ['#1B4DFF', '#F5B301', '#22D3EE'],
       earn: 'staff-grant', staff: true,
-      blurb: 'Brand-mark sparks in LearnGeo blue and gold. Granted from the Administrator page and nowhere else.' }
+      blurb: 'Brand-mark sparks in LearnGeo blue and gold. Granted from the Administrator page and nowhere else.' },
+    { id: 'fx-keeper', name: 'Secret Keeper', price: 0, shape: 'star',
+      colors: ['#F5B301', '#7C3AED', '#F472B6'], earn: 'secret', secret: '*' }
   ];
 
   /* Nameplates — the bar the display name sits on. */
@@ -142,7 +147,8 @@
     { id: 'sunset', name: 'Sunset', price: 700, css: 'linear-gradient(90deg,#F97316,#EC4899)', text: '#FFFFFF' },
     { id: 'lagoon', name: 'Lagoon', price: 700, css: 'linear-gradient(90deg,#0EA5E9,#22D3EE)', text: '#053345' },
     { id: 'orchid', name: 'Orchid', price: 1000, css: 'linear-gradient(90deg,#7C3AED,#C084FC)', text: '#FFFFFF' },
-    { id: 'gilded', name: 'Gilded', price: 1600, css: 'linear-gradient(90deg,#B45309,#F5B301)', text: '#2A1A00' }
+    { id: 'gilded', name: 'Gilded', price: 1600, css: 'linear-gradient(90deg,#B45309,#F5B301)', text: '#2A1A00' },
+    { id: 'antipodes', name: 'Antipodes', price: 0, css: 'linear-gradient(90deg,#DC2626,#0A0A0B 50%,#1B4DFF)', text: '#FFFFFF', earn: 'secret', secret: 'antipodes' }
   ];
 
   /* Banners — the strip behind the top of the profile card. */
@@ -154,7 +160,8 @@
     { id: 'tundra', name: 'Tundra', price: 600, css: 'linear-gradient(120deg,#94A3B8,#E2E8F0)' },
     { id: 'rainforest', name: 'Rainforest', price: 600, css: 'linear-gradient(120deg,#064E3B,#34D399)' },
     { id: 'dusk', name: 'Dusk', price: 950, css: 'linear-gradient(120deg,#312E81,#DB2777,#F59E0B)' },
-    { id: 'meridian', name: 'Meridian', price: 1500, css: 'linear-gradient(120deg,#0A0A0B,#1B4DFF,#22D3EE,#F5B301)' }
+    { id: 'meridian', name: 'Meridian', price: 1500, css: 'linear-gradient(120deg,#0A0A0B,#1B4DFF,#22D3EE,#F5B301)' },
+    { id: 'bookworm', name: 'Bookworm', price: 0, css: 'linear-gradient(120deg,#3B2414,#92400E,#FDE68A)', earn: 'secret', secret: 'bookworm' }
   ];
 
   /* Profile themes — accent pair applied to the profile card. */
@@ -165,7 +172,8 @@
     { id: 'plum', name: 'Plum', price: 500, c1: '#9333EA', c2: '#3B0764' },
     { id: 'ice', name: 'Ice', price: 500, c1: '#0EA5E9', c2: '#0C4A6E' },
     { id: 'rose', name: 'Rose', price: 800, c1: '#E11D48', c2: '#4C0519' },
-    { id: 'graphite', name: 'Graphite', price: 800, c1: '#475569', c2: '#0F172A' }
+    { id: 'graphite', name: 'Graphite', price: 800, c1: '#475569', c2: '#0F172A' },
+    { id: 'comeback', name: 'Comeback', price: 0, c1: '#F97316', c2: '#450A0A', earn: 'secret', secret: 'comeback' }
   ];
 
   /* Avatars — emoji, so nothing external has to load. */
@@ -248,6 +256,11 @@
         return !!(X && X.inAdminClass && X.inAdminClass());
       }
       if (!item.earn) return false;
+      if (item.secret) {
+        var S = global.Secrets;
+        if (!S) return false;
+        return item.secret === '*' ? S.allFound() : S.has(item.secret);
+      }
       return (achievements || []).indexOf(item.earn) !== -1;
     },
 
@@ -260,6 +273,9 @@
       if (item.staff) {
         return { id: 'staff-grant', name: 'LearnGeo Staff',
                  desc: 'For LearnGeo staff and admin classrooms — not for sale', reward: 0 };
+      }
+      if (item.secret) {
+        return { id: 'secret', name: 'Secret', desc: '??? Find a secret', reward: 0 };
       }
       for (var i = 0; i < ACHIEVEMENTS.length; i++) {
         if (ACHIEVEMENTS[i].id === item.earn) return ACHIEVEMENTS[i];

@@ -151,6 +151,7 @@
            well as caught, because a synchronous throw here would fall into
            this chain's own catch and report a good save as offline. */
         try { pushLevel(); } catch (e) { /* a level is never worth a red dot */ }
+        try { pushSecrets(); } catch (e) { /* nor is a secret */ }
       })
       .catch(function () { if (mine === gen) setStatus('offline'); })
       .then(function () {
@@ -705,6 +706,7 @@
              than becoming a level 1 nobody earned. */
           if (typeof m.level === 'number') out.level = m.level;
           if (typeof m.xp === 'number') out.xp = m.xp;
+          if (Array.isArray(m.secrets)) out.secrets = m.secrets;
           return out;
         });
         c.posts = ps.map(rowToPost);
@@ -1225,6 +1227,29 @@
     return sb.rpc('sync_level', { p_level: lv, p_xp: xp })
       .then(function (res) {
         if (res && res.error && !missingBit(res.error)) throw res.error;
+        return (res && res.data) || 0;
+      })
+      .catch(function () { return 0; });
+  }
+
+  /* Which secrets this student has found, mirrored onto their class seats
+     so a teacher can see it. Only sent when the list changes, and given up
+     on for the page if the database has no sync_secrets yet. */
+  var secretsSent = null, secretsMissing = false;
+  function pushSecrets() {
+    if (!ready() || secretsMissing || W.state.role === 'teacher' || !global.Secrets) {
+      return Promise.resolve(0);
+    }
+    var ids = global.Secrets.found();
+    var key = ids.join(',');
+    if (key === secretsSent) return Promise.resolve(0);
+    return sb.rpc('sync_secrets', { p_ids: ids })
+      .then(function (res) {
+        if (res && res.error) {
+          if (missingBit(res.error)) secretsMissing = true;
+          return 0;
+        }
+        secretsSent = key;
         return (res && res.data) || 0;
       })
       .catch(function () { return 0; });

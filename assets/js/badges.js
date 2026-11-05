@@ -114,8 +114,47 @@
 
     { id: 'night', name: 'Night Owl', art: 'moon', tone: 'indigo',
       desc: 'Answer a question after midnight.',
-      test: function (s) { return !!(s.flags && s.flags.night); } }
+      test: function (s) { return !!(s.flags && s.flags.night); } },
+
+    /* ---- secrets. Held once secrets.js marks them found; the case shows
+       ??? until then. ---- */
+    { id: 'secret-poke', secret: 'poke', name: 'Poke', art: 'joystick', tone: 'slate',
+      desc: 'Poked your own avatar ten times.' },
+    { id: 'secret-spin', secret: 'spin', name: 'Spin the Globe', art: 'globe', tone: 'blue',
+      desc: 'Clicked the logo until the world went round.' },
+    { id: 'secret-konami', secret: 'konami', name: 'Up Up Down Down', art: 'bolt', tone: 'violet',
+      desc: 'Entered the old code.' },
+    { id: 'secret-witching', secret: 'witching', name: 'Witching Hour', art: 'moon', tone: 'indigo',
+      desc: 'Answered between 3 and 4 in the morning.' },
+    { id: 'secret-tiny', secret: 'tiny', name: 'Tiny Nation', art: 'key', tone: 'gold',
+      desc: 'Found Vatican City on the home map.' },
+    { id: 'secret-nemo', secret: 'nemo', name: 'Lost at Sea', art: 'target', tone: 'teal',
+      desc: 'Clicked Point Nemo.' },
+    { id: 'secret-speed', secret: 'speed', name: 'Speed Demon', art: 'bolt', tone: 'amber',
+      desc: 'Answered correctly in under a second.' },
+    { id: 'secret-world', secret: 'world', name: 'Around the World', art: 'map', tone: 'green',
+      desc: 'Five correct in a row from five regions.' },
+    { id: 'secret-antipodes', secret: 'antipodes', name: 'Antipodes', art: 'globe', tone: 'red',
+      desc: 'Back-to-back correct answers from opposite sides of the planet.' },
+    { id: 'secret-bookworm', secret: 'bookworm', name: 'Bookworm', art: 'book', tone: 'teal',
+      desc: 'Studied every corner of the Codex.' },
+    { id: 'secret-comeback', secret: 'comeback', name: 'Comeback', art: 'flame', tone: 'red',
+      desc: 'Missed a country three times, then got it.' },
+    { id: 'secret-tayt', secret: 'tayt', name: 'Tayt', art: 'seed', tone: 'violet',
+      desc: 'Found the hidden name.' },
+    { id: 'secret-keeper', secret: '*', name: 'Secret Keeper', art: 'crown', tone: 'gold',
+      desc: 'Found every secret.' }
   ];
+
+  BADGES.forEach(function (b) {
+    if (!b.secret) return;
+    b.test = function (s) {
+      var m = (s && s.secrets) || {};
+      if (b.secret !== '*') return !!m[b.secret];
+      return BADGES.filter(function (x) { return x.secret && x.secret !== '*'; })
+        .every(function (x) { return !!m[x.secret]; });
+    };
+  });
 
   var BY_ID = {};
   BADGES.forEach(function (b) { BY_ID[b.id] = b; });
@@ -250,7 +289,10 @@
   /* =========================== the badge case ======================= */
   function openCase() {
     var have = owned();
-    var earned = BADGES.filter(function (b) { return !granted(b); });
+    var earned = BADGES.filter(function (b) { return !granted(b) && !b.secret; });
+    var secret = BADGES.filter(function (b) { return !!b.secret; });
+    var nFound = global.Secrets ? global.Secrets.count() : 0;
+    var nTotal = global.Secrets ? global.Secrets.total : secret.length - 1;
     var role = BADGES.filter(granted);
 
     global.UI.modal({
@@ -262,6 +304,7 @@
         '</div>' +
         section('Earned by playing', earned) +
         section('Given, not earned', role) +
+        section('Secrets · ' + nFound + ' of ' + nTotal + ' found', secret) +
         '<div class="field__hint" style="margin-top:14px">Click one you hold to show or hide it ' +
           'beside your name.</div>',
       actions: [{ label: 'Done', cls: 'btn--ghost', close: true }],
@@ -289,10 +332,13 @@
       return '<div class="field"><label class="field__label">' + title + '</label>' +
         '<div class="bdg-grid">' +
           list.map(function (b) {
+            var hidden = b.secret && !has(b.id);
             return '<button class="bdg-card" data-bdg="' + b.id + '">' +
-              '<span class="bdg-card__plate bdg--' + b.tone + '">' + svg(b, 26) + '</span>' +
-              '<b>' + W.escapeHtml(b.name) + '</b>' +
-              '<span class="bdg-card__desc">' + W.escapeHtml(b.desc) + '</span>' +
+              '<span class="bdg-card__plate bdg--' + (hidden ? 'slate' : b.tone) + '">' +
+                (hidden ? '<b style="font-size:20px">?</b>' : svg(b, 26)) + '</span>' +
+              '<b>' + (hidden ? '???' : W.escapeHtml(b.name)) + '</b>' +
+              '<span class="bdg-card__desc">' +
+                (hidden ? 'A secret. Keep exploring.' : W.escapeHtml(b.desc)) + '</span>' +
               '<span class="bdg-card__state"></span>' +
             '</button>';
           }).join('') +

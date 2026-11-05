@@ -138,6 +138,7 @@
       deviceId: '',         /* random, made here; what a gamertag is tied to */
       boardSent: {},            /* last score sent to each game's board */
       achievements: [],
+      secrets: {},
       role: 'student',            /* 'student' | 'teacher' */
       roleChosen: false,          /* asked once, on first entry */
       /* Every class this teacher runs. state.classroom below is the one
