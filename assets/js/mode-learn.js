@@ -29,10 +29,16 @@
     var list = global.Quiz.pool({ regions: cfg.regions, scope: cfg.scope, countries: cfg.countries, weakFirst: cfg.weakFirst });
     if (!list.length) list = global.Quiz.pool({ scope: 'all' });
 
-    /* weakFirst sorts shakiest first — take from the front third, at random */
-    var head = list.slice(0, Math.max(8, Math.ceil(list.length / 3)));
-    var target = W.pick(cfg.weakFirst ? head : list);
     var type = W.pick(cfg.types.length ? cfg.types : ['capital']);
+    /* Rivers/lakes only exist for some places. Prefer a country the chosen
+       type can actually ask about, so Filters → River does not silently
+       become capitals when the weak-first slice has none. */
+    var fitList = list.filter(function (c) { return global.Quiz.fits(type, c); });
+    if (!fitList.length) fitList = list;
+
+    /* weakFirst sorts shakiest first — take from the front third, at random */
+    var head = fitList.slice(0, Math.max(8, Math.ceil(fitList.length / 3)));
+    var target = W.pick(cfg.weakFirst ? head : fitList);
 
     /* a short hand-picked list cannot supply three wrong answers on its own */
     var choicesFrom = list.length >= 5 ? list : global.Quiz.pool({ scope: 'all' });
@@ -62,7 +68,8 @@
       global.GeoMap.drawCountry(q.country, 'target');
       global.GeoMap.frame(q.country, 90);
       setHint('Which country is shaded?');
-    } else if (q.type === 'capital' || q.type === 'flagpick') {
+    } else if (q.type === 'capital' || q.type === 'flagpick' ||
+               q.type === 'riverpick' || q.type === 'lakepick') {
       /* the question already names the country, so shade and label it;
          the blur keeps its capital from being read off the tiles */
       global.GeoMap.drawCountry(q.country, 'target');
