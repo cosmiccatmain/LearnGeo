@@ -30,9 +30,9 @@
 
   function inkColour(host) {
     var m = getComputedStyle(host).color.match(/[\d.]+/g);
-    if (!m) return 'rgba(27,77,255,.16)';
+    if (!m) return 'rgba(12,143,127,.16)';
     var lum = (0.299 * m[0] + 0.587 * m[1] + 0.114 * m[2]) / 255;
-    return lum > 0.7 ? 'rgba(255,255,255,.42)' : 'rgba(27,77,255,.16)';
+    return lum > 0.7 ? 'rgba(255,255,255,.42)' : 'rgba(12,143,127,.16)';
   }
 
   function ripple(e) {

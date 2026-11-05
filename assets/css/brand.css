@@ -1,11 +1,10 @@
 /* ============================ BRAND MARK ============================
-   The little square by the LearnGeo wordmark used to hold an outlined
-   globe, which read as a generic browser icon. It holds the earth emoji
-   now. Sizing lives in this file so app.css keeps its own rules. */
+   Earth emoji in the LearnGeo mark square. Sizing stays here so app.css
+   and shell.css can own fill / gradient without fighting emoji metrics. */
 
 .brand__mark {
   font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
-  font-size: 1.05em;       /* fills the square the way the old glyph did */
+  font-size: 1.05em;
   line-height: 1;
   text-align: center;
   text-indent: 0;

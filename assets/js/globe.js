@@ -241,12 +241,12 @@
     var t = (global.performance.now() % 1600) / 1600;
     ctx.beginPath();
     ctx.arc(x, y, 5 + t * 14, 0, Math.PI * 2);
-    ctx.strokeStyle = 'rgba(27,77,255,' + (0.55 * (1 - t)).toFixed(3) + ')';
+    ctx.strokeStyle = 'rgba(12,143,127,' + (0.55 * (1 - t)).toFixed(3) + ')';
     ctx.lineWidth = 2;
     ctx.stroke();
     ctx.beginPath();
     ctx.arc(x, y, 5, 0, Math.PI * 2);
-    ctx.fillStyle = '#1B4DFF';
+    ctx.fillStyle = '#0C8F7F';
     ctx.fill();
     ctx.strokeStyle = '#fff';
     ctx.lineWidth = 2;

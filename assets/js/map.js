@@ -207,7 +207,7 @@
     target: { color: '#B45309', weight: 2,   opacity: 1,    fillColor: '#F5B301', fillOpacity: 0.55 },
     right:  { color: '#0A5C42', weight: 2,   opacity: 1,    fillColor: '#0E9F6E', fillOpacity: 0.5 },
     wrong:  { color: '#9B1C1C', weight: 2,   opacity: 1,    fillColor: '#E02424', fillOpacity: 0.45 },
-    choice: { color: '#1B4DFF', weight: 1.4, opacity: 0.9,  fillColor: '#1B4DFF', fillOpacity: 0.22 },
+    choice: { color: '#0C8F7F', weight: 1.4, opacity: 0.9,  fillColor: '#0C8F7F', fillOpacity: 0.22 },
     dim:    { color: '#9CA3AF', weight: 0.8, opacity: 0.5,  fillColor: '#9CA3AF', fillOpacity: 0.12 }
   };
 
@@ -309,7 +309,7 @@
   function keyboardStyle(entry) {
     var cur = STYLES[entry.layer._lgState] || STYLES.base;
     return {
-      color: '#1B4DFF',
+      color: '#0C8F7F',
       weight: 3.2,
       opacity: 1,
       dashArray: '5 3',
