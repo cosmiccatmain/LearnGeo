@@ -1,11 +1,16 @@
 /* ============================ BRAND MARK ============================
-   Earth emoji in the LearnGeo mark square. Sizing stays here so app.css
-   and shell.css can own fill / gradient without fighting emoji metrics. */
+   LearnGeo logo (assets/img/brand/mark.svg) is a self-contained teal tile.
+   Keep emoji fonts out of the mark. */
 
-.brand__mark {
-  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
-  font-size: 1.05em;
-  line-height: 1;
-  text-align: center;
-  text-indent: 0;
+.brand__mark img,
+.brand__mark svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.brand__mark--sm {
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
 }
