@@ -1,6 +1,9 @@
 /* ------------------------------------------------------------------
    LearnGeo — the Administrator page.
 
+   Accounts can be picked one at a time, or ticked and acted on
+   together. A bulk action is still one existing server call per
+   account, so each call keeps that command's permission check.
    Sidebar layout (deep blue, profile, section nav, Leave Admin) with
    server-backed command grants (0012). Owner
    alexjschendel@gmail.com has every command. Screen monitoring is
@@ -36,6 +39,19 @@
   var access = { owner: false, email: '', commands: ['accounts', 'stats', 'log'] };
   var grants = [];
   var bans = {};
+
+  /* Ticked rows, separate from the one account open in the detail
+     panel (`picked`). Page size is a client slice of whatever
+     ultra_find_accounts returned (that function caps the list at 60). */
+  var ticked = {};
+  var page = 0;
+  var PAGE = 12;
+  var FIND_CAP = 60;
+  var BULK_LARGE = 10;
+  var loadedQuery = '';
+  var querySeen = false;
+  var bulkBusy = false;
+  var bulkGen = 0;
 
   var DEAD = {
     live: function () { return false; },
@@ -94,6 +110,8 @@
     root.remove();
     root = null; rows = []; picked = null; stats = null; banner = '';
     section = 'overview'; grants = [];
+    ticked = {}; page = 0; loadedQuery = ''; querySeen = false;
+    bulkBusy = false; bulkGen++;
     document.body.classList.remove('no-scroll');
   }
 
@@ -159,6 +177,10 @@
     W.$('#ap-refresh', root).addEventListener('click', refresh);
 
     root.addEventListener('click', function (e) {
+      /* A tick must not also open that account. The checkbox lives in
+         the row, and the row is what picking listens for. */
+      if (e.target.closest && e.target.closest('.adminp__check')) return;
+
       var nav = e.target.closest('[data-nav]');
       if (nav) {
         section = nav.getAttribute('data-nav');
@@ -184,6 +206,10 @@
       if (d.do === 'leaveclasses') return leaveClasses();
       if (d.do === 'watch')    return loadActivity(true);
       if (d.do === 'search')   return search();
+      if (d.do === 'select-everyone') return selectEveryone();
+      if (d.do === 'clear-selection') return clearSelection();
+      if (d.do === 'page')     return turnPage(+d.delta);
+      if (d.do === 'bulk')     return startBulk(d.kind);
       if (d.do === 'runcmd')   return runCmd();
       if (d.do === 'savegrants') return saveGrants(d.email);
       if (d.do === 'gemsonly') return saveGrants(d.email, ['gems']);
@@ -202,6 +228,14 @@
       if (e.target && e.target.id === 'ap-cmd' && e.key === 'Enter') {
         e.preventDefault(); runCmd();
       }
+    });
+
+    root.addEventListener('change', function (e) {
+      var t = e.target;
+      if (!t) return;
+      if (t.id === 'ap-select-page') return togglePage(!!t.checked);
+      var id = t.getAttribute && t.getAttribute('data-check');
+      if (id) toggleOne(id, !!t.checked);
     });
 
     root.addEventListener('input', function (e) {
@@ -273,6 +307,8 @@
     if (section === 'overview') { renderStats(); renderStaff(); }
     if (section === 'monitor') loadActivity(false);
     if (section === 'accounts') {
+      var qEl = W.$('#ap-q', root);
+      if (qEl && querySeen) qEl.value = loadedQuery;
       renderRows();
       if (picked) renderPicked();
       else { var ps = W.$('#ap-picked-sec', root); if (ps) ps.hidden = true; }
@@ -343,13 +379,25 @@
   function panelAccounts() {
     return '<section class="adminp__sec">' +
       '<h3>Accounts</h3>' +
-      '<p class="t-sm t-muted">Search a display name or an email. An empty box lists whoever was active most recently.</p>' +
+      '<p class="t-sm t-muted">Search a display name or an email. An empty box lists whoever was active most recently. ' +
+        'Tick accounts to act on them together. Select all covers this page. ' +
+        'Select everyone covers every account in this search, including other pages.</p>' +
       '<div class="adminp__search">' +
         '<input class="input" id="ap-q" type="search" placeholder="name or email" ' +
           'autocomplete="off" spellcheck="false">' +
         '<button class="btn btn--primary btn--sm" data-do="search">Search</button>' +
       '</div>' +
+      '<div class="adminp__bulk" id="ap-bulk" data-page-size="' + PAGE + '">' +
+        '<div class="adminp__bulkbar">' +
+          '<span id="ap-sel-count" aria-live="polite">0 selected</span>' +
+          '<button type="button" class="btn btn--ghost btn--sm" id="ap-select-everyone" data-do="select-everyone">Select everyone</button>' +
+          '<button type="button" class="btn btn--ghost btn--sm" id="ap-clear-selection" data-do="clear-selection">Clear selection</button>' +
+        '</div>' +
+        '<p class="t-sm t-muted" id="ap-bulk-cap" hidden></p>' +
+        '<div id="ap-bulk-acts" class="adminp__bulkacts" hidden></div>' +
+      '</div>' +
       '<div id="ap-rows" class="adminp__rows"></div>' +
+      '<div class="adminp__pager" id="ap-pager" hidden></div>' +
     '</section>' +
     '<section class="adminp__sec" id="ap-picked-sec" hidden>' +
       '<h3>Selected account</h3>' +
@@ -641,53 +689,256 @@
 
   function search() {
     var qEl = root && W.$('#ap-q', root);
-    var q = qEl ? qEl.value : '';
+    var q = qEl ? qEl.value : loadedQuery;
     var host = root && W.$('#ap-rows', root);
-    if (!host) {
-      /* Searching from Commands / monitor without the accounts panel —
-         still fetch so select() and who work. */
-      return ops().find(q).then(function (r) {
-        if (r && r.ok) {
-          rows = r.data || [];
-          for (var i = 0; i < rows.length; i++) rows[i].banned = !!bans[rows[i].id];
-        }
-      });
-    }
-    host.innerHTML = '<div class="adminp__empty">Searching…</div>';
-    ops().find(q).then(function (r) {
-      if (!r.ok) { host.innerHTML = '<div class="adminp__empty">Nothing to show.</div>'; return guard(r, function () {}); }
+    if (host) host.innerHTML = '<div class="adminp__empty">Searching…</div>';
+    return ops().find(q).then(function (r) {
+      host = root && W.$('#ap-rows', root);
+      if (!r || !r.ok) {
+        if (host) host.innerHTML = '<div class="adminp__empty">Nothing to show.</div>';
+        return guard(r, function () {});
+      }
       if (banner === 'nomigration' || banner === 'expired' || banner === 'notready') setBanner('');
-      rows = r.data || [];
-      for (var i = 0; i < rows.length; i++) rows[i].banned = !!bans[rows[i].id];
-      renderRows();
+      acceptRows(q, r.data || []);
+      if (host) renderRows();
     });
+  }
+
+  /* A new query drops the ticks. The same query (Refresh) keeps ticks
+     that are still in the result and drops the rest. */
+  function acceptRows(q, data) {
+    var changed = querySeen && q !== loadedQuery;
+    rows = data || [];
+    for (var i = 0; i < rows.length; i++) rows[i].banned = !!bans[rows[i].id];
+    if (!querySeen || changed) {
+      ticked = {};
+      page = 0;
+    } else {
+      pruneTicked();
+    }
+    loadedQuery = q;
+    querySeen = true;
+    if (page > pageCount() - 1) page = pageCount() - 1;
+    if (page < 0) page = 0;
+  }
+
+  function pageCount() {
+    return Math.max(1, Math.ceil(rows.length / PAGE));
+  }
+
+  function pageRows() {
+    return rows.slice(page * PAGE, page * PAGE + PAGE);
+  }
+
+  function tickCount() {
+    var n = 0;
+    for (var i = 0; i < rows.length; i++) if (ticked[rows[i].id]) n++;
+    return n;
+  }
+
+  function tickedAccounts() {
+    var out = [];
+    for (var i = 0; i < rows.length; i++) if (ticked[rows[i].id]) out.push(rows[i]);
+    return out;
+  }
+
+  function pruneTicked() {
+    var keep = {};
+    for (var i = 0; i < rows.length; i++) if (ticked[rows[i].id]) keep[rows[i].id] = true;
+    ticked = keep;
+  }
+
+  function coversEveryone() {
+    return rows.length > 0 && tickCount() === rows.length;
+  }
+
+  function toggleOne(id, on) {
+    if (bulkBusy) return;
+    if (on) ticked[id] = true;
+    else delete ticked[id];
+    renderRows();
+  }
+
+  function togglePage(on) {
+    if (bulkBusy) return;
+    var list = pageRows();
+    for (var i = 0; i < list.length; i++) {
+      if (on) ticked[list[i].id] = true;
+      else delete ticked[list[i].id];
+    }
+    renderRows();
+  }
+
+  function selectEveryone() {
+    if (bulkBusy) return;
+    for (var i = 0; i < rows.length; i++) ticked[rows[i].id] = true;
+    renderRows();
+  }
+
+  function clearSelection() {
+    if (bulkBusy) return;
+    ticked = {};
+    renderRows();
+  }
+
+  function turnPage(delta) {
+    if (bulkBusy) return;
+    var next = page + delta;
+    if (next < 0 || next > pageCount() - 1) return;
+    page = next;
+    renderRows();
   }
 
   function renderRows() {
     var host = root && W.$('#ap-rows', root);
     if (!host) return;
+    renderBulk();
+    renderPager();
     if (!rows.length) {
       host.innerHTML = '<div class="adminp__empty">No account matched that.</div>';
       return;
     }
+    if (page > pageCount() - 1) page = pageCount() - 1;
+    if (page < 0) page = 0;
+    var list = pageRows();
     host.innerHTML =
-      '<div class="adminp__row adminp__row--head">' +
+      '<div class="adminp__row adminp__row--acct adminp__row--head">' +
+        '<label class="adminp__check">' +
+          '<input type="checkbox" id="ap-select-page" aria-label="Select all on this page" ' +
+            'title="Select all on this page"' + (bulkBusy ? ' disabled' : '') + '>' +
+        '</label>' +
         '<span>Name</span><span>Email</span><span class="num">Level</span>' +
         '<span class="num">💎</span><span class="num">XP</span><span>Seen</span>' +
       '</div>' +
-      rows.map(function (a) {
-        return '<button type="button" class="adminp__row' + (picked && picked.id === a.id ? ' is-picked' : '') +
+      list.map(function (a) {
+        var on = !!ticked[a.id];
+        return '<div class="adminp__row adminp__row--acct' + (picked && picked.id === a.id ? ' is-picked' : '') +
           '" data-pick="' + esc(a.id) + '">' +
+          '<label class="adminp__check">' +
+            '<input type="checkbox" data-check="' + esc(a.id) + '"' +
+              (on ? ' checked' : '') + (bulkBusy ? ' disabled' : '') +
+              ' aria-label="Select ' + esc(a.display_name || 'account') + '">' +
+          '</label>' +
           '<span class="adminp__nm">' + esc(a.display_name || 'Explorer') +
             (a.staff ? '<i class="adminp__staff" title="LearnGeo staff">STAFF</i>' : '') +
             (a.banned ? '<i class="adminp__ban" title="Banned from LearnGeo">BANNED</i>' : '') + '</span>' +
-          '<span class="t-muted">' + esc(a.email || '—') + '</span>' +
-          '<span class="num">' + num(a.level) + '</span>' +
-          '<span class="num">' + num(a.diamonds) + '</span>' +
-          '<span class="num">' + num(a.xp) + '</span>' +
-          '<span class="t-muted">' + esc(ago(a.last_seen || a.seen_at)) + '</span>' +
-        '</button>';
+          '<span class="adminp__email t-muted">' + esc(a.email || '—') + '</span>' +
+          '<span class="adminp__lv num">' + num(a.level) + '</span>' +
+          '<span class="adminp__dia num">' + num(a.diamonds) + '</span>' +
+          '<span class="adminp__xp num">' + num(a.xp) + '</span>' +
+          '<span class="adminp__seen t-muted">' + esc(ago(a.last_seen || a.seen_at)) + '</span>' +
+        '</div>';
       }).join('');
+    syncPageCheckbox();
+  }
+
+  function syncPageCheckbox() {
+    var box = root && W.$('#ap-select-page', root);
+    if (!box) return;
+    var list = pageRows();
+    var n = 0;
+    for (var i = 0; i < list.length; i++) if (ticked[list[i].id]) n++;
+    box.checked = list.length > 0 && n === list.length;
+    box.indeterminate = n > 0 && n < list.length;
+    box.disabled = bulkBusy || !list.length;
+  }
+
+  function renderPager() {
+    var host = root && W.$('#ap-pager', root);
+    if (!host) return;
+    if (page > pageCount() - 1) page = pageCount() - 1;
+    if (page < 0) page = 0;
+    if (rows.length <= PAGE) {
+      host.hidden = true;
+      host.innerHTML = '';
+      return;
+    }
+    host.hidden = false;
+    var pages = pageCount();
+    var start = page * PAGE + 1;
+    var end = Math.min(rows.length, (page + 1) * PAGE);
+    host.innerHTML =
+      '<button type="button" class="btn btn--ghost btn--sm" data-do="page" data-delta="-1"' +
+        (page === 0 || bulkBusy ? ' disabled' : '') + '>Previous</button>' +
+      '<span class="t-sm t-muted" id="ap-page-label">' + start + '–' + end + ' of ' + rows.length +
+        ' · page ' + (page + 1) + ' of ' + pages + '</span>' +
+      '<button type="button" class="btn btn--ghost btn--sm" data-do="page" data-delta="1"' +
+        (page >= pages - 1 || bulkBusy ? ' disabled' : '') + '>Next</button>';
+  }
+
+  function renderBulk() {
+    var countEl = root && W.$('#ap-sel-count', root);
+    var acts = root && W.$('#ap-bulk-acts', root);
+    var cap = root && W.$('#ap-bulk-cap', root);
+    var clearBtn = root && W.$('#ap-clear-selection', root);
+    var allBtn = root && W.$('#ap-select-everyone', root);
+    if (!countEl) return;
+    var n = tickCount();
+    var everyone = coversEveryone();
+    countEl.textContent = n + ' selected' + (everyone ? ' · everyone in this search' : '');
+    if (clearBtn) clearBtn.disabled = bulkBusy || n === 0;
+    if (allBtn) {
+      allBtn.disabled = bulkBusy || rows.length === 0;
+      allBtn.textContent = 'Select everyone' + (rows.length ? ' (' + rows.length + ')' : '');
+    }
+    if (cap) {
+      cap.hidden = rows.length < FIND_CAP;
+      cap.textContent = rows.length < FIND_CAP ? '' :
+        'This search shows at most ' + FIND_CAP +
+        ' accounts, the newest matches the server returns. Select everyone covers these ' +
+        rows.length + '.';
+    }
+    if (!acts) return;
+    acts.hidden = n === 0;
+    if (n === 0) { acts.innerHTML = ''; return; }
+    var html = bulkActionsHtml();
+    acts.innerHTML = html ||
+      '<p class="t-sm t-muted">You can select accounts. Bulk actions appear for commands granted to you.</p>';
+    if (bulkBusy) {
+      var btns = acts.querySelectorAll('button');
+      for (var i = 0; i < btns.length; i++) btns[i].disabled = true;
+    }
+  }
+
+  function bulkActionsHtml() {
+    var html = '';
+    if (can('messages')) {
+      html += '<div class="adminp__act"><span class="eyebrow">Message</span>' +
+        '<button type="button" class="btn btn--primary btn--sm" data-do="bulk" data-kind="msg">Message selected</button></div>';
+    }
+    if (can('gems')) {
+      html += '<div class="adminp__act"><span class="eyebrow">Gems</span>' +
+        '<button type="button" class="btn btn--sm" data-do="bulk" data-kind="give">Give diamonds</button>' +
+        '<button type="button" class="btn btn--sm adminp__danger" data-do="bulk" data-kind="take">Take diamonds</button>' +
+        '<button type="button" class="btn btn--sm adminp__danger" data-do="bulk" data-kind="empty">Empty diamonds</button></div>';
+    }
+    if (can('ban') || can('moderate')) {
+      html += '<div class="adminp__act"><span class="eyebrow">Account</span>';
+      if (can('ban')) {
+        html += '<button type="button" class="btn btn--sm adminp__danger" data-do="bulk" data-kind="ban">Ban</button>' +
+          '<button type="button" class="btn btn--sm" data-do="bulk" data-kind="unban">Lift bans</button>';
+      }
+      if (can('moderate')) {
+        html += '<button type="button" class="btn btn--sm" data-do="bulk" data-kind="rename">Rename</button>' +
+          '<button type="button" class="btn btn--sm adminp__danger" data-do="bulk" data-kind="wipe">Wipe scores</button>' +
+          '<button type="button" class="btn btn--sm adminp__danger" data-do="bulk" data-kind="reset">Reset progress</button>' +
+          '<button type="button" class="btn btn--sm adminp__danger" data-do="bulk" data-kind="leave">Remove from classes</button>';
+      }
+      html += '</div>';
+    }
+    if (can('staff') || can('allow')) {
+      html += '<div class="adminp__act"><span class="eyebrow">Marks</span>';
+      if (can('staff')) {
+        html += '<button type="button" class="btn btn--sm" data-do="bulk" data-kind="staffOn">Grant staff</button>' +
+          '<button type="button" class="btn btn--sm adminp__danger" data-do="bulk" data-kind="staffOff">Remove staff</button>';
+      }
+      if (can('allow')) {
+        html += '<button type="button" class="btn btn--sm" data-do="bulk" data-kind="allowOn">Give admin access</button>' +
+          '<button type="button" class="btn btn--sm adminp__danger" data-do="bulk" data-kind="allowOff">Remove admin access</button>';
+      }
+      html += '</div>';
+    }
+    return html;
   }
 
   function ago(ts) {
@@ -1307,6 +1558,7 @@
   function helpText() {
     var lines = [
       'find <text>        search names and emails',
+      'Accounts ticks     select several accounts, then use the bulk actions there',
       'who                show the selected account',
       'stats              reload the numbers at the top',
       'log                reload the action list',
@@ -1424,6 +1676,488 @@
       });
     }
     say('No command called "' + cmd + '". Type help.');
+  }
+
+  /* ============================== bulk ============================
+     One existing AdminOps call per account. A failure is recorded and
+     the loop keeps going. Destructive kinds leave the signed-in admin
+     out unless the confirm dialog opts them back in. Everyone in the
+     current search has to be confirmed by typing CONFIRM. Other
+     destructive or large batches have to be confirmed by typing the
+     exact number of accounts that will be touched.
+  ================================================================= */
+  var BULK_PERM = {
+    msg: 'messages', give: 'gems', take: 'gems', empty: 'gems',
+    ban: 'ban', unban: 'ban', staffOn: 'staff', staffOff: 'staff',
+    allowOn: 'allow', allowOff: 'allow',
+    rename: 'moderate', wipe: 'moderate', reset: 'moderate', leave: 'moderate'
+  };
+  var BULK_TITLE = {
+    msg: 'Message selected accounts', give: 'Give diamonds', take: 'Take diamonds',
+    empty: 'Empty diamonds', ban: 'Ban selected accounts', unban: 'Lift bans',
+    staffOn: 'Grant the staff effect', staffOff: 'Remove the staff effect',
+    allowOn: 'Give admin access', allowOff: 'Remove admin access',
+    rename: 'Rename selected accounts', wipe: 'Wipe arcade scores',
+    reset: 'Reset progress', leave: 'Remove from every class'
+  };
+  var BULK_GO = {
+    msg: 'Send to', give: 'Give diamonds to', take: 'Take diamonds from',
+    empty: 'Empty diamonds on', ban: 'Ban', unban: 'Lift bans on',
+    staffOn: 'Grant staff to', staffOff: 'Remove staff from',
+    allowOn: 'Give admin access to', allowOff: 'Remove admin access from',
+    rename: 'Rename', wipe: 'Wipe scores for', reset: 'Reset', leave: 'Remove'
+  };
+
+  function myAccountId() {
+    var u = global.Cloud && global.Cloud.user;
+    return (u && u.id) || '';
+  }
+
+  function excludeSelfKind(kind) {
+    return kind === 'take' || kind === 'empty' || kind === 'ban' ||
+      kind === 'staffOff' || kind === 'allowOff' || kind === 'rename' ||
+      kind === 'wipe' || kind === 'reset' || kind === 'leave';
+  }
+
+  function sensitiveKind(kind) {
+    return excludeSelfKind(kind) || kind === 'unban';
+  }
+
+  function listHasMe(list) {
+    var mine = myAccountId();
+    if (!mine) return false;
+    for (var i = 0; i < list.length; i++) if (list[i].id === mine) return true;
+    return false;
+  }
+
+  function affectedList(list, exclude) {
+    if (!exclude) return list.slice();
+    var mine = myAccountId();
+    var out = [];
+    for (var i = 0; i < list.length; i++) if (list[i].id !== mine) out.push(list[i]);
+    return out;
+  }
+
+  function neededPhrase(kind, n, coversAll) {
+    if (coversAll) return 'CONFIRM';
+    if (sensitiveKind(kind) || n >= BULK_LARGE) return String(n);
+    return '';
+  }
+
+  function affectLine(kind, n) {
+    var word = n + (n === 1 ? ' account' : ' accounts');
+    if (kind === 'msg') return 'This sends one message to ' + word + '.';
+    if (kind === 'give') return 'This gives diamonds to ' + word + '.';
+    if (kind === 'take') return 'This takes diamonds from ' + word + '.';
+    if (kind === 'empty') return 'This sets the diamond balance to 0 on ' + word + '.';
+    if (kind === 'ban') return 'This bans ' + word + '.';
+    if (kind === 'unban') return 'This lifts the ban on ' + word + '.';
+    if (kind === 'staffOn') return 'This grants the staff effect to ' + word + '.';
+    if (kind === 'staffOff') return 'This removes the staff effect from ' + word + '.';
+    if (kind === 'allowOn') return 'This gives admin access to ' + word + '.';
+    if (kind === 'allowOff') return 'This removes admin access from ' + word + '.';
+    if (kind === 'rename') return 'This renames ' + word + '.';
+    if (kind === 'wipe') return 'This wipes arcade scores for ' + word + '.';
+    if (kind === 'reset') return 'This resets progress on ' + word + '.';
+    if (kind === 'leave') return 'This removes ' + word + ' from every class.';
+    return 'This applies to ' + word + '.';
+  }
+
+  function previewNames(list) {
+    var names = [];
+    var i;
+    for (i = 0; i < list.length && i < 4; i++) {
+      names.push(list[i].display_name || list[i].email || 'Account');
+    }
+    var s = names.join(', ');
+    if (list.length > names.length) s += ', and ' + (list.length - names.length) + ' more';
+    return s;
+  }
+
+  function accountWord(n) {
+    return n + (n === 1 ? ' account' : ' accounts');
+  }
+
+  function startBulk(kind) {
+    if (bulkBusy) return;
+    var perm = BULK_PERM[kind];
+    if (!perm || !can(perm)) return say('That command is not granted to you.');
+    var targets = tickedAccounts();
+    if (!targets.length) return say('Select at least one account first.');
+    openBulk(kind, targets);
+  }
+
+  function readBulkFields(kind, modalRoot) {
+    if (kind === 'msg') {
+      var box = W.$('#ap-bulk-text', modalRoot);
+      var text = String(box && box.value || '').trim();
+      if (!text) return { error: 'Type a message first.' };
+      if (text.length > MSG_MAX) return { error: 'A message is at most ' + MSG_MAX + ' characters.' };
+      return { fields: { text: text } };
+    }
+    if (kind === 'give' || kind === 'take') {
+      var amt = W.$('#ap-bulk-amount', modalRoot);
+      var raw = String(amt && amt.value || '').replace(/,/g, '').trim();
+      var n = raw === '' ? NaN : Number(raw);
+      if (!Number.isInteger(n) || n <= 0) return { error: 'Enter a whole number of diamonds.' };
+      if (n > MAX_STEP) return { error: 'At most ' + num(MAX_STEP) + ' at a time.' };
+      return { fields: { amount: n } };
+    }
+    if (kind === 'rename') {
+      var name = W.$('#ap-bulk-name', modalRoot);
+      return { fields: { name: name ? name.value : '' } };
+    }
+    if (kind === 'ban') {
+      var why = W.$('#ap-bulk-why', modalRoot);
+      return { fields: { why: why ? why.value : '' } };
+    }
+    return { fields: {} };
+  }
+
+  function bulkAmountNote(kind, fields) {
+    if (!fields || typeof fields.amount !== 'number') return '';
+    if (kind === 'give') return ' Each account is given ' + num(fields.amount) + ' diamonds.';
+    if (kind === 'take') return ' Each account loses ' + num(fields.amount) + ' diamonds.';
+    return '';
+  }
+
+  function openBulk(kind, targets) {
+    if (!global.UI || !global.UI.modal) {
+      W.toast('Not loaded', 'The confirm dialog is not available.', I.info, 3200);
+      return;
+    }
+    var coversAll = targets.length === rows.length && rows.length > 0;
+    var offerSelf = excludeSelfKind(kind) && listHasMe(targets);
+    var phase = 'edit';
+    var fieldsHtml = '';
+    if (kind === 'msg') {
+      fieldsHtml =
+        '<textarea class="input" id="ap-bulk-text" rows="3" maxlength="' + MSG_MAX + '" ' +
+          'placeholder="Shows up on each of their screens, from a LearnGeo administrator"></textarea>' +
+        '<div class="t-sm t-muted" id="ap-bulk-text-count">0 / ' + MSG_MAX + '</div>';
+    } else if (kind === 'give' || kind === 'take') {
+      fieldsHtml =
+        '<div class="field"><label class="field__label" for="ap-bulk-amount">' +
+          (kind === 'give' ? 'Diamonds to give each account' : 'Diamonds to take from each account') +
+        '</label><input class="input mono" id="ap-bulk-amount" inputmode="numeric" autocomplete="off"></div>';
+    } else if (kind === 'rename') {
+      fieldsHtml =
+        '<div class="field"><label class="field__label" for="ap-bulk-name">Display name for every selected account</label>' +
+          '<input class="input" id="ap-bulk-name" maxlength="40" autocomplete="off">' +
+          '<div class="field__hint">Leave it empty to put them back to Explorer.</div></div>';
+    }
+    if (kind === 'ban') {
+      fieldsHtml +=
+        '<div class="field" style="margin-top:10px"><label class="field__label" for="ap-bulk-why">Reason, shown to them</label>' +
+          '<input class="input" id="ap-bulk-why" maxlength="300" placeholder="e.g. Cheating on the arcade boards"></div>';
+    }
+    var selfHtml = offerSelf
+      ? '<label class="adminp__self"><input type="checkbox" id="ap-bulk-self"> Include my account (' +
+          esc(meProfile().email || 'this signed-in admin') + ')</label>'
+      : '';
+    var showPhrase = coversAll || sensitiveKind(kind) || targets.length >= BULK_LARGE;
+    var phraseHtml = showPhrase
+      ? '<label class="field__label" id="ap-bulk-phrase-label" for="ap-bulk-phrase"></label>' +
+        '<input class="input mono" id="ap-bulk-phrase" autocomplete="off" spellcheck="false">'
+      : '';
+
+    function excludeNow(modalRoot) {
+      if (!offerSelf) return false;
+      var box = W.$('#ap-bulk-self', modalRoot);
+      return !(box && box.checked);
+    }
+
+    function paintConfirm(modalRoot) {
+      var list = affectedList(targets, excludeNow(modalRoot));
+      var n = list.length;
+      var parsed = readBulkFields(kind, modalRoot);
+      var phrase = neededPhrase(kind, n, coversAll);
+      var lead = W.$('#ap-bulk-lead', modalRoot);
+      var sentence = n === 0
+        ? 'Your account is left out, so this affects 0 accounts.'
+        : affectLine(kind, n) + (parsed.fields ? bulkAmountNote(kind, parsed.fields) : '');
+      if (n > 0 && coversAll) {
+        sentence += ' This is everyone in the current search (' + rows.length +
+          (rows.length === 1 ? ' account).' : ' accounts).');
+      }
+      if (n > 0 && excludeNow(modalRoot)) sentence += ' Your account is left out.';
+      if (lead) {
+        lead.textContent = sentence;
+        lead.setAttribute('data-affected', String(n));
+        lead.setAttribute('data-phrase', phrase);
+      }
+      var who = W.$('#ap-bulk-who', modalRoot);
+      if (who) who.textContent = n ? previewNames(list) : '';
+      var lab = W.$('#ap-bulk-phrase-label', modalRoot);
+      var input = W.$('#ap-bulk-phrase', modalRoot);
+      if (lab) {
+        lab.innerHTML = phrase ? ('Type <b>' + esc(phrase) + '</b> to confirm.') : '';
+        lab.hidden = !phrase;
+      }
+      if (input) {
+        input.hidden = !phrase;
+        input.dataset.need = phrase;
+      }
+      var go = W.$('#ap-bulk-go', modalRoot);
+      if (go && phase === 'edit') {
+        go.textContent = n === 0 ? 'Nothing to apply' : (BULK_GO[kind] + ' ' + accountWord(n));
+        go.disabled = n === 0;
+      }
+    }
+
+    function setModalBody(modalRoot, html) {
+      var body = modalRoot.querySelector('.modal__body');
+      if (body) body.innerHTML = html;
+    }
+
+    global.UI.modal({
+      title: BULK_TITLE[kind] || 'Bulk action',
+      icon: I.info,
+      wide: true,
+      body:
+        fieldsHtml +
+        '<p id="ap-bulk-lead"></p>' +
+        '<p class="t-sm t-muted" id="ap-bulk-who"></p>' +
+        selfHtml + phraseHtml +
+        '<p class="t-sm" id="ap-bulk-err"></p>',
+      actions: [
+        { label: 'Cancel', cls: 'btn--ghost', close: true, onClick: function () {
+            if (phase === 'run') return false;
+          } },
+        { label: 'Continue', cls: 'btn--primary', close: true, onClick: function (modalRoot) {
+            if (phase === 'done') return;
+            if (phase === 'run' || bulkBusy) return false;
+            var parsed = readBulkFields(kind, modalRoot);
+            if (parsed.error) {
+              var err = W.$('#ap-bulk-err', modalRoot);
+              if (err) err.textContent = parsed.error;
+              return false;
+            }
+            var list = affectedList(targets, excludeNow(modalRoot));
+            if (!list.length) {
+              var none = W.$('#ap-bulk-err', modalRoot);
+              if (none) none.textContent = 'Your account is left out, so there is nobody to apply this to.';
+              return false;
+            }
+            var phrase = neededPhrase(kind, list.length, coversAll);
+            if (phrase) {
+              var typed = W.$('#ap-bulk-phrase', modalRoot);
+              var got = String(typed && typed.value || '').trim();
+              if (got !== phrase) {
+                var bad = W.$('#ap-bulk-err', modalRoot);
+                if (bad) bad.textContent = 'Type ' + phrase + ' to confirm.';
+                return false;
+              }
+            }
+            phase = 'run';
+            bulkBusy = true;
+            var gen = bulkGen;
+            var go = W.$('#ap-bulk-go', modalRoot);
+            var cancel = W.$('#ap-bulk-cancel', modalRoot);
+            if (go) { go.disabled = true; go.textContent = 'Working…'; }
+            if (cancel) cancel.disabled = true;
+            var x = modalRoot.querySelector('[data-close]');
+            if (x) x.disabled = true;
+            var ov = modalRoot.parentElement;
+            if (ov) ov.dataset.locked = '1';
+            if (root) renderRows();
+            paintProgress(modalRoot, 0, list.length, list[0]);
+            runBulk(kind, list, parsed.fields, function (done, total, account) {
+              if (gen !== bulkGen || !modalRoot.isConnected) return;
+              paintProgress(modalRoot, done, total, account);
+            }).then(function (results) {
+              if (gen === bulkGen) bulkBusy = false;
+              if (gen !== bulkGen) return;
+              if (root) {
+                renderRows();
+                if (picked && section === 'accounts') renderPicked();
+                refreshLog();
+                noteSession(results);
+              }
+              if (!modalRoot.isConnected) {
+                if (root) W.toast('Bulk action finished', summaryLine(results), I.check, 4200);
+                return;
+              }
+              phase = 'done';
+              setModalBody(modalRoot, summaryHtml(results));
+              if (ov) delete ov.dataset.locked;
+              if (x) x.disabled = false;
+              if (cancel) cancel.hidden = true;
+              if (go) { go.disabled = false; go.textContent = 'Close'; }
+            });
+            return false;
+          } }
+      ],
+      onMount: function (modalRoot) {
+        var go = modalRoot.querySelector('[data-act="1"]');
+        var cancel = modalRoot.querySelector('[data-act="0"]');
+        if (go) go.id = 'ap-bulk-go';
+        if (cancel) cancel.id = 'ap-bulk-cancel';
+        paintConfirm(modalRoot);
+        var self = W.$('#ap-bulk-self', modalRoot);
+        if (self) self.addEventListener('change', function () { paintConfirm(modalRoot); });
+        var amount = W.$('#ap-bulk-amount', modalRoot);
+        if (amount) amount.addEventListener('input', function () { paintConfirm(modalRoot); });
+        var text = W.$('#ap-bulk-text', modalRoot);
+        if (text) text.addEventListener('input', function () {
+          var c = W.$('#ap-bulk-text-count', modalRoot);
+          if (c) c.textContent = text.value.length + ' / ' + MSG_MAX;
+          var err = W.$('#ap-bulk-err', modalRoot);
+          if (err) err.textContent = '';
+        });
+        var phrase = W.$('#ap-bulk-phrase', modalRoot);
+        if (phrase) phrase.addEventListener('input', function () {
+          var err = W.$('#ap-bulk-err', modalRoot);
+          if (err) err.textContent = '';
+        });
+        var focus = W.$('#ap-bulk-text', modalRoot) || W.$('#ap-bulk-amount', modalRoot) ||
+          W.$('#ap-bulk-name', modalRoot) || W.$('#ap-bulk-why', modalRoot) || W.$('#ap-bulk-phrase', modalRoot);
+        if (focus) setTimeout(function () { focus.focus(); }, 60);
+      }
+    });
+  }
+
+  function paintProgress(modalRoot, done, total, account) {
+    var body = modalRoot.querySelector('.modal__body');
+    if (!body) return;
+    var pct = total ? Math.round(done / total * 100) : 0;
+    var who = account && done < total ? (account.display_name || account.email || 'account') : '';
+    body.innerHTML =
+      '<div data-bulk-state="run" data-bulk-progress="' + done + '/' + total + '">' +
+        '<p><b>Working… ' + done + ' of ' + total + '</b></p>' +
+        (who ? '<p class="t-sm t-muted">' + esc(who) + '</p>' : '') +
+        '<div class="adminp__bartrack" role="progressbar" aria-valuemin="0" aria-valuemax="' + total +
+          '" aria-valuenow="' + done + '"><i style="width:' + pct + '%"></i></div>' +
+      '</div>';
+  }
+
+  function summaryLine(results) {
+    var ok = 0, bad = 0, i;
+    for (i = 0; i < results.length; i++) { if (results[i].ok) ok++; else bad++; }
+    return ok + ' succeeded, ' + bad + ' failed.';
+  }
+
+  function summaryHtml(results) {
+    var ok = 0, bad = 0, i, r, name, items = '';
+    for (i = 0; i < results.length; i++) {
+      r = results[i];
+      if (r.ok) ok++; else bad++;
+      name = r.account.display_name || r.account.email || r.account.id;
+      items += '<li data-bulk-result="' + (r.ok ? 'ok' : 'fail') + '" data-id="' + esc(r.account.id) + '">' +
+        '<b>' + esc(name) + '</b> — ' + esc(r.message) + '</li>';
+    }
+    return '<div data-bulk-state="done" data-ok="' + ok + '" data-fail="' + bad + '">' +
+      '<p><b>' + ok + ' succeeded, ' + bad + ' failed.</b></p>' +
+      '<ul class="adminp__bulksum">' + items + '</ul></div>';
+  }
+
+  function noteSession(results) {
+    var i, kind = '';
+    for (i = 0; i < results.length; i++) {
+      if (results[i].ok) continue;
+      if (results[i].kind === 'expired' || results[i].kind === 'nomigration' || results[i].kind === 'notready') {
+        kind = results[i].kind;
+        break;
+      }
+    }
+    if (kind) setBanner(kind, 'A bulk action hit a session error. The summary lists every account.');
+  }
+
+  function bulkOk(kind, data) {
+    if (kind === 'msg') return 'Message sent';
+    if (kind === 'give' || kind === 'take' || kind === 'empty') return 'Balance is now ' + num(data);
+    if (kind === 'ban') return 'Banned';
+    if (kind === 'unban') return 'Ban lifted';
+    if (kind === 'staffOn' || kind === 'staffOff') return data ? 'Staff effect granted' : 'Staff effect removed';
+    if (kind === 'allowOn') return 'Admin access granted';
+    if (kind === 'allowOff') return 'Admin access removed';
+    if (kind === 'rename') return 'Renamed to ' + (data || 'Explorer');
+    if (kind === 'wipe') return data ? (data + ' score' + (data === 1 ? '' : 's') + ' wiped') : 'Nothing on the boards';
+    if (kind === 'reset') return 'Progress reset';
+    if (kind === 'leave') return 'Out of ' + data + ' class' + (data === 1 ? '' : 'es');
+    return 'Done';
+  }
+
+  function bulkApply(kind, account, data) {
+    if (kind === 'give' || kind === 'take' || kind === 'empty') {
+      account.diamonds = data;
+      markRow(account.id, 'diamonds', data);
+    } else if (kind === 'ban') {
+      account.banned = true;
+      markRow(account.id, 'banned', true);
+      bans[account.id] = bans[account.id] || { user_id: account.id };
+    } else if (kind === 'unban') {
+      account.banned = false;
+      markRow(account.id, 'banned', false);
+      delete bans[account.id];
+    } else if (kind === 'staffOn' || kind === 'staffOff') {
+      account.staff = data;
+      markRow(account.id, 'staff', data);
+    } else if (kind === 'rename') {
+      account.display_name = data;
+      markRow(account.id, 'display_name', data);
+    } else if (kind === 'reset') {
+      account.diamonds = 150;
+      markRow(account.id, 'diamonds', 150);
+    }
+  }
+
+  function bulkCall(kind, account, fields) {
+    var o = ops();
+    if ((kind === 'allowOn' || kind === 'allowOff') && !account.email) {
+      return Promise.resolve({ ok: false, kind: 'error', message: 'That account has no email, so it cannot go on the allowlist.' });
+    }
+    try {
+      var p;
+      if (kind === 'msg') p = o.message(account.id, fields.text);
+      else if (kind === 'give') p = o.gems(account.id, { delta: fields.amount, reason: 'gave ' + fields.amount });
+      else if (kind === 'take') p = o.gems(account.id, { delta: -fields.amount, reason: 'took ' + fields.amount });
+      else if (kind === 'empty') p = o.gems(account.id, { set: 0, reason: 'emptied' });
+      else if (kind === 'ban') p = o.ban(account.id, true, fields.why || '');
+      else if (kind === 'unban') p = o.ban(account.id, false, '');
+      else if (kind === 'staffOn') p = o.staff(account.id, true);
+      else if (kind === 'staffOff') p = o.staff(account.id, false);
+      else if (kind === 'allowOn') p = o.allow(account.email, true);
+      else if (kind === 'allowOff') p = o.allow(account.email, false);
+      else if (kind === 'rename') p = o.rename(account.id, fields.name || '');
+      else if (kind === 'wipe') p = o.wipeScores(account.id);
+      else if (kind === 'reset') p = o.resetProgress(account.id);
+      else if (kind === 'leave') p = o.leaveClasses(account.id);
+      else return Promise.resolve({ ok: false, kind: 'error', message: 'Unknown action' });
+      if (!p || !p.then) p = Promise.resolve(p);
+      return p.then(function (r) {
+        return r || { ok: false, kind: 'error', message: 'No response' };
+      }, function (e) {
+        return { ok: false, kind: 'error', message: String((e && e.message) || e) };
+      });
+    } catch (e) {
+      return Promise.resolve({ ok: false, kind: 'error', message: String((e && e.message) || e) });
+    }
+  }
+
+  function runBulk(kind, list, fields, onProgress) {
+    var results = [];
+    var i = 0;
+    function step() {
+      if (i >= list.length) return Promise.resolve(results);
+      var account = list[i];
+      onProgress(i, list.length, account);
+      return bulkCall(kind, account, fields).then(function (r) {
+        var ok = !!(r && r.ok);
+        results.push({
+          account: account,
+          ok: ok,
+          kind: r && r.kind,
+          message: ok ? bulkOk(kind, r.data) : ((r && r.message) || 'Failed'),
+          data: r && r.data
+        });
+        if (ok) bulkApply(kind, account, r.data);
+        i++;
+        onProgress(i, list.length, list[i]);
+        return step();
+      });
+    }
+    return step();
   }
 
   global.Administrator = { open: open, close: close };
