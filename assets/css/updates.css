@@ -7,7 +7,7 @@
 .lg-update-overlay {
   position: fixed;
   inset: 0;
-  z-index: 190; /* below .overlay (200); above pets event (typically ~180) */
+  z-index: 190; /* below .overlay (200) */
   display: grid;
   place-items: center;
   padding: 20px;
