@@ -27,7 +27,10 @@
      any partial xp already on that pet). The old Play button minted XP on
      every click and never deducted a balance; that path is gone.
      Curve and skins unchanged: 1–3 A, 4–6 B, 7–9 C, 10 D.
-     Legacy learngeo.pets.roster.v0 rows migrate in once (levels kept).
+     Legacy learngeo.pets.roster.v0 rows migrate in once (the pet is kept).
+     Levels from before PETS_RESET_VERSION are wiped once on load; care,
+     cosmetics and mutations stay. The stamp lives on state.pets so a
+     later cloud copy without it cannot put the glitched levels back.
 
    Design queue (LEA-15 v1 — local only):
      learngeo.pets.designs.v0 holds request|upload rows with status
@@ -85,6 +88,11 @@
   var CARE_SEED = 82;
   var HAPPY_AT = 70;
   var IMPORT_KEY = 'learngeo.pets.roster.v0.imported';
+  /* One-time wipe of levels earned while Play minted XP for free.
+     Bump this to run another reset. A save at or above this version
+     is left alone, including levels earned after the wipe. */
+  var PETS_RESET_VERSION = 1;
+  var lastResetApplied = false;
 
   /* Marketplace / mutation demo knobs (classroom-safe soft currency). */
   var START_DIAMONDS = 320;
@@ -293,6 +301,11 @@
     return { v: 1, xpBank: 0, activeId: '', care: {}, owned: [] };
   }
 
+  function resetVersionOf(p) {
+    var n = p && Number(p.resetVersion);
+    return (isFinite(n) && n > 0) ? Math.floor(n) : 0;
+  }
+
   /* Account save is canonical (cloud sync already uploads W.state).
      The legacy roster key is a one-time import plus a write-through copy. */
   function petsBag() {
@@ -325,7 +338,8 @@
         owned: p.owned,
         xpBank: p.xpBank,
         activeId: p.activeId,
-        care: p.care
+        care: p.care,
+        resetVersion: resetVersionOf(p)
       }));
     } catch (e) {}
   }
@@ -352,7 +366,94 @@
     }
     if (typeof legacy.activeId === 'string') p.activeId = legacy.activeId;
     if (legacy.care && typeof legacy.care === 'object' && !Array.isArray(legacy.care)) p.care = legacy.care;
+    if (typeof legacy.resetVersion === 'number' && isFinite(legacy.resetVersion)) {
+      p.resetVersion = Math.floor(legacy.resetVersion);
+    }
     p.migratedFrom = 'learngeo.pets.roster.v0';
+  }
+
+  /* Own marketplace listings are device-local. Cancelling one puts the
+     snapshotted pet back on the roster, so a pre-reset listing has to
+     lose its glitched level in the same one-time pass. Demo NPC stock
+     is left as listed. */
+  function resetOwnListings() {
+    var data = readMarket();
+    if (!data || !Array.isArray(data.listings)) return false;
+    var changed = false;
+    data.listings.forEach(function (listing) {
+      var pet = listing && listing.pet;
+      if (!listing || listing.sellerId !== YOU_SELLER || !pet || typeof pet !== 'object') return;
+      if (pet.level === 1 && !pet.xp && pet.skinStage === 'A') return;
+      pet.level = 1;
+      pet.xp = 0;
+      pet.skinStage = 'A';
+      changed = true;
+    });
+    if (changed) writeMarket(data);
+    return changed;
+  }
+
+  /* Levels, in-level progress, skin stage and the pet XP bank go back
+     to the start. Ownership, care, cosmetics and mutations stay.
+     Account XP, level and diamonds are not on this object. */
+  function applyLevelReset() {
+    lastResetApplied = false;
+    var s = W.state;
+    if (!s) return false;
+    var p = s.pets;
+    if (resetVersionOf(p) >= PETS_RESET_VERSION) return false;
+
+    if (!p || typeof p !== 'object' || Array.isArray(p) || !Array.isArray(p.owned) || !p.owned.length) {
+      var host = (p && typeof p === 'object' && !Array.isArray(p)) ? p : blankPets();
+      if (!Array.isArray(host.owned)) host.owned = [];
+      migrateLegacy(host);
+      if (host.owned.length) {
+        s.pets = host;
+        p = host;
+      }
+    }
+
+    if (resetVersionOf(p) >= PETS_RESET_VERSION) return false;
+
+    var changed = false;
+    if (p && Array.isArray(p.owned) && p.owned.length) {
+      p.owned.forEach(function (row) {
+        if (!row || typeof row !== 'object') return;
+        row.level = 1;
+        row.xp = 0;
+        row.skinStage = 'A';
+      });
+      p.xpBank = 0;
+      p.resetVersion = PETS_RESET_VERSION;
+      s.pets = p;
+      changed = true;
+    }
+
+    if (resetOwnListings()) changed = true;
+
+    if (changed) {
+      if (!s.pets || typeof s.pets !== 'object' || Array.isArray(s.pets)) s.pets = blankPets();
+      s.pets.xpBank = 0;
+      s.pets.resetVersion = PETS_RESET_VERSION;
+      mirrorLocal(s.pets);
+      lastResetApplied = true;
+      if (W.saveNow) W.saveNow();
+    }
+    return changed;
+  }
+
+  /* When the cloud copy and this device disagree, pets that have already
+     been through the reset win over a copy that has not. Otherwise a
+     glitched device can upload level 10 over a reset account, or download
+     those levels back. The rest of the save is left to the normal
+     newest-save choice. */
+  function noteCloudChoice(chosen, other) {
+    if (!chosen || !other || !other.pets) return false;
+    if (resetVersionOf(other.pets) < PETS_RESET_VERSION) return false;
+    if (resetVersionOf(chosen.pets) >= PETS_RESET_VERSION) return false;
+    try { chosen.pets = JSON.parse(JSON.stringify(other.pets)); }
+    catch (e) { chosen.pets = other.pets; }
+    return true;
   }
 
   function seedCare(p) {
@@ -383,6 +484,8 @@
   function ensureRoster() {
     var p = petsBag();
     migrateLegacy(p);
+    applyLevelReset();
+    p = petsBag();
     if (!p.owned.length) {
       p.owned = STARTERS.map(function (s) {
         return normalizeOwned({
@@ -393,6 +496,7 @@
         });
       });
       p.activeId = p.owned[0].instanceId;
+      p.resetVersion = PETS_RESET_VERSION;
       seedCare(p);
       commitPets();
       return { owned: p.owned };
@@ -2790,6 +2894,18 @@
     cancelEventPopup();
   }
 
+  /* Any save that lands in state — guest load, account switch, cloud
+     adopt — is wiped once if it predates the reset. replaceState is
+     wrapped rather than copied so Cloud.adopt keeps calling it. */
+  if (W.replaceState) {
+    var replaceStateInner = W.replaceState;
+    W.replaceState = function (obj) {
+      replaceStateInner(obj);
+      applyLevelReset();
+    };
+  }
+  applyLevelReset();
+
   global.Pets = {
     start: start,
     stop: stop,
@@ -2809,6 +2925,8 @@
     upgrade: upgrade,
     feed: feed,
     noteAnswer: noteAnswer,
+    applyLevelReset: applyLevelReset,
+    noteCloudChoice: noteCloudChoice,
     careFor: careFor,
     setCompanion: setCompanion,
     equipCosmetic: equipCosmetic,
@@ -2840,6 +2958,8 @@
     _PLAY_XP: PLAY_XP,
     _PET_XP_BASE: PET_XP_BASE,
     _FEED_COST: FEED_COST,
+    _RESET_VERSION: PETS_RESET_VERSION,
+    get lastResetApplied() { return lastResetApplied; },
     _xpBank: function () { return petsBag().xpBank; },
     _setXpBank: function (n) { petsBag().xpBank = Math.max(0, Math.floor(Number(n) || 0)); commitPets(); return petsBag().xpBank; },
     _MIN_LIST_LEVEL: MIN_LIST_LEVEL,
