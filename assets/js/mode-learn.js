@@ -276,10 +276,17 @@
       : '';
 
     var isFlag = q.type === 'flag' || q.type === 'flagpick';
+    var isHydro = q.type === 'river' || q.type === 'riverpick' ||
+      q.type === 'lake' || q.type === 'lakepick';
+    var hydroName = q.hydro ? q.hydro.name : q.answerText;
     var detail = correct
       ? (isFlag
           ? '<p>That’s the flag of ' + W.escapeHtml(c.name) + '. Its capital is ' + W.escapeHtml(c.capital) + '.</p>'
-          : '<p>' + W.escapeHtml(c.capital) + ' is the capital of ' + W.escapeHtml(c.name) + '.</p>')
+          : isHydro
+            ? '<p>' + W.escapeHtml(hydroName) +
+                (q.type === 'river' || q.type === 'riverpick' ? ' flows through ' : ' is in or beside ') +
+                W.escapeHtml(c.name) + '.</p>'
+            : '<p>' + W.escapeHtml(c.capital) + ' is the capital of ' + W.escapeHtml(c.name) + '.</p>')
       : '<p>The answer is <b>' + W.escapeHtml(q.answerText) + '</b>' +
         (given && q.typed ? '. You wrote “' + W.escapeHtml(given) + '”.' : '.') + '</p>';
     /* the options are pictures, so name the flag that was picked */
