@@ -71,10 +71,8 @@
     document.body.appendChild(ov);
     document.body.classList.add('no-scroll');
     openModals.push(ov);
-    /* A homescreen pet event / product update must not sit on top of
-       Settings or any modal, and a retry queued from Home has to die
-       when this dialog opens. */
-    if (global.Pets && global.Pets.cancelEventPopup) global.Pets.cancelEventPopup();
+    /* A product update must not sit on top of Settings or any modal, and
+       a retry queued from Home has to die when this dialog opens. */
     if (global.LearnGeoUpdates && global.LearnGeoUpdates.cancel) global.LearnGeoUpdates.cancel();
 
     function close(reason) {
@@ -82,8 +80,8 @@
       openModals = openModals.filter(function (x) { return x !== ov; });
       if (!openModals.length) document.body.classList.remove('no-scroll');
       if (opts.onClose) opts.onClose(reason === 'navigation' ? reason : undefined);
-      /* After the dialog is gone, Home may show a product update (then
-         the pet event). Teachers get the public update on their class home. */
+      /* After the dialog is gone, Home may show a product update.
+         Teachers get the public update on their class home. */
       if (!openModals.length && reason !== 'navigation') {
         var appEl = document.getElementById('app');
         var appOpen = appEl && appEl.classList.contains('is-open');
@@ -94,9 +92,6 @@
         if (appOpen && (onPortal || onTeacher) &&
             global.LearnGeoUpdates && global.LearnGeoUpdates.maybeShow) {
           global.LearnGeoUpdates.maybeShow();
-        } else if (appOpen && onPortal && W.state.role !== 'teacher' &&
-            global.Pets && global.Pets.maybeShowEventPopup) {
-          global.Pets.maybeShowEventPopup();
         }
       }
     }
@@ -169,11 +164,10 @@
        class they are in and what its code is instead. */
     var fireEl = document.getElementById('hud-fire');
     if (fireEl) fireEl.classList.toggle('hidden', teacher || s.streak.current < 2);
-    ['hud-xp-chip', 'hud-gem-chip', 'hud-pets-gem-chip'].forEach(function (id) {
+    ['hud-xp-chip', 'hud-gem-chip'].forEach(function (id) {
       var n = document.getElementById(id);
       if (n) n.classList.toggle('hidden', teacher);
     });
-    if (global.Pets && global.Pets.refreshHudChip) global.Pets.refreshHudChip();
     classChip(teacher, s);
 
     var av = document.getElementById('avatar-slot');
@@ -1187,14 +1181,15 @@
   }
 
   /* ============================ NAVIGATION ========================== */
-  var VIEWS = ['portal', 'codex', 'classroom', 'teacher', 'learn', 'test', 'quiz', 'games', 'pets'];
+  var VIEWS = ['portal', 'codex', 'classroom', 'teacher', 'learn', 'test', 'quiz', 'games'];
 
   /* The switcher shows Classroom to students and Teacher to teachers, so
      teacher mode is a place you can leave and come back to rather than a
      one-way trip out of the menu. */
   /* Teachers see the study modes too, and open them as a browse (go()
      below), so they can find something worth setting and assign it from
-     where they are. Home stays student-only. */
+     where they are. Home stays student-only. Games stays reachable via
+     /games for deep links; it is not a public shell tab. */
   var TAB_DEFS = [
     { view: 'portal',    icon: 'grid',   label: 'Home',          role: 'student' },
     { view: 'codex',     icon: 'hex',    label: 'Codex',         role: 'student' },
@@ -1202,9 +1197,7 @@
     { view: 'teacher',   icon: 'users',  label: 'My class',      role: 'teacher' },
     { view: 'learn',     icon: 'book',   label: 'Learn',         role: null },
     { view: 'test',      icon: 'clip',   label: 'Practice test', role: null },
-    { view: 'quiz',      icon: 'target', label: 'Class quiz',    role: null },
-    { view: 'games',     icon: 'gamepad', label: 'Games',        role: null },
-    { view: 'pets',      icon: 'paw',    label: 'Pets',          role: null }
+    { view: 'quiz',      icon: 'target', label: 'Class quiz',    role: null }
   ];
 
   function refreshTabs() {
@@ -1402,11 +1395,9 @@
 
     /* a game runs its own animation loop, which must not outlive its view */
     if (currentView === 'games' && view !== 'games' && global.Games) global.Games.stop();
-    if (currentView === 'pets' && view !== 'pets' && global.Pets && global.Pets.stop) global.Pets.stop();
-    /* Leaving Home drops a queued pet event / product update so it cannot
-       land on Settings, Games, or another modal. Teachers keep updates on
-       their class home; cancel only when leaving that view. */
-    if (view !== 'portal' && global.Pets && global.Pets.cancelEventPopup) global.Pets.cancelEventPopup();
+    /* Leaving Home drops a queued product update so it cannot land on
+       Settings or another modal. Teachers keep updates on their class
+       home; cancel only when leaving that view. */
     if (view !== 'portal' && view !== 'teacher' &&
         global.LearnGeoUpdates && global.LearnGeoUpdates.cancel) {
       global.LearnGeoUpdates.cancel();
@@ -1434,12 +1425,6 @@
     if (view === 'portal') {
       global.Portal.render();
       if (global.LearnGeoUpdates && global.LearnGeoUpdates.maybeShow) global.LearnGeoUpdates.maybeShow();
-      /* Pets waits while a product update is pending; dismiss hands off. */
-      if (!isTeacher && global.Pets && global.Pets.maybeShowEventPopup &&
-          !(global.LearnGeoUpdates && global.LearnGeoUpdates.needsShow &&
-            global.LearnGeoUpdates.needsShow())) {
-        global.Pets.maybeShowEventPopup();
-      }
     }
     if (view === 'codex') global.Codex.render();
     if (view === 'teacher') {
@@ -1451,7 +1436,6 @@
     if (view === 'test') global.TestMode.start();
     if (view === 'quiz') global.QuizMode.start();
     if (view === 'games') global.Games.start();
-    if (view === 'pets' && global.Pets) global.Pets.start();
     settleThumb();                     /* correct for any reflow the mode caused */
     global.GeoMap.invalidate();
     refreshHud();
@@ -1478,11 +1462,6 @@
                 '<b>I’m a teacher</b>' +
                 '<span>Give your class assignments, get their results back and see how everyone did.</span>' +
               '</button>' +
-              '<button class="role-opt" data-role="games">' +
-                '<span class="role-opt__i">' + I.gamepad + '</span>' +
-                '<b>I’m here for the games</b>' +
-                '<span>Jump straight into Games. You pick a gamertag and get on every leaderboard.</span>' +
-              '</button>' +
             '</div>' +
             (global.Cloud && global.Cloud.available && !signedIn()
               ? '<div class="auth-switch">Already have an account? <button data-signin>Sign in</button></div>'
@@ -1492,24 +1471,6 @@
         if (si) si.addEventListener('click', function () { close(); openAuth('signin'); });
         W.$$('[data-role]', root).forEach(function (b) {
           b.addEventListener('click', function () {
-            if (b.dataset.role === 'games') {
-              /* A gamertag first, then the arcade. Backing out of the box
-                 brings this question back rather than leaving nothing. */
-              close();
-              var enter = function () {
-                W.state.role = 'student';
-                W.state.roleChosen = true;
-                W.saveNow();
-                refreshTabs();
-                go('games');
-              };
-              if (global.GameBoards) global.GameBoards.askTag({
-                title: 'Pick a gamertag', backLabel: 'Back',
-                then: enter, onBack: function () { askRole(then); }
-              });
-              else enter();
-              return;
-            }
             W.state.role = b.dataset.role;
             W.state.roleChosen = true;
             W.saveNow();
@@ -1542,7 +1503,6 @@
     if (global.QuizMode && global.QuizMode.active && global.QuizMode.active()) global.QuizMode.abandon();
     if (global.Games && global.Games.playing && global.Games.playing() && global.Games.abandon) global.Games.abandon();
     else if (global.Games && global.Games.stop) global.Games.stop();
-    if (global.Pets && global.Pets.cancelEventPopup) global.Pets.cancelEventPopup();
     if (global.LearnGeoUpdates && global.LearnGeoUpdates.cancel) global.LearnGeoUpdates.cancel();
     document.getElementById('app').classList.remove('is-open');
     document.getElementById('landing').classList.remove('hidden');

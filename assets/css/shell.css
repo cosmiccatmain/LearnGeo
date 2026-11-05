@@ -90,8 +90,8 @@
 .landing .section__head h2,
 .landing .try__copy h2 {
   font-family: var(--serif);
-  font-weight: 700;
-  letter-spacing: -.028em;
+  font-weight: 400;
+  letter-spacing: -.018em;
 }
 
 /* Mode tiles: soft surface, not heavy cards */
@@ -137,8 +137,8 @@
 
 .app .sidebar__title {
   font-family: var(--serif);
-  font-weight: 700;
-  letter-spacing: -.025em;
+  font-weight: 400;
+  letter-spacing: -.018em;
 }
 
 .app .panel,
@@ -177,7 +177,7 @@
 }
 .lg-update__title {
   font-family: var(--serif);
-  font-weight: 700;
+  font-weight: 400;
 }
 
 /* Mobile: keep brand readable, tighten spacing */

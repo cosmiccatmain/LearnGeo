@@ -95,7 +95,7 @@
 
   function blockingOverlay() {
     return !!(document.querySelector(
-      '.overlay, .role-pick, .menu, .pets-chest-overlay, .pets-event-overlay, .lg-update-overlay'
+      '.overlay, .role-pick, .menu, .lg-update-overlay'
     ));
   }
 
@@ -126,13 +126,8 @@
     if (dismiss && u) writeDismissedId(u.id);
     if (ov && ov.parentNode) ov.parentNode.removeChild(ov);
     popupOpen = false;
-    if (!document.querySelector('.overlay, .pets-event-overlay')) {
+    if (!document.querySelector('.overlay')) {
       document.body.classList.remove('no-scroll');
-    }
-    /* After a product update is gone, Pets may still want its own card. */
-    if (dismiss && global.Pets && global.Pets.maybeShowEventPopup &&
-        W.state && W.state.role !== 'teacher' && onHome()) {
-      global.Pets.maybeShowEventPopup();
     }
   }
 
@@ -143,9 +138,6 @@
 
     var update = latest();
     if (!update) return;
-
-    /* Product updates win over the Pets collab card for this session beat. */
-    if (global.Pets && global.Pets.cancelEventPopup) global.Pets.cancelEventPopup();
 
     popupOpen = true;
     var ov = W.el('div', 'lg-update-overlay');
