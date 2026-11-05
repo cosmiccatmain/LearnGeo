@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 280" role="img" aria-label="Games hub and leaderboards">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#e7f7f1"/>
+      <stop offset="100%" stop-color="#eef2ff"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="280" fill="url(#sky)"/>
+  <!-- three game tiles -->
+  <g>
+    <rect x="64" y="56" width="150" height="168" rx="18" fill="#fff" stroke="#E6E8EC" stroke-width="3"/>
+    <rect x="84" y="76" width="110" height="72" rx="12" fill="#EEF2FF"/>
+    <text x="139" y="122" text-anchor="middle" font-size="32">_</text>
+    <text x="139" y="178" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="14" font-weight="700" fill="#0A0A0B">Geo Chess</text>
+    <text x="139" y="200" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="12" fill="#6B7280">Leaderboard</text>
+  </g>
+  <g>
+    <rect x="245" y="56" width="150" height="168" rx="18" fill="#fff" stroke="#E6E8EC" stroke-width="3"/>
+    <rect x="265" y="76" width="110" height="72" rx="12" fill="#E7F7F1"/>
+    <text x="320" y="122" text-anchor="middle" font-size="32">=</text>
+    <text x="320" y="178" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="14" font-weight="700" fill="#0A0A0B">Capital Snake</text>
+    <text x="320" y="200" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="12" fill="#6B7280">Leaderboard</text>
+  </g>
+  <g>
+    <rect x="426" y="56" width="150" height="168" rx="18" fill="#fff" stroke="#E6E8EC" stroke-width="3"/>
+    <rect x="446" y="76" width="110" height="72" rx="12" fill="#FFF8E1"/>
+    <text x="501" y="122" text-anchor="middle" font-size="32">=¦</text>
+    <text x="501" y="178" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="14" font-weight="700" fill="#0A0A0B">Crossing</text>
+    <text x="501" y="200" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="12" fill="#6B7280">Leaderboard</text>
+  </g>
+</svg>

@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 280" role="img" aria-label="Difficulty slider with ticks">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#eef2ff"/>
+      <stop offset="100%" stop-color="#fafafb"/>
+    </linearGradient>
+    <linearGradient id="fill" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#1B4DFF"/>
+      <stop offset="100%" stop-color="#38BDF8"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="280" fill="url(#sky)"/>
+  <rect x="88" y="58" width="464" height="164" rx="22" fill="#fff" stroke="#E6E8EC" stroke-width="3"/>
+  <text x="120" y="100" font-family="Inter, system-ui, sans-serif" font-size="15" font-weight="700" fill="#0A0A0B">Difficulty</text>
+  <text x="480" y="100" text-anchor="end" font-family="JetBrains Mono, monospace" font-size="13" fill="#1B4DFF">Intermediate</text>
+  <!-- track -->
+  <rect x="120" y="138" width="400" height="14" rx="7" fill="#F1F2F5"/>
+  <rect x="120" y="138" width="220" height="14" rx="7" fill="url(#fill)"/>
+  <!-- ticks -->
+  <g fill="#9CA3AF">
+    <rect x="120" y="160" width="2" height="10"/>
+    <rect x="220" y="160" width="2" height="10"/>
+    <rect x="320" y="160" width="2" height="14"/>
+    <rect x="420" y="160" width="2" height="10"/>
+    <rect x="518" y="160" width="2" height="10"/>
+  </g>
+  <!-- thumb -->
+  <circle cx="340" cy="145" r="16" fill="#fff" stroke="#1B4DFF" stroke-width="4"/>
+  <circle cx="340" cy="145" r="5" fill="#1B4DFF"/>
+  <text x="120" y="196" font-family="Inter, system-ui, sans-serif" font-size="12" fill="#6B7280">Easy</text>
+  <text x="520" y="196" text-anchor="end" font-family="Inter, system-ui, sans-serif" font-size="12" fill="#6B7280">Expert</text>
+</svg>
