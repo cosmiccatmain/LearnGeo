@@ -191,9 +191,16 @@
         if (mine !== gen) return;
         var cloud = row && row.save && Object.keys(row.save).length ? row.save : null;
         var chosen;
+        var petsSwapped = false;
         if (cloud && cached) {
           var seen = cached.meta && cached.meta.syncedAt;
           chosen = (!seen || Date.parse(row.updated_at) > Date.parse(seen)) ? cloud : cached;
+          /* A device that already wiped glitched pet levels must not lose
+             them to an older upload, and a device that has not wiped yet
+             must not push those levels over a reset account. */
+          if (global.Pets && global.Pets.noteCloudChoice) {
+            petsSwapped = global.Pets.noteCloudChoice(chosen, chosen === cloud ? cached : cloud) === true;
+          }
         } else {
           chosen = cloud || cached || guestCopy || W.defaultState();
         }
@@ -219,7 +226,10 @@
         W.saveLocal();
         reconciled = true;
         setStatus('synced');
-        if (chosen !== cloud) push();
+        /* petsSwapped / lastResetApplied: the blob we are about to send
+           is not the one the server stored, so it has to go up even when
+           the cloud row won the timestamp. */
+        if (chosen !== cloud || petsSwapped || (global.Pets && global.Pets.lastResetApplied)) push();
         refreshUi();
       })
       .catch(function () {
