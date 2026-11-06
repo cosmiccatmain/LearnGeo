@@ -547,7 +547,8 @@
              carries no price, and without this it would read as costing 0
              and open the buy dialog for nothing. */
           var earned = !!it.earn;
-          var needsPrem = !!(it.premium) || !!(Cos.requiresPremium && Cos.requiresPremium(it));
+          var previewOn = !!(global.Premium && global.Premium.previewEnabled && global.Premium.previewEnabled());
+          var needsPrem = previewOn && (!!(it.premium) || !!(Cos.requiresPremium && Cos.requiresPremium(it)));
           var hasPrem = global.Premium && global.Premium.active && global.Premium.active();
           var premLocked = needsPrem && !hasPrem;
           var isOwned = premLocked ? false : (earned
@@ -653,7 +654,8 @@
         var owned = btn.dataset.owned === '1';
         var item = Cos.find(Cos[kind], id);
 
-        if (btn.dataset.premium === '1' || (item && item.premium && !(global.Premium && global.Premium.active && global.Premium.active()))) {
+        var previewOn = !!(global.Premium && global.Premium.previewEnabled && global.Premium.previewEnabled());
+        if (previewOn && (btn.dataset.premium === '1' || (item && item.premium && !(global.Premium && global.Premium.active && global.Premium.active())))) {
           W.Sound.wrong();
           W.toast('Premium', (item && item.name ? item.name + ' needs' : 'Needs') + ' LearnGeo Premium', I.lock, 3600);
           if (global.Premium && global.Premium.openUpgrade) {
@@ -683,8 +685,10 @@
        sold, whatever a caller passes as the price, so a badge cannot be
        bought by a stale button, a keyboard path or a console call. */
     if (item && item.earn) return;
-    if (item && item.premium && !(global.Premium && global.Premium.active && global.Premium.active())) {
-      if (global.Premium && global.Premium.openUpgrade) {
+    if (item && item.premium &&
+        global.Premium && global.Premium.previewEnabled && global.Premium.previewEnabled() &&
+        !(global.Premium.active && global.Premium.active())) {
+      if (global.Premium.openUpgrade) {
         global.Premium.openUpgrade((item.name || 'This cosmetic') + ' is a Premium profile effect.');
       }
       return;
@@ -722,8 +726,10 @@
 
   function equip(kind, id, root) {
     var item = Cos.find(Cos[kind], id);
-    if (item && item.premium && !(global.Premium && global.Premium.active && global.Premium.active())) {
-      if (global.Premium && global.Premium.openUpgrade) {
+    if (item && item.premium &&
+        global.Premium && global.Premium.previewEnabled && global.Premium.previewEnabled() &&
+        !(global.Premium.active && global.Premium.active())) {
+      if (global.Premium.openUpgrade) {
         global.Premium.openUpgrade((item.name || 'This cosmetic') + ' is a Premium profile effect.');
       }
       return;
@@ -1269,12 +1275,7 @@
     if (appOpen()) {
       go(currentView, { history: 'replace' });
       if (!W.state.roleChosen) askRole();
-      offerShare();
     }
-  }
-
-  function offerShare() {
-    if (global.ScreenShare && global.ScreenShare.offer) global.ScreenShare.offer();
   }
 
   /* ============================ NAVIGATION ========================== */
@@ -1613,7 +1614,6 @@
     refreshTabs();
     go(view || currentView || 'portal', opts);
     if (!W.state.roleChosen) askRole();
-    offerShare();
   }
 
   function showLanding(opts) {

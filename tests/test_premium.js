@@ -32,5 +32,17 @@ assert(!/Brainrot/i.test(sub), 'no Brainrot copy in subscription UI');
 assert(/not tied to being a teacher/i.test(sub) || /not teacher/i.test(sub),
   'copy says Premium is not teacher-based');
 assert(/alexjschendel@gmail\.com/.test(sub), 'owner TEST email kept');
+assert(/previewEnabled/.test(prem) && /setPreviewEnabled/.test(prem),
+  'premium.js exposes Development preview switch');
+assert(/learngeo\.dev\.premiumPreview/.test(prem), 'preview flag key is stable');
+assert(/force:\s*true/.test(sub) || /openForced/.test(sub),
+  'admin can force-open plans for TEST while preview is off');
+assert(/mock checkout/i.test(sub) && /Stripe is not connected/.test(sub),
+  'checkout stays mock / TEST only');
+
+var admin = fs.readFileSync(path.join(root, 'assets/js/administrator.js'), 'utf8');
+assert(/prempreview/.test(admin) && /Premium plans &amp; gating preview|Premium plans \& gating preview|Turn preview/.test(admin),
+  'Development panel has Premium preview toggle');
+assert(!/Screen monitoring/.test(admin), 'Screen monitoring nav is gone');
 
 console.log('test_premium.js: ok');

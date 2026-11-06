@@ -103,6 +103,12 @@
 
   function open(opts) {
     opts = opts || {};
+    /* Public upgrade path only while Development preview is on.
+       Admin Development / plans command may pass force: true for TEST. */
+    if (!opts.force && global.Premium && global.Premium.previewEnabled &&
+        !global.Premium.previewEnabled()) {
+      return;
+    }
     gateReason = opts.reason || '';
     if (root) { render(); return; }
     build();
@@ -110,6 +116,10 @@
 
   function openUpgrade(reason) {
     open({ reason: reason || 'Unlock this with LearnGeo Premium.' });
+  }
+
+  function openForced(reason) {
+    open({ force: true, reason: reason || '' });
   }
 
   function close() {
@@ -132,8 +142,8 @@
     root.setAttribute('aria-label', 'LearnGeo Premium plans');
     root.innerHTML =
       '<div class="subdev__ribbon" role="status">' +
-        '<b>Premium</b>' +
-        '<span>Account / player plan · school-safe · mock checkout (TEST grants for owner/admin)</span>' +
+        '<b>DEV PREVIEW</b>' +
+        '<span>Account / player plan · school-safe · mock checkout only (TEST grants for owner/admin) · not live billing</span>' +
       '</div>' +
       '<div class="subdev__bar">' +
         '<div class="subdev__brand">' + (I.globe || '') + ' LearnGeo</div>' +
@@ -406,6 +416,7 @@
   global.SubscriptionDev = {
     open: open,
     openUpgrade: openUpgrade,
+    openForced: openForced,
     close: close,
     isOpen: function () { return !!root; },
     canGrantTest: canGrantTest

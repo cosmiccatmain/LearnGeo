@@ -23,8 +23,8 @@ This folder is for the live project — the one whose URL is in
 | `arcade_scores`, `admin_pins` | the arcade and the admin panel |
 | `gamertags`, `game_scores`, `class_game_blocks` | game leaderboards and per-class game blocks, added by `0008`. The Games hub leaderboard UI calls `game_leaderboard` / `submit_game_score` / `claim_gamertag` from that file. If those RPCs are missing in the live project, Owen or AJ must apply `0008_game_leaderboards_and_blocks.sql` before shipping a Games leaderboard change — no newer migration is required for the polished All-games board. |
 | `admin_actions` replies | `0011_admin_message_replies.sql` adds `reply_to_admin_message` (recipient → admin) and `ultra_message_thread` (admin reads the conversation). Applied on the live project 2026-11-06 (LEA-42). Without it, Send reply 404s and the inbox shows a vague server error. |
-| `screen_shares` | One row per account: whether they are live-sharing a window they chose. Added by `0012_screen_shares.sql`. This is not `account_activity` — that table is still only the view name. |
-| Premium entitlements | `0013_premium_subscriptions.sql` — `flags.premium` on `profiles.save`, `ultra_set_premium`, entitlement-flag protect trigger, and Premium game check inside `submit_game_score`. Account / player level (not teacher-based). Apply after `0012`. |
+| `screen_shares` | Legacy table from `0012_screen_shares.sql`. Screen mirroring / live share was removed from the client (LEA-46); do not redeploy Daily share Edge Functions. `account_activity` remains view-name only. |
+| Premium entitlements | `0013_premium_subscriptions.sql` — `flags.premium` on `profiles.save`, `ultra_set_premium`, entitlement-flag protect trigger, and Premium game check inside `submit_game_score`. Account / player level (not teacher-based). Apply after `0012`. Client gates also require the Development preview switch (LEA-46). |
 
 Authorisation goes through two `security definer` helpers in the
 `private` schema, `is_class_teacher(cid)` and `is_class_member(cid)`,
@@ -51,15 +51,6 @@ psql "$DATABASE_URL" -f deployed/0001_announcements.sql
 Or paste the file into the SQL editor. Every statement is written to be
 safe to run twice.
 
-Screen sharing (`0012_screen_shares.sql`) also needs two Edge Functions
-and two secrets. The Daily API key stays in Supabase, not in Vercel and
-not in the page:
-
-```bash
-supabase secrets set DAILY_API_KEY=… DAILY_DOMAIN=learngeo.daily.co
-supabase functions deploy daily-share-token daily-share-stop
-```
-
-`DAILY_DOMAIN` is the meeting hostname (`learngeo.daily.co`), not
-`api.daily.co`. Leave JWT verification on for both functions. The
-browser only ever receives a meeting token.
+Screen sharing Edge Functions (`daily-share-token`, `daily-share-stop`)
+were removed in LEA-46. Do not deploy them. Historical `0012_screen_shares.sql`
+may still exist on older databases; the app no longer calls those RPCs.

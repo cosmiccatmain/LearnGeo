@@ -1,10 +1,16 @@
 /* ------------------------------------------------------------------
-   LearnGeo — account Premium entitlements (LEA-43).
+   LearnGeo — account Premium entitlements (LEA-43 / LEA-46).
 
    Premium is account / player level, not teacher-based. The durable
    mark lives at save.flags.premium (same shape as flags.staff). Admins
    set it with ultra_set_premium; clients cannot flip it on via a push
    once 0013_premium_subscriptions.sql is applied.
+
+   LEA-46: Premium plans UI and client gating are DEVELOPMENT-ONLY.
+   Owner / UltraAdmin flips the preview in Administrator → Development.
+   When the preview is off, Games and cosmetics do not show live
+   paywalls or Premium locks. Checkout stays mock / TEST forever until
+   a separate live-billing project lands.
 
    Games and cosmetics mark themselves with `premium: true`. This file
    is the single client check so the hub, shop, and score submit agree.
@@ -12,6 +18,8 @@
 (function (global) {
   'use strict';
   var W = global.WW;
+
+  var PREVIEW_KEY = 'learngeo.dev.premiumPreview';
 
   /* Keep in sync with public.premium_game_ids() in 0013. */
   var PREMIUM_GAMES = {
@@ -28,6 +36,28 @@
     return s.flags;
   }
 
+  function previewEnabled() {
+    try {
+      return localStorage.getItem(PREVIEW_KEY) === '1';
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function setPreviewEnabled(on) {
+    try {
+      localStorage.setItem(PREVIEW_KEY, on ? '1' : '0');
+    } catch (e) { /* private mode */ }
+    try {
+      if (typeof CustomEvent === 'function') {
+        global.dispatchEvent(new CustomEvent('learngeo:premium-preview', {
+          detail: { on: !!on }
+        }));
+      }
+    } catch (e2) { /* ignore */ }
+    return !!on;
+  }
+
   function active() {
     return !!flags().premium;
   }
@@ -36,8 +66,10 @@
     return !!PREMIUM_GAMES[id];
   }
 
+  /* Gates only apply while the Development preview switch is on. */
   function gameAllowed(id) {
     if (!gameRequires(id)) return true;
+    if (!previewEnabled()) return true;
     return active();
   }
 
@@ -47,12 +79,13 @@
 
   function itemAllowed(item) {
     if (!itemRequires(item)) return true;
+    if (!previewEnabled()) return true;
     return active();
   }
 
   function stripUnearnedCosmetics() {
     var s = W && W.state;
-    if (!s || !s.profile || active()) return false;
+    if (!s || !s.profile || active() || !previewEnabled()) return false;
     var Cos = global.Cosmetics;
     if (!Cos) return false;
     var changed = false;
@@ -82,6 +115,7 @@
   }
 
   function openUpgrade(reason) {
+    if (!previewEnabled()) return;
     var why = reason || 'This content needs LearnGeo Premium.';
     if (global.SubscriptionDev && typeof global.SubscriptionDev.openUpgrade === 'function') {
       global.SubscriptionDev.openUpgrade(why);
@@ -92,7 +126,7 @@
         title: 'Premium',
         icon: (W && W.Icons && W.Icons.lock) || null,
         body: '<p class="t-muted" style="margin:0">' + (W ? W.escapeHtml(why) : why) +
-          '</p><p class="t-sm t-muted" style="margin:12px 0 0">Premium unlocks select Games and profile effects for your account — not a teacher plan.</p>',
+          '</p><p class="t-sm t-muted" style="margin:12px 0 0">Premium unlocks select Games and profile effects for your account — not a teacher plan. Checkout is mock / TEST only.</p>',
         actions: [{ label: 'Got it', cls: 'btn--primary', close: true }]
       });
       return;
@@ -102,6 +136,9 @@
 
   global.Premium = {
     PREMIUM_GAMES: PREMIUM_GAMES,
+    PREVIEW_KEY: PREVIEW_KEY,
+    previewEnabled: previewEnabled,
+    setPreviewEnabled: setPreviewEnabled,
     active: active,
     gameRequires: gameRequires,
     gameAllowed: gameAllowed,
