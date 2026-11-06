@@ -19,7 +19,10 @@
       meta: '10 – 75 questions · timed' },
     { view: 'quiz', icon: I.target, title: 'Class quiz',
       blurb: 'Works like the paper map quiz from class. A country lights up, you click it, then write its name and capital from memory.',
-      meta: 'Two marks each · no multiple choice' }
+      meta: 'Two marks each · no multiple choice' },
+    { view: 'games', icon: I.gamepad, title: 'Games',
+      blurb: 'Short 2D games where geography is how you win. Jump through capital gates in Geo Dash, defend the globe from meteors in Globe Defender, grow your Capital Snake, or putt round the world in Geo Golf.',
+      meta: 'Geo Dash · Globe Defender · Capital Snake · Geo Golf' }
   ];
 
   var recsCache = [];
