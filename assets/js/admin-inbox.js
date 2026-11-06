@@ -118,6 +118,7 @@
 
     var before = s.economy.diamonds;
     var staffNow = null;
+    var premiumNow = null;
     var wasSet = false;
 
     rows.forEach(function (r) {
@@ -153,6 +154,12 @@
         /* Wearing an effect you no longer hold would leave it on show
            with no way to pick it again. */
         if (!d.on && s.profile && s.profile.effect === 'staff') s.profile.effect = 'none';
+      } else if (r.action === 'premium') {
+        s.flags.premium = !!d.on;
+        premiumNow = !!d.on;
+        if (!d.on && global.Premium && global.Premium.stripUnearnedCosmetics) {
+          global.Premium.stripUnearnedCosmetics();
+        }
       }
       s.flags.adminAt = r.created_at;
     });
@@ -160,6 +167,9 @@
     W.saveNow();                       /* and cloud.js pushes it from here */
     if (global.UI && global.UI.refreshHud) global.UI.refreshHud();
     if (global.Portal && global.Portal.render) { try { global.Portal.render(); } catch (e) {} }
+    if (global.Games && global.Games.screen === 'hub' && global.Games.start) {
+      try { global.Games.start(); } catch (e) {}
+    }
 
     var moved = s.economy.diamonds - before;
     if (wasSet && moved !== 0) {
@@ -175,6 +185,12 @@
         'Equip it under Customise → Profile effect.', I.sparkle, 6000);
     } else if (staffNow === false) {
       W.toast('The LearnGeo Staff effect was removed', '', I.info, 4800);
+    }
+    if (premiumNow === true) {
+      W.toast('Premium unlocked',
+        'Premium Games and profile effects are available on this account.', I.sparkle, 6000);
+    } else if (premiumNow === false) {
+      W.toast('Premium removed', 'Premium Games and effects are locked again.', I.info, 4800);
     }
   }
 

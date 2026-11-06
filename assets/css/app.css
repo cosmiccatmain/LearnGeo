@@ -1104,6 +1104,18 @@ textarea.input:focus { outline: none; border-color: var(--accent); box-shadow: 0
 }
 .shop-item__owned { font-size: 11px; color: var(--faint); font-family: var(--mono); }
 .shop-item__eq { font-size: 11px; color: var(--accent); font-weight: 620; font-family: var(--mono); }
+.shop-item--premium .shop-item__owned {
+  display: inline-flex; align-items: center; gap: 4px;
+  color: #92400E;
+}
+.shop-item--premium .shop-item__owned svg { width: 12px; height: 12px; }
+.shop-item__prem {
+  font-family: var(--mono); font-size: 9.5px; font-weight: 700;
+  letter-spacing: .05em; text-transform: uppercase;
+  color: #92400E; background: #FEF3C7; border: 1px solid #FDE68A;
+  border-radius: 4px; padding: 1px 5px; margin-left: 4px;
+  vertical-align: middle;
+}
 
 /* achievements */
 .ach-row { display: flex; align-items: center; gap: 13px; padding: 12px 0; border-bottom: 1px solid var(--line-soft); }

@@ -183,6 +183,7 @@
           return claim(tag()).then(function (r) { if (r === 'ok') return one(j); });
         }
         if (/blocked/i.test(msg)) remember(j); /* the teacher said no, so stop asking */
+        if (/premium/i.test(msg)) remember(j); /* Premium gate — do not keep retrying the score */
       });
     }
     function remember(j) {

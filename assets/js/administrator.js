@@ -596,7 +596,7 @@
       '<h3>Commands</h3>' +
       '<p class="t-sm t-muted">Type <code>help</code> for the list. A command that needs an account uses the selected one. ' +
         '<code>watch</code> refreshes screen monitoring (owner only). ' +
-        '<code>plans</code> opens the TEST subscription preview.</p>' +
+        '<code>plans</code> opens the Premium plans TEST grant UI.</p>' +
       '<div class="adminp__search">' +
         '<input class="input mono" id="ap-cmd" type="text" placeholder="take 500" ' +
           'autocomplete="off" spellcheck="false">' +
@@ -607,26 +607,27 @@
   }
 
   function panelDevelopment() {
+    var premOn = !!(global.Premium && global.Premium.active && global.Premium.active());
     return '<section class="adminp__sec">' +
       '<h3>Development</h3>' +
-      '<p class="t-sm t-muted">Internal previews that must <b>not</b> appear on the public site. ' +
-        'Owner <code>alexjschendel@gmail.com</code> and admins with UltraAdmin access only.</p>' +
+      '<p class="t-sm t-muted">TEST Premium tools for owner <code>alexjschendel@gmail.com</code> and UltraAdmin. ' +
+        'Premium is <b>account / player</b> level — not teacher-based.</p>' +
       '<div class="adminp__warn adminp__warn--expired" style="margin-bottom:14px">' +
         '<div class="row" style="gap:10px;align-items:flex-start">' + (I.info || '') +
-          '<div class="grow"><b>TEST only.</b> These tools are gated behind Administrator. ' +
-            'No public nav, landing CTA, or student/teacher paywall.</div>' +
+          '<div class="grow"><b>TEST grants.</b> Mock checkout can set <code>flags.premium</code> for this account. ' +
+            'Live Stripe is not connected. Locked Games show an Upgrade path for everyone.</div>' +
         '</div>' +
       '</div>' +
       '<div class="adminp__who" style="align-items:flex-start">' +
         '<div class="grow">' +
           '<div class="adminp__nm">' + (I.shop || I.flask || '') +
-            '<span>Subscription plans (mock)</span></div>' +
-          '<p class="t-sm t-muted" style="margin:6px 0 0">Full pricing page UI with Free / Pro / School, ' +
-            'feature comparison, and a mock checkout. Labeled <b>TEST / Development</b>. ' +
-            'No Stripe charges in v1 — see <code>assets/js/subscription-dev.js</code>.</p>' +
+            '<span>Premium plans (Free / Premium)</span></div>' +
+          '<p class="t-sm t-muted" style="margin:6px 0 0">Account Premium UI for Games and profile effects. ' +
+            'This account is currently <b>' + (premOn ? 'Premium' : 'Free') + '</b>. ' +
+            'See <code>assets/js/premium.js</code> and <code>subscription-dev.js</code>.</p>' +
         '</div>' +
         '<button type="button" class="btn btn--accent btn--sm" data-do="subdev">' +
-          (I.arrowR || '') + ' Open plans preview</button>' +
+          (I.arrowR || '') + ' Open Premium plans</button>' +
       '</div>' +
       '<p class="t-sm t-muted" style="margin:0">Also available from Commands: <code>plans</code> or <code>subscription</code>.</p>' +
     '</section>';
@@ -1706,7 +1707,7 @@
       'stats              reload the numbers at the top',
       'log                reload the action list',
       'help               this',
-      'plans              open TEST subscription preview (Development)',
+      'plans              open Premium plans (TEST grant for owner/admin)',
       'subscription       same as plans'
     ];
     if (access.owner) lines.push('watch              refresh screen monitoring');
@@ -1761,7 +1762,7 @@
     if (cmd === 'help') return say(helpText());
     if (cmd === 'plans' || cmd === 'subscription' || cmd === 'subdev') {
       openSubscriptionDev();
-      return say('Opened TEST subscription preview (Development). No real charges.');
+      return say('Opened Premium plans. TEST grant available for owner/admin. No real charges.');
     }
     if (cmd === 'stats') { refresh(); return say('Reloading…'); }
     if (cmd === 'log') {

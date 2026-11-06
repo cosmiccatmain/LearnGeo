@@ -121,9 +121,9 @@
 
   var GAMES = [
     {
-      id: 'chess', title: 'Geo Chess', art: 'chess',
+      id: 'chess', title: 'Geo Chess', art: 'chess', premium: true,
       blurb: 'Build your chess skills, from a forgiving beginner opponent to full-strength Stockfish. Answer a geography question to unlock each move.',
-      meta: 'Chess · five difficulty levels',
+      meta: 'Premium · Chess · five difficulty levels',
       best: function (r) {
         if (r.best) return 'Best ' + r.best + ' pts';
         return r.wins ? r.wins + (r.wins === 1 ? ' win' : ' wins') : '';
@@ -160,9 +160,9 @@
       playing: function () { return 'Move questions from ' + global.StudyFilters.label(gameCfg('chess')); }
     },
     {
-      id: 'dash', title: 'Geo Dash', art: 'dash',
+      id: 'dash', title: 'Geo Dash', art: 'dash', premium: true,
       blurb: 'Jump over spikes and onto blocks to the beat of your own taps. Every so often a capital gate comes up, and you have to name the capital to keep running.',
-      meta: 'One button · capital gates',
+      meta: 'Premium · One button · capital gates',
       best: function (r) { return r.best ? 'Best ' + r.best + ' m' : ''; },
       intro: 'Your cube runs by itself. Jump over spikes, land on blocks, and get as far as you can. ' +
         'Every so often a capital gate comes down the track: name the capital and the run speeds up, ' +
@@ -217,9 +217,9 @@
       }
     },
     {
-      id: 'orbit', title: 'Globe Defender', art: 'orbit',
+      id: 'orbit', title: 'Globe Defender', art: 'orbit', premium: true,
       blurb: 'Circle the globe and shoot down the meteors before they land. Between waves, shoot the satellite with the right flag or capital for a power-up.',
-      meta: 'Steer and shoot · supply drops',
+      meta: 'Premium · Steer and shoot · supply drops',
       best: function (r) { return r.best ? 'Best ' + r.best + ' pts' : ''; },
       intro: 'Your ship orbits the globe and fires outward on its own; you steer it round to meet the meteors. ' +
         'Each one that gets through costs a shield and lights up the country it hit. ' +
@@ -309,9 +309,9 @@
       }
     },
     {
-      id: 'golf', title: 'Geo Golf', art: 'golf',
+      id: 'golf', title: 'Geo Golf', art: 'golf', premium: true,
       blurb: 'Top-down golf on the world map. Each hole names a country or a capital, and there’s no pin to aim at: putt to where it is.',
-      meta: 'Drag and putt · on the map',
+      meta: 'Premium · Drag and putt · on the map',
       best: function (r) {
         var b = r.best || {}, n = b['9'] !== undefined ? '9' : Object.keys(b)[0];
         return n ? 'Best ' + parToText(b[n]) + ' · ' + n + ' holes' : '';
@@ -805,6 +805,7 @@
     cards.forEach(function (btn, i) {
       btn.addEventListener('click', function () {
         if (isBlocked(btn.dataset.game)) { blockedToast(); return; }
+        if (isPremiumLocked(btn.dataset.game)) { premiumToast(btn.dataset.game); return; }
         current = btn.dataset.game; toSetup();
       });
       btn.addEventListener('focus', function () {
@@ -822,18 +823,40 @@
 
   function isBlocked(id) { return !!(global.GameBlocks && global.GameBlocks.blocked(id)); }
 
+  function isPremiumLocked(id) {
+    var g = byId(id);
+    var needs = !!(g && g.premium) || !!(global.Premium && global.Premium.gameRequires && global.Premium.gameRequires(id));
+    if (!needs) return false;
+    return !(global.Premium && global.Premium.gameAllowed && global.Premium.gameAllowed(id));
+  }
+
+  function premiumToast(id) {
+    var g = byId(id);
+    var title = (g && g.title) || 'This game';
+    W.toast('Premium', title + ' needs LearnGeo Premium.', I.lock, 3600);
+    if (global.Premium && global.Premium.openUpgrade) {
+      global.Premium.openUpgrade(title + ' is a Premium game.');
+    }
+  }
+
   function card(g) {
     var best = g.best(record(g.id));
     var off = isBlocked(g.id);
-    return '<button class="game-card' + (off ? ' is-blocked' : '') + '" data-game="' + g.id + '" type="button"' +
-      (off ? ' aria-disabled="true"' : '') + '>' +
-      '<div class="game-card__art game-art--' + g.art + '" aria-hidden="true">' + art(g.art) + '</div>' +
+    var prem = !off && isPremiumLocked(g.id);
+    var locked = off || prem;
+    return '<button class="game-card' + (off ? ' is-blocked' : '') + (prem ? ' is-premium-locked' : '') +
+      '" data-game="' + g.id + '" type="button"' +
+      (locked ? ' aria-disabled="true"' : '') + '>' +
+      '<div class="game-card__art game-art--' + g.art + '" aria-hidden="true">' + art(g.art) +
+        (g.premium ? '<span class="game-card__prem-badge">Premium</span>' : '') +
+      '</div>' +
       '<div class="game-card__body">' +
         '<h3>' + esc(g.title) + '</h3>' +
         '<p>' + esc(g.blurb) + '</p>' +
         '<div class="game-card__foot"><span>' + esc(g.meta) + '</span>' +
           (best ? '<span class="game-card__best">' + esc(best) + '</span>' : '') +
           (off ? '<span class="game-card__go">' + I.lock + ' Blocked by your teacher</span>'
+               : prem ? '<span class="game-card__go">' + I.lock + ' Premium · Upgrade</span>'
                : '<span class="game-card__go">Play ' + I.arrowR + '</span>') + '</div>' +
       '</div>' +
     '</button>';
@@ -995,6 +1018,7 @@
     var g = byId(current);
     current = g.id;
     if (isBlocked(g.id)) { blockedToast(); renderHub(); return; }
+    if (isPremiumLocked(g.id)) { premiumToast(g.id); renderHub(); return; }
     var r = record(g.id);
     var cfg = gameCfg(g.id);
 
@@ -1055,10 +1079,13 @@
 
   /* ------------------------------ play ------------------------------ */
   function play() {
+    var g0 = byId(current);
+    if (isBlocked(g0.id)) { blockedToast(); renderHub(); return; }
+    if (isPremiumLocked(g0.id)) { premiumToast(g0.id); renderHub(); return; }
     stop();
     screen = 'play';
     var el = host();
-    var g = byId(current);
+    var g = g0;
     var r = record(g.id);
     el.innerHTML =
       '<div class="portal__inner games games--play">' +
@@ -1078,7 +1105,7 @@
      Copies, so nothing out there can reach into GAMES. */
   function catalogue() {
     return GAMES.map(function (g) {
-      return { id: g.id, title: g.title, blurb: g.blurb, meta: g.meta, art: g.art };
+      return { id: g.id, title: g.title, blurb: g.blurb, meta: g.meta, art: g.art, premium: !!g.premium };
     });
   }
 

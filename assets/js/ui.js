@@ -547,19 +547,25 @@
              carries no price, and without this it would read as costing 0
              and open the buy dialog for nothing. */
           var earned = !!it.earn;
-          var isOwned = earned
+          var needsPrem = !!(it.premium) || !!(Cos.requiresPremium && Cos.requiresPremium(it));
+          var hasPrem = global.Premium && global.Premium.active && global.Premium.active();
+          var premLocked = needsPrem && !hasPrem;
+          var isOwned = premLocked ? false : (earned
             ? Cos.ownsEarned(it, W.state.achievements)
-            : (it.price === 0 || owned.indexOf(it.id) !== -1);
+            : (it.price === 0 || owned.indexOf(it.id) !== -1));
           var isEq = equipped === it.id;
           var how = earned ? Cos.unlockedBy(it) : null;
           return '<button class="shop-item' + (isEq ? ' is-equipped' : '') + (isOwned ? '' : ' is-locked') +
-            (earned ? ' shop-item--earned' : '') + '" ' +
-            'data-kind="' + kind + '" data-id="' + it.id + '" data-price="' + (earned ? '' : (it.price || 0)) + '" ' +
+            (earned ? ' shop-item--earned' : '') + (premLocked ? ' shop-item--premium' : '') + '" ' +
+            'data-kind="' + kind + '" data-id="' + it.id + '" data-price="' + (earned || premLocked ? '' : (it.price || 0)) + '" ' +
             'data-earn="' + (it.earn || '') + '" ' +
+            'data-premium="' + (premLocked ? '1' : '0') + '" ' +
             'data-owned="' + (isOwned ? 1 : 0) + '">' +
             visual(kind, it) +
-            '<span class="shop-item__name">' + W.escapeHtml(it.name || it.id) + '</span>' +
+            '<span class="shop-item__name">' + W.escapeHtml(it.name || it.id) +
+              (needsPrem ? ' <span class="shop-item__prem">Premium</span>' : '') + '</span>' +
             (isEq ? '<span class="shop-item__eq mono">EQUIPPED</span>'
+                  : premLocked ? '<span class="shop-item__owned">' + I.lock + ' Premium</span>'
                   : isOwned ? '<span class="shop-item__owned">' + (earned ? 'earned' : 'owned') + '</span>'
                   /* A locked badge says what to go and do. A grid of grey
                      question marks is worth less than a list to aim at. */
@@ -629,11 +635,21 @@
         var kind = btn.dataset.kind, id = btn.dataset.id;
         var price = parseInt(btn.dataset.price, 10) || 0;
         var owned = btn.dataset.owned === '1';
+        var item = Cos.find(Cos[kind], id);
+
+        if (btn.dataset.premium === '1' || (item && item.premium && !(global.Premium && global.Premium.active && global.Premium.active()))) {
+          W.Sound.wrong();
+          W.toast('Premium', (item && item.name ? item.name + ' needs' : 'Needs') + ' LearnGeo Premium', I.lock, 3600);
+          if (global.Premium && global.Premium.openUpgrade) {
+            global.Premium.openUpgrade((item && item.name ? item.name : 'This cosmetic') + ' is a Premium profile effect.');
+          }
+          return;
+        }
 
         /* A locked badge is not for sale at any price. Tapping it says what
            to go and do instead of opening a buy dialog. */
         if (!owned && btn.dataset.earn) {
-          var ach = Cos.unlockedBy(Cos.find(Cos[kind], id));
+          var ach = Cos.unlockedBy(item);
           W.Sound.wrong();
           W.toast('Not earned yet', ach ? ach.desc : 'Unlock the achievement to wear this', I.trophy, 3600);
           return;
@@ -651,6 +667,12 @@
        sold, whatever a caller passes as the price, so a badge cannot be
        bought by a stale button, a keyboard path or a console call. */
     if (item && item.earn) return;
+    if (item && item.premium && !(global.Premium && global.Premium.active && global.Premium.active())) {
+      if (global.Premium && global.Premium.openUpgrade) {
+        global.Premium.openUpgrade((item.name || 'This cosmetic') + ' is a Premium profile effect.');
+      }
+      return;
+    }
     if (W.state.economy.diamonds < price) {
       W.Sound.wrong();
       W.toast('Not enough diamonds', 'You need ' + (price - W.state.economy.diamonds) + ' more', I.gem, 3400);
@@ -683,6 +705,13 @@
   }
 
   function equip(kind, id, root) {
+    var item = Cos.find(Cos[kind], id);
+    if (item && item.premium && !(global.Premium && global.Premium.active && global.Premium.active())) {
+      if (global.Premium && global.Premium.openUpgrade) {
+        global.Premium.openUpgrade((item.name || 'This cosmetic') + ' is a Premium profile effect.');
+      }
+      return;
+    }
     W.state.profile[LISTS[kind]] = id;
     W.saveNow();
     W.Sound.flip();
@@ -735,6 +764,9 @@
     if (name) p.displayName = name.value.trim().slice(0, 32) || 'Explorer';
     if (pron) p.pronouns = pron.value.trim().slice(0, 24);
     if (about) p.about = about.value.trim().slice(0, 190);
+    if (global.Premium && global.Premium.stripUnearnedCosmetics) {
+      global.Premium.stripUnearnedCosmetics();
+    }
     W.saveNow();
     refreshHud();
     W.toast('Profile saved', p.displayName, I.check);

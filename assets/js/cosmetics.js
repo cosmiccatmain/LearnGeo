@@ -114,13 +114,13 @@
     { id: 'snow', name: 'Snowfall', price: 500, shape: 'dot', colors: ['#BAE6FD', '#E0F2FE', '#FFFFFF'] },
     { id: 'stars', name: 'Starfall', price: 800, shape: 'star', colors: ['#F5B301', '#FDE68A'] },
     { id: 'leaves', name: 'Drifting Leaves', price: 800, shape: 'leaf', colors: ['#16A34A', '#84CC16', '#CA8A04'] },
-    { id: 'bubbles', name: 'Deep Current', price: 1200, shape: 'ring', colors: ['#0EA5E9', '#22D3EE'] },
-    { id: 'rain', name: 'Monsoon', price: 1200, shape: 'drop', colors: ['#38BDF8', '#0284C7'] },
-    { id: 'embers', name: 'Embers', price: 1800, shape: 'dot', colors: ['#F97316', '#DC2626', '#F5B301'] },
+    { id: 'bubbles', name: 'Deep Current', price: 1200, shape: 'ring', colors: ['#0EA5E9', '#22D3EE'], premium: true },
+    { id: 'rain', name: 'Monsoon', price: 1200, shape: 'drop', colors: ['#38BDF8', '#0284C7'], premium: true },
+    { id: 'embers', name: 'Embers', price: 1800, shape: 'dot', colors: ['#F97316', '#DC2626', '#F5B301'], premium: true },
     { id: 'wings', name: 'Chicken Wings', price: 900, shape: 'wing',
-      colors: ['#B45309', '#D97706', '#92400E', '#C2410C'] },
+      colors: ['#B45309', '#D97706', '#92400E', '#C2410C'], premium: true },
     { id: 'gambling', name: 'Gambling', price: 1500, shape: 'dice',
-      colors: ['#FFFFFF', '#FEF3C7', '#F1F5F9'] },
+      colors: ['#FFFFFF', '#FEF3C7', '#F1F5F9'], premium: true },
 
     /* ---------------------- the one with no price -------------------
        Not for sale, and not earnable either. It carries `earn` so the
@@ -232,6 +232,11 @@
        so nobody hardcodes four names that later disagree with this file. */
     tagGlyph: tagGlyph,
     tagGlyphs: Object.keys(TAG_GLYPHS),
+
+    /* Premium cosmetics need flags.premium (account Premium). LEA-43. */
+    requiresPremium: function (item) {
+      return !!(item && item.premium);
+    },
 
     /* The ownership rule for an earned badge, in one place so nothing has
        to re-implement it. Unlocking the achievement is the whole of it:
