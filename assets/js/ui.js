@@ -1188,8 +1188,8 @@
      one-way trip out of the menu. */
   /* Teachers see the study modes too, and open them as a browse (go()
      below), so they can find something worth setting and assign it from
-     where they are. Home stays student-only. Games stays reachable via
-     /games for deep links; it is not a public shell tab. */
+     where they are. Home stays student-only. Games is a shell tab for
+     students and teachers (role null), after Class quiz. */
   var TAB_DEFS = [
     { view: 'portal',    icon: 'grid',   label: 'Home',          role: 'student' },
     { view: 'codex',     icon: 'hex',    label: 'Codex',         role: 'student' },
@@ -1197,7 +1197,8 @@
     { view: 'teacher',   icon: 'users',  label: 'My class',      role: 'teacher' },
     { view: 'learn',     icon: 'book',   label: 'Learn',         role: null },
     { view: 'test',      icon: 'clip',   label: 'Practice test', role: null },
-    { view: 'quiz',      icon: 'target', label: 'Class quiz',    role: null }
+    { view: 'quiz',      icon: 'target', label: 'Class quiz',    role: null },
+    { view: 'games',     icon: 'gamepad', label: 'Games',        role: null }
   ];
 
   function refreshTabs() {
