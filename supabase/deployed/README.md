@@ -22,6 +22,7 @@ This folder is for the live project — the one whose URL is in
 | `announcements` | `class_id`, `body`, `pinned` — added by `0001` here; `author_id`, `author_name` by `0007` (not applied yet) |
 | `arcade_scores`, `admin_pins` | the arcade and the admin panel |
 | `gamertags`, `game_scores`, `class_game_blocks` | game leaderboards and per-class game blocks, added by `0008`. The Games hub leaderboard UI calls `game_leaderboard` / `submit_game_score` / `claim_gamertag` from that file. If those RPCs are missing in the live project, Owen or AJ must apply `0008_game_leaderboards_and_blocks.sql` before shipping a Games leaderboard change — no newer migration is required for the polished All-games board. |
+| `admin_actions` replies | `0011_admin_message_replies.sql` adds `reply_to_admin_message` (recipient → admin) and `ultra_message_thread` (admin reads the conversation). Applied on the live project 2026-11-06 (LEA-42). Without it, Send reply 404s and the inbox shows a vague server error. |
 
 Authorisation goes through two `security definer` helpers in the
 `private` schema, `is_class_teacher(cid)` and `is_class_member(cid)`,
