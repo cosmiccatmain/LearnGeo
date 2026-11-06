@@ -338,7 +338,9 @@
         if (res.error) {
           if (btn) { btn.disabled = false; btn.textContent = 'Send reply'; }
           if (missing(res.error, 'reply_to_admin_message')) {
-            return fail('Replies need an update on the server. An admin can still read the Got it.');
+            /* PGRST202 / missing RPC — historically shown as a vague
+               “server” failure when 0011 was not applied yet. */
+            return fail('Replies are not set up on the database yet (missing reply_to_admin_message). Got it still works.');
           }
           return fail(res.error.message || 'That did not send.');
         }
