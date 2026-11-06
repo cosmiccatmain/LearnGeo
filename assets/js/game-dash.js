@@ -4,8 +4,9 @@
    you only jump. Every so often a question gate comes down the track,
    and getting through it means naming a country's capital.
 
-     GeoDash.mount(host, { every, cfg(), onBack(), onRun(result) })
+     GeoDash.mount(host, { every, map, cfg(), onBack(), onRun(result) })
        every   seconds of running between capital gates
+       map     which track to run (id from MAPS); defaults to classic
        cfg     the question filters (StudyFilters shape), read per question
        onBack  leave for the setup screen
        onRun   called once per finished run with its result
@@ -24,7 +25,6 @@
   var AIR_TIME = 2 * JUMP / GRAVITY;
   var SPIN = Math.PI / AIR_TIME;                  /* half a turn per jump */
   var SPEEDS = [8.6, 9.6, 10.6, 11.4, 12];        /* tiles per second, one per capital answered */
-  var HUES = [222, 262, 318, 18, 158];
   var VIEW_H = 10, FLOOR = 2.2, PLAYER_AT = 5;
   var ORB_BUFFER = 0.12;
 
@@ -33,7 +33,7 @@
      take in one jump or long enough for two; nothing in between, which is
      where a run becomes unfair rather than hard. tier 0 is before the first
      capital, tier 1 after one, tier 2 after two. */
-  var PIECES = [
+  var CLASSIC_PIECES = [
     { tier: 0, len: 1, o: [['s', 0, 0]] },
     { tier: 0, len: 2, o: [['s', 0, 0], ['s', 1, 0]] },
     { tier: 0, len: 3, o: [['b', 0, 0, 3, 1]] },
@@ -46,6 +46,75 @@
     { tier: 2, len: 5, o: [['s', 0, 0], ['s', 1, 0], ['s', 2, 0], ['s', 3, 0], ['s', 4, 0], ['o', 2, 1.2]] },
     { tier: 2, len: 7, o: [['b', 0, 0, 2, 1], ['s', 2, 0], ['s', 3, 0], ['s', 4, 0], ['b', 5, 0, 2, 1]] }
   ];
+
+  /* Stair-heavy mountain climb: stacked blocks, fewer open spike fields. */
+  var ANDES_PIECES = [
+    { tier: 0, len: 2, o: [['b', 0, 0, 2, 1]] },
+    { tier: 0, len: 4, o: [['b', 0, 0, 2, 1], ['b', 2, 0, 2, 2]] },
+    { tier: 0, len: 3, o: [['s', 0, 0], ['b', 1, 0, 2, 1]] },
+    { tier: 1, len: 6, o: [['b', 0, 0, 2, 1], ['b', 2, 0, 2, 2], ['b', 4, 0, 2, 3]] },
+    { tier: 1, len: 5, o: [['b', 0, 0, 3, 1], ['s', 3, 0], ['b', 4, 0, 1, 2]] },
+    { tier: 1, len: 6, o: [['b', 0, 0, 6, 1], ['s', 2, 1], ['s', 4, 1]] },
+    { tier: 2, len: 7, o: [['b', 0, 0, 2, 1], ['b', 2, 0, 2, 2], ['b', 4, 0, 2, 3], ['s', 6, 0]] },
+    { tier: 2, len: 6, o: [['p', 0], ['b', 2, 0, 2, 2], ['b', 4, 0, 2, 3]] },
+    { tier: 2, len: 7, o: [['b', 0, 0, 2, 1], ['s', 2, 0], ['s', 3, 0], ['b', 4, 0, 3, 2]] }
+  ];
+
+  /* Open desert: long spike runs and wider gaps, pads to clear them. */
+  var SAHARA_PIECES = [
+    { tier: 0, len: 1, o: [['s', 0, 0]] },
+    { tier: 0, len: 3, o: [['s', 0, 0], ['s', 1, 0], ['s', 2, 0]] },
+    { tier: 0, len: 4, o: [['b', 0, 0, 2, 1], ['s', 2, 0], ['s', 3, 0]] },
+    { tier: 1, len: 5, o: [['s', 0, 0], ['s', 1, 0], ['s', 2, 0], ['s', 3, 0], ['s', 4, 0]] },
+    { tier: 1, len: 5, o: [['p', 0], ['s', 2, 0], ['s', 3, 0], ['s', 4, 0]] },
+    { tier: 1, len: 6, o: [['b', 0, 0, 2, 1], ['s', 2, 0], ['s', 3, 0], ['s', 4, 0], ['b', 5, 0, 1, 1]] },
+    { tier: 2, len: 6, o: [['s', 0, 0], ['s', 1, 0], ['s', 2, 0], ['s', 3, 0], ['s', 4, 0], ['s', 5, 0]] },
+    { tier: 2, len: 6, o: [['p', 0], ['s', 2, 0], ['s', 3, 0], ['s', 4, 0], ['s', 5, 0]] },
+    { tier: 2, len: 7, o: [['b', 0, 0, 2, 1], ['s', 2, 0], ['s', 3, 0], ['s', 4, 0], ['s', 5, 0], ['b', 6, 0, 1, 1]] }
+  ];
+
+  /* Island hop: pads and mid-air rings between short platforms. */
+  var ISLES_PIECES = [
+    { tier: 0, len: 3, o: [['b', 0, 0, 2, 1], ['p', 2]] },
+    { tier: 0, len: 4, o: [['b', 0, 0, 2, 1], ['b', 3, 0, 1, 1]] },
+    { tier: 0, len: 3, o: [['p', 0], ['b', 2, 0, 1, 1]] },
+    { tier: 1, len: 5, o: [['b', 0, 0, 2, 1], ['o', 2, 1.4], ['b', 4, 0, 1, 1]] },
+    { tier: 1, len: 6, o: [['p', 0], ['s', 2, 0], ['b', 4, 0, 2, 1]] },
+    { tier: 1, len: 5, o: [['b', 0, 0, 1, 1], ['p', 2], ['b', 4, 0, 1, 2]] },
+    { tier: 2, len: 6, o: [['b', 0, 0, 1, 1], ['o', 2, 1.5], ['s', 3, 0], ['b', 5, 0, 1, 1]] },
+    { tier: 2, len: 7, o: [['p', 0], ['s', 2, 0], ['o', 3.5, 1.6], ['b', 6, 0, 1, 1]] },
+    { tier: 2, len: 6, o: [['b', 0, 0, 2, 1], ['o', 3, 1.3], ['b', 5, 0, 1, 2]] }
+  ];
+
+  /* Four selectable tracks. Same rules and difficulty slider; different
+     layouts, colour themes, and geography flavour. */
+  var MAPS = [
+    {
+      id: 'classic', name: 'Classic Ridge', short: 'Classic',
+      blurb: 'The original mixed track of spikes, blocks, pads and rings.',
+      theme: 'squares', hues: [222, 262, 318, 18, 158], pieces: CLASSIC_PIECES
+    },
+    {
+      id: 'andes', name: 'Andes Ascent', short: 'Andes',
+      blurb: 'Stacked mountain stairs — climb the blocks, watch the edges.',
+      theme: 'peaks', hues: [168, 152, 138, 110, 88], pieces: ANDES_PIECES
+    },
+    {
+      id: 'sahara', name: 'Sahara Sprint', short: 'Sahara',
+      blurb: 'Open desert runs of spikes with pads to clear the dunes.',
+      theme: 'dunes', hues: [32, 22, 12, 38, 48], pieces: SAHARA_PIECES
+    },
+    {
+      id: 'isles', name: 'Pacific Isles', short: 'Isles',
+      blurb: 'Island hops — pads and mid-air rings between short platforms.',
+      theme: 'isles', hues: [198, 208, 188, 218, 172], pieces: ISLES_PIECES
+    }
+  ];
+
+  function mapById(id) {
+    for (var i = 0; i < MAPS.length; i++) if (MAPS[i].id === id) return MAPS[i];
+    return MAPS[0];
+  }
 
   function mount(host, opts) {
     var esc = W.escapeHtml;
@@ -72,6 +141,7 @@
 
     var save = W.state.games.dash;
     var every = opts.every || 20;
+    var map = mapById(opts.map);
     var attempt = 0, best = save.best || 0;
     var raf = 0, lastT = 0, acc = 0;
     var view = { w: 0, h: 0, s: 1, tiles: 20, dpr: 1 };
@@ -85,7 +155,7 @@
       run = {
         state: 'ready', x: 0, y: 0, vy: 0, ground: true, angle: 0,
         objs: [], next: 16, time: 0, sinceGate: 0, gateDue: false, gate: null,
-        stage: 0, caps: 0, hue: HUES[0], dead: 0, parts: [], skin: null,
+        stage: 0, caps: 0, hue: map.hues[0], dead: 0, parts: [], skin: null,
         reason: null, q: null, answered: null, trail: 0, shake: 0, startX: 0
       };
       fill();
@@ -111,7 +181,7 @@
         return;
       }
       var tier = Math.min(run.stage, 2);
-      var choices = PIECES.filter(function (p) { return p.tier <= tier; });
+      var choices = map.pieces.filter(function (p) { return p.tier <= tier; });
       /* newer pieces come up more often than the ones you have seen since the start */
       var weighted = [];
       choices.forEach(function (p) { for (var i = 0; i <= p.tier; i++) weighted.push(p); });
@@ -377,11 +447,11 @@
     function showReady() {
       layer.innerHTML =
         '<div class="gd-card gd-card--ready">' +
-          '<div class="gd-card__eyebrow">Attempt ' + attempt + '</div>' +
+          '<div class="gd-card__eyebrow">Attempt ' + attempt + ' · ' + esc(map.name) + '</div>' +
           '<h3>Click, tap or press Space</h3>' +
           '<p>Jump over spikes and onto blocks. Hold to keep jumping. ' +
             'Yellow pads launch you; tap again inside a yellow ring to jump in mid-air.</p>' +
-          '<p>Every ' + every + ' seconds a capital gate comes up. Name the capital to get through.</p>' +
+          '<p>' + esc(map.blurb) + ' Every ' + every + ' seconds a capital gate comes up. Name the capital to get through.</p>' +
         '</div>';
       layer.classList.remove('hidden');
     }
@@ -536,25 +606,32 @@
 
       var hue = r.hue;
       var sky = c.createLinearGradient(0, 0, 0, view.h);
-      sky.addColorStop(0, 'hsl(' + hue + ',72%,52%)');
-      sky.addColorStop(1, 'hsl(' + hue + ',78%,30%)');
+      if (map.theme === 'dunes') {
+        sky.addColorStop(0, 'hsl(' + hue + ',78%,62%)');
+        sky.addColorStop(0.55, 'hsl(' + (hue + 8) + ',70%,48%)');
+        sky.addColorStop(1, 'hsl(' + (hue + 14) + ',62%,36%)');
+      } else if (map.theme === 'isles') {
+        sky.addColorStop(0, 'hsl(' + hue + ',70%,68%)');
+        sky.addColorStop(1, 'hsl(' + (hue + 12) + ',62%,38%)');
+      } else if (map.theme === 'peaks') {
+        sky.addColorStop(0, 'hsl(' + hue + ',48%,58%)');
+        sky.addColorStop(1, 'hsl(' + (hue - 10) + ',55%,28%)');
+      } else {
+        sky.addColorStop(0, 'hsl(' + hue + ',72%,52%)');
+        sky.addColorStop(1, 'hsl(' + hue + ',78%,30%)');
+      }
       c.fillStyle = sky;
       c.fillRect(-20, -20, view.w + 40, view.h + 40);
 
-      /* background squares, a quarter of the track speed */
       var camX = r.x - PLAYER_AT;
-      var bx = camX * 0.25;
-      c.strokeStyle = 'hsla(' + hue + ',90%,85%,.13)';
-      c.lineWidth = 2;
-      for (var i = Math.floor(bx / 3) - 1; i < bx / 3 + view.tiles / 3 + 2; i++) {
-        var h1 = hash(i), size = (1.2 + h1 * 1.6) * s;
-        var px = (i * 3 - bx) * s, py = (0.6 + hash(i + 99) * 4.2) * s;
-        c.strokeRect(px, py, size, size);
-      }
+      drawBackdrop(camX, hue, s);
 
       /* the floor */
       var gy = sy(0);
-      c.fillStyle = 'hsl(' + hue + ',70%,20%)';
+      if (map.theme === 'dunes') c.fillStyle = 'hsl(' + hue + ',55%,28%)';
+      else if (map.theme === 'isles') c.fillStyle = 'hsl(' + (hue + 8) + ',55%,24%)';
+      else if (map.theme === 'peaks') c.fillStyle = 'hsl(' + (hue - 8) + ',40%,18%)';
+      else c.fillStyle = 'hsl(' + hue + ',70%,20%)';
       c.fillRect(-20, gy, view.w + 40, view.h - gy + 20);
       c.strokeStyle = 'hsla(' + hue + ',90%,85%,.12)';
       c.lineWidth = 1;
@@ -562,7 +639,8 @@
         var gx = sx(g);
         c.beginPath(); c.moveTo(gx, gy); c.lineTo(gx, view.h); c.stroke();
       }
-      c.fillStyle = 'rgba(255,255,255,.85)';
+      c.fillStyle = map.theme === 'dunes' ? 'rgba(255,230,180,.9)' :
+        map.theme === 'isles' ? 'rgba(180,240,255,.9)' : 'rgba(255,255,255,.85)';
       c.fillRect(-20, gy - 1, view.w + 40, 2);
 
       if (attemptTextVisible()) {
@@ -596,6 +674,57 @@
 
     function attemptTextVisible() { return run.x - run.startX < view.tiles + 4; }
     function hash(n) { var x = Math.sin(n * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); }
+
+    function drawBackdrop(camX, hue, s) {
+      var c = ctx, bx = camX * 0.25, i, px, py;
+      if (map.theme === 'peaks') {
+        for (i = Math.floor(bx / 4) - 1; i < bx / 4 + view.tiles / 4 + 2; i++) {
+          var base = (i * 4 - bx) * s;
+          var peak = (2.2 + hash(i) * 3.4) * s;
+          c.beginPath();
+          c.moveTo(base - 1.6 * s, sy(0) - 0.2 * s);
+          c.lineTo(base + 0.4 * s, sy(0) - peak);
+          c.lineTo(base + 2.4 * s, sy(0) - 0.2 * s);
+          c.closePath();
+          c.fillStyle = 'hsla(' + (hue - 12) + ',35%,' + (22 + hash(i + 3) * 14) + '%,.55)';
+          c.fill();
+        }
+        return;
+      }
+      if (map.theme === 'dunes') {
+        c.strokeStyle = 'hsla(' + hue + ',70%,80%,.22)';
+        c.lineWidth = 2;
+        for (i = Math.floor(bx / 5) - 1; i < bx / 5 + view.tiles / 5 + 2; i++) {
+          px = (i * 5 - bx) * s;
+          py = (1.2 + hash(i) * 2.8) * s;
+          c.beginPath();
+          c.moveTo(px, py + 1.2 * s);
+          c.quadraticCurveTo(px + 2.2 * s, py - 0.6 * s, px + 4.4 * s, py + 1.1 * s);
+          c.stroke();
+        }
+        return;
+      }
+      if (map.theme === 'isles') {
+        for (i = Math.floor(bx / 3.5) - 1; i < bx / 3.5 + view.tiles / 3.5 + 2; i++) {
+          px = (i * 3.5 - bx) * s;
+          py = (0.8 + hash(i) * 3.6) * s;
+          var rw = (0.9 + hash(i + 7) * 1.4) * s;
+          c.beginPath();
+          c.ellipse(px, py, rw, rw * 0.38, 0, 0, Math.PI * 2);
+          c.fillStyle = 'hsla(' + hue + ',55%,85%,' + (0.1 + hash(i + 2) * 0.12) + ')';
+          c.fill();
+        }
+        return;
+      }
+      /* classic: background squares, a quarter of the track speed */
+      c.strokeStyle = 'hsla(' + hue + ',90%,85%,.13)';
+      c.lineWidth = 2;
+      for (i = Math.floor(bx / 3) - 1; i < bx / 3 + view.tiles / 3 + 2; i++) {
+        var h1 = hash(i), size = (1.2 + h1 * 1.6) * s;
+        px = (i * 3 - bx) * s; py = (0.6 + hash(i + 99) * 4.2) * s;
+        c.strokeRect(px, py, size, size);
+      }
+    }
 
     function drawBlock(x, y, w, h, hue) {
       var c = ctx;
@@ -738,7 +867,7 @@
       }
       var moving = r.state === 'run' || r.state === 'dead';
       if (moving !== holding) { holding = moving; W.holdToasts(moving); }
-      var target = HUES[Math.min(r.stage, HUES.length - 1)];
+      var target = map.hues[Math.min(r.stage, map.hues.length - 1)];
       r.hue += (target - r.hue) * Math.min(1, dt * 2);
       r.shake = Math.max(0, r.shake - dt);
       tickParts(dt);
@@ -770,5 +899,11 @@
     };
   }
 
-  global.GeoDash = { mount: mount, pieces: PIECES, physics: { gravity: GRAVITY, jump: JUMP, pad: PAD, orb: ORB, speeds: SPEEDS } };
+  global.GeoDash = {
+    mount: mount,
+    maps: MAPS,
+    mapById: mapById,
+    pieces: CLASSIC_PIECES,
+    physics: { gravity: GRAVITY, jump: JUMP, pad: PAD, orb: ORB, speeds: SPEEDS }
+  };
 })(window);
