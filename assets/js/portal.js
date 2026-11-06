@@ -26,6 +26,9 @@
   ];
 
   var recsCache = [];
+  /* Explorer / friend GeoLive host panel on Home. Not a Games mode. */
+  var geoLiveFriends = false;
+  var portalLiveHost = null;
 
   function greeting() {
     var h = new Date().getHours();
@@ -47,10 +50,30 @@
 
     recsCache = global.Assignments.recommend(3);
 
+    tearPortalLive();
+
+    if (geoLiveFriends) {
+      host.innerHTML =
+        '<div class="portal__inner">' +
+          '<div class="portal__section">' +
+            '<div class="row row--between" style="margin-bottom:14px">' +
+              '<div><span class="eyebrow">GeoLive</span>' +
+                '<div class="t-sm t-muted" style="margin-top:4px">Host a live quiz for friends. Share the join code.</div></div>' +
+              '<button class="btn btn--ghost btn--sm" id="portal-geolive-back">Back to Home</button>' +
+            '</div>' +
+            '<div id="portal-geolive"></div>' +
+          '</div>' +
+        '</div>';
+      wire(host);
+      mountPortalLive();
+      return;
+    }
+
     host.innerHTML =
       '<div class="portal__inner">' +
         heroSection(s, st, mastered, total) +
         railSection(s, st) +
+        geoLiveFriendsCta() +
         assignmentsSection() +
         '<div class="home-grid">' +
           '<div class="home-modes">' +
@@ -88,6 +111,34 @@
 
     global.WorldMap.paint(document.getElementById('home-map'));
     wire(host);
+  }
+
+  function tearPortalLive() {
+    if (!portalLiveHost) return;
+    var GT = global.GeoLiveTeacher;
+    if (GT && GT.unmount) { try { GT.unmount(); } catch (e) {} }
+    portalLiveHost = null;
+  }
+
+  function mountPortalLive() {
+    var el = document.getElementById('portal-geolive');
+    if (!el || !global.GeoLiveTeacher || !global.GeoLiveTeacher.mount) return;
+    portalLiveHost = global.GeoLiveTeacher.mount(el, {
+      classId: '',
+      roster: [],
+      members: [],
+      friends: true,
+      hostKind: 'friends'
+    }) || null;
+  }
+
+  function geoLiveFriendsCta() {
+    return '<button class="home-join" id="portal-geolive">' +
+      '<span class="home-join__icon">' + I.bolt + '</span>' +
+      '<span class="home-join__t"><b>Host a GeoLive round</b>' +
+        '<span>Start a live quiz for friends. They join with your code — no class needed.</span></span>' +
+      '<span class="home-join__go">Host ' + I.arrowR + '</span>' +
+    '</button>';
   }
 
   /* =============================== hero ============================= */
@@ -551,6 +602,21 @@
     bind('portal-join', function () { global.UI.go('classroom'); });
     bind('portal-ach', global.UI.openAchievements);
     bind('portal-codex', function () { global.UI.go('codex'); });
+    bind('portal-geolive', function () {
+      if (!W.accountId || !W.accountId()) {
+        if (global.UI && global.UI.openAuth) {
+          global.UI.openAuth('signin', function () { geoLiveFriends = true; render(); });
+        }
+        return;
+      }
+      geoLiveFriends = true;
+      render();
+    });
+    bind('portal-geolive-back', function () {
+      tearPortalLive();
+      geoLiveFriends = false;
+      render();
+    });
 
     function bind(id, fn) {
       var el = document.getElementById(id);
@@ -558,5 +624,12 @@
     }
   }
 
-  global.Portal = { render: render };
+  global.Portal = {
+    render: render,
+    /* leave friend host when navigating away from Home */
+    stopGeoLive: function () {
+      tearPortalLive();
+      geoLiveFriends = false;
+    }
+  };
 })(window);

@@ -1520,6 +1520,10 @@
        start should never leave the switcher pointing at the wrong tab */
     positionThumb();
 
+    if (currentView === 'portal' && view !== 'portal' &&
+        global.Portal && global.Portal.stopGeoLive) {
+      global.Portal.stopGeoLive();
+    }
     if (view === 'portal') {
       global.Portal.render();
       if (global.LearnGeoUpdates && global.LearnGeoUpdates.maybeShow) global.LearnGeoUpdates.maybeShow();

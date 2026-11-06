@@ -403,12 +403,26 @@
 
   /* ============================== opening ============================ */
 
-  /* The teacher picks who is playing, so their rows exist before anyone
-     joins and the lobby can show the room filling up. Only the teacher may
-     insert players; students arrive through live_join(). */
+  /* The host may pre-seat players so the lobby fills as people arrive.
+     Class rounds read names from class_members. Friend rounds (no class)
+     seat accounts with a placeholder name; live_join updates it. Anyone
+     not pre-seated still arrives through live_join(). */
   function seatRoster(sessionId, classId, playerIds) {
     var ids = (playerIds || []).filter(function (x) { return !!x; });
     if (!ids.length) return Promise.resolve([]);
+    function upsertSeats(names) {
+      var seats = ids.map(function (id) {
+        return {
+          session_id: sessionId,
+          student_id: id,
+          name: String((names && names[id]) || 'Player').slice(0, 40) || 'Player'
+        };
+      });
+      return sb().from(PLAYERS)
+        .upsert(seats, { onConflict: 'session_id,student_id' })
+        .select('id, student_id, name').then(check);
+    }
+    if (!classId) return upsertSeats({});
     return sb().from('class_members').select('student_id, display_name')
       .eq('class_id', classId).in('student_id', ids)
       .then(function (res) {
@@ -416,29 +430,23 @@
         var rows = res.error ? [] : (res.data || []);
         var names = {};
         rows.forEach(function (r) { names[r.student_id] = r.display_name; });
-        var seats = ids.map(function (id) {
-          return {
-            session_id: sessionId,
-            student_id: id,
-            name: String(names[id] || 'Student').slice(0, 40) || 'Student'
-          };
-        });
-        return sb().from(PLAYERS)
-          .upsert(seats, { onConflict: 'session_id,student_id' })
-          .select('id, student_id, name').then(check);
+        return upsertSeats(names);
       });
   }
 
   function openOnce(classId, questions, playerIds, limitMs, tries) {
-    return sb().from(SESSIONS).insert({
-      class_id: classId,
+    var row = {
       host_id: me(),
       code: code(),
       status: 'lobby',
       question_index: 0,
       questions: questions || [],
       time_limit_ms: limitMs
-    }).select('id, code, time_limit_ms').single()
+    };
+    /* Friend / explorer rounds leave class_id null. Class rounds keep it. */
+    if (classId) row.class_id = classId;
+    else row.class_id = null;
+    return sb().from(SESSIONS).insert(row).select('id, code, time_limit_ms').single()
       .then(function (res) {
         if (res.error) {
           if (missingTable(res.error)) { setUp = false; return null; }
@@ -448,20 +456,21 @@
           }
           throw res.error;
         }
-        var row = res.data;
-        return seatRoster(row.id, classId, playerIds).then(function () {
-          return { sessionId: row.id, code: row.code, timeLimitMs: row.time_limit_ms };
+        var made = res.data;
+        return seatRoster(made.id, classId || null, playerIds).then(function () {
+          return { sessionId: made.id, code: made.code, timeLimitMs: made.time_limit_ms };
         });
       });
   }
 
   /* limitMs is optional and lands on the session, which is where the
-     speed bonus reads it from. Never hardcode it on a screen. */
+     speed bonus reads it from. Never hardcode it on a screen.
+     classId may be empty for friend rounds hosted by students/explorers. */
   function open(classId, questions, playerIds, limitMs) {
-    if (!classId) return Promise.resolve(null);
+    if (!me()) return Promise.resolve(null);
     var limit = Math.max(1000, Math.min(300000, limitMs || DEFAULT_LIMIT_MS));
     return withTables(function () {
-      return openOnce(classId, questions, playerIds, limit, 0);
+      return openOnce(classId || null, questions, playerIds, limit, 0);
     });
   }
 

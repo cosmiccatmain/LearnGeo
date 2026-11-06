@@ -950,7 +950,7 @@
         '<div class="gl-wait gl-wait--idle">' +
           '<div class="gl-radar" aria-hidden="true"><i></i><i></i><span>' + icon('globe') + '</span></div>' +
           '<h2 class="gl__title">No live game yet</h2>' +
-          '<p class="gl-verdict__note">Keep this open. When your teacher starts one, it will open here by itself.</p>' +
+          '<p class="gl-verdict__note">Keep this open. When someone hosts a round for your class, it will open here by itself.</p>' +
           '<button type="button" class="gl-textbtn" data-gl-code>I have a game code</button>' +
           noteHtml() +
         '</div>';
@@ -961,20 +961,20 @@
       return brandHtml() +
         '<div class="gl-join">' +
           (found
-            ? '<h2 class="gl__title">Your teacher\u2019s game is ready</h2>' +
-              '<p class="gl-verdict__note">Just tell the class who you are.</p>'
+            ? '<h2 class="gl__title">A live game is ready</h2>' +
+              '<p class="gl-verdict__note">Just say who you are.</p>'
             : '') +
           /* found for them: the code is known, so it is not asked for */
           (found
             ? '<input class="gl-join__field" type="hidden" value="' + esc(S.code) + '">'
-            : '<label class="gl-join__label">Game code<span>on the board</span></label>' +
+            : '<label class="gl-join__label">Game code<span>from the host</span></label>' +
               '<input class="gl-join__field gl-join__field--code" type="text" value="' + esc(S.code) + '" ' +
                 'aria-label="Game code" autocomplete="one-time-code" autocapitalize="characters" ' +
                 'autocorrect="off" spellcheck="false" maxlength="8" enterkeyhint="next" placeholder="······">') +
           '<label class="gl-join__label">Your name</label>' +
           '<input class="gl-join__field gl-join__field--name" type="text" value="' + esc(S.name) + '" ' +
             'aria-label="Your name" autocomplete="nickname" maxlength="20" enterkeyhint="go" ' +
-            'placeholder="What the class calls you">' +
+            'placeholder="What they call you">' +
           '<button type="button" class="btn btn--accent btn--lg btn--block gl-go" data-gl-go' +
             (S.busy ? ' disabled' : '') + '>' + (S.busy ? 'Joining…' : 'Join the game') + '</button>' +
           noteHtml() +
@@ -988,7 +988,7 @@
         '<div class="gl-me" aria-hidden="true"><span class="gl-me__ring"></span><span class="gl-me__ring"></span>' +
           '<span class="gl-me__av">' + esc(initials(S.name)) + '</span></div>' +
         '<h2 class="gl__title">You’re in, ' + esc(S.name || 'explorer') + '!</h2>' +
-        '<p class="gl-verdict__note">Look up at the board. It starts when your teacher says go.</p>' +
+        '<p class="gl-verdict__note">It starts when the host says go.</p>' +
         /* joined_at is nullable now and live_join fills it, so "here" is a
            real thing to say. Falls back to the seated wording only when a
            snapshot carries no joined_at at all. */
