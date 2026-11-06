@@ -299,7 +299,8 @@
        carries a noun to fall back on rather than printing "undefined". */
     var kinds = {
       avatars: 'avatar', decorations: 'decoration', effects: 'effect',
-      nameplates: 'nameplate', banners: 'banner', themes: 'theme'
+      nameplates: 'nameplate', banners: 'banner', themes: 'theme',
+      trails: 'trail', jumpers: 'jumper'
     };
     var best = null;
     Object.keys(kinds).forEach(function (k) {

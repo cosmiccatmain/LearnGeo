@@ -1193,6 +1193,67 @@ textarea.input:focus { outline: none; border-color: var(--accent); box-shadow: 0
   color: #92400E;
 }
 .shop-item--premium .shop-item__owned svg { width: 12px; height: 12px; }
+/* Customise → Games (Geo Dash trails + jumpers) */
+.cz-games-sec { margin-top: 18px; }
+.cz-games-sec:first-of-type { margin-top: 0; }
+.cz-games-sec__head {
+  display: flex; flex-direction: column; gap: 2px;
+  margin-bottom: 10px;
+}
+.cz-games-sec__head b { font-size: 13.5px; }
+.shop-item__vis--trail,
+.shop-item__vis--jumper {
+  border-radius: 12px; overflow: hidden;
+  background: linear-gradient(160deg, #e8eefc, #d7e3f7 55%, #c5d4ef);
+}
+.shop-item__vis--trail {
+  display: flex; align-items: center; justify-content: flex-start;
+  gap: 3px; padding: 0 8px;
+}
+.cz-trail-dot {
+  width: 8px; height: 8px; border-radius: 2px; opacity: .9;
+  transform: translateX(calc(var(--i, 0) * -2px));
+}
+.cz-trail-dot--circle,
+.cz-trail-dot--ember { border-radius: 50%; }
+.cz-trail-dot--spark {
+  width: 9px; height: 9px;
+  clip-path: polygon(50% 0%, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0% 50%, 38% 38%);
+}
+.cz-trail-dot--leaf {
+  width: 10px; height: 7px; border-radius: 10px 0 10px 0;
+}
+.cz-trail-dot--streak {
+  width: 14px; height: 3px; border-radius: 2px;
+}
+.shop-item__vis--jumper { display: grid; place-items: center; }
+.cz-jumper {
+  position: relative; width: 28px; height: 28px; border-radius: 3px;
+  border: 1.5px solid #111; box-sizing: border-box; overflow: hidden;
+}
+.cz-jumper__inset {
+  position: absolute; left: 18%; top: 18%; width: 52%; height: 52%;
+  border-radius: 1px;
+}
+.cz-jumper__eye {
+  position: absolute; left: 22%; top: 28%; width: 14%; height: 14%;
+  border-radius: 1px; background: #fff;
+}
+.cz-jumper__eye--r { left: auto; right: 22%; }
+.cz-jumper__mouth {
+  position: absolute; left: 22%; bottom: 22%; width: 48%; height: 8%;
+  border-radius: 1px; background: #fff;
+}
+.cz-jumper__rose {
+  position: absolute; inset: 0; display: grid; place-items: center;
+  font-size: 12px; font-weight: 700; line-height: 1;
+}
+.cz-dash-preview {
+  border-radius: 14px; overflow: hidden; border: 1px solid var(--line);
+  background: #1B4DFF; box-shadow: var(--shadow);
+}
+.cz-dash-preview__canvas { display: block; width: 100%; height: auto; }
+
 .shop-item__prem {
   font-family: var(--mono); font-size: 9.5px; font-weight: 700;
   letter-spacing: .05em; text-transform: uppercase;

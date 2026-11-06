@@ -103,7 +103,9 @@
       ['nameplate', 'nameplates'],
       ['banner', 'banners'],
       ['theme', 'themes'],
-      ['avatar', 'avatars']
+      ['avatar', 'avatars'],
+      ['dashTrail', 'trails'],
+      ['dashJumper', 'jumpers']
     ];
     slots.forEach(function (pair) {
       var slot = pair[0], list = Cos[pair[1]];
@@ -116,6 +118,8 @@
         if (slot === 'banner') s.profile.banner = 'plain';
         if (slot === 'decoration') s.profile.decoration = 'ring-slate';
         if (slot === 'avatar') s.profile.avatar = 'globe';
+        if (slot === 'dashTrail') s.profile.dashTrail = 'dust';
+        if (slot === 'dashJumper') s.profile.dashJumper = 'classic';
         changed = true;
       }
     });

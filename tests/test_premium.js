@@ -40,6 +40,36 @@ assert(/force:\s*true/.test(sub) || /openForced/.test(sub),
 assert(/mock checkout/i.test(sub) && /Stripe is not connected/.test(sub),
   'checkout stays mock / TEST only');
 
+/* LEA-54: Geo Dash trails + jumper skins */
+assert(/trails:\s*TRAILS/.test(cos), 'cosmetics exports trails');
+assert(/jumpers:\s*JUMPERS/.test(cos), 'cosmetics exports jumpers');
+assert(/id: 'dust'[\s\S]*?price:\s*0/.test(cos), 'Chalk Dust trail is free');
+assert(/id: 'classic'[\s\S]*?price:\s*0/.test(cos), 'Classic jumper is free');
+assert(/id: 'ember'[\s\S]*?premium:\s*true/.test(cos), 'Ember Wake trail is Premium');
+assert(/id: 'neon'[\s\S]*?premium:\s*true/.test(cos), 'Neon Stream trail is Premium');
+assert(/id: 'gilded'[\s\S]*?premium:\s*true/.test(cos), 'Gilded Cube jumper is Premium');
+assert(/dashTrail/.test(prem) && /dashJumper/.test(prem),
+  'premium.js strips Geo Dash cosmetics without entitlement');
+
+var sql16 = fs.readFileSync(path.join(root, 'supabase/deployed/0016_geo_dash_cosmetics.sql'), 'utf8');
+assert(/dashTrail/.test(sql16) && /dashJumper/.test(sql16),
+  '0016 strips Premium dashTrail / dashJumper');
+assert(/'ember',\s*'neon',\s*'aurora'/.test(sql16), '0016 lists Premium trails');
+assert(/'aurora',\s*'gilded'/.test(sql16), '0016 lists Premium jumpers');
+
+var ui = fs.readFileSync(path.join(root, 'assets/js/ui.js'), 'utf8');
+assert(/vt\('games'/.test(ui), 'Customise has Games tab');
+assert(/gamesPanel/.test(ui) && /Geo Dash cosmetics/.test(ui), 'Games panel for dash cosmetics');
+var gamesPanelChunk = (ui.match(/function gamesPanel[\s\S]*?function gamesSection/) || [''])[0];
+assert(gamesPanelChunk.length > 0 && !/Brainrot|Mongolian|Pets/i.test(gamesPanelChunk),
+  'Games cosmetics panel has no Pets/Brainrot');
+
+var dash = fs.readFileSync(path.join(root, 'assets/js/game-dash.js'), 'utf8');
+assert(/equippedTrail/.test(dash) && /equippedJumper/.test(dash),
+  'Geo Dash reads equipped trail/jumper');
+assert(/drawJumperCube/.test(dash) && /spawnTrail/.test(dash),
+  'Geo Dash draws jumper skins and trail particles');
+
 var admin = fs.readFileSync(path.join(root, 'assets/js/administrator.js'), 'utf8');
 assert(/prempreview/.test(admin) && /Premium plans &amp; gating preview|Premium plans \& gating preview|Turn preview/.test(admin),
   'Development panel has Premium preview toggle');

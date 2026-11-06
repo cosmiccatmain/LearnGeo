@@ -27,6 +27,7 @@ This folder is for the live project — the one whose URL is in
 | Premium entitlements | `0013_premium_subscriptions.sql` — `flags.premium` on `profiles.save`, `ultra_set_premium`, entitlement-flag protect trigger, and Premium game check inside `submit_game_score`. Account / player level (not teacher-based). Apply after `0012`. Client gates also require the Development preview switch (LEA-46). |
 | Geo Duel PvP | `0014_pvp_geo_duel.sql` — `pvp_invites` / `pvp_matches` plus RPCs for gamertag lookup, invite send/respond, match seed/answer/state. Applied on the live project for LEA-48. Device-scoped like gamertags; no direct table access. |
 | GeoLive student host | `0015_geolive_student_host.sql` — class members and explorers can host/run GeoLive; `class_id` nullable for friend rounds; teacher `geolive_enabled` still gates class rooms. Applied for LEA-51 (same SQL as previously applied migration `geolive_student_host`). |
+| Geo Dash cosmetics | `0016_geo_dash_cosmetics.sql` — extends `enforce_entitlement_flags` to strip Premium Geo Dash trails (`ember`, `neon`, `aurora`) and jumpers (`aurora`, `gilded`) when `flags.premium` is off. Apply after `0013` / `0015`. Client Customise → Games tab still respects the Development Premium preview switch (LEA-46). |
 
 Authorisation goes through two `security definer` helpers in the
 `private` schema, `is_class_teacher(cid)` and `is_class_member(cid)`,

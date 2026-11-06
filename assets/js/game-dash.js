@@ -116,6 +116,30 @@
     return MAPS[0];
   }
 
+  /* Equipped Geo Dash cosmetics from Customise → Games (LEA-54). */
+  function equippedTrail() {
+    var Cos = global.Cosmetics;
+    if (!Cos || !Cos.trails) return null;
+    var id = (W.state && W.state.profile && W.state.profile.dashTrail) || 'dust';
+    var item = Cos.find(Cos.trails, id);
+    if (item && item.premium && global.Premium && global.Premium.previewEnabled &&
+        global.Premium.previewEnabled() && !(global.Premium.active && global.Premium.active())) {
+      return Cos.find(Cos.trails, 'dust');
+    }
+    return item;
+  }
+  function equippedJumper() {
+    var Cos = global.Cosmetics;
+    if (!Cos || !Cos.jumpers) return null;
+    var id = (W.state && W.state.profile && W.state.profile.dashJumper) || 'classic';
+    var item = Cos.find(Cos.jumpers, id);
+    if (item && item.premium && global.Premium && global.Premium.previewEnabled &&
+        global.Premium.previewEnabled() && !(global.Premium.active && global.Premium.active())) {
+      return Cos.find(Cos.jumpers, 'classic');
+    }
+    return item;
+  }
+
   function mount(host, opts) {
     var esc = W.escapeHtml;
     host.innerHTML =
@@ -252,11 +276,10 @@
       if (r.ground) {
         var snap = Math.round(r.angle / (Math.PI / 2)) * (Math.PI / 2);
         r.angle += (snap - r.angle) * Math.min(1, dt * 30);
-        r.trail += dt;
-        if (r.trail > 0.035) { r.trail = 0; r.parts.push(part(r.x + 0.05, r.y + 0.08, -1.5 - Math.random(), Math.random() * 1.6, 0.35, 0.16, 'rgba(255,255,255,.75)')); }
       } else {
         r.angle += SPIN * dt;
       }
+      spawnTrail(r, dt);
 
       while (r.objs.length && r.objs[0].x + r.objs[0].w < r.x - PLAYER_AT - 2) r.objs.shift();
       fill();
@@ -266,18 +289,36 @@
       return ax < bx + bw && ax + aw > bx && ay < by + bh && ay + ah > by;
     }
 
-    function part(x, y, vx, vy, life, size, color) {
-      return { x: x, y: y, vx: vx, vy: vy, life: life, max: life, size: size, color: color };
+    function part(x, y, vx, vy, life, size, color, shape) {
+      return { x: x, y: y, vx: vx, vy: vy, life: life, max: life, size: size, color: color, shape: shape || 'square' };
     }
     function burst(x, y, color, n) {
       for (var i = 0; i < n; i++) {
         var a = Math.random() * Math.PI * 2, v = 2 + Math.random() * 6;
-        run.parts.push(part(x, y, Math.cos(a) * v, Math.sin(a) * v, 0.5 + Math.random() * 0.4, 0.12 + Math.random() * 0.2, color));
+        run.parts.push(part(x, y, Math.cos(a) * v, Math.sin(a) * v, 0.5 + Math.random() * 0.4, 0.12 + Math.random() * 0.2, color, 'square'));
       }
+    }
+    function spawnTrail(r, dt) {
+      var trail = equippedTrail();
+      if (!trail || !trail.shape || !trail.colors || !trail.colors.length || !trail.rate) return;
+      if (!r.ground && !trail.air) return;
+      r.trail += dt;
+      if (r.trail < trail.rate) return;
+      r.trail = 0;
+      var col = trail.colors[Math.floor(Math.random() * trail.colors.length)];
+      var size = (trail.size || 0.16) * (0.75 + Math.random() * 0.5);
+      var life = trail.shape === 'streak' ? 0.5 + Math.random() * 0.25 : 0.32 + Math.random() * 0.18;
+      var vx = trail.shape === 'streak' ? (-2.8 - Math.random() * 1.4) : (-1.5 - Math.random());
+      var vy = trail.air && !r.ground ? ((Math.random() - 0.5) * 2.2) : (Math.random() * 1.6);
+      r.parts.push(part(r.x + 0.05, r.y + 0.08, vx, vy, life, size, col, trail.shape));
     }
     function tickParts(dt) {
       run.parts = run.parts.filter(function (p) {
-        p.life -= dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vy -= 14 * dt;
+        p.life -= dt; p.x += p.vx * dt; p.y += p.vy * dt;
+        /* streaks drift more horizontally; embers float up a little */
+        if (p.shape === 'ember') p.vy += 6 * dt;
+        else if (p.shape === 'streak') p.vy -= 4 * dt;
+        else p.vy -= 14 * dt;
         return p.life > 0;
       });
     }
@@ -664,7 +705,32 @@
         c.globalAlpha = Math.max(0, p.life / p.max);
         c.fillStyle = p.color;
         var ps = p.size * s;
-        c.fillRect(sx(p.x) - ps / 2, sy(p.y) - ps / 2, ps, ps);
+        var px = sx(p.x), py = sy(p.y);
+        if (p.shape === 'circle' || p.shape === 'ember') {
+          c.beginPath();
+          c.arc(px, py, ps / 2, 0, Math.PI * 2);
+          c.fill();
+        } else if (p.shape === 'spark') {
+          c.beginPath();
+          c.moveTo(px, py - ps / 2);
+          c.lineTo(px + ps * 0.18, py - ps * 0.18);
+          c.lineTo(px + ps / 2, py);
+          c.lineTo(px + ps * 0.18, py + ps * 0.18);
+          c.lineTo(px, py + ps / 2);
+          c.lineTo(px - ps * 0.18, py + ps * 0.18);
+          c.lineTo(px - ps / 2, py);
+          c.lineTo(px - ps * 0.18, py - ps * 0.18);
+          c.closePath();
+          c.fill();
+        } else if (p.shape === 'leaf') {
+          c.beginPath();
+          c.ellipse(px, py, ps * 0.55, ps * 0.32, -0.6, 0, Math.PI * 2);
+          c.fill();
+        } else if (p.shape === 'streak') {
+          c.fillRect(px - ps * 1.4, py - ps * 0.18, ps * 2.8, ps * 0.36);
+        } else {
+          c.fillRect(px - ps / 2, py - ps / 2, ps, ps);
+        }
       });
       c.globalAlpha = 1;
 
@@ -819,22 +885,54 @@
       c.rotate(angle);
       var skin = run.skin;
       if (skin) {
+        /* Capital-flag skin still wins after a correct gate answer. */
         c.drawImage(skin, -half, -half, s, s);
         c.strokeStyle = '#111'; c.lineWidth = Math.max(2, s * 0.08);
         c.strokeRect(-half + c.lineWidth / 2, -half + c.lineWidth / 2, s - c.lineWidth, s - c.lineWidth);
       } else {
-        c.fillStyle = '#FFD23F';
-        c.fillRect(-half, -half, s, s);
-        c.fillStyle = '#1B4DFF';
-        c.fillRect(-half * 0.62, -half * 0.62, s * 0.62, s * 0.62);
-        c.fillStyle = '#fff';
-        c.fillRect(-half * 0.42, -half * 0.36, s * 0.16, s * 0.16);
-        c.fillRect(half * 0.1, -half * 0.36, s * 0.16, s * 0.16);
-        c.fillRect(-half * 0.42, half * 0.12, s * 0.52, s * 0.1);
-        c.strokeStyle = '#111'; c.lineWidth = Math.max(2, s * 0.07);
-        c.strokeRect(-half + c.lineWidth / 2, -half + c.lineWidth / 2, s - c.lineWidth, s - c.lineWidth);
+        drawJumperCube(c, s, half, equippedJumper());
       }
       c.restore();
+    }
+
+    function drawJumperCube(c, s, half, jumper) {
+      var fill = (jumper && jumper.fill) || '#FFD23F';
+      var accent = (jumper && jumper.accent) || '#1B4DFF';
+      var face = (jumper && jumper.face) || '#fff';
+      var style = (jumper && jumper.style) || 'classic';
+      if (style === 'gradient' || style === 'aurora' || style === 'gilded') {
+        var g = c.createLinearGradient(-half, -half, half, half);
+        g.addColorStop(0, fill);
+        g.addColorStop(1, accent);
+        c.fillStyle = g;
+        c.fillRect(-half, -half, s, s);
+      } else {
+        c.fillStyle = fill;
+        c.fillRect(-half, -half, s, s);
+        c.fillStyle = accent;
+        c.fillRect(-half * 0.62, -half * 0.62, s * 0.62, s * 0.62);
+      }
+      c.fillStyle = face;
+      c.fillRect(-half * 0.42, -half * 0.36, s * 0.16, s * 0.16);
+      c.fillRect(half * 0.1, -half * 0.36, s * 0.16, s * 0.16);
+      if (style === 'classic' || style === 'gradient' || style === 'aurora' || style === 'gilded' || style === 'meadow') {
+        c.fillRect(-half * 0.42, half * 0.12, s * 0.52, s * 0.1);
+      }
+      if (style === 'compass') {
+        c.fillStyle = face;
+        c.font = '700 ' + Math.round(s * 0.42) + 'px system-ui, sans-serif';
+        c.textAlign = 'center';
+        c.textBaseline = 'middle';
+        c.fillText('✦', 0, half * 0.12);
+      }
+      if (style === 'aurora' || style === 'gilded') {
+        c.strokeStyle = accent;
+        c.lineWidth = Math.max(2, s * 0.07);
+        c.strokeRect(-half + 3, -half + 3, s - 6, s - 6);
+      }
+      c.strokeStyle = '#111';
+      c.lineWidth = Math.max(2, s * 0.07);
+      c.strokeRect(-half + c.lineWidth / 2, -half + c.lineWidth / 2, s - c.lineWidth, s - c.lineWidth);
     }
 
     function syncHud() {
