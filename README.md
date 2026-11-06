@@ -13,9 +13,10 @@ where they are on the map. It's a static site with no build step, and it's deplo
 | **Total** | **213** |
 
 Each place has a capital, the capital's coordinates and a region. A few capitals are tricky
-because there's more than one reasonable answer (Bolivia, South Africa, the Netherlands, Sri
+because there's more than one reasonable answer (Bolivia, the Netherlands, Sri
 Lanka, Eswatini and some others). Those show a short note explaining why, and the other
-answers are accepted too.
+answers are accepted too. South Africa has three capitals, Pretoria, Cape Town and
+Bloemfontein, and a right answer has to include all three.
 
 ## Modes
 
