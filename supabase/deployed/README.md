@@ -29,6 +29,7 @@ This folder is for the live project — the one whose URL is in
 | GeoLive student host | `0015_geolive_student_host.sql` — class members and explorers can host/run GeoLive; `class_id` nullable for friend rounds; teacher `geolive_enabled` still gates class rooms. Applied for LEA-51 (same SQL as previously applied migration `geolive_student_host`). |
 | Geo Dash cosmetics | `0016_geo_dash_cosmetics.sql` — extends `enforce_entitlement_flags` to strip Premium Geo Dash trails (`ember`, `neon`, `aurora`) and jumpers (`aurora`, `gilded`) when `flags.premium` is off. Apply after `0013` / `0015`. Client Customise → Games tab still respects the Development Premium preview switch (LEA-46). |
 | Admin panel logins | `0016_admin_logins.sql` — append-only `admin_logins` (RLS, no direct grants) plus inserts inside `admin_open_session` / `admin_open_session_private`, and `ultra_admin_logins` for the Administrator Logins roster. Applied for LEA-53. Both `0016_*` files coexist by distinct filenames. |
+| Geo Duel join flow | `0017_pvp_join_flow.sql` — make `pvp_list_inbox` VOLATILE (was STABLE + UPDATE → PostgREST read-only failure; inbox never loaded), plus expire stale seeding/active matches. LEA-52. Live applies: MCP `pvp_join_flow_0016` (expire helper only; name predates file renumber) and MCP `pvp_join_flow_0017_inbox_volatile` (inbox volatility + expire). Do not re-apply either. |
 
 Authorisation goes through two `security definer` helpers in the
 `private` schema, `is_class_teacher(cid)` and `is_class_member(cid)`,
