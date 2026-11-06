@@ -23,12 +23,12 @@
   /* Named rungs for the shared DifficultySlider (values stay 1–5). */
   var CHESS_DIFF = [
     { value: 1, name: 'Beginner', blurb: 'Plays random legal moves' },
-    { value: 2, name: 'Easy', blurb: 'Mostly random, with occasional stronger moves' },
-    { value: 3, name: 'Intermediate', blurb: 'A gentle Stockfish opponent' },
-    { value: 4, name: 'Advanced', blurb: 'A sharper Stockfish opponent' },
-    { value: 5, name: 'Expert', blurb: 'The strongest Stockfish opponent' }
+    { value: 2, name: 'Easy', blurb: 'Fewer random slips; light Stockfish pressure' },
+    { value: 3, name: 'Intermediate', blurb: 'A sharp Stockfish opponent' },
+    { value: 4, name: 'Advanced', blurb: 'Deep search and high skill' },
+    { value: 5, name: 'Expert', blurb: 'Full-strength Stockfish on your device' }
   ];
-  var CHESS_DIFF_HINT = 'Level 1 plays random legal moves. Level 2 plays mostly random moves. Levels 3–5 use increasingly strong Stockfish opponents.';
+  var CHESS_DIFF_HINT = 'Level 1 plays random legal moves. Level 2 mixes occasional random moves with Stockfish. Levels 3–5 use increasingly strong Stockfish opponents. Wins at higher levels score more points.';
   var RATE_DIFF = [
     { value: 'calm', name: 'Calm', blurb: 'Countries drift down slowly' },
     { value: 'brisk', name: 'Brisk', blurb: 'A steady fall pace' },
@@ -100,10 +100,13 @@
   var GAMES = [
     {
       id: 'chess', title: 'Geo Chess', art: 'chess',
-      blurb: 'Build your chess skills, from a forgiving beginner opponent to Stockfish. Answer a geography question to unlock each move.',
+      blurb: 'Build your chess skills, from a forgiving beginner opponent to full-strength Stockfish. Answer a geography question to unlock each move.',
       meta: 'Chess · five difficulty levels',
-      best: function (r) { return r.wins ? r.wins + (r.wins === 1 ? ' win' : ' wins') : ''; },
-      intro: 'Play White against the computer. Answer a question from your study set before each move. A wrong answer shows you the answer and gives you another question. Choose a piece, then a highlighted square. Castling, en passant and promotion follow standard chess rules.',
+      best: function (r) {
+        if (r.best) return 'Best ' + r.best + ' pts';
+        return r.wins ? r.wins + (r.wins === 1 ? ' win' : ' wins') : '';
+      },
+      intro: 'Play White against the computer. Answer a question from your study set before each move. A wrong answer shows you the answer and gives you another question. Choose a piece, then a highlighted square. Castling, en passant and promotion follow standard chess rules. Higher difficulty levels play stronger and faster, and wins there are worth more points.',
       keys: [[['Click / tap'], 'a piece, then its destination'], [['Arrow keys'], 'explore the board; Enter or Space selects a square']],
       filters: { title: 'Chess question filters', heading: 'Move questions', typed: true },
       side: function (r) {
@@ -120,7 +123,7 @@
         return '<div class="panel">' + slider + '</div>' +
           '<div class="panel"><div class="panel__head"><h3>Questions</h3></div>' +
           segHtml('kind', KINDS, kind_(r)) + '</div>' +
-          stats([[r.wins || 0, 'Wins'], [r.draws || 0, 'Draws'], [r.completed || 0, 'Finished games']]);
+          stats([[r.best || 0, 'Best win pts'], [r.wins || 0, 'Wins'], [r.draws || 0, 'Draws'], [r.completed || 0, 'Finished games']]);
       },
       wire: function (el, r) {
         wireSlider(el, { name: 'level', levels: CHESS_DIFF }, '[data-level]', function (v) { r.level = +v; });

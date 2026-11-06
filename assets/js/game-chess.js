@@ -2,12 +2,16 @@
    Dependencies are pinned and served locally; see assets/vendor/README.md. */
 import { Chess } from '../vendor/chess.js/chess.js';
 
+/* Opponent strength. random = chance of a legal random move instead of the
+   engine; skill / depth / time drive Stockfish; replyMs is the short delay
+   before a random reply lands; hash is the engine hash size in MiB.
+   Win points scale with level so harder wins count for more on the hub. */
 const LEVELS = {
-  1: { random: 1 },
-  2: { random: 0.75, skill: 0, depth: 1, time: 100 },
-  3: { random: 0, skill: 0, depth: 2, time: 150 },
-  4: { random: 0, skill: 6, depth: 6, time: 500 },
-  5: { random: 0, skill: 14, depth: 12, time: 1500 }
+  1: { random: 1, replyMs: 320, points: 1 },
+  2: { random: 0.4, skill: 3, depth: 3, time: 250, replyMs: 220, hash: 16, points: 2 },
+  3: { random: 0, skill: 8, depth: 7, time: 700, hash: 24, points: 4 },
+  4: { random: 0, skill: 15, depth: 13, time: 1800, hash: 32, points: 8 },
+  5: { random: 0, skill: 20, depth: 18, time: 3200, hash: 48, points: 15 }
 };
 const GLYPHS = { k: '♚', q: '♛', r: '♜', b: '♝', n: '♞', p: '♟' };
 const NAMES = { k: 'king', q: 'queen', r: 'rook', b: 'bishop', n: 'knight', p: 'pawn' };
@@ -48,8 +52,9 @@ function mount(host, opts) {
     '<div class="panel chess-help"><h3>Plan your next move</h3>' +
     '<p>Answer a geography question, then select a white piece and a highlighted destination. Wrong answers give you another question without changing the board.</p>' +
     '<p>Use the arrow keys to explore the board and Enter or Space to select. Choose a piece when a pawn promotes.</p>' +
-    '<p class="t-sm t-muted">' + (level === 1 ? 'Level 1 plays random legal moves for beginners. Higher levels use ' : level === 2 ? 'Level 2 plays mostly random moves, with occasional moves from ' : 'Opponent: ') +
-    '<a href="https://stockfishchess.org/" target="_blank" rel="noopener noreferrer">Stockfish 17.1</a>. ' +
+    '<p class="t-sm t-muted">' + (level === 1 ? 'Level 1 plays random legal moves for beginners. Higher levels use ' : level === 2 ? 'Level 2 mixes occasional random moves with ' : 'Opponent: ') +
+    '<a href="https://stockfishchess.org/" target="_blank" rel="noopener noreferrer">Stockfish 17.1</a>' +
+    (level >= 3 ? ' at a tougher setting' : '') + '. ' +
     'Rules: <a href="https://github.com/jhlywa/chess.js" target="_blank" rel="noopener noreferrer">chess.js</a>. Runs on your device.</p></div></aside></section>';
   const root = host.querySelector('.chess-game');
   const board = root.querySelector('.chess-board');
@@ -336,7 +341,13 @@ function mount(host, opts) {
     ended = true; thinking = false; unlocked = false; result = message;
     clearTimeout(timer);
     record.completed = (record.completed || 0) + 1;
-    if (outcome === 'win') record.wins = (record.wins || 0) + 1;
+    if (outcome === 'win') {
+      record.wins = (record.wins || 0) + 1;
+      const pts = LEVELS[level].points || level;
+      record.score = (record.score || 0) + pts;
+      if (pts > (record.best || 0)) record.best = pts;
+      if (level > (record.bestWinLevel || 0)) record.bestWinLevel = level;
+    }
     if (outcome === 'draw') record.draws = (record.draws || 0) + 1;
     W.saveNow();
   }
@@ -358,7 +369,7 @@ function mount(host, opts) {
       const move = W.pick(chess.moves({ verbose: true }));
       timer = setTimeout(function () {
         applyOpponentMove({ from: move.from, to: move.to, promotion: move.promotion });
-      }, 450);
+      }, strength.replyMs != null ? strength.replyMs : 280);
       return;
     }
     if (!worker) { fail(); return; }
@@ -392,7 +403,7 @@ function mount(host, opts) {
         String(event.data).split('\n').forEach(function (line) {
           line = line.trim();
           if (line === 'uciok') {
-            current.postMessage('setoption name Hash value 16');
+            current.postMessage('setoption name Hash value ' + (LEVELS[level].hash || 16));
             current.postMessage('setoption name Skill Level value ' + LEVELS[level].skill);
             current.postMessage('ucinewgame'); current.postMessage('isready');
           } else if (line === 'readyok' && !ready) {
