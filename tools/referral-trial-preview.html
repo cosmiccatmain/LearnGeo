@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Referral trial Development preview (TEST harness)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600&family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/css/app.css">
+<link rel="stylesheet" href="../assets/css/brand.css">
+<link rel="stylesheet" href="../assets/css/administrator.css">
+<style>
+  body { margin: 0; background: #0b1c3d; }
+  #shot-note {
+    position: fixed; top: 10px; right: 12px; z-index: 9999;
+    background: #102a56; color: #dce7ff; border: 1px solid #2a4a82;
+    border-radius: 8px; padding: 8px 12px; font: 12px/1.4 Inter, sans-serif;
+  }
+</style>
+</head>
+<body>
+<div id="shot-note">Harness: Administrator → Development (referral trial)</div>
+<script src="../assets/js/core.js"></script>
+<script src="../assets/js/premium.js"></script>
+<script src="../assets/js/referral-trial.js"></script>
+<script src="../assets/js/administrator.js"></script>
+<script>
+(function () {
+  'use strict';
+  /* Stub UltraAdmin so Development opens without a live session. */
+  window.Admin = { can: function () { return true; } };
+  window.AdminOps = {
+    live: function () { return true; },
+    minutesLeft: function () { return 25; },
+    myAccess: function () {
+      return Promise.resolve({
+        ok: true,
+        data: { owner: true, email: 'alexjschendel@gmail.com', commands: [] }
+      });
+    },
+    stats: function () { return Promise.resolve({ ok: true, data: {} }); },
+    find: function () { return Promise.resolve({ ok: true, data: [] }); },
+    recent: function () { return Promise.resolve({ ok: true, data: [] }); },
+    grantsList: function () { return Promise.resolve({ ok: true, data: [] }); },
+    banned: function () { return Promise.resolve({ ok: true, data: [] }); },
+    activity: function () { return Promise.resolve({ ok: true, data: [] }); }
+  };
+  window.Cloud = {
+    signedIn: true,
+    user: { id: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee', email: 'alexjschendel@gmail.com' },
+    ready: true
+  };
+  WW.state.profile.displayName = 'AJ Schendel';
+  WW.state.flags = WW.state.flags || {};
+
+  var mode = new URLSearchParams(location.search).get('mode') || 'off';
+  if (mode === 'on' || mode === 'progress' || mode === 'granted') {
+    ReferralTrial.setPreviewEnabled(true);
+  } else {
+    ReferralTrial.setPreviewEnabled(false);
+  }
+  if (mode === 'progress' || mode === 'granted') {
+    ReferralTrial.resetProgress();
+    for (var i = 0; i < (mode === 'granted' ? 5 : 3); i++) ReferralTrial.simulateSignup();
+  }
+
+  Administrator.open();
+  setTimeout(function () {
+    var nav = document.querySelector('[data-nav="development"]');
+    if (nav) nav.click();
+    var note = document.getElementById('shot-note');
+    if (note) {
+      note.textContent = mode === 'off'
+        ? 'Referral TEST off'
+        : mode === 'granted'
+          ? 'Referral TEST on · trial granted'
+          : mode === 'progress'
+            ? 'Referral TEST on · 3 / 5'
+            : 'Referral TEST on';
+    }
+  }, 400);
+})();
+</script>
+</body>
+</html>
