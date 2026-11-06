@@ -1,22 +1,15 @@
 /* ------------------------------------------------------------------
-   LearnGeo — particle shapes for the three newest profile effects.
+   LearnGeo — particle shapes + motion for profile effects.
 
-   A separate file from app.css on purpose. The six original .fx-*
-   shapes live there and are not touched; several sessions edit that
-   file at once, and three rules appended to the end of it is three
-   chances at a conflict for no benefit.
-
-   Each shape is one element, positioned and coloured by ui.js:
-   runEffect() sets `background` from the effect's colour list and
-   leaves everything else here. Anything a colour cannot express —
-   a bone, the pips on a die — is drawn in ::after, which inherits
-   the falling animation from its parent and needs no JavaScript.
+   A separate file from app.css on purpose. Base .fx-* shapes and the
+   profile card live there; this file owns extra shapes, motion families
+   used by ui.js runEffect(), and locker preview polish.
 -------------------------------------------------------------------*/
 
 /* Chicken wing. The pale nub on the left is the bone: without it the
    shape reads as a leaf at this size, which is already taken. */
 .fx-wing {
-  width: 11px; height: 8px;
+  width: 12px; height: 9px;
   border-radius: 10px 11px 5px 9px / 9px 8px 4px 8px;
   box-shadow: inset -1px -1px 0 rgba(0, 0, 0, .14);
 }
@@ -33,8 +26,10 @@
    out of it — a transparent pip would show the profile card through
    the die and stop reading as a dot. */
 .fx-dice {
-  width: 12px; height: 12px; border-radius: 3px;
-  box-shadow: inset 0 0 0 .5px rgba(10, 10, 11, .18);
+  width: 13px; height: 13px; border-radius: 3px;
+  box-shadow:
+    inset 0 0 0 .5px rgba(10, 10, 11, .18),
+    0 1px 2px rgba(10, 10, 11, .12);
 }
 /* Three pips on a 12px face, not on a 10px one, and at .95px rather
    than 1.15px. The first pass used both of the smaller numbers and the
@@ -51,8 +46,159 @@
 /* The staff spark: a four-pointed star with concave sides, which is
    the LearnGeo mark's own geometry rather than a generic sparkle. */
 .fx-crest {
-  width: 10px; height: 10px;
+  width: 11px; height: 11px;
   clip-path: polygon(50% 0%, 60% 40%, 100% 50%, 60% 60%, 50% 100%, 40% 60%, 0% 50%, 40% 40%);
+  filter: drop-shadow(0 0 3px rgba(27, 77, 255, .35));
+}
+
+/* ======================== motion families ========================
+   runEffect() assigns fx-motion-<name>. Transform composition uses
+   --fx-scale / --fx-drift / --fx-spin so inline scale never fights
+   the keyframe (the old fxfall bug). */
+
+.fx-motion-fall,
+.fx-motion-drift,
+.fx-motion-sway,
+.fx-motion-tumble,
+.fx-motion-twinkle-fall,
+.fx-motion-rain,
+.fx-motion-flutter {
+  animation-name: fx-fall-base;
+}
+.fx-motion-drift { animation-name: fx-drift; animation-timing-function: ease-in-out; }
+.fx-motion-sway { animation-name: fx-sway; animation-timing-function: ease-in-out; }
+.fx-motion-tumble { animation-name: fx-tumble; animation-timing-function: cubic-bezier(.22,.61,.36,1); }
+.fx-motion-twinkle-fall { animation-name: fx-twinkle-fall; animation-timing-function: ease-in-out; }
+.fx-motion-rain { animation-name: fx-rain; animation-timing-function: linear; }
+.fx-motion-flutter { animation-name: fx-flutter; animation-timing-function: ease-in-out; }
+.fx-motion-rise { animation-name: fx-rise; animation-timing-function: ease-out; }
+.fx-motion-embers { animation-name: fx-embers; animation-timing-function: ease-out; }
+.fx-motion-twinkle { animation-name: fx-twinkle; animation-timing-function: ease-in-out; }
+
+@keyframes fx-fall-base {
+  0%   { transform: translate3d(0, -12px, 0) scale(var(--fx-scale)) rotate(0deg); opacity: 0; }
+  8%   { opacity: .95; }
+  100% { transform: translate3d(var(--fx-drift), 250px, 0) scale(var(--fx-scale)) rotate(var(--fx-spin)); opacity: 0; }
+}
+
+@keyframes fx-drift {
+  0%   { transform: translate3d(0, -10px, 0) scale(var(--fx-scale)); opacity: 0; }
+  12%  { opacity: .88; }
+  50%  { transform: translate3d(calc(var(--fx-drift) * .6), 110px, 0) scale(var(--fx-scale)); }
+  100% { transform: translate3d(var(--fx-drift), 230px, 0) scale(calc(var(--fx-scale) * .85)); opacity: 0; }
+}
+
+@keyframes fx-sway {
+  0%   { transform: translate3d(0, -8px, 0) rotate(-18deg) scale(var(--fx-scale)); opacity: 0; }
+  10%  { opacity: .95; }
+  25%  { transform: translate3d(10px, 50px, 0) rotate(12deg) scale(var(--fx-scale)); }
+  55%  { transform: translate3d(-12px, 130px, 0) rotate(-16deg) scale(var(--fx-scale)); }
+  100% { transform: translate3d(var(--fx-drift), 240px, 0) rotate(22deg) scale(var(--fx-scale)); opacity: 0; }
+}
+
+@keyframes fx-tumble {
+  0%   { transform: translate3d(0, -14px, 0) rotate(0deg) scale(var(--fx-scale)); opacity: 0; }
+  8%   { opacity: 1; }
+  100% { transform: translate3d(var(--fx-drift), 245px, 0) rotate(calc(var(--fx-spin) + 420deg)) scale(var(--fx-scale)); opacity: 0; }
+}
+
+@keyframes fx-twinkle-fall {
+  0%   { transform: translate3d(0, -8px, 0) scale(calc(var(--fx-scale) * .4)); opacity: 0; }
+  15%  { opacity: 1; transform: translate3d(4px, 20px, 0) scale(var(--fx-scale)); }
+  45%  { opacity: .55; }
+  70%  { opacity: 1; }
+  100% { transform: translate3d(var(--fx-drift), 220px, 0) scale(calc(var(--fx-scale) * .5)); opacity: 0; }
+}
+
+@keyframes fx-rain {
+  0%   { transform: translate3d(0, -20px, 0) scaleY(var(--fx-scale)); opacity: 0; }
+  8%   { opacity: .75; }
+  100% { transform: translate3d(6px, 260px, 0) scaleY(calc(var(--fx-scale) * 1.15)); opacity: 0; }
+}
+
+@keyframes fx-flutter {
+  0%   { transform: translate3d(0, 10px, 0) rotate(-8deg) scale(var(--fx-scale)); opacity: 0; }
+  12%  { opacity: 1; }
+  30%  { transform: translate3d(18px, -30px, 0) rotate(14deg) scale(var(--fx-scale)); }
+  55%  { transform: translate3d(-10px, -70px, 0) rotate(-10deg) scale(calc(var(--fx-scale) * 1.05)); }
+  80%  { transform: translate3d(22px, -120px, 0) rotate(18deg) scale(var(--fx-scale)); }
+  100% { transform: translate3d(var(--fx-drift), -170px, 0) rotate(-6deg) scale(calc(var(--fx-scale) * .9)); opacity: 0; }
+}
+
+@keyframes fx-rise {
+  0%   { transform: translate3d(0, 0, 0) scale(calc(var(--fx-scale) * .55)); opacity: 0; }
+  15%  { opacity: .8; }
+  60%  { transform: translate3d(var(--fx-drift), -110px, 0) scale(var(--fx-scale)); opacity: .7; }
+  100% { transform: translate3d(calc(var(--fx-drift) * 1.4), -200px, 0) scale(calc(var(--fx-scale) * 1.25)); opacity: 0; }
+}
+
+@keyframes fx-embers {
+  0%   {
+    transform: translate3d(0, 8px, 0) scale(calc(var(--fx-scale) * .5));
+    opacity: 0; filter: brightness(1.1);
+  }
+  12%  { opacity: 1; }
+  50%  {
+    transform: translate3d(calc(var(--fx-drift) * .5), -90px, 0) scale(var(--fx-scale));
+    filter: brightness(1.25);
+  }
+  100% {
+    transform: translate3d(var(--fx-drift), -190px, 0) scale(calc(var(--fx-scale) * .35));
+    opacity: 0; filter: brightness(.85);
+  }
+}
+
+@keyframes fx-twinkle {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) scale(calc(var(--fx-scale) * .35)) rotate(0deg);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+    transform: translate3d(calc(var(--fx-drift) * .2), -6px, 0) scale(var(--fx-scale)) rotate(20deg);
+  }
+  50% {
+    opacity: .45;
+    transform: translate3d(calc(var(--fx-drift) * .5), -14px, 0) scale(calc(var(--fx-scale) * 1.15)) rotate(-10deg);
+  }
+  75% {
+    opacity: 1;
+    transform: translate3d(var(--fx-drift), -8px, 0) scale(var(--fx-scale)) rotate(15deg);
+  }
+}
+
+/* ------------------------------------------------------------------
+   Locker shop: live mini-preview of effect tiles so picking feels
+   intentional (not a static colour swatch).
+-------------------------------------------------------------------*/
+.shop-item__vis--fx-live {
+  overflow: hidden;
+  position: relative;
+  background:
+    radial-gradient(120% 80% at 50% 0%, rgba(27,77,255,.08), transparent 55%),
+    var(--paper) !important;
+}
+.shop-item__vis--fx-live .fx-preview {
+  position: absolute !important;
+  margin: 0 !important;
+  left: calc(12% + var(--fx-i, 0) * 18%);
+  top: 18%;
+  animation-duration: 2.4s;
+  animation-delay: calc(var(--fx-i, 0) * .28s);
+  animation-iteration-count: infinite;
+  pointer-events: none;
+}
+.shop-item__vis--fx-live .fx-preview.fx-motion-rise,
+.shop-item__vis--fx-live .fx-preview.fx-motion-embers,
+.shop-item__vis--fx-live .fx-preview.fx-motion-flutter {
+  top: 62%;
+}
+.shop-item__vis--fx-live .fx-preview.fx-motion-twinkle {
+  top: 36%;
+  left: calc(18% + var(--fx-i, 0) * 16%);
+}
+.shop-item.is-equipped .shop-item__vis--fx-live {
+  box-shadow: inset 0 0 0 1.5px var(--accent);
 }
 
 /* ------------------------------------------------------------------

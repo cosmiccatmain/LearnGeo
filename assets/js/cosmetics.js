@@ -11,9 +11,12 @@
   var DECORATIONS = [
     { id: 'none', name: 'None', price: 0, kind: 'none' },
     { id: 'ring-slate', name: 'Cartographer', price: 0, kind: 'ring', c1: '#0A0A0B', c2: '#6B7280' },
+    { id: 'ring-sky', name: 'Horizon', price: 0, kind: 'ring', c1: '#0EA5E9', c2: '#BAE6FD' },
+    { id: 'ring-chalk', name: 'Chalk Frame', price: 0, kind: 'ring', c1: '#E2E8F0', c2: '#94A3B8' },
     { id: 'ring-gold', name: 'Meridian Gold', price: 300, kind: 'ring', c1: '#F5B301', c2: '#FF8A00' },
     { id: 'ring-aurora', name: 'Aurora', price: 450, kind: 'ring', c1: '#22D3EE', c2: '#8B5CF6' },
     { id: 'ring-coral', name: 'Coral Reef', price: 450, kind: 'ring', c1: '#FB7185', c2: '#F97316' },
+    { id: 'ring-mint', name: 'Mint Coast', price: 550, kind: 'ring', c1: '#10B981', c2: '#A7F3D0' },
     { id: 'laurel', name: 'Laurel', price: 700, kind: 'badge', badge: 'laurel', c1: '#16A34A' },
     { id: 'compass', name: 'Compass Rose', price: 700, kind: 'badge', badge: 'compass', c1: '#1B4DFF' },
     { id: 'orbit', name: 'Low Orbit', price: 900, kind: 'orbit', c1: '#1B4DFF', c2: '#22D3EE' },
@@ -21,6 +24,7 @@
     { id: 'crown', name: 'Summit Crown', price: 1400, kind: 'badge', badge: 'crown', c1: '#F5B301' },
     { id: 'ring-glacier', name: 'Glacier', price: 1400, kind: 'ring', c1: '#38BDF8', c2: '#E0F2FE' },
     { id: 'ring-magma', name: 'Magma', price: 2000, kind: 'ring', c1: '#DC2626', c2: '#F59E0B' },
+    { id: 'ring-neon', name: 'Neon Trail', price: 2200, kind: 'orbit', c1: '#F472B6', c2: '#22D3EE' },
     /* secrets (secrets.js). Never sold; held once the secret is found. */
     { id: 'ring-tayt', name: 'Tayt', price: 0, kind: 'ring', c1: '#A855F7', c2: '#F472B6', earn: 'secret', secret: 'tayt' },
     { id: 'ring-keeper', name: 'Secret Keeper', price: 0, kind: 'ring', c1: '#F5B301', c2: '#7C3AED', earn: 'secret', secret: '*' }
@@ -107,20 +111,42 @@
       'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + art + '</svg>';
   }
 
-  /* Profile effects — animated particles over the profile card. */
+  /* Profile effects — animated particles over the profile card.
+     `motion` picks the CSS keyframe family in cosmetics-extra.css /
+     runEffect(). Premium ids must stay in sync with
+     0013_premium_subscriptions.sql (embers, gambling, wings, rain, bubbles). */
   var EFFECTS = [
-    { id: 'none', name: 'None', price: 0, shape: null, colors: [] },
-    { id: 'confetti', name: 'Confetti', price: 500, shape: 'rect', colors: ['#1B4DFF', '#F5B301', '#0E9F6E', '#FB7185'] },
-    { id: 'snow', name: 'Snowfall', price: 500, shape: 'dot', colors: ['#BAE6FD', '#E0F2FE', '#FFFFFF'] },
-    { id: 'stars', name: 'Starfall', price: 800, shape: 'star', colors: ['#F5B301', '#FDE68A'] },
-    { id: 'leaves', name: 'Drifting Leaves', price: 800, shape: 'leaf', colors: ['#16A34A', '#84CC16', '#CA8A04'] },
-    { id: 'bubbles', name: 'Deep Current', price: 1200, shape: 'ring', colors: ['#0EA5E9', '#22D3EE'], premium: true },
-    { id: 'rain', name: 'Monsoon', price: 1200, shape: 'drop', colors: ['#38BDF8', '#0284C7'], premium: true },
-    { id: 'embers', name: 'Embers', price: 1800, shape: 'dot', colors: ['#F97316', '#DC2626', '#F5B301'], premium: true },
+    { id: 'none', name: 'None', price: 0, shape: null, colors: [], motion: null, count: 0 },
+    /* Free solid effect — soft atlas sparks so Free accounts get a real
+       animated look without touching the Premium catalogue. */
+    { id: 'spark', name: 'Atlas Sparks', price: 0, shape: 'spark',
+      colors: ['#1B4DFF', '#22D3EE', '#F5B301'], motion: 'twinkle', count: 18,
+      blurb: 'Soft brand sparks across your card. Free for every explorer.' },
+    { id: 'confetti', name: 'Confetti', price: 500, shape: 'rect',
+      colors: ['#1B4DFF', '#F5B301', '#0E9F6E', '#FB7185'], motion: 'tumble', count: 22 },
+    { id: 'snow', name: 'Snowfall', price: 500, shape: 'dot',
+      colors: ['#BAE6FD', '#E0F2FE', '#FFFFFF'], motion: 'drift', count: 24 },
+    { id: 'stars', name: 'Starfall', price: 800, shape: 'star',
+      colors: ['#F5B301', '#FDE68A', '#FFF7ED'], motion: 'twinkle-fall', count: 16 },
+    { id: 'leaves', name: 'Drifting Leaves', price: 800, shape: 'leaf',
+      colors: ['#16A34A', '#84CC16', '#CA8A04'], motion: 'sway', count: 14 },
+    { id: 'petals', name: 'Cherry Drift', price: 900, shape: 'petal',
+      colors: ['#FB7185', '#F9A8D4', '#FDA4AF'], motion: 'sway', count: 16 },
+    { id: 'bubbles', name: 'Deep Current', price: 1200, shape: 'ring',
+      colors: ['#0EA5E9', '#22D3EE', '#67E8F9'], motion: 'rise', count: 16, premium: true,
+      blurb: 'Bubbles rising through deep water. Premium.' },
+    { id: 'rain', name: 'Monsoon', price: 1200, shape: 'drop',
+      colors: ['#38BDF8', '#0284C7', '#7DD3FC'], motion: 'rain', count: 28, premium: true,
+      blurb: 'Fast monsoon streaks. Premium.' },
+    { id: 'embers', name: 'Embers', price: 1800, shape: 'ember',
+      colors: ['#F97316', '#DC2626', '#F5B301'], motion: 'embers', count: 20, premium: true,
+      blurb: 'Glowing embers drifting upward. Premium.' },
     { id: 'wings', name: 'Chicken Wings', price: 900, shape: 'wing',
-      colors: ['#B45309', '#D97706', '#92400E', '#C2410C'], premium: true },
+      colors: ['#B45309', '#D97706', '#92400E', '#C2410C'], motion: 'flutter', count: 12, premium: true,
+      blurb: 'Fluttering wings across the card. Premium.' },
     { id: 'gambling', name: 'Gambling', price: 1500, shape: 'dice',
-      colors: ['#FFFFFF', '#FEF3C7', '#F1F5F9'], premium: true },
+      colors: ['#FFFFFF', '#FEF3C7', '#F1F5F9'], motion: 'tumble', count: 14, premium: true,
+      blurb: 'Dice tumbling over your profile. Premium.' },
 
     /* ---------------------- the one with no price -------------------
        Not for sale, and not earnable either. It carries `earn` so the
@@ -131,19 +157,22 @@
        `earn` is deliberately a string no achievement uses. If one ever
        did, holding that achievement would hand out the staff effect. */
     { id: 'staff', name: 'LearnGeo Staff', price: 0, shape: 'crest',
-      colors: ['#1B4DFF', '#F5B301', '#22D3EE'],
+      colors: ['#1B4DFF', '#F5B301', '#22D3EE'], motion: 'twinkle', count: 18,
       earn: 'staff-grant', staff: true,
       blurb: 'Brand-mark sparks in LearnGeo blue and gold. Granted from the Administrator page and nowhere else.' },
     { id: 'fx-keeper', name: 'Secret Keeper', price: 0, shape: 'star',
-      colors: ['#F5B301', '#7C3AED', '#F472B6'], earn: 'secret', secret: '*' }
+      colors: ['#F5B301', '#7C3AED', '#F472B6'], motion: 'twinkle-fall', count: 16,
+      earn: 'secret', secret: '*' }
   ];
 
   /* Nameplates — the bar the display name sits on. */
   var NAMEPLATES = [
     { id: 'none', name: 'None', price: 0, css: 'transparent', text: '#0A0A0B' },
+    { id: 'parchment', name: 'Parchment', price: 0, css: 'linear-gradient(90deg,#F8F1E3,#E8D9C0)', text: '#3B2F1A' },
     { id: 'slate', name: 'Slate', price: 200, css: 'linear-gradient(90deg,#111827,#374151)', text: '#FFFFFF' },
     { id: 'cobalt', name: 'Cobalt', price: 400, css: 'linear-gradient(90deg,#1B4DFF,#4F7BFF)', text: '#FFFFFF' },
     { id: 'forest', name: 'Forest', price: 400, css: 'linear-gradient(90deg,#065F46,#10B981)', text: '#FFFFFF' },
+    { id: 'harbor', name: 'Harbor', price: 450, css: 'linear-gradient(90deg,#0F766E,#14B8A6)', text: '#ECFEFF' },
     { id: 'sunset', name: 'Sunset', price: 700, css: 'linear-gradient(90deg,#F97316,#EC4899)', text: '#FFFFFF' },
     { id: 'lagoon', name: 'Lagoon', price: 700, css: 'linear-gradient(90deg,#0EA5E9,#22D3EE)', text: '#053345' },
     { id: 'orchid', name: 'Orchid', price: 1000, css: 'linear-gradient(90deg,#7C3AED,#C084FC)', text: '#FFFFFF' },
@@ -154,11 +183,15 @@
   /* Banners — the strip behind the top of the profile card. */
   var BANNERS = [
     { id: 'plain', name: 'Plain', price: 0, css: '#F3F4F6' },
+    { id: 'meadow', name: 'Meadow', price: 0, css: 'linear-gradient(120deg,#BBF7D0,#86EFAC 45%,#4ADE80)' },
+    { id: 'chalkboard', name: 'Chalkboard', price: 0, css: 'linear-gradient(135deg,#1E293B 0%,#334155 55%,#0F172A 100%)' },
     { id: 'ink', name: 'Ink', price: 150, css: 'linear-gradient(120deg,#0A0A0B,#3F3F46)' },
     { id: 'atlas', name: 'Atlas', price: 350, css: 'linear-gradient(120deg,#1B4DFF,#22D3EE)' },
     { id: 'savanna', name: 'Savanna', price: 350, css: 'linear-gradient(120deg,#F59E0B,#FDE68A)' },
+    { id: 'canyon', name: 'Canyon', price: 450, css: 'linear-gradient(120deg,#9A3412,#EA580C,#FDBA74)' },
     { id: 'tundra', name: 'Tundra', price: 600, css: 'linear-gradient(120deg,#94A3B8,#E2E8F0)' },
     { id: 'rainforest', name: 'Rainforest', price: 600, css: 'linear-gradient(120deg,#064E3B,#34D399)' },
+    { id: 'aurora-sky', name: 'Northern Lights', price: 850, css: 'linear-gradient(120deg,#0F172A,#4C1D95,#22D3EE,#A3E635)' },
     { id: 'dusk', name: 'Dusk', price: 950, css: 'linear-gradient(120deg,#312E81,#DB2777,#F59E0B)' },
     { id: 'meridian', name: 'Meridian', price: 1500, css: 'linear-gradient(120deg,#0A0A0B,#1B4DFF,#22D3EE,#F5B301)' },
     { id: 'bookworm', name: 'Bookworm', price: 0, css: 'linear-gradient(120deg,#3B2414,#92400E,#FDE68A)', earn: 'secret', secret: 'bookworm' }
@@ -167,8 +200,10 @@
   /* Profile themes — accent pair applied to the profile card. */
   var THEMES = [
     { id: 'default', name: 'Default', price: 0, c1: '#1B4DFF', c2: '#0A0A0B' },
+    { id: 'sand', name: 'Sand', price: 0, c1: '#D97706', c2: '#451A03' },
     { id: 'moss', name: 'Moss', price: 250, c1: '#10B981', c2: '#064E3B' },
     { id: 'clay', name: 'Clay', price: 250, c1: '#EA580C', c2: '#7C2D12' },
+    { id: 'tide', name: 'Tide', price: 350, c1: '#0F766E', c2: '#042F2E' },
     { id: 'plum', name: 'Plum', price: 500, c1: '#9333EA', c2: '#3B0764' },
     { id: 'ice', name: 'Ice', price: 500, c1: '#0EA5E9', c2: '#0C4A6E' },
     { id: 'rose', name: 'Rose', price: 800, c1: '#E11D48', c2: '#4C0519' },

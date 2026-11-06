@@ -463,24 +463,25 @@
   /* ========================== CUSTOMIZATION ========================= */
   function openCustomization() {
     var body =
-      '<div class="split" style="grid-template-columns:1fr 300px;gap:26px;align-items:start">' +
-        '<div id="cz-panels">' +
+      '<div class="cz-layout">' +
+        '<div id="cz-panels" class="cz-panels">' +
           profilePanel() + shopPanel('avatars') + shopPanel('decorations') +
           shopPanel('effects') + shopPanel('nameplates') + shopPanel('banners') + shopPanel('themes') +
         '</div>' +
-        '<div><span class="eyebrow">Live preview</span>' +
-          '<div id="cz-preview" style="margin-top:10px"></div>' +
-          '<div class="row" style="margin-top:14px;gap:6px;justify-content:center">' +
+        '<aside class="cz-preview-pane" aria-label="Live profile preview">' +
+          '<span class="eyebrow">Live preview</span>' +
+          '<div id="cz-preview" class="cz-preview"></div>' +
+          '<div class="cz-preview-meta">' +
             '<span class="chip chip--gem mono" id="cz-balance">' + W.gem(W.state.economy.diamonds.toLocaleString(), false) + '</span>' +
+            '<p class="t-sm t-muted t-center cz-preview-hint">Pick a cosmetic — the card updates instantly. ' +
+              'Diamonds come from answers, tests, and achievements.</p>' +
           '</div>' +
-          '<div class="t-sm t-muted t-center" style="margin-top:10px">You get diamonds for answering questions, ' +
-            'finishing tests and getting achievements.</div>' +
-        '</div>' +
+        '</aside>' +
       '</div>';
 
     var tabs = '<div class="vtabs" id="cz-tabs">' +
       vt('profile', I.user, 'Profile', true) + vt('avatars', I.globe, 'Avatar') +
-      vt('decorations', I.sparkle, 'Decorations') + vt('effects', I.bolt, 'Effects') +
+      vt('decorations', I.sparkle, 'Frames') + vt('effects', I.bolt, 'Effects') +
       vt('nameplates', I.grid, 'Nameplates') + vt('banners', I.layers, 'Banner') +
       vt('themes', I.palette, 'Theme') + '</div>';
 
@@ -537,8 +538,7 @@
     return '<div data-panel="' + kind + '" class="hidden">' +
       '<div class="row row--between" style="margin-bottom:14px">' +
         '<div><b style="font-size:15px">' + label(kind) + '</b>' +
-        '<div class="t-sm t-muted">Click to equip. Locked items cost diamonds, ' +
-        'except badges from achievements, which are earned by playing.</div></div>' +
+        '<div class="t-sm t-muted">' + hint(kind) + '</div></div>' +
       '</div>' +
       '<div class="shop-grid">' +
         list.map(function (it) {
@@ -578,8 +578,22 @@
       '</div></div>';
 
     function label(k) {
-      return { avatars: 'Avatar', decorations: 'Avatar decoration', effects: 'Profile effect',
+      return { avatars: 'Avatar', decorations: 'Avatar frame', effects: 'Profile effect',
                nameplates: 'Nameplate', banners: 'Profile banner', themes: 'Profile theme' }[k];
+    }
+    function hint(k) {
+      if (k === 'effects') {
+        return 'Tap a tile to preview it live on your card. Atlas Sparks is free; ' +
+          'Premium effects need LearnGeo Premium. Achievement and staff effects are earned, not sold.';
+      }
+      if (k === 'decorations') {
+        return 'Frames and badges sit on your avatar. Free frames unlock instantly; ' +
+          'achievement badges are earned by playing.';
+      }
+      if (k === 'banners') {
+        return 'Banner colours the top of your profile popout. Free banners are ready to equip.';
+      }
+      return 'Click to equip. Locked items cost diamonds, except badges from achievements, which are earned by playing.';
     }
   }
 
@@ -606,11 +620,13 @@
       return '<span class="shop-item__vis" style="background:var(--paper);padding:13px">' + inner + '</span>';
     }
     if (kind === 'effects') {
-      if (!it.shape) return '<span class="shop-item__vis" style="background:var(--paper);color:var(--faint)">—</span>';
-      return '<span class="shop-item__vis shop-item__vis--fx" style="background:var(--paper)">' +
-        it.colors.slice(0, 3).map(function (c, i) {
-          var st = it.shape === 'ring' ? 'border-color:' + c : 'background:' + c;
-          return '<i class="fx-' + it.shape + '" style="' + st + ';position:static;animation:none;margin:1px"></i>';
+      if (!it.shape) return '<span class="shop-item__vis shop-item__vis--fx" style="background:var(--paper);color:var(--faint)">—</span>';
+      var motion = it.motion || 'fall';
+      return '<span class="shop-item__vis shop-item__vis--fx shop-item__vis--fx-live" data-fx-motion="' + motion + '" style="background:var(--paper)">' +
+        it.colors.slice(0, 4).map(function (c, i) {
+          var st = (it.shape === 'ring') ? 'border-color:' + c : 'background:' + c;
+          return '<i class="fx-' + it.shape + ' fx-motion-' + motion + ' fx-preview" style="' + st +
+            ';--fx-i:' + i + ';--fx-scale:' + (0.75 + i * 0.12).toFixed(2) + '"></i>';
         }).join('') + '</span>';
     }
     if (kind === 'nameplates') {
@@ -848,32 +864,54 @@
   /* `who` draws somebody else's real profile — the card they designed,
      not their class name — from class_roster (0010): { profile, level,
      answered, correct, mastered, badges, name }. Their balance is not
-     part of it and is not shown. */
+     part of it and is not shown.
+
+     Layout is Discord-inspired (banner + overlapping avatar + status +
+     nameplate + bio), school-safe, LearnGeo branded — not a Discord clone. */
   function profileCard(live, who) {
     var p = who ? (who.profile || {}) : W.state.profile, s = W.state;
     var banner = Cos.find(Cos.banners, p.banner);
     var plate = Cos.find(Cos.nameplates, p.nameplate);
     var theme = Cos.find(Cos.themes, p.theme);
+    var status = Cos.find(Cos.statuses, p.status || 'online');
     var name = (live && live.displayName) || p.displayName || (who && who.name) || 'Explorer';
     var pron = (live && live.pronouns) || p.pronouns;
     var about = (live && live.about !== undefined) ? live.about : p.about;
+    var level = who ? (who.level || 1) : s.economy.level;
+    var statusLabel = status && status.id !== 'invisible' ? status.name : 'Offline';
+    var statusColor = (p.status === 'invisible' || !status) ? '#9CA3AF' : status.color;
+    var fxId = p.effect || 'none';
 
-    return '<div class="profile-card" style="' + themeCard(theme) + '">' +
-      '<div class="profile-card__banner" style="background:' + banner.css + '"></div>' +
-      '<div class="profile-fx" data-effect="' + p.effect + '"></div>' +
+    return '<div class="profile-card profile-card--popout" style="' + themeCard(theme) +
+      ';--pc-accent:' + theme.c1 + ';--pc-ink:' + theme.c2 + '">' +
+      '<div class="profile-card__banner" style="background:' + banner.css + '">' +
+        '<span class="profile-card__accent" aria-hidden="true"></span>' +
+      '</div>' +
+      '<div class="profile-fx" data-effect="' + fxId + '"></div>' +
       '<div class="profile-card__body" style="' + themeBody(theme) + '">' +
         '<div class="profile-card__avatar">' + W.avatarHtml(p) + '</div>' +
-        '<div class="profile-card__name" style="background:' + plate.css + ';color:' + plate.text + '">' +
-          '<span class="pc-name">' + W.escapeHtml(name) + '</span>' +
-          '<span class="pc-marks">' + W.verifiedMark(p, 15) +
-            (global.Badges ? global.Badges.markup(who ? whoBadges(who) : null, 13, false, true) : '') + '</span>' +
+        '<div class="profile-card__identity">' +
+          '<div class="profile-card__name" style="background:' + plate.css + ';color:' + plate.text + '">' +
+            '<span class="pc-name">' + W.escapeHtml(name) + '</span>' +
+            '<span class="pc-marks">' + W.verifiedMark(p, 15) +
+              (global.Badges ? global.Badges.markup(who ? whoBadges(who) : null, 13, false, true) : '') + '</span>' +
+          '</div>' +
+          '<div class="profile-card__meta" style="' + themeInk(theme, 'DE') + '">' +
+            '<span class="profile-card__level">Lv ' + level + '</span>' +
+            '<span class="profile-card__dot" aria-hidden="true">·</span>' +
+            '<span class="profile-card__status">' +
+              '<i class="profile-card__status-pip" style="background:' + statusColor + '"></i>' +
+              W.escapeHtml(statusLabel) +
+            '</span>' +
+            (who ? '' : '<span class="profile-card__dot" aria-hidden="true">·</span>' +
+              '<span class="profile-card__gems mono">' + s.economy.diamonds.toLocaleString() + ' 💎</span>') +
+          '</div>' +
+          (pron ? '<div class="profile-card__pronouns" style="' + themeInk(theme, 'D9') + '">' +
+            W.escapeHtml(pron) + '</div>' : '') +
         '</div>' +
-        '<div class="profile-card__tag" style="' + themeInk(theme, 'DE') + '">Level ' +
-          (who ? (who.level || 1) : s.economy.level + ' · ' + s.economy.diamonds.toLocaleString() + ' 💎') + '</div>' +
-        (pron ? '<div class="profile-card__pronouns" style="' + themeInk(theme, 'D9') + '">' +
-          W.escapeHtml(pron) + '</div>' : '') +
         (about ? '<div class="profile-card__about" style="' + themeInk(theme, 'E6') +
-          ';border-top-color:' + theme.c1 + '59">' + W.escapeHtml(about) + '</div>' : '') +
+          ';border-top-color:' + theme.c1 + '59"><span class="profile-card__about-label" style="' +
+          themeInk(theme, 'C4') + '">About me</span>' + W.escapeHtml(about) + '</div>' : '') +
         '<div class="profile-card__stats" style="' + themeStats(theme) + '">' +
           (who
             ? stat(who.answered || 0, 'answered') +
@@ -906,18 +944,40 @@
     if (!layer) return;
     var fx = Cos.find(Cos.effects, layer.dataset.effect);
     layer.innerHTML = '';
-    if (!fx.shape || !W.state.settings.effects) return;
-    for (var i = 0; i < 16; i++) {
+    layer.className = 'profile-fx';
+    if (!fx || !fx.shape || !W.state.settings.effects) return;
+    var motion = fx.motion || 'fall';
+    var count = fx.count || 18;
+    layer.classList.add('profile-fx--' + motion);
+    layer.dataset.motion = motion;
+    for (var i = 0; i < count; i++) {
       var n = document.createElement('i');
-      n.className = 'fx-' + fx.shape;
+      n.className = 'fx-' + fx.shape + ' fx-motion-' + motion;
       var col = fx.colors[i % fx.colors.length];
-      if (fx.shape === 'ring') n.style.borderColor = col; else n.style.background = col;
+      if (fx.shape === 'ring') n.style.borderColor = col;
+      else n.style.background = col;
+      /* Scale via CSS var so keyframes can compose transform safely. */
+      var scale = (0.65 + Math.random() * 0.9).toFixed(2);
+      n.style.setProperty('--fx-scale', scale);
+      n.style.setProperty('--fx-x', (Math.random() * 100).toFixed(2) + '%');
+      n.style.setProperty('--fx-drift', ((Math.random() * 40) - 20).toFixed(1) + 'px');
+      n.style.setProperty('--fx-spin', ((Math.random() * 360) - 180).toFixed(0) + 'deg');
       n.style.left = (Math.random() * 94) + '%';
-      n.style.animationDuration = (2.6 + Math.random() * 2.8) + 's';
-      n.style.animationDelay = (Math.random() * 3.2) + 's';
-      var scale = 0.7 + Math.random() * 0.8;
-      n.style.transform = 'scale(' + scale + ')';
+      n.style.top = motion === 'rise' || motion === 'embers' || motion === 'twinkle'
+        ? (55 + Math.random() * 40) + '%'
+        : (-8 + Math.random() * 18) + '%';
+      n.style.animationDuration = durationFor(motion);
+      n.style.animationDelay = (Math.random() * 2.8).toFixed(2) + 's';
       layer.appendChild(n);
+    }
+
+    function durationFor(m) {
+      if (m === 'rain') return (0.7 + Math.random() * 0.55).toFixed(2) + 's';
+      if (m === 'embers' || m === 'rise') return (2.4 + Math.random() * 2.2).toFixed(2) + 's';
+      if (m === 'twinkle') return (1.6 + Math.random() * 1.8).toFixed(2) + 's';
+      if (m === 'flutter') return (2.8 + Math.random() * 2.4).toFixed(2) + 's';
+      if (m === 'tumble') return (2.2 + Math.random() * 1.8).toFixed(2) + 's';
+      return (2.8 + Math.random() * 2.6).toFixed(2) + 's';
     }
   }
 

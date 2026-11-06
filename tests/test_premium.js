@@ -17,6 +17,12 @@ assert(/id: 'dash'[\s\S]*?premium:\s*true/.test(games), 'Geo Dash is Premium');
 assert(/id: 'snake'/.test(games) && !/id: 'snake'[\s\S]{0,80}premium:\s*true/.test(games),
   'Capital Snake stays free');
 assert(/id: 'embers'[\s\S]*?premium:\s*true/.test(cos), 'Embers effect is Premium');
+assert(/id: 'bubbles'[\s\S]*?premium:\s*true/.test(cos), 'Deep Current is Premium');
+assert(/id: 'rain'[\s\S]*?premium:\s*true/.test(cos), 'Monsoon is Premium');
+assert(/id: 'wings'[\s\S]*?premium:\s*true/.test(cos), 'Wings is Premium');
+assert(/id: 'gambling'[\s\S]*?premium:\s*true/.test(cos), 'Gambling is Premium');
+assert(/id: 'spark'[\s\S]*?price:\s*0/.test(cos), 'Atlas Sparks is free');
+assert(!/id: 'spark'[\s\S]{0,120}premium:\s*true/.test(cos), 'Atlas Sparks is not Premium');
 assert(/PREMIUM_GAMES/.test(prem) && /chess:\s*true/.test(prem), 'premium.js lists gated games');
 assert(/ultra_set_premium/.test(sql), 'SQL exposes ultra_set_premium');
 assert(/premium_game_ids/.test(sql), 'SQL lists premium_game_ids');

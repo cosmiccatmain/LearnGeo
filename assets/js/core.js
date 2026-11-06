@@ -115,11 +115,11 @@
       flags: {},               /* one-off marks badges read, e.g. answered before 7am */
       owned: {
         avatars: ['globe', 'map', 'compass', 'mountain'],
-        decorations: ['none', 'ring-slate'],
-        effects: ['none'],
-        nameplates: ['none'],
-        banners: ['plain'],
-        themes: ['default']
+        decorations: ['none', 'ring-slate', 'ring-sky', 'ring-chalk'],
+        effects: ['none', 'spark'],
+        nameplates: ['none', 'parchment'],
+        banners: ['plain', 'meadow', 'chalkboard'],
+        themes: ['default', 'sand']
       },
       economy: { diamonds: 150, xp: 0, level: 1 },
       streak: { current: 0, best: 0 },
