@@ -121,6 +121,57 @@
 
   var GAMES = [
     {
+      id: 'duel', title: 'Geo Duel', art: 'duel',
+      blurb: 'Challenge a friend by gamertag. They get an invite, you both race the same geography questions, and the faster correct answer wins each round.',
+      meta: 'PvP · invite by gamertag · five rounds',
+      playLabel: 'Open duel lobby',
+      best: function (r) {
+        if (r.wins) return r.wins + (r.wins === 1 ? ' win' : ' wins');
+        return r.runs ? r.runs + (r.runs === 1 ? ' match' : ' matches') : '';
+      },
+      intro: 'Look up a friend’s gamertag and send an invite. When they accept, you both get the same five flag and capital questions. ' +
+        'Answer correctly and faster than they do to take the round. First to the better score after five rounds wins. ' +
+        'A great way to pull friends from other schools into LearnGeo.',
+      keys: [
+        [['Gamertag'], 'look up a friend and send an invite'],
+        [['A', 'B', 'C', 'D'], 'or tap an answer in a live match'],
+        [['Forfeit'], 'leave a live match from the foot bar']
+      ],
+      filters: { title: 'Duel question filters', heading: 'Questions (host deals these)', typed: false },
+      side: function (r) {
+        var box = global.GeoDuel && global.GeoDuel.inbox ? global.GeoDuel.inbox() : { incoming: [], outgoing: [] };
+        var pending = (box.incoming || []).length;
+        return '<div class="panel">' +
+            '<div class="panel__head"><h3>Question mix</h3></div>' +
+            segHtml('kind', KINDS, kind_(r)) +
+            '<div class="field__hint" style="margin-top:10px">The host’s mix is used when the match starts. Guest plays the same set.</div>' +
+          '</div>' +
+          '<div class="panel">' +
+            '<div class="panel__head"><h3>How invites work</h3></div>' +
+            '<p class="t-sm t-muted" style="margin:0">Your friend needs a gamertag (any Games leaderboard claim works). They see a pending invite in Geo Duel and can accept or decline.</p>' +
+            (pending
+              ? '<p class="t-sm" style="margin:10px 0 0"><b>' + pending + ' pending invite' + (pending === 1 ? '' : 's') + '</b> waiting in the lobby.</p>'
+              : '') +
+          '</div>' +
+          stats([[r.wins || 0, 'Wins'], [r.runs || 0, 'Matches']]);
+      },
+      wire: function (el, r) {
+        seg(el, '[data-kind]', function (v) { r.kind = v; });
+        if (global.GeoDuel && global.GeoDuel.fetchInbox) global.GeoDuel.fetchInbox();
+      },
+      mount: function (stage, r) {
+        return global.GeoDuel.mount(stage, {
+          kind: kind_(r),
+          cfg: function () { return gameCfg('duel'); },
+          onBack: toSetup,
+          autoResume: true
+        });
+      },
+      playing: function () {
+        return 'PvP duel · ' + whatKind(kind_(record('duel'))) + ' from ' + global.StudyFilters.label(gameCfg('duel'));
+      }
+    },
+    {
       id: 'chess', title: 'Geo Chess', art: 'chess', premium: true,
       blurb: 'Build your chess skills, from a forgiving beginner opponent to full-strength Stockfish. Answer a geography question to unlock each move.',
       meta: 'Premium · Chess · five difficulty levels',
@@ -732,6 +783,7 @@
       });
     }
     if (global.GameBlocks) global.GameBlocks.load();
+    if (global.GeoDuel && global.GeoDuel.startWatching) global.GeoDuel.startWatching();
     if (screen === 'play') screen = 'setup';
     stop();
     if (screen === 'setup') renderSetup(); else renderHub();
@@ -858,11 +910,14 @@
     var prem = !off && isPremiumLocked(g.id);
     var locked = off || prem;
     var meta = showPrem ? g.meta : String(g.meta || '').replace(/^Premium\s*·\s*/i, '');
+    var invites = (g.id === 'duel' && global.GeoDuel && global.GeoDuel.pendingCount)
+      ? global.GeoDuel.pendingCount() : 0;
     return '<button class="game-card' + (off ? ' is-blocked' : '') + (prem ? ' is-premium-locked' : '') +
       '" data-game="' + g.id + '" type="button"' +
       (locked ? ' aria-disabled="true"' : '') + '>' +
       '<div class="game-card__art game-art--' + g.art + '" aria-hidden="true">' + art(g.art) +
         (showPrem ? '<span class="game-card__prem-badge">Premium</span>' : '') +
+        (invites ? '<span class="game-card__invite-badge">' + invites + ' invite' + (invites === 1 ? '' : 's') + '</span>' : '') +
       '</div>' +
       '<div class="game-card__body">' +
         '<h3>' + esc(g.title) + '</h3>' +
@@ -871,7 +926,7 @@
           (best ? '<span class="game-card__best">' + esc(best) + '</span>' : '') +
           (off ? '<span class="game-card__go">' + I.lock + ' Blocked by your teacher</span>'
                : prem ? '<span class="game-card__go">' + I.lock + ' Premium · Upgrade</span>'
-               : '<span class="game-card__go">Play ' + I.arrowR + '</span>') + '</div>' +
+               : '<span class="game-card__go">' + (g.id === 'duel' ? 'Challenge ' : 'Play ') + I.arrowR + '</span>') + '</div>' +
       '</div>' +
     '</button>';
   }
@@ -1017,6 +1072,14 @@
           '%;top:' + (22 + row * 36) + '%"><i style="background:' + f + '"></i></span>';
       }).join('');
     }
+    if (kind === 'duel') {
+      return '<span class="gduel-art__pill gduel-art__pill--a">You</span>' +
+        '<span class="gduel-art__vs">VS</span>' +
+        '<span class="gduel-art__pill gduel-art__pill--b">Friend</span>' +
+        '<span class="gduel-art__flag" style="left:18%;top:58%"></span>' +
+        '<span class="gduel-art__flag gduel-art__flag--b" style="left:62%;top:58%"></span>' +
+        '<span class="gduel-art__bolt"></span>';
+    }
     return '';
   }
 
@@ -1051,7 +1114,8 @@
               }).join('') +
             '</div>' +
             '<div class="dash-setup__go">' +
-              '<button class="btn btn--accent btn--lg" data-play>' + I.play + ' Play</button>' +
+              '<button class="btn btn--accent btn--lg" data-play>' + I.play + ' ' +
+                esc(g.playLabel || 'Play') + '</button>' +
               '<button class="btn btn--ghost btn--lg" data-board type="button">' + I.trophy + ' Leaderboard</button>' +
             '</div>' +
           '</div>' +

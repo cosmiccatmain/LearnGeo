@@ -40,6 +40,9 @@
     chess:    { get: function (r) { return r.wins || 0; },
                 fmt: function (n) { return num(n) + (n === 1 ? ' win' : ' wins'); },
                 metric: 'Wins against the computer' },
+    duel:     { get: function (r) { return r.wins || 0; },
+                fmt: function (n) { return num(n) + (n === 1 ? ' win' : ' wins'); },
+                metric: 'Wins against friends' },
     dash:     { get: function (r) { return r.best || 0; },
                 fmt: function (n) { return num(n) + ' m'; },
                 metric: 'Best distance' },
@@ -417,7 +420,7 @@
 
   global.GameBoards = {
     open: open, askTag: askTag, ensureTag: ensureTag, sync: sync, touch: touch,
-    start: start, get tag() { return tag(); }
+    start: start, deviceId: deviceId, get tag() { return tag(); }
   };
 
   /* Boards only matter once there is a tag, so the timer is cheap until
