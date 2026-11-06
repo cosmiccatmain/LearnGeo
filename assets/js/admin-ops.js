@@ -295,6 +295,8 @@
     stats:    function ()                 { return call('ultra_stats', {}); },
     find:     function (q)                { return call('ultra_find_accounts', { p_query: q || '' }); },
     recent:   function (n)                { return call('ultra_recent_actions', { p_limit: n || 20 }); },
+    /* 0016 — who opened UltraAdmin / Administrator, and when. */
+    logins:   function (n)                { return call('ultra_admin_logins', { p_limit: n || 50 }); },
 
     /* Exactly one of delta / set. Passing both is a caller bug, and the
        server takes `set` when it happens rather than guessing. */
