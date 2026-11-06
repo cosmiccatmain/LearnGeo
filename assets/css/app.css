@@ -2175,6 +2175,28 @@ textarea.input:focus { outline: none; border-color: var(--accent); box-shadow: 0
 }
 .preview-bar .btn:hover { background: rgba(255,255,255,.24); }
 
+/* Voluntary screen share. Hidden until a signed-in person is in the app,
+   and the bar only appears after they confirm and the picker succeeds. */
+.share-btn { flex: none; }
+.share-btn__short { display: none; }
+.share-bar {
+  flex: none; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 9px 18px; background: #1B2430; color: #fff;
+  font-size: 13.5px; font-weight: 500; position: relative; z-index: 30;
+}
+.share-bar__dot {
+  width: 8px; height: 8px; border-radius: 50%; background: #E11D48; flex: none;
+  animation: pulseDot 1.6s ease-in-out infinite;
+}
+.share-bar .btn {
+  margin-left: auto; background: #fff; color: #1B2430;
+}
+.share-bar .btn:hover { background: #F4F6F8; }
+@media (max-width: 720px) {
+  .share-btn__long { display: none; }
+  .share-btn__short { display: inline; }
+}
+
 /* ---- student join card ---- */
 .join-card {
   border: 1px solid var(--line); border-radius: 18px; background: var(--white);

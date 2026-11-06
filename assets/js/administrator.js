@@ -7,8 +7,9 @@
    Sidebar layout (deep blue, profile, section nav, Leave Admin) with
    server-backed command grants (0012). Owner
    alexjschendel@gmail.com has every command. Screen monitoring is
-   owner-only. Other admins default to read-only accounts/stats/log
-   until the owner grants gems / ban / messages / etc.
+   owner-only, including the live Daily shares under that tab. Other
+   admins default to read-only accounts/stats/log until the owner
+   grants gems / ban / messages / etc.
 
    NOTHING HERE IS A PERMISSION CHECK. Every call goes through
    AdminOps to a security definer function that re-checks the session
@@ -52,6 +53,9 @@
   var querySeen = false;
   var bulkBusy = false;
   var bulkGen = 0;
+  var watchingRoom = '';
+  var watchingName = '';
+  var shareTimer = null;
 
   var DEAD = {
     live: function () { return false; },
@@ -60,7 +64,7 @@
     stats: no, find: no, recent: no, gems: no, staff: no, allowList: no, allow: no,
     message: no, thread: no, override: no, myAccess: no, grantsList: no, grantsSet: no,
     activity: no, ban: no, banned: no, rename: no, wipeScores: no, resetProgress: no,
-    leaveClasses: no
+    leaveClasses: no, screenShares: no, viewerToken: no
   };
   function no() {
     return Promise.resolve({ ok: false, kind: 'error', message: 'admin-ops.js did not load.' });
@@ -107,6 +111,8 @@
 
   function close() {
     if (!root) return;
+    disarmSharePoll();
+    stopWatching();
     root.remove();
     root = null; rows = []; picked = null; stats = null; banner = '';
     section = 'overview'; grants = [];
@@ -204,7 +210,9 @@
       if (d.do === 'wipescores')   return wipeScores();
       if (d.do === 'resetprog')    return resetProgress();
       if (d.do === 'leaveclasses') return leaveClasses();
-      if (d.do === 'watch')    return loadActivity(true);
+      if (d.do === 'watch')    { loadShares(false); return loadActivity(true); }
+      if (d.do === 'sharewatch') return watchShare(d.room, d.name || '');
+      if (d.do === 'sharestop') return stopWatching();
       if (d.do === 'search')   return search();
       if (d.do === 'select-everyone') return selectEveryone();
       if (d.do === 'clear-selection') return clearSelection();
@@ -287,6 +295,8 @@
   function renderPanel() {
     if (!root) return;
     syncNav();
+    /* Leaving the monitor tab drops the watch so Daily stops billing it. */
+    if (section !== 'monitor' && watchingRoom) stopWatching();
     var head = W.$('#ap-heading', root);
     if (head) head.textContent = TITLES[section] || 'Administrator';
     var host = W.$('#ap-panel', root);
@@ -305,7 +315,16 @@
 
     /* Fill dynamic bits after the shell is in the DOM. */
     if (section === 'overview') { renderStats(); renderStaff(); }
-    if (section === 'monitor') loadActivity(false);
+    if (section === 'monitor') {
+      loadActivity(false);
+      loadShares(false);
+      armSharePoll();
+      if (watchingRoom && global.ScreenShare && global.ScreenShare.attach) {
+        global.ScreenShare.attach();
+      }
+    } else {
+      disarmSharePoll();
+    }
     if (section === 'accounts') {
       var qEl = W.$('#ap-q', root);
       if (qEl && querySeen) qEl.value = loadedQuery;
@@ -371,9 +390,133 @@
       '</div>' +
       '<p class="t-sm t-muted">Which screen each signed-in account is on, and when they were ' +
         'last there. Screen names only — not what they type, what they answer, or anything on ' +
-        'their screen.</p>' +
+        'their screen. A live picture is a separate choice, listed under Live shares, and only ' +
+        'after that person clicks Share screen.</p>' +
       '<div id="ap-activity" class="adminp__rows"></div>' +
+    '</section>' +
+    '<section class="adminp__sec">' +
+      '<h3 style="margin:0 0 4px">Live shares</h3>' +
+      '<p class="t-sm t-muted">The window or tab they picked. This is not the name list above. ' +
+        'Nobody is captured unless they click Share screen, and they can stop it themselves. ' +
+        'Watch one at a time, from a different window than the one being shared. ' +
+        'Stop watching leaves the call.</p>' +
+      '<p class="t-sm t-muted">Daily includes about 10,000 participant-minutes a month, then about ' +
+        '$0.004 a minute. Someone sharing is one participant. You watching them is a second. ' +
+        'Spot-checks stay near the free allowance; watching everyone at once does not.</p>' +
+      '<div id="ap-shares" class="adminp__rows"><div class="t-sm t-muted">Looking…</div></div>' +
+      '<div id="ap-watch">' + (watchingRoom ? watchShell(watchingName) : '') + '</div>' +
     '</section>';
+  }
+
+  function watchShell(name) {
+    return '<div class="adminp__watch">' +
+      '<div class="adminp__watchbar">' +
+        '<span class="adminp__watchdot" aria-hidden="true"></span>' +
+        '<b>' + esc(name || 'Student') + '</b>' +
+        '<span id="ap-watch-status">Joining…</span>' +
+        '<button type="button" class="btn btn--sm" data-do="sharestop">Stop watching</button>' +
+      '</div>' +
+      '<video id="ap-watch-video" autoplay playsinline muted></video>' +
+    '</div>';
+  }
+
+  function setWatchStatus(msg) {
+    var el = root && W.$('#ap-watch-status', root);
+    if (el) el.textContent = msg || '';
+  }
+
+  function roomOk(name) {
+    return /^lg-u-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(String(name || ''));
+  }
+
+  function watchShare(room, name) {
+    if (!access.owner || !roomOk(room)) return;
+    if (watchingRoom === room && global.ScreenShare && global.ScreenShare.watching &&
+        global.ScreenShare.watching() === room) return;
+    watchingRoom = room;
+    watchingName = name || 'Student';
+    var host = root && W.$('#ap-watch', root);
+    if (host) host.innerHTML = watchShell(watchingName);
+    if (!global.ScreenShare || !global.ScreenShare.watch) {
+      setWatchStatus('screen-share.js did not load.');
+      return;
+    }
+    global.ScreenShare.watch(room).then(function (r) {
+      if (!root || watchingRoom !== room) return;
+      if (!r || !r.ok) setWatchStatus((r && r.message) || 'Could not join that share.');
+    });
+  }
+
+  function stopWatching() {
+    watchingRoom = '';
+    watchingName = '';
+    var host = root && W.$('#ap-watch', root);
+    if (host) host.innerHTML = '';
+    if (global.ScreenShare && global.ScreenShare.stopWatch) global.ScreenShare.stopWatch();
+  }
+
+  function armSharePoll() {
+    disarmSharePoll();
+    shareTimer = global.setInterval(function () {
+      if (!root || section !== 'monitor') { disarmSharePoll(); return; }
+      loadShares(false);
+    }, 8000);
+  }
+
+  function disarmSharePoll() {
+    if (shareTimer) global.clearInterval(shareTimer);
+    shareTimer = null;
+  }
+
+  function loadShares(loud) {
+    var host = root && W.$('#ap-shares', root);
+    if (!host) return;
+    if (!access.owner) {
+      host.innerHTML = '<div class="t-sm t-muted">Only the owner can watch a live share.</div>';
+      return;
+    }
+    var o = ops();
+    if (!o || !o.screenShares) return;
+    if (loud) host.innerHTML = '<div class="t-sm t-muted">Looking…</div>';
+    o.screenShares().then(function (r) {
+      host = root && W.$('#ap-shares', root);
+      if (!host || section !== 'monitor') return;
+      if (!r || !r.ok) {
+        host.innerHTML = '<div class="t-sm t-muted">' +
+          (r && r.kind === 'nomigration'
+            ? 'Run supabase/deployed/0012_screen_shares.sql in the SQL editor, then deploy daily-share-token.'
+            : r && r.kind === 'forbidden'
+            ? 'Only the owner can watch a live share.'
+            : esc((r && r.message) || 'Could not list live shares.')) + '</div>';
+        return;
+      }
+      var list = r.data || [];
+      if (!list.length) {
+        host.innerHTML = '<div class="t-sm t-muted">No one is sharing. Students must click Share screen.</div>';
+        return;
+      }
+      host.innerHTML =
+        '<div class="adminp__row adminp__row--share adminp__row--head">' +
+          '<span>Name</span><span>Email</span><span>In app</span><span>Sharing</span><span></span>' +
+        '</div>' +
+        list.map(function (a) {
+          var room = a.room_name || '';
+          var on = watchingRoom && watchingRoom === room;
+          var nm = a.display_name || 'Explorer';
+          var btn = roomOk(room)
+            ? '<button type="button" class="btn btn--primary btn--sm" data-do="sharewatch" data-room="' +
+              esc(room) + '" data-name="' + esc(nm) + '"' + (on ? ' disabled' : '') + '>' +
+              (on ? 'Watching' : 'Watch') + '</button>'
+            : '';
+          return '<div class="adminp__row adminp__row--share' + (on ? ' is-on' : '') + '">' +
+            '<span class="adminp__nm">' + esc(nm) + '</span>' +
+            '<span class="t-muted">' + esc(a.email || '—') + '</span>' +
+            '<span>' + esc(a.screen || '—') + '</span>' +
+            '<span class="t-muted">' + esc(ago(a.started_at)) + '</span>' +
+            '<span>' + btn + '</span>' +
+          '</div>';
+        }).join('');
+    });
   }
 
   function panelAccounts() {
