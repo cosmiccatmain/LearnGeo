@@ -11,10 +11,11 @@
    Who can write: the signed-in account, its own row, and only for the
    room name lg-u-{their user id}. A banned account cannot.
 
-   Who can read the list: the site owner, with a live UltraAdmin
-   session. Same owner as Administrator (admin_owner_email when 0012
-   command grants are applied, otherwise alexjschendel@gmail.com).
-   This repo does not treat any other address as that owner.
+   Who can read the list: an owner, with a live UltraAdmin session.
+   The owner check is public.admin_is_owner, the same one Administrator
+   uses. That already includes alexjschendel@gmail.com and
+   oliver@themaclan.com. Comparing auth.users.email to
+   admin_owner_email() alone excluded Oliver.
    ultra_activity lets any ultra session see view names. Live pictures
    do not.
 
@@ -93,9 +94,9 @@ $$;
 revoke execute on function public.report_screen_share(text, text) from public, anon;
 grant  execute on function public.report_screen_share(text, text) to authenticated;
 
-/* True only for the owner account holding a live ultra session.
-   Returns false for everyone else, including other ultra admins.
-   Bound to auth.uid(), so a stolen session token is useless to a
+/* True only for an owner holding a live ultra session. Returns false
+   for everyone else, including other ultra admins. admin_is_owner is
+   bound to auth.uid(), so a stolen session token is useless to a
    different account. */
 create or replace function public.screen_share_viewer_ok(p_token uuid)
 returns boolean
@@ -104,10 +105,6 @@ stable
 security definer
 set search_path = public
 as $$
-declare
-  mail          text;
-  owner_mail    text := 'alexjschendel@gmail.com';
-  session_owner boolean;
 begin
   if auth.uid() is null or p_token is null then
     return false;
@@ -115,26 +112,7 @@ begin
   if public.admin_scope_of(p_token) is distinct from 'ultra' then
     return false;
   end if;
-
-  /* Follow Administrator's owner helper when that migration is applied,
-     so this gate cannot drift from it. */
-  if to_regprocedure('public.admin_owner_email()') is not null then
-    execute 'select public.admin_owner_email()' into owner_mail;
-  end if;
-
-  select lower(u.email) into mail from auth.users u where u.id = auth.uid();
-  if mail is distinct from lower(coalesce(owner_mail, '')) then
-    return false;
-  end if;
-
-  if to_regprocedure('public.admin_is_owner(uuid)') is not null then
-    execute 'select public.admin_is_owner($1)' into session_owner using p_token;
-    if session_owner is distinct from true then
-      return false;
-    end if;
-  end if;
-
-  return true;
+  return coalesce(public.admin_is_owner(p_token), false);
 end;
 $$;
 revoke execute on function public.screen_share_viewer_ok(uuid) from public, anon;
