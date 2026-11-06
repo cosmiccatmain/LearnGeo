@@ -55,6 +55,7 @@
     navMenu();
     global.UI.refreshLanding();
     if (global.Cloud) global.Cloud.init();
+    if (global.ReferralTrial && global.ReferralTrial.init) global.ReferralTrial.init();
 
     global.UI.watchTabs();
 

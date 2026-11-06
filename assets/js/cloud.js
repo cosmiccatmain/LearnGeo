@@ -221,6 +221,16 @@
         reconciled = true;
         setStatus('synced');
         if (chosen !== cloud) push();
+        /* LEA-49: credit referrer when this new account arrived via ?ref= (TEST). */
+        if (global.ReferralTrial && global.ReferralTrial.creditPendingForNewUser) {
+          try { global.ReferralTrial.creditPendingForNewUser(u.id); } catch (eRef) { /* ignore */ }
+        }
+        if (global.ReferralTrial && global.ReferralTrial.expireIfNeeded) {
+          try { global.ReferralTrial.expireIfNeeded(); } catch (eExp) { /* ignore */ }
+        }
+        if (global.ReferralTrial && global.ReferralTrial.maybeGrant) {
+          try { global.ReferralTrial.maybeGrant(); } catch (eGrant) { /* ignore */ }
+        }
         refreshUi();
       })
       .catch(function () {

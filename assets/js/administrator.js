@@ -7,7 +7,8 @@
    Sidebar layout (deep blue, profile, section nav, Leave Admin) with
    server-backed command grants (0012). Owner
    alexjschendel@gmail.com has every command. Development hosts the
-   Premium plans preview switch (mock / TEST only). Other admins
+   Premium plans preview switch (mock / TEST only) and the referral
+   3-day all-games trial TEST switch (LEA-49). Other admins
    default to read-only accounts/stats/log until the owner grants
    gems / ban / messages / etc.
 
@@ -219,6 +220,10 @@
       }
       if (d.do === 'subdev') return openSubscriptionDev();
       if (d.do === 'prempreview') return setPremiumPreview(d.on === '1');
+      if (d.do === 'reftrial') return setReferralTrial(d.on === '1');
+      if (d.do === 'refsim') return simulateReferralSignup();
+      if (d.do === 'refcopy') return copyReferralLink();
+      if (d.do === 'refreset') return resetReferralTrial();
     });
 
     root.addEventListener('keydown', function (e) {
@@ -445,10 +450,15 @@
   function panelDevelopment() {
     var premOn = !!(global.Premium && global.Premium.active && global.Premium.active());
     var previewOn = !!(global.Premium && global.Premium.previewEnabled && global.Premium.previewEnabled());
+    var RT = global.ReferralTrial;
+    var refOn = !!(RT && RT.previewEnabled && RT.previewEnabled());
+    var prog = (RT && RT.progress) ? RT.progress() : { count: 0, needed: 5, link: '', trialActive: false, trialUntil: null };
+    var signedIn = !!(global.Cloud && global.Cloud.signedIn);
     return '<section class="adminp__sec">' +
       '<h3>Development</h3>' +
-      '<p class="t-sm t-muted">TEST Premium tools for owner <code>alexjschendel@gmail.com</code> and UltraAdmin. ' +
-        'Premium is <b>account / player</b> level — not teacher-based. Public checkout stays mock / TEST only.</p>' +
+      '<p class="t-sm t-muted">TEST tools for owner <code>alexjschendel@gmail.com</code> and UltraAdmin. ' +
+        'Premium is <b>account / player</b> level — not teacher-based. Public checkout stays mock / TEST only. ' +
+        'Referral trial is TEST only — not in the real public UI yet.</p>' +
       '<div class="adminp__warn adminp__warn--expired" style="margin-bottom:14px">' +
         '<div class="row" style="gap:10px;align-items:flex-start">' + (I.info || '') +
           '<div class="grow"><b>Not live billing.</b> Stripe is not connected. Turning the switch on only previews ' +
@@ -474,13 +484,62 @@
           '<div class="adminp__nm">' + (I.shop || I.flask || '') +
             '<span>Premium plans (Free / Premium)</span></div>' +
           '<p class="t-sm t-muted" style="margin:6px 0 0">Account Premium UI for Games and profile effects. ' +
-            'This account is currently <b>' + (premOn ? 'Premium' : 'Free') + '</b>. ' +
+            'This account is currently <b>' + (premOn ? 'Premium / trial' : 'Free') + '</b>. ' +
             'Open always works here for owner/admin TEST grants.</p>' +
         '</div>' +
         '<button type="button" class="btn btn--accent btn--sm" data-do="subdev">' +
           (I.arrowR || '') + ' Open Premium plans</button>' +
       '</div>' +
-      '<p class="t-sm t-muted" style="margin:0">Also available from Commands: <code>plans</code> or <code>subscription</code>.</p>' +
+      '<p class="t-sm t-muted" style="margin:0 0 18px">Also available from Commands: <code>plans</code> or <code>subscription</code>.</p>' +
+      '<div class="adminp__warn adminp__warn--expired" style="margin-bottom:14px">' +
+        '<div class="row" style="gap:10px;align-items:flex-start">' + (I.info || '') +
+          '<div class="grow"><b>Referral trial is TEST only.</b> Share the site link; after 5 new accounts sign up with ' +
+            'your <code>?ref=</code> code, this account gets a 3-day all-games trial. When this switch is off there is ' +
+            'no public share surface and no grants. School-safe — no Pets / Brainrot / mirroring.</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="adminp__who" style="align-items:flex-start;margin-bottom:14px">' +
+        '<div class="grow">' +
+          '<div class="adminp__nm">' + (I.users || I.flask || '') +
+            '<span>Referral → 3-day all-games trial</span></div>' +
+          '<p class="t-sm t-muted" style="margin:6px 0 0">' +
+            (refOn
+              ? 'TEST is <b>on</b>. Tracking and grants run in this browser. Not shown in real public UI yet.'
+              : 'TEST is <b>off</b>. No public surfaces, no invite credits, no trial grants.') +
+          '</p>' +
+        '</div>' +
+        '<button type="button" class="btn btn--sm' + (refOn ? '' : ' btn--accent') +
+          '" data-do="reftrial" data-on="' + (refOn ? '0' : '1') + '" id="ap-ref-trial">' +
+          (refOn ? 'Turn referral TEST off' : 'Turn referral TEST on') + '</button>' +
+      '</div>' +
+      (refOn
+        ? '<div class="adminp__who" style="align-items:flex-start;flex-direction:column;gap:10px">' +
+            '<div class="grow" style="width:100%">' +
+              '<div class="adminp__nm">' + (I.key || I.link || '') +
+                '<span>Invite progress (TEST)</span></div>' +
+              '<p class="t-sm t-muted" style="margin:6px 0 0">' +
+                (signedIn
+                  ? 'Signed-up via your link: <b>' + esc(String(prog.count || 0)) + ' / ' +
+                    esc(String(prog.needed || 5)) + '</b>.' +
+                    (prog.trialActive
+                      ? ' Trial <b>active</b> until ' + esc(String(prog.trialUntil || '').slice(0, 10)) + '.'
+                      : ' Trial unlocks at 5.')
+                  : 'Sign in to mint a share link for this account.') +
+              '</p>' +
+              (signedIn && prog.link
+                ? '<p class="t-sm mono" style="margin:8px 0 0;word-break:break-all">' + esc(prog.link) + '</p>'
+                : '') +
+            '</div>' +
+            '<div class="row" style="gap:8px;flex-wrap:wrap">' +
+              '<button type="button" class="btn btn--sm btn--accent" data-do="refcopy" ' +
+                (signedIn ? '' : 'disabled') + '>' + (I.key || '') + ' Copy share link</button>' +
+              '<button type="button" class="btn btn--sm" data-do="refsim" ' +
+                (signedIn ? '' : 'disabled') + '>Simulate invited signup</button>' +
+              '<button type="button" class="btn btn--sm btn--ghost" data-do="refreset" ' +
+                (signedIn ? '' : 'disabled') + '>Reset progress</button>' +
+            '</div>' +
+          '</div>'
+        : '') +
     '</section>';
   }
 
@@ -498,6 +557,75 @@
       3600
     );
     say(on ? 'Premium preview ON (dev / mock only).' : 'Premium preview OFF.');
+  }
+
+  function setReferralTrial(on) {
+    if (!global.ReferralTrial || !global.ReferralTrial.setPreviewEnabled) {
+      say('referral-trial.js did not load.');
+      return;
+    }
+    global.ReferralTrial.setPreviewEnabled(!!on);
+    if (section === 'development') renderPanel();
+    W.toast(
+      'Referral trial TEST',
+      on
+        ? 'Share-link tracking and 3-day grants are on (still TEST / not public UI).'
+        : 'No public surfaces and no trial grants.',
+      I.users || I.flask || I.info,
+      3600
+    );
+    say(on ? 'Referral trial TEST ON.' : 'Referral trial TEST OFF.');
+  }
+
+  function simulateReferralSignup() {
+    var RT = global.ReferralTrial;
+    if (!RT || !RT.simulateSignup) {
+      say('referral-trial.js did not load.');
+      return;
+    }
+    var res = RT.simulateSignup();
+    if (!res || !res.ok) {
+      say((res && res.reason === 'off')
+        ? 'Turn referral TEST on first.'
+        : (res && res.reason === 'no-account')
+          ? 'Sign in to simulate invitees against your link.'
+          : 'Could not simulate signup.');
+      return;
+    }
+    if (section === 'development') renderPanel();
+    W.toast(
+      'Invited signup',
+      (res.count || 0) + ' / ' + (RT.NEEDED || 5) + ' toward the 3-day trial.',
+      I.users || I.check,
+      2800
+    );
+    say('Simulated invited signup → ' + (res.count || 0) + ' / ' + (RT.NEEDED || 5) + '.');
+  }
+
+  function copyReferralLink() {
+    var RT = global.ReferralTrial;
+    if (!RT || !RT.copyShareLink) {
+      say('referral-trial.js did not load.');
+      return;
+    }
+    RT.copyShareLink().then(function (url) {
+      W.toast('Share link copied', url, I.key || I.check, 3600);
+      say('Copied ' + url);
+    }).catch(function (e) {
+      say((e && e.message) || 'Could not copy share link.');
+    });
+  }
+
+  function resetReferralTrial() {
+    var RT = global.ReferralTrial;
+    if (!RT || !RT.resetProgress) {
+      say('referral-trial.js did not load.');
+      return;
+    }
+    RT.resetProgress();
+    if (section === 'development') renderPanel();
+    W.toast('Referral progress reset', 'Credits and trial cleared for this TEST.', I.refresh || I.info, 2800);
+    say('Referral trial progress reset.');
   }
 
   function openSubscriptionDev() {

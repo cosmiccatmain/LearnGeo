@@ -365,6 +365,7 @@ assets/js/assignments.js        suggestions, share codes, handing in work
 assets/js/cloud.js              Supabase accounts, save sync, online classes
 assets/js/activity.js           reports the view name (Learn, Games, …) for signed-in accounts
 assets/js/premium.js            account Premium entitlement checks + Development preview switch
+assets/js/referral-trial.js     referral share → 5 signups → 3-day all-games trial (TEST / admin switch)
 assets/js/subscription-dev.js   Premium plans UI (mock / TEST checkout only)
 assets/js/ui.js                 shell, profile menu, sign in, settings, customization, shop
 assets/js/passkey.js            passkey sign-in and the eye on password boxes
@@ -423,3 +424,13 @@ Premium is account / player level (not teacher-based). Public checkout is
 plans & gating preview** switch to show or hide plans UI and client gates
 while testing. When the switch is off, users do not see Premium paywalls
 or plans as if they were live.
+
+## Referral trial (development TEST)
+
+Also under UltraAdmin → Development: **Referral → 3-day all-games trial**.
+When the switch is on (TEST only — not in the real public UI yet), a signed-in
+account can copy a `?ref=` share link. After five new accounts sign up with that
+code (or after five **Simulate invited signup** clicks), the referrer gets a
+3-day all-games trial. `Premium.active` treats an active trial as Premium so
+gates still apply when Premium preview is on. When the referral switch is off
+there are no public surfaces and no grants.
