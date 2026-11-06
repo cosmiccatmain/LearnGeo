@@ -825,6 +825,8 @@
     if (global.GameBlocks) global.GameBlocks.load();
     if (global.GeoDuel && global.GeoDuel.startWatching) global.GeoDuel.startWatching();
     if (global.ChessDuel && global.ChessDuel.startWatching) global.ChessDuel.startWatching();
+    /* Guests may browse the hub, but must not stay in a live run or setup. */
+    if (needsAccount() && (screen === 'play' || screen === 'setup')) screen = 'hub';
     if (screen === 'play') screen = 'setup';
     stop();
     if (screen === 'setup') renderSetup(); else renderHub();
@@ -876,6 +878,7 @@
 
     var hi = 0;
     GAMES.forEach(function (g) { hi = Math.max(hi, record(g.id).best || 0); });
+    var guest = needsAccount();
 
     el.innerHTML =
       '<div class="portal__inner games">' +
@@ -884,6 +887,13 @@
           '<h1>Games</h1>' +
           '<p>' + GAMES.length + ' games · everything you answer counts toward mastery, XP, and gems, same as the study modes.</p>' +
         '</div>' +
+        (guest
+          ? '<div class="signin-hint" data-games-auth>' + I.user +
+              '<span>To play Games, make a free LearnGeo account (or sign in). Scores, gamertags, and matches stay with you.</span>' +
+              '<button class="btn btn--accent btn--sm" type="button" data-games-signup>Create account</button>' +
+              '<button class="btn btn--ghost btn--sm" type="button" data-games-signin>Sign in</button>' +
+            '</div>'
+          : '') +
         '<div class="games__toolbar">' +
           '<span class="games__toolbar-label">Choose a game</span>' +
           '<button class="btn btn--ghost btn--sm" data-boards type="button">' + I.trophy + ' Leaderboards</button>' +
@@ -900,11 +910,27 @@
       /* Hub opens the All overview so every game is one tap away. */
       if (global.GameBoards) global.GameBoards.open();
     });
+    var signupBtn = W.$('[data-games-signup]', el);
+    if (signupBtn) signupBtn.addEventListener('click', function () {
+      promptAccount(null, 'signup');
+    });
+    var signinBtn = W.$('[data-games-signin]', el);
+    if (signinBtn) signinBtn.addEventListener('click', function () {
+      promptAccount(null, 'signin');
+    });
 
     var cards = W.$$('[data-game]', el);
     cards.forEach(function (btn, i) {
       btn.addEventListener('click', function () {
         if (isBlocked(btn.dataset.game)) { blockedToast(); return; }
+        if (needsAccount()) {
+          var id = btn.dataset.game;
+          promptAccount(function () {
+            if (isPremiumLocked(id)) { premiumToast(id); renderHub(); return; }
+            current = id; toSetup();
+          });
+          return;
+        }
         if (isPremiumLocked(btn.dataset.game)) { premiumToast(btn.dataset.game); return; }
         current = btn.dataset.game; toSetup();
       });
@@ -919,6 +945,46 @@
         cards[(i + step + cards.length) % cards.length].focus();
       });
     });
+  }
+
+  function signedIn() { return !!(global.Cloud && global.Cloud.signedIn); }
+  function needsAccount() { return !signedIn(); }
+
+  /* Friendly gate → existing auth modal. `mode` is signup|signin; after a
+     successful account the optional `then` resumes the play path. */
+  function promptAccount(then, mode) {
+    if (!needsAccount()) {
+      if (then) then();
+      return;
+    }
+    var resume = function () {
+      if (then) then();
+      else if (screen === 'hub') renderHub();
+      else if (screen === 'setup') renderSetup();
+    };
+    var open = function (m) {
+      if (global.UI && global.UI.openAuth) global.UI.openAuth(m || 'signup', resume);
+      else W.toast('Account needed', 'Sign in or create an account to play Games.', I.user, 4200);
+    };
+    /* Direct banner buttons skip the explainer and open auth immediately. */
+    if (mode === 'signup' || mode === 'signin') { open(mode); return; }
+    if (global.UI && global.UI.modal) {
+      global.UI.modal({
+        title: 'Make an account to play',
+        icon: I.user,
+        body: '<p class="t-muted" style="margin:0">Games keep your scores, gamertag, and matches on your LearnGeo account. ' +
+          'Create a free account or sign in — then come back and play.</p>',
+        actions: [
+          { label: 'Not now', cls: 'btn--ghost', close: true },
+          { label: 'Sign in', cls: 'btn--ghost', close: true,
+            onClick: function () { open('signin'); } },
+          { label: 'Create account', cls: 'btn--accent', close: true,
+            onClick: function () { open('signup'); } }
+        ]
+      });
+      return;
+    }
+    open('signup');
   }
 
   function isBlocked(id) { return !!(global.GameBlocks && global.GameBlocks.blocked(id)); }
@@ -947,9 +1013,10 @@
   function card(g) {
     var best = g.best(record(g.id));
     var off = isBlocked(g.id);
+    var guest = !off && needsAccount();
     var showPrem = premiumPreviewOn() && !!g.premium;
-    var prem = !off && isPremiumLocked(g.id);
-    var locked = off || prem;
+    var prem = !off && !guest && isPremiumLocked(g.id);
+    var locked = off || prem || guest;
     var meta = showPrem ? g.meta : String(g.meta || '').replace(/^Premium\s*·\s*/i, '');
     var invites = 0;
     if (g.id === 'duel' && global.GeoDuel && global.GeoDuel.pendingCount) {
@@ -957,7 +1024,8 @@
     } else if (g.id === 'chessduel' && global.ChessDuel && global.ChessDuel.pendingCount) {
       invites = global.ChessDuel.pendingCount();
     }
-    return '<button class="game-card' + (off ? ' is-blocked' : '') + (prem ? ' is-premium-locked' : '') +
+    return '<button class="game-card' + (off ? ' is-blocked' : '') +
+      (prem ? ' is-premium-locked' : '') + (guest ? ' is-auth-locked' : '') +
       '" data-game="' + g.id + '" type="button"' +
       (locked ? ' aria-disabled="true"' : '') + '>' +
       '<div class="game-card__art game-art--' + g.art + '" aria-hidden="true">' + art(g.art) +
@@ -970,6 +1038,7 @@
         '<div class="game-card__foot"><span>' + esc(meta) + '</span>' +
           (best ? '<span class="game-card__best">' + esc(best) + '</span>' : '') +
           (off ? '<span class="game-card__go">' + I.lock + ' Blocked by your teacher</span>'
+               : guest ? '<span class="game-card__go">' + I.lock + ' Account to play</span>'
                : prem ? '<span class="game-card__go">' + I.lock + ' Premium · Upgrade</span>'
                : '<span class="game-card__go">' +
                    (g.id === 'duel' || g.id === 'chessduel' ? 'Challenge ' : 'Play ') + I.arrowR + '</span>') + '</div>' +
@@ -1148,6 +1217,14 @@
     var g = byId(current);
     current = g.id;
     if (isBlocked(g.id)) { blockedToast(); renderHub(); return; }
+    if (needsAccount()) {
+      promptAccount(function () {
+        if (isPremiumLocked(g.id)) { premiumToast(g.id); renderHub(); return; }
+        renderSetup();
+      });
+      renderHub();
+      return;
+    }
     if (isPremiumLocked(g.id)) { premiumToast(g.id); renderHub(); return; }
     var r = record(g.id);
     var cfg = gameCfg(g.id);
@@ -1217,6 +1294,13 @@
   function play() {
     var g0 = byId(current);
     if (isBlocked(g0.id)) { blockedToast(); renderHub(); return; }
+    if (needsAccount()) {
+      promptAccount(function () {
+        if (isPremiumLocked(g0.id)) { premiumToast(g0.id); renderHub(); return; }
+        play();
+      });
+      return;
+    }
     if (isPremiumLocked(g0.id)) { premiumToast(g0.id); renderHub(); return; }
     stop();
     screen = 'play';
@@ -1248,6 +1332,7 @@
   global.Games = {
     start: start, stop: stop, catalogue: catalogue, art: art,
     playing: playing, abandon: abandon,
+    needsAccount: needsAccount, promptAccount: promptAccount,
     get current() { return game; },
     get game() { return current; },
     get screen() { return screen; }

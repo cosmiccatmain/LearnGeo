@@ -80,23 +80,42 @@
   }
   function tag() { return W.state.gamertag || ''; }
 
-  /* 'ok', 'taken', 'invalid', 'rude', or 'offline' when there is nobody
-     to ask yet. Offline is not a failure: the tag is kept on the device
-     and claimed the next time a score is sent. */
+  /* 'ok', 'taken', 'invalid', 'rude', 'signin' (LEA-55 account gate),
+     or 'offline' when there is nobody to ask yet. Offline is not a
+     failure: the tag is kept on the device and claimed the next time
+     a score is sent. */
   function claim(name) {
     var c = sb();
     if (!c) return Promise.resolve('offline');
+    if (!signedIn()) return Promise.resolve('signin');
     return c.rpc('claim_gamertag', { p_device: deviceId(), p_tag: name }).then(function (res) {
-      if (res && res.error) return 'offline';
+      if (res && res.error) {
+        var msg = String((res.error && res.error.message) || '');
+        if (/signin|not authenticated|JWT/i.test(msg)) return 'signin';
+        return 'offline';
+      }
       return res.data || 'offline';
     }, function () { return 'offline'; });
   }
+
+  function signedIn() { return !!(global.Cloud && global.Cloud.signedIn); }
 
   /* ========================= asking for a tag ====================== */
   /* o.then runs once there is a tag. o.onBack runs if the box is
      dismissed without one, so the first-screen chooser can come back. */
   function askTag(o) {
     o = o || {};
+    /* LEA-55: gamertags / scores need an account — send guests to auth. */
+    if (!signedIn()) {
+      if (global.Games && global.Games.promptAccount) {
+        global.Games.promptAccount(function () { askTag(o); });
+      } else if (global.UI && global.UI.openAuth) {
+        global.UI.openAuth('signup', function () { askTag(o); });
+      } else if (o.onBack) {
+        o.onBack();
+      }
+      return;
+    }
     var done = false, saving = false;
     global.UI.modal({
       title: o.title || (tag() ? 'Change your gamertag' : 'Pick a gamertag'),
@@ -134,6 +153,16 @@
         saving = false;
         if (r === 'taken') { err.textContent = 'Somebody already has that name. Try another.'; return; }
         if (r === 'rude' || r === 'invalid') { err.textContent = 'Please pick a different name.'; return; }
+        if (r === 'signin') {
+          done = true;
+          close();
+          if (global.Games && global.Games.promptAccount) {
+            global.Games.promptAccount(function () { askTag(o); });
+          } else if (global.UI && global.UI.openAuth) {
+            global.UI.openAuth('signup', function () { askTag(o); });
+          }
+          return;
+        }
         W.state.gamertag = name;
         W.state.boardSent = {};               /* a new name, so say everything again */
         W.saveNow();
@@ -147,6 +176,14 @@
   }
 
   function ensureTag(then) {
+    if (!signedIn()) {
+      if (global.Games && global.Games.promptAccount) {
+        global.Games.promptAccount(function () { ensureTag(then); });
+      } else if (global.UI && global.UI.openAuth) {
+        global.UI.openAuth('signup', function () { ensureTag(then); });
+      }
+      return;
+    }
     if (tag()) { then(tag()); return; }
     askTag({ then: then });
   }
@@ -171,7 +208,7 @@
 
   function sync() {
     var c = sb();
-    if (!tag() || !c || busy) return Promise.resolve();
+    if (!tag() || !c || busy || !signedIn()) return Promise.resolve();
     var jobs = pending();
     if (!jobs.length) return Promise.resolve();
     busy = true;
@@ -184,6 +221,7 @@
         var e = res && res.error;
         if (!e) { remember(j); return; }
         var msg = String(e.message || '');
+        if (/signin|not authenticated|JWT/i.test(msg)) return; /* LEA-55 — wait for account */
         if (/no gamertag/i.test(msg) && !reclaimed) {
           reclaimed = true;                    /* claimed offline earlier: do it now, once */
           return claim(tag()).then(function (r) { if (r === 'ok') return one(j); });

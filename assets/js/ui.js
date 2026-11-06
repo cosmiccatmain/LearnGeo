@@ -1798,7 +1798,7 @@
               '<button class="role-opt" data-role="games">' +
                 '<span class="role-opt__i">' + I.gamepad + '</span>' +
                 '<b>I’m here for the games</b>' +
-                '<span>Jump straight into Games. You pick a gamertag and get on every leaderboard.</span>' +
+                '<span>Make a free account, then jump into Games with a gamertag on every leaderboard.</span>' +
               '</button>' +
             '</div>' +
             (global.Cloud && global.Cloud.available && !signedIn()
@@ -1810,8 +1810,8 @@
         W.$$('[data-role]', root).forEach(function (b) {
           b.addEventListener('click', function () {
             if (b.dataset.role === 'games') {
-              /* A gamertag first, then the arcade. Backing out of the box
-                 brings this question back rather than leaving nothing. */
+              /* LEA-55: Games need an account. Sign up (or sign in), then
+                 pick a gamertag and open the arcade. Backing out returns here. */
               close();
               var enter = function () {
                 W.state.role = 'student';
@@ -1820,11 +1820,18 @@
                 refreshTabs();
                 go('games');
               };
-              if (global.GameBoards) global.GameBoards.askTag({
-                title: 'Pick a gamertag', backLabel: 'Back',
-                then: enter, onBack: function () { askRole(then); }
-              });
-              else enter();
+              var afterAuth = function () {
+                if (global.GameBoards) global.GameBoards.askTag({
+                  title: 'Pick a gamertag', backLabel: 'Back',
+                  then: enter, onBack: function () { askRole(then); }
+                });
+                else enter();
+              };
+              if (!signedIn()) {
+                openAuth('signup', afterAuth);
+                return;
+              }
+              afterAuth();
               return;
             }
             W.state.role = b.dataset.role;
