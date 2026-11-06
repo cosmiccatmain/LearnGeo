@@ -1188,8 +1188,7 @@
      one-way trip out of the menu. */
   /* Teachers see the study modes too, and open them as a browse (go()
      below), so they can find something worth setting and assign it from
-     where they are. Home stays student-only. Games stays reachable via
-     /games for deep links; it is not a public shell tab. */
+     where they are. Home stays student-only. */
   var TAB_DEFS = [
     { view: 'portal',    icon: 'grid',   label: 'Home',          role: 'student' },
     { view: 'codex',     icon: 'hex',    label: 'Codex',         role: 'student' },
@@ -1197,7 +1196,8 @@
     { view: 'teacher',   icon: 'users',  label: 'My class',      role: 'teacher' },
     { view: 'learn',     icon: 'book',   label: 'Learn',         role: null },
     { view: 'test',      icon: 'clip',   label: 'Practice test', role: null },
-    { view: 'quiz',      icon: 'target', label: 'Class quiz',    role: null }
+    { view: 'quiz',      icon: 'target', label: 'Class quiz',    role: null },
+    { view: 'games',     icon: 'gamepad', label: 'Games',        role: null }
   ];
 
   function refreshTabs() {
@@ -1462,6 +1462,11 @@
                 '<b>I’m a teacher</b>' +
                 '<span>Give your class assignments, get their results back and see how everyone did.</span>' +
               '</button>' +
+              '<button class="role-opt" data-role="games">' +
+                '<span class="role-opt__i">' + I.gamepad + '</span>' +
+                '<b>I’m here for the games</b>' +
+                '<span>Jump straight into Games. You pick a gamertag and get on every leaderboard.</span>' +
+              '</button>' +
             '</div>' +
             (global.Cloud && global.Cloud.available && !signedIn()
               ? '<div class="auth-switch">Already have an account? <button data-signin>Sign in</button></div>'
@@ -1471,6 +1476,24 @@
         if (si) si.addEventListener('click', function () { close(); openAuth('signin'); });
         W.$$('[data-role]', root).forEach(function (b) {
           b.addEventListener('click', function () {
+            if (b.dataset.role === 'games') {
+              /* A gamertag first, then the arcade. Backing out of the box
+                 brings this question back rather than leaving nothing. */
+              close();
+              var enter = function () {
+                W.state.role = 'student';
+                W.state.roleChosen = true;
+                W.saveNow();
+                refreshTabs();
+                go('games');
+              };
+              if (global.GameBoards) global.GameBoards.askTag({
+                title: 'Pick a gamertag', backLabel: 'Back',
+                then: enter, onBack: function () { askRole(then); }
+              });
+              else enter();
+              return;
+            }
             W.state.role = b.dataset.role;
             W.state.roleChosen = true;
             W.saveNow();
