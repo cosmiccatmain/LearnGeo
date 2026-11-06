@@ -239,6 +239,64 @@
     { id: 'invisible', name: 'Invisible', color: '#9CA3AF' }
   ];
 
+  /* --------------------- Geo Dash game cosmetics --------------------
+     Trails leave a particle wake behind the runner. Jumpers are the
+     cube's visual style when no capital-flag skin is on. Both live under
+     Customise → Games. Premium ids must stay in sync with
+     0016_geo_dash_cosmetics.sql. */
+  var TRAILS = [
+    { id: 'none', name: 'None', price: 0, colors: [], shape: null, rate: 0, size: 0, air: false,
+      blurb: 'No wake behind the cube.' },
+    { id: 'dust', name: 'Chalk Dust', price: 0, colors: ['rgba(255,255,255,.78)'], shape: 'square',
+      rate: 0.035, size: 0.16, air: false,
+      blurb: 'Soft white chalk behind every stride. Free for every explorer.' },
+    { id: 'atlas', name: 'Atlas Wake', price: 200, colors: ['#1B4DFF', '#22D3EE', '#F5B301'], shape: 'spark',
+      rate: 0.03, size: 0.17, air: false,
+      blurb: 'Brand sparks left on the track.' },
+    { id: 'breeze', name: 'Sea Breeze', price: 350, colors: ['#0EA5E9', '#67E8F9', '#BAE6FD'], shape: 'circle',
+      rate: 0.028, size: 0.15, air: true,
+      blurb: 'Cool aqua motes that keep drifting in the air.' },
+    { id: 'leaf', name: 'Canopy Drift', price: 450, colors: ['#16A34A', '#84CC16', '#CA8A04'], shape: 'leaf',
+      rate: 0.04, size: 0.18, air: false,
+      blurb: 'Leaf flecks kicked up from the floor.' },
+    { id: 'ember', name: 'Ember Wake', price: 900, colors: ['#F97316', '#DC2626', '#F5B301'], shape: 'ember',
+      rate: 0.026, size: 0.15, air: true, premium: true,
+      blurb: 'Glowing embers that trail through jumps. Premium.' },
+    { id: 'neon', name: 'Neon Stream', price: 1200, colors: ['#F472B6', '#22D3EE', '#A78BFA'], shape: 'streak',
+      rate: 0.022, size: 0.22, air: true, premium: true,
+      blurb: 'Long neon streaks behind the cube. Premium.' },
+    { id: 'aurora', name: 'Aurora Trail', price: 1600, colors: ['#22D3EE', '#8B5CF6', '#A3E635', '#F472B6'], shape: 'spark',
+      rate: 0.02, size: 0.2, air: true, premium: true,
+      blurb: 'Northern-light sparks in the air and on the ground. Premium.' }
+  ];
+
+  var JUMPERS = [
+    { id: 'classic', name: 'Classic Cube', price: 0, style: 'classic',
+      fill: '#FFD23F', accent: '#1B4DFF', face: '#fff',
+      blurb: 'The original LearnGeo dash cube.' },
+    { id: 'cobalt', name: 'Cobalt Block', price: 0, style: 'block',
+      fill: '#1B4DFF', accent: '#22D3EE', face: '#E0F2FE',
+      blurb: 'Solid brand blue with a cyan inset.' },
+    { id: 'slate', name: 'Slate Runner', price: 250, style: 'block',
+      fill: '#334155', accent: '#94A3B8', face: '#F8FAFC',
+      blurb: 'Quiet charcoal with a steel inset.' },
+    { id: 'meadow', name: 'Meadow Cube', price: 350, style: 'block',
+      fill: '#16A34A', accent: '#BBF7D0', face: '#ECFDF5',
+      blurb: 'Fresh green for a softer run.' },
+    { id: 'compass', name: 'Compass Cube', price: 550, style: 'compass',
+      fill: '#0EA5E9', accent: '#F5B301', face: '#fff',
+      blurb: 'Sky-blue face with a gold compass rose.' },
+    { id: 'sunset', name: 'Sunset Form', price: 800, style: 'gradient',
+      fill: '#F97316', accent: '#EC4899', face: '#FFF7ED',
+      blurb: 'Warm orange-to-pink gradient body.' },
+    { id: 'aurora', name: 'Aurora Form', price: 1400, style: 'aurora',
+      fill: '#7C3AED', accent: '#22D3EE', face: '#F5F3FF', premium: true,
+      blurb: 'Violet body with aurora rim light. Premium.' },
+    { id: 'gilded', name: 'Gilded Cube', price: 1800, style: 'gilded',
+      fill: '#B45309', accent: '#F5B301', face: '#FFFBEB', premium: true,
+      blurb: 'Meridian gold with a bright rim. Premium.' }
+  ];
+
   var ACHIEVEMENTS = [
     { id: 'first-steps', name: 'First Steps', desc: 'Answer your first question', reward: 25 },
     { id: 'streak-10', name: 'On a Roll', desc: 'Hit a 10-answer streak', reward: 75 },
@@ -260,6 +318,8 @@
     themes: THEMES,
     avatars: AVATARS,
     statuses: STATUSES,
+    trails: TRAILS,
+    jumpers: JUMPERS,
     achievements: ACHIEVEMENTS,
     earned: EARNED,
 

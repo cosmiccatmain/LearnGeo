@@ -467,13 +467,14 @@
         '<div id="cz-panels" class="cz-panels">' +
           profilePanel() + shopPanel('avatars') + shopPanel('decorations') +
           shopPanel('effects') + shopPanel('nameplates') + shopPanel('banners') + shopPanel('themes') +
+          gamesPanel() +
         '</div>' +
         '<aside class="cz-preview-pane" aria-label="Live profile preview">' +
-          '<span class="eyebrow">Live preview</span>' +
+          '<span class="eyebrow" id="cz-preview-label">Live preview</span>' +
           '<div id="cz-preview" class="cz-preview"></div>' +
           '<div class="cz-preview-meta">' +
             '<span class="chip chip--gem mono" id="cz-balance">' + W.gem(W.state.economy.diamonds.toLocaleString(), false) + '</span>' +
-            '<p class="t-sm t-muted t-center cz-preview-hint">Pick a cosmetic — the card updates instantly. ' +
+            '<p class="t-sm t-muted t-center cz-preview-hint" id="cz-preview-hint">Pick a cosmetic — the card updates instantly. ' +
               'Diamonds come from answers, tests, and achievements.</p>' +
           '</div>' +
         '</aside>' +
@@ -483,7 +484,8 @@
       vt('profile', I.user, 'Profile', true) + vt('avatars', I.globe, 'Avatar') +
       vt('decorations', I.sparkle, 'Frames') + vt('effects', I.bolt, 'Effects') +
       vt('nameplates', I.grid, 'Nameplates') + vt('banners', I.layers, 'Banner') +
-      vt('themes', I.palette, 'Theme') + '</div>';
+      vt('themes', I.palette, 'Theme') +
+      vt('games', I.gamepad, 'Games') + '</div>';
 
     modal({
       title: 'Customization', icon: I.palette, wide: true, tabs: tabs, body: body,
@@ -493,12 +495,51 @@
         wireShop(root);
         wireProfileFields(root);
         drawPreview(root);
+        wireGamesTabPreview(root);
       }
     });
 
     function vt(id, icon, label, active) {
       return '<button class="vtab' + (active ? ' is-active' : '') + '" data-t="' + id + '">' + icon + ' ' + label + '</button>';
     }
+  }
+
+  /* When the Games tab is active, the side preview shows a mini Geo Dash
+     stage with the equipped jumper + trail instead of the profile card. */
+  function wireGamesTabPreview(root) {
+    var bar = W.$('#cz-tabs', root);
+    if (!bar) return;
+    W.$$('.vtab', bar).forEach(function (t) {
+      t.addEventListener('click', function () {
+        drawPreview(root);
+      });
+    });
+  }
+
+  /* Games tab: Geo Dash trails + jumper skins in one panel (LEA-54). */
+  function gamesPanel() {
+    return '<div data-panel="games" class="hidden">' +
+      '<div class="row row--between" style="margin-bottom:14px">' +
+        '<div><b style="font-size:15px">Geo Dash cosmetics</b>' +
+        '<div class="t-sm t-muted">Trails leave a wake behind the runner. Jumpers change the cube you play as. ' +
+          'Selections apply the next time you start a Geo Dash run.</div></div>' +
+      '</div>' +
+      gamesSection('trails', 'Trails', 'Particle wake behind the cube. Chalk Dust is free.') +
+      gamesSection('jumpers', 'Jumper skins', 'Visual style of the dash cube. Classic and Cobalt are free.') +
+      '</div>';
+  }
+
+  function gamesSection(kind, title, hint) {
+    var list = Cos[kind] || [];
+    var slot = LISTS[kind];
+    var owned = W.state.owned[kind] || [];
+    var equipped = W.state.profile[slot];
+    return '<div class="cz-games-sec" data-games-sec="' + kind + '">' +
+      '<div class="cz-games-sec__head"><b>' + title + '</b>' +
+        '<span class="t-sm t-muted">' + hint + '</span></div>' +
+      '<div class="shop-grid">' +
+        list.map(function (it) { return shopTile(kind, it, owned, equipped); }).join('') +
+      '</div></div>';
   }
 
   function profilePanel() {
@@ -526,8 +567,45 @@
 
   var LISTS = {
     avatars: 'avatar', decorations: 'decoration', effects: 'effect',
-    nameplates: 'nameplate', banners: 'banner', themes: 'theme'
+    nameplates: 'nameplate', banners: 'banner', themes: 'theme',
+    trails: 'dashTrail', jumpers: 'dashJumper'
   };
+
+  function shopTile(kind, it, owned, equipped) {
+    /* An earned badge is owned by having done the thing and by no
+       other route, so it never falls through to the price test. It
+       carries no price, and without this it would read as costing 0
+       and open the buy dialog for nothing. */
+    var earned = !!it.earn;
+    var previewOn = !!(global.Premium && global.Premium.previewEnabled && global.Premium.previewEnabled());
+    var needsPrem = previewOn && (!!(it.premium) || !!(Cos.requiresPremium && Cos.requiresPremium(it)));
+    var hasPrem = global.Premium && global.Premium.active && global.Premium.active();
+    var premLocked = needsPrem && !hasPrem;
+    var isOwned = premLocked ? false : (earned
+      ? Cos.ownsEarned(it, W.state.achievements)
+      : (it.price === 0 || owned.indexOf(it.id) !== -1));
+    var isEq = equipped === it.id;
+    var how = earned ? Cos.unlockedBy(it) : null;
+    return '<button class="shop-item' + (isEq ? ' is-equipped' : '') + (isOwned ? '' : ' is-locked') +
+      (earned ? ' shop-item--earned' : '') + (premLocked ? ' shop-item--premium' : '') + '" ' +
+      'data-kind="' + kind + '" data-id="' + it.id + '" data-price="' + (earned || premLocked ? '' : (it.price || 0)) + '" ' +
+      'data-earn="' + (it.earn || '') + '" ' +
+      'data-premium="' + (premLocked ? '1' : '0') + '" ' +
+      'data-owned="' + (isOwned ? 1 : 0) + '">' +
+      visual(kind, it) +
+      '<span class="shop-item__name">' + W.escapeHtml(it.name || it.id) +
+        (needsPrem ? ' <span class="shop-item__prem">Premium</span>' : '') + '</span>' +
+      (isEq ? '<span class="shop-item__eq mono">EQUIPPED</span>'
+            : premLocked ? '<span class="shop-item__owned">' + I.lock + ' Premium</span>'
+            : isOwned ? '<span class="shop-item__owned">' + (earned ? 'earned' : 'owned') + '</span>'
+            /* A locked badge says what to go and do. A grid of grey
+               question marks is worth less than a list to aim at. */
+            /* deliberately the existing "owned" style: small and quiet,
+               and it needs no new CSS in a file I do not own */
+            : earned ? '<span class="shop-item__owned">' + W.escapeHtml(how ? how.desc : 'Locked') + '</span>'
+            : '<span class="shop-item__price mono">' + I.gem + ' ' + it.price + '</span>') +
+      '</button>';
+  }
 
   function shopPanel(kind) {
     var list = Cos[kind];
@@ -541,46 +619,13 @@
         '<div class="t-sm t-muted">' + hint(kind) + '</div></div>' +
       '</div>' +
       '<div class="shop-grid">' +
-        list.map(function (it) {
-          /* An earned badge is owned by having done the thing and by no
-             other route, so it never falls through to the price test. It
-             carries no price, and without this it would read as costing 0
-             and open the buy dialog for nothing. */
-          var earned = !!it.earn;
-          var previewOn = !!(global.Premium && global.Premium.previewEnabled && global.Premium.previewEnabled());
-          var needsPrem = previewOn && (!!(it.premium) || !!(Cos.requiresPremium && Cos.requiresPremium(it)));
-          var hasPrem = global.Premium && global.Premium.active && global.Premium.active();
-          var premLocked = needsPrem && !hasPrem;
-          var isOwned = premLocked ? false : (earned
-            ? Cos.ownsEarned(it, W.state.achievements)
-            : (it.price === 0 || owned.indexOf(it.id) !== -1));
-          var isEq = equipped === it.id;
-          var how = earned ? Cos.unlockedBy(it) : null;
-          return '<button class="shop-item' + (isEq ? ' is-equipped' : '') + (isOwned ? '' : ' is-locked') +
-            (earned ? ' shop-item--earned' : '') + (premLocked ? ' shop-item--premium' : '') + '" ' +
-            'data-kind="' + kind + '" data-id="' + it.id + '" data-price="' + (earned || premLocked ? '' : (it.price || 0)) + '" ' +
-            'data-earn="' + (it.earn || '') + '" ' +
-            'data-premium="' + (premLocked ? '1' : '0') + '" ' +
-            'data-owned="' + (isOwned ? 1 : 0) + '">' +
-            visual(kind, it) +
-            '<span class="shop-item__name">' + W.escapeHtml(it.name || it.id) +
-              (needsPrem ? ' <span class="shop-item__prem">Premium</span>' : '') + '</span>' +
-            (isEq ? '<span class="shop-item__eq mono">EQUIPPED</span>'
-                  : premLocked ? '<span class="shop-item__owned">' + I.lock + ' Premium</span>'
-                  : isOwned ? '<span class="shop-item__owned">' + (earned ? 'earned' : 'owned') + '</span>'
-                  /* A locked badge says what to go and do. A grid of grey
-                     question marks is worth less than a list to aim at. */
-                  /* deliberately the existing "owned" style: small and quiet,
-                     and it needs no new CSS in a file I do not own */
-                  : earned ? '<span class="shop-item__owned">' + W.escapeHtml(how ? how.desc : 'Locked') + '</span>'
-                  : '<span class="shop-item__price mono">' + I.gem + ' ' + it.price + '</span>') +
-            '</button>';
-        }).join('') +
+        list.map(function (it) { return shopTile(kind, it, owned, equipped); }).join('') +
       '</div></div>';
 
     function label(k) {
       return { avatars: 'Avatar', decorations: 'Avatar frame', effects: 'Profile effect',
-               nameplates: 'Nameplate', banners: 'Profile banner', themes: 'Profile theme' }[k];
+               nameplates: 'Nameplate', banners: 'Profile banner', themes: 'Profile theme',
+               trails: 'Geo Dash trail', jumpers: 'Geo Dash jumper' }[k];
     }
     function hint(k) {
       if (k === 'effects') {
@@ -640,7 +685,51 @@
     if (kind === 'themes') {
       return '<span class="shop-item__vis" style="background:linear-gradient(135deg,' + it.c1 + ',' + it.c2 + ')"></span>';
     }
+    if (kind === 'trails') {
+      if (!it.shape || !it.colors || !it.colors.length) {
+        return '<span class="shop-item__vis shop-item__vis--fx" style="background:var(--paper);color:var(--faint)">—</span>';
+      }
+      return '<span class="shop-item__vis shop-item__vis--trail" style="background:var(--paper)">' +
+        it.colors.slice(0, 4).map(function (c, i) {
+          return '<i class="cz-trail-dot cz-trail-dot--' + (it.shape || 'square') + '" style="background:' + c +
+            ';--i:' + i + '"></i>';
+        }).join('') + '</span>';
+    }
+    if (kind === 'jumpers') {
+      return '<span class="shop-item__vis shop-item__vis--jumper" style="background:var(--paper)">' +
+        jumperPreviewHtml(it) + '</span>';
+    }
     return '<span class="shop-item__vis"></span>';
+  }
+
+  function jumperPreviewHtml(it) {
+    var fill = it.fill || '#FFD23F';
+    var accent = it.accent || '#1B4DFF';
+    var face = it.face || '#fff';
+    var style = it.style || 'classic';
+    if (style === 'gradient' || style === 'aurora' || style === 'gilded') {
+      return '<span class="cz-jumper" style="background:linear-gradient(135deg,' + fill + ',' + accent +
+        ');border-color:#111"><span class="cz-jumper__eye" style="background:' + face + '"></span>' +
+        '<span class="cz-jumper__eye" style="background:' + face + '"></span>' +
+        '<span class="cz-jumper__mouth" style="background:' + face + '"></span></span>';
+    }
+    if (style === 'compass') {
+      return '<span class="cz-jumper" style="background:' + fill + ';border-color:#111">' +
+        '<span class="cz-jumper__inset" style="background:' + accent + '"></span>' +
+        '<span class="cz-jumper__rose" style="color:' + face + '">✦</span></span>';
+    }
+    if (style === 'block') {
+      return '<span class="cz-jumper" style="background:' + fill + ';border-color:#111">' +
+        '<span class="cz-jumper__inset" style="background:' + accent + '"></span>' +
+        '<span class="cz-jumper__eye" style="background:' + face + '"></span>' +
+        '<span class="cz-jumper__eye cz-jumper__eye--r" style="background:' + face + '"></span></span>';
+    }
+    /* classic */
+    return '<span class="cz-jumper" style="background:' + fill + ';border-color:#111">' +
+      '<span class="cz-jumper__inset" style="background:' + accent + '"></span>' +
+      '<span class="cz-jumper__eye" style="background:' + face + '"></span>' +
+      '<span class="cz-jumper__eye cz-jumper__eye--r" style="background:' + face + '"></span>' +
+      '<span class="cz-jumper__mouth" style="background:' + face + '"></span></span>';
   }
 
   /* `root` is the whole dialog, which equip() needs to find the panel, the
@@ -659,7 +748,7 @@
           W.Sound.wrong();
           W.toast('Premium', (item && item.name ? item.name + ' needs' : 'Needs') + ' LearnGeo Premium', I.lock, 3600);
           if (global.Premium && global.Premium.openUpgrade) {
-            global.Premium.openUpgrade((item && item.name ? item.name : 'This cosmetic') + ' is a Premium profile effect.');
+            global.Premium.openUpgrade((item && item.name ? item.name : 'This cosmetic') + ' needs LearnGeo Premium.');
           }
           return;
         }
@@ -689,7 +778,7 @@
         global.Premium && global.Premium.previewEnabled && global.Premium.previewEnabled() &&
         !(global.Premium.active && global.Premium.active())) {
       if (global.Premium.openUpgrade) {
-        global.Premium.openUpgrade((item.name || 'This cosmetic') + ' is a Premium profile effect.');
+        global.Premium.openUpgrade((item.name || 'This cosmetic') + ' needs LearnGeo Premium.');
       }
       return;
     }
@@ -730,19 +819,21 @@
         global.Premium && global.Premium.previewEnabled && global.Premium.previewEnabled() &&
         !(global.Premium.active && global.Premium.active())) {
       if (global.Premium.openUpgrade) {
-        global.Premium.openUpgrade((item.name || 'This cosmetic') + ' is a Premium profile effect.');
+        global.Premium.openUpgrade((item.name || 'This cosmetic') + ' needs LearnGeo Premium.');
       }
       return;
     }
     W.state.profile[LISTS[kind]] = id;
     W.saveNow();
     W.Sound.flip();
-    /* re-render just the affected panel, keeping the open tab */
-    var panel = W.$('[data-panel="' + kind + '"]', root);
+    /* re-render just the affected panel, keeping the open tab.
+       Trails / jumpers live inside the Games panel, not their own tab. */
+    var panelId = (kind === 'trails' || kind === 'jumpers') ? 'games' : kind;
+    var panel = W.$('[data-panel="' + panelId + '"]', root);
     if (panel) {
       var wasHidden = panel.classList.contains('hidden');
       var fresh = W.el('div');
-      fresh.innerHTML = shopPanel(kind);
+      fresh.innerHTML = panelId === 'games' ? gamesPanel() : shopPanel(kind);
       var next = fresh.firstChild;
       if (wasHidden) next.classList.add('hidden'); else next.classList.remove('hidden');
       panel.replaceWith(next);
@@ -798,6 +889,25 @@
   function drawPreview(root) {
     var host = W.$('#cz-preview', root);
     if (!host) return;
+    var gamesOn = !!(W.$('.vtab.is-active[data-t="games"]', root));
+    var label = W.$('#cz-preview-label', root);
+    var hint = W.$('#cz-preview-hint', root);
+    if (gamesOn) {
+      if (label) label.textContent = 'Geo Dash preview';
+      if (hint) {
+        hint.textContent = 'Trail and jumper update as you equip. They show in the next Geo Dash run.';
+      }
+      stopDashPreview(host);
+      host.innerHTML = '<div class="cz-dash-preview" aria-hidden="true">' +
+        '<canvas class="cz-dash-preview__canvas" width="320" height="180"></canvas></div>';
+      startDashPreview(host);
+      return;
+    }
+    if (label) label.textContent = 'Live preview';
+    if (hint) {
+      hint.textContent = 'Pick a cosmetic — the card updates instantly. Diamonds come from answers, tests, and achievements.';
+    }
+    stopDashPreview(host);
     var p = W.state.profile;
     var nameEl = W.$('#cz-name', root), pronEl = W.$('#cz-pronouns', root), aboutEl = W.$('#cz-about', root);
     var live = {
@@ -807,6 +917,127 @@
     };
     host.innerHTML = profileCard(live);
     runEffect(host);
+  }
+
+  /* Tiny looping Geo Dash stage for the Games tab side preview. */
+  var dashPreviewRaf = 0;
+  function stopDashPreview(host) {
+    if (dashPreviewRaf) { cancelAnimationFrame(dashPreviewRaf); dashPreviewRaf = 0; }
+    if (host) host._dashPreview = null;
+  }
+  function startDashPreview(host) {
+    var canvas = host.querySelector('.cz-dash-preview__canvas');
+    if (!canvas) return;
+    var ctx = canvas.getContext('2d');
+    var t0 = performance.now();
+    var parts = [];
+    host._dashPreview = true;
+
+    function activeTrail() {
+      return Cos.find(Cos.trails, (W.state.profile && W.state.profile.dashTrail) || 'dust');
+    }
+    function activeJumper() {
+      return Cos.find(Cos.jumpers, (W.state.profile && W.state.profile.dashJumper) || 'classic');
+    }
+
+    function frame(now) {
+      if (!host._dashPreview) return;
+      dashPreviewRaf = requestAnimationFrame(frame);
+      var w = canvas.width, h = canvas.height;
+      var trail = activeTrail();
+      var jumper = activeJumper();
+      var t = (now - t0) / 1000;
+      var bob = Math.sin(t * 6) * 3;
+      var ground = h * 0.72;
+
+      /* sky */
+      var sky = ctx.createLinearGradient(0, 0, 0, h);
+      sky.addColorStop(0, 'hsl(222,72%,52%)');
+      sky.addColorStop(1, 'hsl(222,78%,30%)');
+      ctx.fillStyle = sky;
+      ctx.fillRect(0, 0, w, h);
+      ctx.fillStyle = 'hsl(222,70%,20%)';
+      ctx.fillRect(0, ground, w, h - ground);
+      ctx.fillStyle = 'rgba(255,255,255,.85)';
+      ctx.fillRect(0, ground - 1, w, 2);
+
+      /* spawn trail */
+      if (trail && trail.shape && trail.colors && trail.colors.length) {
+        if (Math.random() < 0.55) {
+          var col = trail.colors[Math.floor(Math.random() * trail.colors.length)];
+          parts.push({
+            x: w * 0.42 - Math.random() * 18, y: ground - 18 + bob + Math.random() * 6,
+            vx: -40 - Math.random() * 50, vy: (Math.random() - 0.4) * 30,
+            life: 0.45 + Math.random() * 0.25, max: 0.7, size: 3 + Math.random() * 4, color: col,
+            shape: trail.shape
+          });
+        }
+      }
+      parts = parts.filter(function (p) {
+        p.life -= 1 / 60; p.x += p.vx / 60; p.y += p.vy / 60;
+        if (p.life <= 0) return false;
+        ctx.globalAlpha = Math.max(0, p.life / p.max);
+        ctx.fillStyle = p.color;
+        if (p.shape === 'circle' || p.shape === 'ember') {
+          ctx.beginPath(); ctx.arc(p.x, p.y, p.size / 2, 0, Math.PI * 2); ctx.fill();
+        } else if (p.shape === 'streak') {
+          ctx.fillRect(p.x - p.size, p.y - 1.2, p.size * 2.2, 2.4);
+        } else {
+          ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
+        }
+        return true;
+      });
+      ctx.globalAlpha = 1;
+
+      /* jumper cube */
+      var cx = w * 0.55, cy = ground - 22 + bob, s = 36;
+      drawJumperPreview(ctx, cx, cy, s, jumper, Math.sin(t * 3) * 0.08);
+    }
+    dashPreviewRaf = requestAnimationFrame(frame);
+  }
+
+  function drawJumperPreview(ctx, cx, cy, s, jumper, angle) {
+    var half = s / 2;
+    var fill = (jumper && jumper.fill) || '#FFD23F';
+    var accent = (jumper && jumper.accent) || '#1B4DFF';
+    var face = (jumper && jumper.face) || '#fff';
+    var style = (jumper && jumper.style) || 'classic';
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(angle || 0);
+    if (style === 'gradient' || style === 'aurora' || style === 'gilded') {
+      var g = ctx.createLinearGradient(-half, -half, half, half);
+      g.addColorStop(0, fill); g.addColorStop(1, accent);
+      ctx.fillStyle = g;
+      ctx.fillRect(-half, -half, s, s);
+    } else {
+      ctx.fillStyle = fill;
+      ctx.fillRect(-half, -half, s, s);
+      ctx.fillStyle = accent;
+      ctx.fillRect(-half * 0.62, -half * 0.62, s * 0.62, s * 0.62);
+    }
+    ctx.fillStyle = face;
+    ctx.fillRect(-half * 0.42, -half * 0.36, s * 0.16, s * 0.16);
+    ctx.fillRect(half * 0.1, -half * 0.36, s * 0.16, s * 0.16);
+    if (style === 'classic' || style === 'gradient' || style === 'aurora' || style === 'gilded') {
+      ctx.fillRect(-half * 0.42, half * 0.12, s * 0.52, s * 0.1);
+    }
+    if (style === 'compass') {
+      ctx.fillStyle = face;
+      ctx.font = '700 ' + Math.round(s * 0.38) + 'px system-ui,sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('✦', 0, half * 0.08);
+    }
+    if (style === 'aurora' || style === 'gilded') {
+      ctx.strokeStyle = accent;
+      ctx.lineWidth = Math.max(2, s * 0.08);
+      ctx.strokeRect(-half + 2, -half + 2, s - 4, s - 4);
+    }
+    ctx.strokeStyle = '#111';
+    ctx.lineWidth = Math.max(2, s * 0.08);
+    ctx.strokeRect(-half + ctx.lineWidth / 2, -half + ctx.lineWidth / 2, s - ctx.lineWidth, s - ctx.lineWidth);
+    ctx.restore();
   }
 
   /* A theme used to be a 1px border at 20% alpha and three numbers in c2, and

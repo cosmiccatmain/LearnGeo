@@ -106,6 +106,9 @@
         banner: 'plain',
         theme: 'default',
         status: 'online',
+        /* Geo Dash cosmetics (Customise → Games). LEA-54. */
+        dashTrail: 'dust',
+        dashJumper: 'classic',
         verified: false,       /* granted from the admin panel, never earned */
         badgeSlots: null       /* which badges show beside the name; null = auto */
       },
@@ -119,7 +122,9 @@
         effects: ['none', 'spark'],
         nameplates: ['none', 'parchment'],
         banners: ['plain', 'meadow', 'chalkboard'],
-        themes: ['default', 'sand']
+        themes: ['default', 'sand'],
+        trails: ['none', 'dust'],
+        jumpers: ['classic', 'cobalt']
       },
       economy: { diamonds: 150, xp: 0, level: 1 },
       streak: { current: 0, best: 0 },
