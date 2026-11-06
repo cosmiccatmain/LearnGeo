@@ -221,18 +221,20 @@
   transform: scale(1.03);
   animation: subdevPremGlow 3.2s ease-in-out infinite;
 }
-.subdev__plan--featured:hover {
-  transform: scale(1.045) translateY(-5px);
-  border-color: rgba(var(--accent-rgb), .68);
+.subdev__plan--featured:hover,
+.subdev__plan--featured.is-hot {
+  transform: scale(1.055) translateY(-8px);
+  border-color: rgba(var(--accent-rgb), .78);
   box-shadow:
-    0 0 0 5px rgba(var(--accent-rgb), .14),
-    0 24px 52px rgba(var(--accent-rgb), .26),
-    0 0 44px rgba(245, 179, 1, .2),
-    0 8px 18px rgba(11, 21, 32, .06);
+    0 0 0 7px rgba(var(--accent-rgb), .18),
+    0 28px 56px rgba(var(--accent-rgb), .32),
+    0 0 56px rgba(245, 179, 1, .28),
+    0 10px 22px rgba(11, 21, 32, .08);
+  animation: none; /* freeze pulse so hover lift reads clearly */
 }
 .subdev__plan--featured.is-press,
 .subdev__plan--featured:active {
-  transform: scale(1.01) translateY(-1px);
+  transform: scale(1.02) translateY(-2px);
   transition-duration: .1s;
 }
 
@@ -524,7 +526,8 @@
   .subdev__seg button {
     transition: none !important;
   }
-  .subdev__plan--featured { transform: none; }
-  .subdev__plan--featured:hover { transform: none; }
+  .subdev__plan--featured,
+  .subdev__plan--featured:hover,
+  .subdev__plan--featured.is-hot { transform: none; }
   .subdev__spark { opacity: .45; }
 }

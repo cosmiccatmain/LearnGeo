@@ -224,6 +224,13 @@
         render();
       });
     });
+    body.querySelectorAll('.subdev__plan--featured').forEach(function (card) {
+      card.addEventListener('pointerenter', function () { card.classList.add('is-hot'); });
+      card.addEventListener('pointerleave', function () {
+        card.classList.remove('is-hot');
+        card.classList.remove('is-press');
+      });
+    });
     body.querySelectorAll('[data-plan]').forEach(function (btn) {
       btn.addEventListener('click', function () {
         var card = btn.closest('.subdev__plan');
