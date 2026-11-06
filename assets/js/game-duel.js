@@ -4,7 +4,7 @@
    Invite a friend by gamertag. They get a pending invite, accept or
    decline, then you both play the same five geography questions at once.
    Correct + faster wins the round. First to the better score wins the
-   match. Server: supabase/deployed/0014_pvp_geo_duel.sql.
+   match. Server: supabase/deployed/0014_pvp_geo_duel.sql (+ 0017 join flow).
 -------------------------------------------------------------------*/
 (function (global) {
   'use strict';
@@ -33,11 +33,30 @@
     }, function () { return { ok: false, error: 'offline' }; });
   }
 
+  /* Local tags can exist before the device row is on the server (offline
+     claim, wiped gamertags, etc.). Re-claim so invite RPCs find us. */
+  function ensureServerTag() {
+    var tag = myTag();
+    var id = deviceId();
+    if (!tag || !id) return Promise.resolve(false);
+    var c = sb();
+    if (!c) return Promise.resolve(false);
+    return c.rpc('claim_gamertag', { p_device: id, p_tag: tag }).then(function (res) {
+      if (res && res.error) return false;
+      /* 'taken' means another device owns the name — this device is still
+         unregistered for PvP. Only 'ok' (including rename) counts. */
+      return (res && res.data) === 'ok';
+    }, function () { return false; });
+  }
+
   function ensureTag(then) {
+    function afterLocal(tag) {
+      ensureServerTag().then(function () { then(tag); });
+    }
     if (global.GameBoards && global.GameBoards.ensureTag) {
-      global.GameBoards.ensureTag(then);
+      global.GameBoards.ensureTag(afterLocal);
     } else if (myTag()) {
-      then(myTag());
+      afterLocal(myTag());
     } else {
       W.toast('Pick a gamertag', 'Open Leaderboards once to claim a name first.', I.gamepad, 4200);
     }
@@ -114,18 +133,18 @@
     });
   }
 
+  function inboxTick() {
+    if (!myTag()) return;
+    fetchInbox().then(function (box) {
+      global.dispatchEvent(new CustomEvent('learngeo:pvp-inbox', { detail: box }));
+    });
+  }
+
   function startWatching() {
     if (pollTimer) return;
-    pollTimer = setInterval(function () {
-      if (!myTag()) return;
-      fetchInbox().then(function (box) {
-        if (global.Games && global.Games.screen === 'hub' && box.incoming && box.incoming.length) {
-          /* Hub redraw is light; only when a new invite lands. */
-        }
-        global.dispatchEvent(new CustomEvent('learngeo:pvp-inbox', { detail: box }));
-      });
-    }, 3500);
-    setTimeout(function () { if (myTag()) fetchInbox(); }, 800);
+    /* 2s so a host waiting on an invite joins promptly after accept. */
+    pollTimer = setInterval(inboxTick, 2000);
+    setTimeout(function () { if (myTag()) inboxTick(); }, 800);
   }
 
   /* ========================= setup helpers ======================== */
@@ -177,11 +196,19 @@
     W.$$('[data-duel-accept]', el).forEach(function (b) {
       b.addEventListener('click', function () {
         ensureTag(function () {
-          rpc('pvp_respond_invite', {
-            p_device: deviceId(), p_invite: b.getAttribute('data-duel-accept'), p_accept: true
+          function acceptOnce() {
+            return rpc('pvp_respond_invite', {
+              p_device: deviceId(), p_invite: b.getAttribute('data-duel-accept'), p_accept: true
+            });
+          }
+          acceptOnce().then(function (res) {
+            if (!res.ok && res.error === 'no_gamertag') {
+              return ensureServerTag().then(acceptOnce);
+            }
+            return res;
           }).then(function (res) {
-            if (!res.ok) {
-              W.toast('Could not accept', errMsg(res.error), I.info, 3600);
+            if (!res || !res.ok) {
+              W.toast('Could not accept', errMsg(res && res.error), I.info, 3600);
               return refresh();
             }
             W.toast('Challenge accepted', 'Starting Geo Duel…', I.check, 2800);
@@ -256,6 +283,7 @@
     var localAnswered = false;
     var roundStartedLocal = 0;
     var scoredWin = false;
+    var entering = false;
 
     host.innerHTML = '<div class="duel" tabindex="-1"><div class="duel__body" data-duel-body></div></div>';
     var body = W.$('[data-duel-body]', host);
@@ -271,6 +299,25 @@
       if (state.status === 'finished') return paintFinished();
       return paintRound();
     }
+
+    /* Host was stuck in the lobby after the friend accepted: inbox polling
+       updated lastInbox.active but nothing entered the match or re-dealt
+       the lobby UI. Listen while we are still in the lobby. */
+    function onInboxEvent(ev) {
+      if (destroyed || matchId || entering) return;
+      var box = (ev && ev.detail) || lastInbox;
+      if (box && box.active && box.active.id) {
+        entering = true;
+        W.toast('Challenge accepted', 'Entering Geo Duel…', I.check, 2800);
+        enterMatch(box.active.id);
+        return;
+      }
+      var inboxEl = body && W.$('[data-duel-inbox]', body);
+      if (!inboxEl) return;
+      inboxEl.innerHTML = inboxHtml(box || lastInbox);
+      wireInbox(body, function (id) { enterMatch(id); });
+    }
+    global.addEventListener('learngeo:pvp-inbox', onInboxEvent);
 
     function paintLobby() {
       body.innerHTML =
@@ -318,17 +365,49 @@
         ensureTag(function () {
           sendInvite(tag, kind).then(function (res) {
             if (!res || !res.ok) {
+              if (res && res.error === 'no_gamertag') {
+                ensureServerTag().then(function () {
+                  return sendInvite(tag, kind);
+                }).then(function (retry) {
+                  if (!retry || !retry.ok) {
+                    err.textContent = errMsg(retry && retry.error);
+                    return;
+                  }
+                  W.toast('Invite sent', 'Waiting for ' + (retry.to_tag || tag) + '…', I.check, 3600);
+                  input.value = '';
+                  fetchInbox().then(function () {
+                    var box = W.$('[data-duel-inbox]', body);
+                    if (box) {
+                      box.innerHTML = inboxHtml(lastInbox);
+                      wireInbox(body, function (id) { enterMatch(id); });
+                    }
+                  });
+                });
+                return;
+              }
               err.textContent = errMsg(res && res.error);
               return;
             }
             W.toast('Invite sent', 'Waiting for ' + (res.to_tag || tag) + '…', I.check, 3600);
             input.value = '';
-            fetchInbox().then(paint);
+            fetchInbox().then(function () {
+              var box = W.$('[data-duel-inbox]', body);
+              if (box) {
+                box.innerHTML = inboxHtml(lastInbox);
+                wireInbox(body, function (id) { enterMatch(id); });
+              }
+            });
           });
         });
       });
       wireInbox(body, function (id) { enterMatch(id); });
       fetchInbox().then(function () {
+        if (destroyed || matchId) return;
+        if (lastInbox.active && lastInbox.active.id) {
+          entering = true;
+          enterMatch(lastInbox.active.id);
+          return;
+        }
         var box = W.$('[data-duel-inbox]', body);
         if (box) { box.innerHTML = inboxHtml(lastInbox); wireInbox(body, function (id) { enterMatch(id); }); }
       });
@@ -345,7 +424,12 @@
           '</div>' +
           '<div class="duel-wait__pulse"></div>' +
           '<p>' + (iAmHost ? 'Building your question set…' : 'Waiting for the host to deal the questions…') + '</p>' +
+          '<div class="duel-play__foot" style="margin-top:18px">' +
+            '<button class="btn btn--ghost btn--sm" type="button" data-duel-forfeit>Leave match</button>' +
+          '</div>' +
         '</div>';
+      var leave = W.$('[data-duel-forfeit]', body);
+      if (leave) leave.addEventListener('click', forfeit);
       if (iAmHost) seedIfNeeded();
     }
 
@@ -496,7 +580,7 @@
         '</div>';
       maybeRecordWin();
       W.$('[data-duel-again]', body).addEventListener('click', function () {
-        matchId = null; state = null; paint();
+        matchId = null; state = null; entering = false; stopPoll(); paint();
       });
       W.$('[data-duel-back]', body).addEventListener('click', function () {
         if (opts.onBack) opts.onBack();
@@ -527,7 +611,14 @@
     }
 
     function forfeit() {
-      rpc('pvp_forfeit_match', { p_device: deviceId(), p_match: matchId }).then(refresh);
+      var id = matchId;
+      rpc('pvp_forfeit_match', { p_device: deviceId(), p_match: id }).then(function () {
+        matchId = null;
+        state = null;
+        entering = false;
+        stopPoll();
+        fetchInbox().then(paint);
+      });
     }
 
     function enterMatch(id) {
@@ -536,6 +627,8 @@
       localAnswered = false;
       roundStartedLocal = 0;
       scoredWin = false;
+      entering = true;
+      seedIfNeeded.busy = false;
       paint();
       refresh();
       startPoll();
@@ -544,7 +637,16 @@
     function refresh() {
       if (destroyed || !matchId) return Promise.resolve();
       return rpc('pvp_match_state', { p_device: deviceId(), p_match: matchId }).then(function (res) {
-        if (!res || !res.ok) return;
+        if (!res || !res.ok) {
+          if (res && (res.error === 'not_found' || res.error === 'forbidden')) {
+            matchId = null;
+            state = null;
+            entering = false;
+            stopPoll();
+            fetchInbox().then(paint);
+          }
+          return;
+        }
         var prevRound = state && state.current_round;
         var prevStatus = state && state.status;
         state = res;
@@ -572,19 +674,28 @@
     /* boot */
     startWatching();
     if (matchId) {
+      entering = true;
       paint();
       refresh();
       startPoll();
     } else if (opts.autoResume && lastInbox.active) {
       enterMatch(lastInbox.active.id);
     } else {
-      fetchInbox().then(paint);
+      fetchInbox().then(function () {
+        if (destroyed) return;
+        if (opts.autoResume && lastInbox.active && lastInbox.active.id) {
+          enterMatch(lastInbox.active.id);
+        } else {
+          paint();
+        }
+      });
     }
 
     return {
       destroy: function () {
         destroyed = true;
         stopPoll();
+        global.removeEventListener('learngeo:pvp-inbox', onInboxEvent);
         global.removeEventListener('keydown', onKey);
         host.innerHTML = '';
       }
