@@ -312,7 +312,7 @@ before the sign-out.
 History and redirect checks that do not need a browser:
 
 ```bash
-node --test tests/test_router.js
+node --test tests/test_router.js tests/test_screen_share.js
 ```
 
 Browser checks, with the local server already running:
@@ -363,6 +363,8 @@ assets/js/relief.js             the ridgeline relief behind the Geo Classroom he
 assets/js/quiz.js               question generation
 assets/js/assignments.js        suggestions, share codes, handing in work
 assets/js/cloud.js              Supabase accounts, save sync, online classes
+assets/js/activity.js           reports the view name (Learn, Games, …) for signed-in accounts
+assets/js/screen-share.js       voluntary screen share. Separate from the view-name board.
 assets/js/ui.js                 shell, profile menu, sign in, settings, customization, shop
 assets/js/passkey.js            passkey sign-in and the eye on password boxes
 assets/js/portal.js             study center home screen, built around the map
@@ -402,3 +404,28 @@ doesn't appear, try without a content blocker.
 
 This tracks page loads, not the app's individual in-page study modes. The analytics script
 is served by Vercel; a local Python server won't provide that endpoint.
+
+## Screen sharing
+
+Signed-in students can click **Share screen** in the top bar. That is
+voluntary: Chrome or Edge shows its own picker, and **Stop sharing**
+leaves the call. The names on Administrator → Screen monitoring are a
+different thing — which page someone is on, not a picture of it. Live
+shares are the section underneath that list, and only the site owner
+(`alexjschendel@gmail.com`, with UltraAdmin open) can watch one tile.
+
+Daily includes about 10,000 participant-minutes a month, then about
+$0.004 a minute. A student sharing counts as one participant. The owner
+watching them counts as a second. Stop watching when you are done.
+There is no recording, and the microphone and camera stay off.
+
+The Daily API key is not in this repo and must not be a Vercel
+environment variable. Set it as a Supabase secret, apply
+`supabase/deployed/0012_screen_shares.sql`, and deploy `daily-share-token`
+and `daily-share-stop`. See `supabase/deployed/README.md`.
+
+To try it: two browsers. In one, sign in as a student and share a tab.
+In the other, sign in as the owner, open UltraAdmin, and on Screen
+monitoring press Watch, then Stop watching. In the student’s network
+log the only Daily credential is the meeting token from the Edge
+Function — not the API key.

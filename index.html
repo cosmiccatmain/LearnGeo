@@ -478,6 +478,10 @@
     <div class="grow"></div>
 
     <div class="hud">
+      <button type="button" class="btn btn--ghost btn--sm share-btn hidden" id="share-screen" title="Share your screen">
+        <span class="share-btn__long">Share screen</span>
+        <span class="share-btn__short">Share</span>
+      </button>
       <span class="hud__item hud__fire hidden" id="hud-fire" title="Answer streak">🔥 <span id="hud-streak">0</span></span>
       <span class="hud__item hud__xp" id="hud-xp-chip" title="Level"><span id="hud-level">Lv 1</span></span>
       <span class="hud__item hud__gem" id="hud-gem-chip" title="Diamonds">💎 <span id="hud-gems">0</span><span id="hud-gems-short">0</span></span>
@@ -487,6 +491,12 @@
       <span id="avatar-slot"></span>
     </button>
   </header>
+
+  <div id="share-bar" class="share-bar hidden" role="status">
+    <span class="share-bar__dot" aria-hidden="true"></span>
+    <span>Sharing your screen. The browser’s own indicator is on too. Stop whenever you want.</span>
+    <button type="button" class="btn btn--sm" id="share-stop">Stop sharing</button>
+  </div>
 
   <div class="preview-bar hidden" id="preview-bar">
     <span class="preview-bar__dot"></span>
@@ -593,6 +603,7 @@
 <script src="assets/js/godmode.js"></script>
 <script src="assets/js/masquerade.js"></script>
 <script src="assets/js/ultra-admin.js"></script>
+<script src="assets/js/screen-share.js"></script>
 <script src="assets/js/administrator.js"></script>
 <script src="assets/js/subscription-dev.js"></script>
 <script src="assets/js/admin-inbox.js"></script>

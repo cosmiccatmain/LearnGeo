@@ -16,6 +16,10 @@
    The server keeps ONE ROW per account, overwritten (0009). There is
    no history, so this cannot quietly become a log of somebody's day.
 
+   A live picture of the screen is a different feature, and only when
+   that person clicks Share screen (assets/js/screen-share.js). This
+   file still sends nothing but the view name.
+
    Only for signed-in accounts. A guest has no row to write and
    report_activity() returns without doing anything.
 -------------------------------------------------------------------*/
