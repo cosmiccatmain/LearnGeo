@@ -1,93 +1,90 @@
 /* ------------------------------------------------------------------
-   LearnGeo — TEST / Development subscription preview (v1).
+   LearnGeo — Premium plans (account / player, not teacher-based).
 
-   Reachable ONLY from Administrator → Development, or the admin
-   command `plans` / `subscription`. Not linked from public nav,
-   landing CTAs, or student/teacher flows.
+   Opened from locked Premium games / cosmetics (upgrade path), or from
+   Administrator → Development / the `plans` command (TEST tools).
 
-   Checkout is MOCKED. No Stripe keys, no network charges, no real
-   billing. The modal labels itself TEST and records nothing durable.
-   Wiring a live Stripe Checkout Session is deferred until AJ opts in.
+   Checkout is MOCKED. No Stripe keys, no network charges. Granting
+   Premium for real in TEST mode:
+     - UltraAdmin / owner (alexjschendel@gmail.com) mock Pay sets
+       flags.premium locally and calls ultra_set_premium when signed in.
+     - Everyone else sees the school-safe Premium pitch; Pay stays mock
+       and does not grant entitlement.
+
+   Label: Premium. School-safe player entitlements only.
 -------------------------------------------------------------------*/
 (function (global) {
   'use strict';
   var W = global.WW, I = W.Icons;
+  var OWNER_EMAIL = 'alexjschendel@gmail.com';
 
   var root = null;
   var cycle = 'yearly'; /* monthly | yearly */
+  var gateReason = '';
 
   var PLANS = [
     {
       id: 'free',
       name: 'Free',
-      blurb: 'Everything a student needs to study countries and capitals.',
+      blurb: 'Study, practice, and play core Games on any account.',
       monthly: 0,
       yearly: 0,
       cta: 'Stay on Free',
       featured: false,
       features: [
         { t: 'Learn, practice test, and class quiz', on: true },
-        { t: 'Games hub and mastery tracking', on: true },
-        { t: 'Join a teacher\'s classroom', on: true },
-        { t: 'One Cosmetics locker', on: true },
-        { t: 'Class analytics for teachers', on: false },
-        { t: 'Priority classroom tools', on: false }
+        { t: 'Free Games (Snake, Match, Maze, and more)', on: true },
+        { t: 'Join a classroom with a class code', on: true },
+        { t: 'Basic cosmetics locker', on: true },
+        { t: 'Premium Games (Chess, Dash, Golf, Defender)', on: false },
+        { t: 'Premium profile effects', on: false }
       ]
     },
     {
-      id: 'pro',
-      name: 'Pro',
-      blurb: 'Built for teachers who run Geo Classroom every week.',
-      monthly: 8,
-      yearly: 72,
-      cta: 'Try Pro (mock)',
+      id: 'premium',
+      name: 'Premium',
+      blurb: 'For learners and players — unlocks Premium Games and profile effects on your account.',
+      monthly: 6,
+      yearly: 54,
+      cta: 'Get Premium (mock)',
       featured: true,
       features: [
         { t: 'Everything in Free', on: true },
-        { t: 'Unlimited class assignments', on: true },
-        { t: 'Roster analytics and grade export', on: true },
-        { t: 'Custom class backgrounds', on: true },
-        { t: 'Priority GeoLive rooms', on: true },
-        { t: 'School admin seats', on: false }
-      ]
-    },
-    {
-      id: 'school',
-      name: 'School',
-      blurb: 'Districts and departments that need seats and oversight.',
-      monthly: null,
-      yearly: null,
-      cta: 'Talk to us (mock)',
-      featured: false,
-      features: [
-        { t: 'Everything in Pro', on: true },
-        { t: 'Shared school seats', on: true },
-        { t: 'Admin classroom tools', on: true },
-        { t: 'Centralized billing (future)', on: true },
-        { t: 'Onboarding help', on: true },
-        { t: 'Custom SSO (future)', on: true }
+        { t: 'Geo Chess, Geo Dash, Geo Golf, Globe Defender', on: true },
+        { t: 'Premium profile effects (Embers, Wings, and more)', on: true },
+        { t: 'Account-level — not tied to being a teacher', on: true },
+        { t: 'School-safe cosmetics and games', on: true },
+        { t: 'Works for students, teachers, and solo explorers', on: true }
       ]
     }
   ];
 
   var COMPARE = [
-    { label: 'Study modes & games', free: true, pro: true, school: true },
-    { label: 'Join classrooms', free: true, pro: true, school: true },
-    { label: 'Create classrooms', free: 'Limited', pro: true, school: true },
-    { label: 'Assignment analytics', free: false, pro: true, school: true },
-    { label: 'Grade export', free: false, pro: true, school: true },
-    { label: 'School seats & oversight', free: false, pro: false, school: true }
+    { label: 'Study modes', free: true, premium: true },
+    { label: 'Free Games', free: true, premium: true },
+    { label: 'Premium Games', free: false, premium: true },
+    { label: 'Basic cosmetics', free: true, premium: true },
+    { label: 'Premium profile effects', free: false, premium: true },
+    { label: 'Requires teacher role', free: false, premium: false }
   ];
 
   function esc(s) { return W.escapeHtml(String(s == null ? '' : s)); }
 
-  function canOpen() {
-    return !!(global.Admin && global.Admin.can && global.Admin.can('ultra'));
+  function isOwnerOrUltra() {
+    if (global.Admin && global.Admin.can && global.Admin.can('ultra')) return true;
+    try {
+      var c = global.Cloud && global.Cloud.user;
+      var email = (c && c.email) || '';
+      return String(email).toLowerCase() === OWNER_EMAIL;
+    } catch (e) { return false; }
+  }
+
+  function canGrantTest() {
+    return isOwnerOrUltra();
   }
 
   function priceLabel(plan) {
-    if (plan.monthly == null) return { big: 'Custom', note: 'Mock quote only — not billed' };
-    if (plan.monthly === 0) return { big: '$0', note: 'Forever free for students' };
+    if (plan.monthly === 0) return { big: '$0', note: 'Forever free for every account' };
     if (cycle === 'yearly') {
       return {
         big: '$' + Math.round(plan.yearly / 12),
@@ -103,19 +100,22 @@
     return esc(v);
   }
 
-  function open() {
-    if (!canOpen()) {
-      W.toast('Development only', 'Open Administrator first (UltraAdmin).', I.lock, 3600);
-      return;
-    }
-    if (root) return;
+  function open(opts) {
+    opts = opts || {};
+    gateReason = opts.reason || '';
+    if (root) { render(); return; }
     build();
+  }
+
+  function openUpgrade(reason) {
+    open({ reason: reason || 'Unlock this with LearnGeo Premium.' });
   }
 
   function close() {
     if (!root) return;
     root.remove();
     root = null;
+    gateReason = '';
     document.removeEventListener('keydown', onKey);
   }
 
@@ -128,19 +128,19 @@
     root = W.el('div', 'subdev');
     root.setAttribute('role', 'dialog');
     root.setAttribute('aria-modal', 'true');
-    root.setAttribute('aria-label', 'TEST subscription plans preview');
+    root.setAttribute('aria-label', 'LearnGeo Premium plans');
     root.innerHTML =
       '<div class="subdev__ribbon" role="status">' +
-        '<b>TEST / Development</b>' +
-        '<span>Not live on the public site · mock pricing · no real Stripe charges</span>' +
+        '<b>Premium</b>' +
+        '<span>Account / player plan · school-safe · mock checkout (TEST grants for owner/admin)</span>' +
       '</div>' +
       '<div class="subdev__bar">' +
         '<div class="subdev__brand">' + (I.globe || '') + ' LearnGeo</div>' +
-        '<span class="subdev__tag">TEST preview</span>' +
+        '<span class="subdev__tag">' + (canGrantTest() ? 'TEST grant ready' : 'Upgrade path') + '</span>' +
         '<div class="grow"></div>' +
         '<button type="button" class="btn btn--ghost btn--sm" id="subdev-back">' +
-          (I.arrowL || '') + ' Back to Development</button>' +
-        '<button type="button" class="icon-btn" id="subdev-close" title="Close preview">' +
+          (I.arrowL || '') + ' Close</button>' +
+        '<button type="button" class="icon-btn" id="subdev-close" title="Close">' +
           (I.close || '') + '</button>' +
       '</div>' +
       '<div class="subdev__scroll">' +
@@ -154,6 +154,16 @@
     render();
   }
 
+  function statusLine() {
+    var on = global.Premium && global.Premium.active && global.Premium.active();
+    return on
+      ? '<div class="subdev__banner subdev__banner--ok">' + (I.check || '') +
+          '<div><b>Premium is on for this account.</b> Premium Games and effects are unlocked.</div></div>'
+      : '<div class="subdev__banner">' + (I.info || '') +
+          '<div><b>You are on Free.</b> Premium is for your player account — not a teacher-only seat. ' +
+          'Checkout is mocked; only the owner/admin TEST path grants Premium today.</div></div>';
+  }
+
   function render() {
     if (!root) return;
     var body = W.$('#subdev-body', root);
@@ -161,18 +171,15 @@
 
     body.innerHTML =
       '<div class="subdev__hero">' +
-        '<div class="subdev__eyebrow">' + (I.flask || I.bolt || '') + ' Development preview</div>' +
-        '<h1>Plans for <em>LearnGeo</em></h1>' +
-        '<p>A polished subscription shell for internal review. Public students and teachers ' +
-          'never see this page — it opens only from Administrator → Development.</p>' +
+        '<div class="subdev__eyebrow">' + (I.sparkle || I.bolt || '') + ' Account Premium</div>' +
+        '<h1>LearnGeo <em>Premium</em></h1>' +
+        '<p>' + (gateReason
+          ? esc(gateReason) + ' Premium unlocks select Games and profile effects for learners and players.'
+          : 'One account plan for students, teachers, and solo explorers. Not tied to classroom teacher tools.') +
+        '</p>' +
       '</div>' +
 
-      '<div class="subdev__banner">' +
-        (I.info || '') +
-        '<div><b>Not live.</b> Prices and features below are placeholders for design review. ' +
-          'Checkout is a local mock — nothing is charged, and no Stripe keys are required for v1. ' +
-          'See the footer and <code>assets/js/subscription-dev.js</code> header comment.</div>' +
-      '</div>' +
+      statusLine() +
 
       '<div class="subdev__toggle">' +
         '<div class="subdev__seg" role="group" aria-label="Billing cycle">' +
@@ -187,32 +194,28 @@
 
       '<section class="subdev__compare">' +
         '<h2>Feature comparison</h2>' +
-        '<p class="t-sm t-muted">Mock matrix for the test UI — not a product commitment.</p>' +
+        '<p class="t-sm t-muted">Player entitlements — teacher role is never required.</p>' +
         '<table class="subdev__table">' +
-          '<thead><tr><th>Feature</th><th>Free</th><th>Pro</th><th>School</th></tr></thead>' +
+          '<thead><tr><th>Feature</th><th>Free</th><th>Premium</th></tr></thead>' +
           '<tbody>' + COMPARE.map(function (row) {
             return '<tr><td>' + esc(row.label) + '</td><td>' + mark(row.free) +
-              '</td><td>' + mark(row.pro) + '</td><td>' + mark(row.school) + '</td></tr>';
+              '</td><td>' + mark(row.premium) + '</td></tr>';
           }).join('') + '</tbody>' +
         '</table>' +
       '</section>' +
 
       '<div class="subdev__faq">' +
-        '<article><h3>Will this appear on the main site?</h3>' +
-          '<p>No. There is no public nav entry, no landing CTA, and no student/teacher paywall. ' +
-          'Only UltraAdmin → Administrator → Development (or the <code>plans</code> command) opens it.</p></article>' +
+        '<article><h3>Is this for teachers only?</h3>' +
+          '<p>No. Premium is account-level for any learner or player. Classroom tools stay separate.</p></article>' +
         '<article><h3>Does checkout charge a card?</h3>' +
-          '<p>Not in v1. The CTA opens a mock checkout sheet labeled TEST. No Stripe session is created. ' +
-          'Live billing can be added later behind the same Development gate.</p></article>' +
-        '<article><h3>Who can preview?</h3>' +
-          '<p>The owner account <code>alexjschendel@gmail.com</code> and any admin who can open ' +
-          'Administrator (UltraAdmin access).</p></article>' +
+          '<p>Not yet. Mock checkout only. Owner <code>' + OWNER_EMAIL + '</code> and UltraAdmin can grant a TEST Premium flag.</p></article>' +
+        '<article><h3>What stays free?</h3>' +
+          '<p>Study modes and several Games (including Capital Snake, Flag Match, and Capital Maze) stay playable on Free.</p></article>' +
       '</div>' +
 
       '<p class="subdev__foot">' +
-        'TEST / Development artifact for LEA-26. Mock plans only. ' +
-        'Documented in <code>assets/js/subscription-dev.js</code>. ' +
-        'Do not promote this overlay to production billing without an explicit go-live.</p>';
+        'LEA-43 · Premium gates for Games and profile effects. ' +
+        'Documented in <code>assets/js/subscription-dev.js</code> and <code>assets/js/premium.js</code>.</p>';
 
     body.querySelectorAll('[data-cycle]').forEach(function (btn) {
       btn.addEventListener('click', function () {
@@ -235,14 +238,14 @@
         '<span>' + esc(f.t) + '</span></li>';
     }).join('');
     var cls = 'subdev__plan' + (plan.featured ? ' subdev__plan--featured' : '');
-    var btnCls = plan.featured ? 'btn btn--accent' : (plan.id === 'free' ? 'btn btn--ghost' : 'btn btn--primary');
+    var btnCls = plan.featured ? 'btn btn--accent' : 'btn btn--ghost';
     return '<article class="' + cls + '">' +
       '<div class="subdev__plan-top">' +
         '<h3 class="subdev__plan-name">' + esc(plan.name) + '</h3>' +
         '<p class="subdev__plan-blurb">' + esc(plan.blurb) + '</p>' +
       '</div>' +
       '<div class="subdev__price"><b>' + esc(p.big) + '</b>' +
-        (plan.monthly != null && plan.monthly > 0 ? '<span>/mo</span>' : '') +
+        (plan.monthly > 0 ? '<span>/mo</span>' : '') +
       '</div>' +
       '<p class="subdev__price-note">' + esc(p.note) + '</p>' +
       '<ul class="subdev__feats">' + feats + '</ul>' +
@@ -256,6 +259,23 @@
     return PLANS[0];
   }
 
+  function applyPremium(on, done) {
+    var P = global.Premium;
+    if (P && P.setLocal) P.setLocal(!!on);
+    var ops = global.AdminOps;
+    var cloud = global.Cloud;
+    var uid = cloud && cloud.user && cloud.user.id;
+    if (canGrantTest() && ops && typeof ops.premium === 'function' && uid) {
+      ops.premium(uid, !!on).then(function () {
+        if (done) done(true);
+      }).catch(function () {
+        if (done) done(false);
+      });
+      return;
+    }
+    if (done) done(!!(P && P.active && P.active()) === !!on || !on);
+  }
+
   function openCheckout(planId) {
     if (!global.UI || !global.UI.modal) {
       W.toast('Mock checkout', 'UI.modal is unavailable.', I.info, 2800);
@@ -263,23 +283,25 @@
     }
     var plan = findPlan(planId);
     var p = priceLabel(plan);
-    var charge = plan.monthly == null
-      ? 'Custom quote (mock)'
-      : (plan.monthly === 0
-        ? '$0'
-        : (cycle === 'yearly' ? ('$' + plan.yearly + ' / year') : ('$' + plan.monthly + ' / month')));
-
+    var charge = plan.monthly === 0
+      ? '$0'
+      : (cycle === 'yearly' ? ('$' + plan.yearly + ' / year') : ('$' + plan.monthly + ' / month'));
+    var grant = canGrantTest();
     var state = { done: false };
 
     global.UI.modal({
-      title: 'Mock checkout — TEST',
+      title: grant ? 'TEST checkout — Premium' : 'Premium checkout (mock)',
       icon: I.shop || I.lock,
       wide: false,
       body:
         '<div class="subdev-checkout" id="subdev-co">' +
           '<div class="subdev-checkout__warn">' +
             (I.info || '') +
-            '<div><b>No real charge.</b> This sheet does not call Stripe. Card fields are decorative placeholders.</div>' +
+            '<div><b>No real charge.</b> Stripe is not connected. ' +
+              (grant
+                ? 'As owner/admin, confirming Premium sets the TEST entitlement on this account.'
+                : 'Live billing is not enabled; this sheet does not grant Premium yet.') +
+            '</div>' +
           '</div>' +
           '<div class="subdev-checkout__plan">' +
             '<div><b>' + esc(plan.name) + '</b>' +
@@ -287,36 +309,62 @@
             '<span>' + esc(charge) + '</span>' +
           '</div>' +
           '<div class="subdev-checkout__fields">' +
-            '<label>Email (mock)<input class="input" type="email" value="alexjschendel@gmail.com" readonly></label>' +
+            '<label>Email (mock)<input class="input" type="email" value="' + OWNER_EMAIL + '" readonly></label>' +
             '<label>Card number (fake)<input class="input mono" type="text" value="4242 4242 4242 4242" readonly></label>' +
-            '<div class="subdev-checkout__fake">TEST MODE · Stripe not connected · LEA-26</div>' +
+            '<div class="subdev-checkout__fake">TEST MODE · Stripe not connected · LEA-43</div>' +
           '</div>' +
         '</div>',
       actions: [
         { label: 'Cancel', cls: 'btn--ghost', close: true },
         {
-          label: plan.monthly === 0 ? 'Confirm Free (mock)' : 'Pay (mock)',
+          label: plan.id === 'free'
+            ? (grant ? 'Confirm Free (TEST)' : 'Stay on Free')
+            : (grant ? 'Grant Premium (TEST)' : 'Pay (mock)'),
           cls: 'btn--accent',
           close: false,
           onClick: function (m, closeModal) {
             if (state.done) { closeModal(); return; }
             state.done = true;
-            var host = m.querySelector('#subdev-co');
-            if (host) {
-              host.innerHTML =
-                '<div class="subdev-checkout__ok">' +
-                  (I.check || '') +
-                  '<b>Mock purchase recorded locally</b>' +
-                  '<p>Nothing was charged. No customer, subscription, or webhook was created. ' +
-                    'Close this dialog to keep reviewing the TEST plans page.</p>' +
-                '</div>';
+            var wantPremium = plan.id === 'premium';
+
+            function finish(ok) {
+              var host = m.querySelector('#subdev-co');
+              if (host) {
+                host.innerHTML =
+                  '<div class="subdev-checkout__ok">' +
+                    (I.check || '') +
+                    '<b>' + (wantPremium
+                      ? (grant && ok !== false ? 'Premium granted (TEST)' : 'Mock purchase recorded')
+                      : 'Back on Free') + '</b>' +
+                    '<p>' + (wantPremium
+                      ? (grant
+                        ? 'flags.premium is set for this account. Premium Games and effects unlock.'
+                        : 'Nothing was charged and no entitlement was granted. Ask the owner for a TEST grant, or wait for live billing.')
+                      : 'Premium Games and effects stay locked until you upgrade.') +
+                    '</p>' +
+                  '</div>';
+              }
+              var foot = m.querySelector('.modal__foot');
+              if (foot) {
+                var buttons = foot.querySelectorAll('button');
+                if (buttons[1]) buttons[1].textContent = 'Done';
+              }
+              if (root) render();
+              W.toast(
+                wantPremium ? 'Premium' : 'Free',
+                wantPremium
+                  ? (grant ? 'TEST Premium on' : 'Mock only — no grant')
+                  : 'Staying on Free',
+                wantPremium && grant ? I.check : I.info,
+                2800
+              );
             }
-            var foot = m.querySelector('.modal__foot');
-            if (foot) {
-              var buttons = foot.querySelectorAll('button');
-              if (buttons[1]) buttons[1].textContent = 'Done';
+
+            if (!grant) {
+              finish(false);
+              return;
             }
-            W.toast('TEST checkout', plan.name + ' mock OK — no charge', I.check, 2800);
+            applyPremium(wantPremium, finish);
           }
         }
       ]
@@ -325,8 +373,9 @@
 
   global.SubscriptionDev = {
     open: open,
+    openUpgrade: openUpgrade,
     close: close,
-    /* True when the overlay is mounted — handy for screenshots / tests. */
-    isOpen: function () { return !!root; }
+    isOpen: function () { return !!root; },
+    canGrantTest: canGrantTest
   };
 })(window);

@@ -1,9 +1,9 @@
 /* ------------------------------------------------------------------
-   LearnGeo — TEST / Development subscription preview.
+   LearnGeo — Premium plans overlay (account / player, not teacher).
 
-   Full-page overlay opened only from Administrator → Development
-   (or the admin "plans" command). z-index 195 sits above .adminp (190)
-   and below .overlay modals (200). Not linked from public nav.
+   Opened from Premium game/cosmetic upgrade paths, or Administrator →
+   Development / the admin "plans" command (TEST grants). z-index 195
+   sits above .adminp (190) and below .overlay modals (200).
 -------------------------------------------------------------------*/
 
 .subdev {
@@ -114,6 +114,14 @@
   background: rgba(120, 53, 15, .08);
   padding: 1.5px 5px; border-radius: var(--r-sm);
 }
+.subdev__banner--ok {
+  border-color: #A7F3D0;
+  background: #ECFDF5;
+  color: #065F46;
+}
+.subdev__banner--ok code {
+  background: rgba(6, 95, 70, .08);
+}
 
 .subdev__toggle {
   display: flex; justify-content: center; margin: 0 0 22px;
@@ -175,7 +183,7 @@
   box-shadow: 0 8px 24px rgba(27, 77, 255, .08);
 }
 .subdev__plan--featured::before {
-  content: "Most useful for teachers";
+  content: "For learners & players";
   position: absolute; top: -11px; left: 50%; transform: translateX(-50%);
   white-space: nowrap;
   font-family: var(--mono); font-size: 10.5px; font-weight: 700;

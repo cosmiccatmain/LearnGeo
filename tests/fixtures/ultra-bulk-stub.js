@@ -94,6 +94,7 @@
       return { data: !!payload.p_on, error: null };
     }
     if (fn === 'ultra_set_staff') return { data: !!payload.p_on, error: null };
+    if (fn === 'ultra_set_premium') return { data: !!payload.p_on, error: null };
     if (fn === 'ultra_allow_set' || fn === 'ultra_set_name') return { data: payload.p_name || true, error: null };
     if (fn === 'ultra_wipe_scores' || fn === 'ultra_leave_classes') return { data: 1, error: null };
     if (fn === 'ultra_reset_progress') return { data: true, error: null };
