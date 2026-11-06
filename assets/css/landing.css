@@ -50,28 +50,40 @@
   font-size: .92em;
 }
 
-/* Each phrase shares one grid cell so the headline does not jump. */
+/* Each phrase shares one grid cell so the headline does not jump.
+   Left-align inside the cell so "for" sits flush against the teal
+   phrase — center alignment left a visible gap after "for" for every
+   phrase shorter than the longest one. Skip blur: a blurred crossfade
+   blanks the line mid-swap and reads as a stuck/empty headline. */
 .cycle {
   display: inline-grid;
+  justify-items: start;
   color: var(--accent);
-  text-align: center;
+  text-align: start;
   vertical-align: baseline;
 }
 .cycle > span {
   grid-area: 1 / 1;
   white-space: nowrap;
   opacity: 0;
-  transform: translateY(.28em);
-  filter: blur(6px);
+  transform: translateY(.22em);
   transition:
-    opacity .7s var(--ease),
-    transform .7s var(--ease),
-    filter .7s var(--ease);
+    opacity .55s var(--ease),
+    transform .55s var(--ease);
+  z-index: 0;
+  pointer-events: none;
 }
 .cycle > span.is-on {
   opacity: 1;
   transform: none;
-  filter: none;
+  z-index: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cycle > span {
+    transition: none;
+    transform: none;
+  }
 }
 
 .hero--brand .hero__sub {
