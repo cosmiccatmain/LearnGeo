@@ -1,13 +1,20 @@
-/* Shared difficulty slider — progressive fill, white thumb.
-   Nebula/galaxy fill only at the maximum step. Thumb motion is
-   continuous; discrete levels commit on release (see JS).
-   Fill width tracks the thumb center (not raw % of the track). */
+/* Shared difficulty slider — slim rail, overhanging thumb, step ticks.
+   Galaxy/nebula fill only at the maximum step. Thumb motion is
+   continuous while dragging; discrete levels settle on release.
+   Fill width tracks the thumb center (thumb-inset math). */
+
+@property --pct {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
+}
 
 .diff-slider {
   --diff-purple: #7c3aed;
   --diff-purple-deep: #4c1d95;
   --diff-lilac: #c4b5fd;
-  --thumb-size: 28px;
+  --thumb-size: 26px;
+  --rail-h: 10px;
   --track-h: 36px;
   /* Unitless 0–100 — used in calc() with thumb inset. */
   --pct: 0;
@@ -38,6 +45,7 @@
   letter-spacing: -.03em;
   line-height: 1.15;
   color: var(--diff-purple);
+  transition: color .22s ease;
 }
 
 .diff-slider__spark {
@@ -45,11 +53,15 @@
   width: 18px;
   height: 18px;
   color: var(--diff-purple);
-  opacity: .35;
-  transition: opacity .18s ease;
+  opacity: 0;
+  transform: scale(.8) rotate(-12deg);
+  transition: opacity .22s ease, transform .28s cubic-bezier(.2, 1.2, .3, 1);
 }
 
-.diff-slider.is-max .diff-slider__spark { opacity: 1; }
+.diff-slider.is-max .diff-slider__spark {
+  opacity: 1;
+  transform: scale(1) rotate(0deg);
+}
 
 .diff-slider__blurb {
   margin: 6px 0 0;
@@ -62,14 +74,26 @@
 
 .diff-slider__control { display: grid; gap: 8px; }
 
+/* Tall hit area; slim rail is optically centered inside. */
 .diff-slider__track {
   position: relative;
   height: var(--track-h);
+  display: grid;
+  align-items: center;
+  isolation: isolate;
+}
+
+.diff-slider__rail {
+  position: relative;
+  height: var(--rail-h);
   border-radius: 999px;
-  border: 1.5px solid #ddd6fe;
-  background: linear-gradient(180deg, #f3f0ff 0%, #ebe4ff 100%);
-  box-shadow: inset 0 1px 2px rgba(76, 29, 149, .06);
+  background:
+    linear-gradient(180deg, #efeafc 0%, #e7e0f8 100%);
+  box-shadow:
+    inset 0 1px 2px rgba(76, 29, 149, .08),
+    0 0 0 1px rgba(124, 58, 237, .12);
   overflow: hidden;
+  z-index: 0;
 }
 
 .diff-slider__fill {
@@ -78,24 +102,36 @@
   top: 0;
   bottom: 0;
   /* Match native range thumb center: inset by half thumb, then
-     travel across (track − thumb). Flat right edge sits under thumb. */
+     travel across (track − thumb). Rounded tip sits under the thumb. */
   width: calc(
     (var(--thumb-size) * 0.5) +
     (100% - var(--thumb-size)) * var(--pct) / 100
   );
   min-width: 0;
-  border-radius: 999px 0 0 999px;
+  border-radius: 999px;
   pointer-events: none;
-  z-index: 0;
-  /* Plain fill for every non-max position — no stars, streaks, or nebula. */
-  background: linear-gradient(90deg, #a78bfa 0%, #8b5cf6 55%, #7c3aed 100%);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .28);
+  /* Plain fill for every non-max position — no stars or nebula. */
+  background: linear-gradient(90deg, #a78bfa 0%, #8b5cf6 52%, #7c3aed 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .34),
+    0 0 12px rgba(124, 58, 237, .18);
+  transition: box-shadow .22s ease, filter .22s ease, background .22s ease;
+}
+
+/* Settle animation only when not dragging — fluid drag stays 1:1. */
+.diff-slider:not(.is-dragging) {
+  transition: --pct .28s cubic-bezier(.2, .9, .2, 1);
+}
+
+.diff-slider.is-dragging {
+  transition: none;
 }
 
 /* Galaxy look only when the committed/nearest value is the max step. */
 .diff-slider.is-max .diff-slider__fill {
-  border: 0;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .18);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .2),
+    0 0 18px rgba(168, 85, 247, .35);
   background:
     radial-gradient(1.5px 1.5px at 12% 38%, rgba(255, 255, 255, .95) 50%, transparent 52%),
     radial-gradient(1.2px 1.2px at 28% 62%, rgba(255, 255, 255, .75) 50%, transparent 52%),
@@ -119,39 +155,93 @@
     linear-gradient(90deg, #2e1065 0%, #4c1d95 28%, #3730a3 58%, #5b21b6 78%, #312e81 100%);
 }
 
-.diff-slider.is-max .diff-slider__track {
-  border-color: #d4c4f7;
+.diff-slider.is-max .diff-slider__rail {
+  box-shadow:
+    inset 0 1px 2px rgba(46, 16, 101, .18),
+    0 0 0 1px rgba(167, 139, 250, .28);
 }
 
-/* Translucent step markers — same horizontal math as the thumb center. */
+/* Step markers live under the rail (not in the fill) so contrast stays
+   strong at every level — same horizontal math as the thumb center. */
 .diff-slider__ticks {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
+  position: relative;
+  height: 14px;
+  margin-top: -2px;
   pointer-events: none;
 }
 
 .diff-slider__tick {
   position: absolute;
-  top: 50%;
-  width: 7px;
-  height: 7px;
+  top: 0;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
-  transform: translate(-50%, -50%);
-  background: rgba(255, 255, 255, .55);
+  transform: translateX(-50%);
+  background: #fff;
   box-shadow:
-    0 0 0 1px rgba(76, 29, 149, .18),
-    inset 0 0 0 1px rgba(255, 255, 255, .35);
-  opacity: .85;
+    inset 0 0 0 1.5px rgba(124, 58, 237, .38),
+    0 1px 2px rgba(76, 29, 149, .08);
+  transition:
+    transform .22s cubic-bezier(.2, 1.1, .3, 1),
+    background .18s ease,
+    box-shadow .18s ease,
+    width .18s ease,
+    height .18s ease;
 }
 
-/* Stronger dots on the galaxy fill so steps stay readable at max. */
-.diff-slider.is-max .diff-slider__tick {
-  background: rgba(255, 255, 255, .7);
+.diff-slider__tick::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 100%;
+  width: 1.5px;
+  height: 6px;
+  margin-left: -.75px;
+  border-radius: 1px;
+  background: rgba(124, 58, 237, .28);
+  transition: background .18s ease, height .18s ease;
+}
+
+.diff-slider__tick.is-passed {
+  background: var(--diff-purple);
   box-shadow:
-    0 0 0 1px rgba(255, 255, 255, .35),
-    0 0 0 2px rgba(46, 16, 101, .35);
-  opacity: .95;
+    inset 0 0 0 1.5px rgba(255, 255, 255, .35),
+    0 0 0 2px rgba(124, 58, 237, .16),
+    0 2px 6px rgba(124, 58, 237, .28);
+}
+
+.diff-slider__tick.is-passed::before {
+  background: rgba(124, 58, 237, .55);
+}
+
+.diff-slider__tick.is-active {
+  width: 10px;
+  height: 10px;
+  background: var(--diff-purple);
+  box-shadow:
+    inset 0 0 0 2px #fff,
+    0 0 0 2px rgba(124, 58, 237, .35),
+    0 4px 10px rgba(124, 58, 237, .35);
+  transform: translateX(-50%) scale(1.06);
+}
+
+.diff-slider__tick.is-active::before {
+  height: 8px;
+  background: var(--diff-purple);
+}
+
+.diff-slider.is-max .diff-slider__tick.is-passed,
+.diff-slider.is-max .diff-slider__tick.is-active {
+  background: linear-gradient(145deg, #7c3aed, #4c1d95 55%, #312e81);
+  box-shadow:
+    inset 0 0 0 1.5px rgba(255, 255, 255, .4),
+    0 0 0 2px rgba(167, 139, 250, .35),
+    0 4px 12px rgba(76, 29, 149, .4);
+}
+
+.diff-slider.is-max .diff-slider__tick.is-active::before,
+.diff-slider.is-max .diff-slider__tick.is-passed::before {
+  background: linear-gradient(180deg, #a78bfa, #6d28d9);
 }
 
 .diff-slider__input {
@@ -172,10 +262,11 @@
   outline: none;
 }
 
-.diff-slider__track:has(.diff-slider__input:focus-visible) {
+.diff-slider__track:has(.diff-slider__input:focus-visible) .diff-slider__rail {
   box-shadow:
-    inset 0 1px 2px rgba(76, 29, 149, .06),
-    0 0 0 3px rgba(124, 58, 237, .28);
+    inset 0 1px 2px rgba(76, 29, 149, .08),
+    0 0 0 1px rgba(124, 58, 237, .18),
+    0 0 0 4px rgba(124, 58, 237, .22);
 }
 
 .diff-slider__input::-webkit-slider-runnable-track {
@@ -203,14 +294,19 @@
   height: var(--thumb-size);
   margin-top: calc((var(--track-h) - var(--thumb-size)) / 2);
   border-radius: 50%;
+  /* No CSS border — it can inflate thumb size vs --thumb-size math. */
   border: 0;
-  background: #fff;
+  background:
+    radial-gradient(circle at 35% 30%, #ffffff 0%, #f8f5ff 55%, #efe9ff 100%);
   box-shadow:
-    0 1px 2px rgba(15, 23, 42, .18),
-    0 6px 14px rgba(15, 23, 42, .22);
+    inset 0 0 0 2px #fff,
+    0 0 0 1.5px rgba(124, 58, 237, .38),
+    0 1px 2px rgba(15, 23, 42, .12),
+    0 8px 18px rgba(76, 29, 149, .22);
   cursor: grab;
-  /* Avoid layout “tick” feel; thumb follows the continuous value. */
-  transition: none;
+  transition:
+    transform .18s cubic-bezier(.2, 1.1, .3, 1),
+    box-shadow .18s ease;
 }
 
 .diff-slider__input::-moz-range-thumb {
@@ -218,16 +314,46 @@
   height: var(--thumb-size);
   border-radius: 50%;
   border: 0;
-  background: #fff;
+  background:
+    radial-gradient(circle at 35% 30%, #ffffff 0%, #f8f5ff 55%, #efe9ff 100%);
   box-shadow:
-    0 1px 2px rgba(15, 23, 42, .18),
-    0 6px 14px rgba(15, 23, 42, .22);
+    inset 0 0 0 2px #fff,
+    0 0 0 1.5px rgba(124, 58, 237, .38),
+    0 1px 2px rgba(15, 23, 42, .12),
+    0 8px 18px rgba(76, 29, 149, .22);
   cursor: grab;
-  transition: none;
+  transition:
+    transform .18s cubic-bezier(.2, 1.1, .3, 1),
+    box-shadow .18s ease;
 }
 
-.diff-slider__input:active::-webkit-slider-thumb { cursor: grabbing; }
-.diff-slider__input:active::-moz-range-thumb { cursor: grabbing; }
+.diff-slider__input:active::-webkit-slider-thumb,
+.diff-slider.is-dragging .diff-slider__input::-webkit-slider-thumb {
+  cursor: grabbing;
+  transform: scale(1.08);
+  box-shadow:
+    0 0 0 2px rgba(124, 58, 237, .45),
+    0 2px 4px rgba(15, 23, 42, .14),
+    0 12px 24px rgba(76, 29, 149, .28);
+}
+
+.diff-slider__input:active::-moz-range-thumb,
+.diff-slider.is-dragging .diff-slider__input::-moz-range-thumb {
+  cursor: grabbing;
+  transform: scale(1.08);
+  box-shadow:
+    0 0 0 2px rgba(124, 58, 237, .45),
+    0 2px 4px rgba(15, 23, 42, .14),
+    0 12px 24px rgba(76, 29, 149, .28);
+}
+
+.diff-slider.is-max .diff-slider__input::-webkit-slider-thumb,
+.diff-slider.is-max .diff-slider__input::-moz-range-thumb {
+  box-shadow:
+    0 0 0 1.5px rgba(233, 213, 255, .9),
+    0 0 0 4px rgba(168, 85, 247, .28),
+    0 8px 20px rgba(76, 29, 149, .35);
+}
 
 .diff-slider__ends {
   display: flex;
@@ -236,6 +362,15 @@
   font-size: 12.5px;
   font-weight: 520;
   color: var(--muted);
+}
+
+.diff-slider__ends [data-diff-end='max'] {
+  transition: color .22s ease, font-weight .22s ease;
+}
+
+.diff-slider.is-max .diff-slider__ends [data-diff-end='max'] {
+  color: var(--diff-purple);
+  font-weight: 650;
 }
 
 .diff-slider__hint {
@@ -248,8 +383,8 @@
 @media (max-width: 480px) {
   .diff-slider {
     --thumb-size: 24px;
-    --track-h: 32px;
+    --rail-h: 9px;
+    --track-h: 34px;
   }
   .diff-slider__name { font-size: 24px; }
-  .diff-slider__tick { width: 6px; height: 6px; }
 }
