@@ -1,10 +1,10 @@
 /* ------------------------------------------------------------------
-   Landing hero: the headline cycles through the reasons to use
-   LearnGeo, and the globe turns beside it. Click it and the nearest
-   capital comes up on a card.
+   Landing hero (LEA-37): brand-first full-bleed composition.
 
-   Loaded last so it wins over the shared .hero rules in app.css, which
-   teachers.html still relies on.
+   Restores the stronger globe-behind-headline layout from before the
+   side-panel "gem" shell, while keeping the cycling "LearnGeo for …"
+   brand line and the real mark from LEA-32. Loaded last so these rules
+   win over shared .hero styles in app.css that teachers.html still uses.
 -------------------------------------------------------------------*/
 
 .sr-only {
@@ -12,73 +12,105 @@
   overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
 }
 
-.hero--gem { padding: 104px 32px 96px; text-align: left; }
-
-.hero__inner {
-  position: relative; z-index: 1;
-  max-width: 1160px; margin: 0 auto;
-  display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, .8fr);
-  align-items: center; gap: 24px;
+/* First viewport is one composition: brand, line, sub, CTAs, globe. */
+.hero--brand {
+  min-height: calc(100svh - var(--topbar-h));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 72px 32px 88px;
+  text-align: center;
+  box-sizing: border-box;
 }
 
-.hero--gem h1 {
-  max-width: none; margin: 0;
+.hero--brand h1 {
+  max-width: 14ch;
+  margin: 0 auto;
   font-family: var(--serif);
-  font-size: clamp(54px, 6.6vw, 92px);
-  font-weight: 700;
-  line-height: 1.0; letter-spacing: -.03em;
-  text-wrap: wrap;
-}
-.hero__brand, .hero__for { display: block; }
-.hero__brand {
-  font-size: 1.08em;
-  letter-spacing: -.035em;
+  font-size: clamp(56px, 9vw, 112px);
+  font-weight: 400;
+  letter-spacing: -.02em;
+  line-height: 1.0;
+  text-wrap: balance;
 }
 
-/* Each phrase is laid over the same cell. The cell takes the width of the
-   longest one, so nothing shifts when the phrase changes. */
-.cycle { display: inline-grid; color: var(--accent); text-align: left; }
+.hero__brand,
+.hero__for {
+  display: block;
+}
+
+.hero__brand {
+  font-size: 1.06em;
+  letter-spacing: -.028em;
+}
+
+.hero__for {
+  margin-top: .04em;
+  font-size: .92em;
+}
+
+/* Each phrase shares one grid cell so the headline does not jump. */
+.cycle {
+  display: inline-grid;
+  color: var(--accent);
+  text-align: center;
+  vertical-align: baseline;
+}
 .cycle > span {
   grid-area: 1 / 1;
   white-space: nowrap;
-  opacity: 0; transform: translateY(.3em); filter: blur(6px);
-  transition: opacity .7s var(--ease), transform .7s var(--ease), filter .7s var(--ease);
+  opacity: 0;
+  transform: translateY(.28em);
+  filter: blur(6px);
+  transition:
+    opacity .7s var(--ease),
+    transform .7s var(--ease),
+    filter .7s var(--ease);
 }
-.cycle > span.is-on { opacity: 1; transform: none; filter: none; }
-
-.hero--gem .hero__sub { margin: 26px 0 0; max-width: 44ch; }
-.hero--gem .hero__cta { justify-content: flex-start; margin-top: 32px; }
-.hero--gem .hero__note { text-align: left; }
-
-.hero__gem {
-  position: relative; width: 100%; max-width: 500px; aspect-ratio: 1;
-  justify-self: center;
-}
-.hero__gem::before {
-  content: ""; position: absolute; inset: 12%; border-radius: 50%;
-  background: radial-gradient(closest-side, rgba(var(--accent-rgb),.22), rgba(var(--accent-rgb),0));
-  filter: blur(8px); pointer-events: none;
-}
-.hero__gem canvas {
-  position: relative; display: block; width: 100%; height: 100%;
-  opacity: 0; transition: opacity 1.2s var(--ease);
-  cursor: pointer; touch-action: pan-y;
-}
-.hero__gem.is-live canvas { opacity: 1; }
-
-@media (max-width: 860px) {
-  .hero--gem { padding: 64px 20px 56px; text-align: center; }
-  .hero__inner { grid-template-columns: 1fr; justify-items: center; text-align: center; gap: 12px; }
-  .hero--gem h1 { font-size: clamp(40px, 11vw, 64px); }
-  .cycle { text-align: center; }
-  .cycle > span { white-space: normal; }
-  .hero--gem .hero__sub { margin: 26px auto 0; }
-  .hero--gem .hero__cta { justify-content: center; }
-  .hero--gem .hero__note { text-align: center; }
-  .hero__gem { max-width: 300px; }
+.cycle > span.is-on {
+  opacity: 1;
+  transform: none;
+  filter: none;
 }
 
-/* A text link that is really a button: the sign-up prompt inside the note. */
+.hero--brand .hero__sub {
+  margin: 22px auto 0;
+  max-width: 42ch;
+  font-size: 17.5px;
+  color: var(--ink-2);
+  line-height: 1.58;
+}
+
+.hero--brand .hero__cta {
+  justify-content: center;
+  margin-top: 30px;
+}
+
+.hero--brand .hero__note {
+  text-align: center;
+  margin-top: 14px;
+  max-width: 46ch;
+}
+
+/* Globe sits behind the words as a rising sphere, not a side panel.
+   Pointer events stay off so the brand line and CTAs own the first viewport;
+   the sphere is atmosphere, the way the original full-bleed hero worked. */
+.hero--brand .hero__globe {
+  pointer-events: none;
+  width: min(118vh, 96vw, 980px);
+  transform: translate(-50%, -54%);
+  -webkit-mask-image: radial-gradient(closest-side, #000 40%, rgba(0,0,0,.58) 72%, transparent 97%);
+          mask-image: radial-gradient(closest-side, #000 40%, rgba(0,0,0,.58) 72%, transparent 97%);
+}
+
+.hero--brand .hero__scrim {
+  background: radial-gradient(58% 50% at 50% 48%,
+    rgba(252,253,254,.94),
+    rgba(252,253,254,.72) 44%,
+    rgba(252,253,254,0) 78%);
+}
+
 .linkbtn {
   padding: 0; border: 0; background: none; cursor: pointer;
   font: inherit; color: var(--accent); font-weight: 600;
@@ -86,14 +118,14 @@
 }
 .hero__note.is-signed-in .linkbtn { display: none; }
 
-/* The capital the globe was clicked on. Sits low over the ball so it
-   never covers the spot that was picked. */
+/* Capital card over the ball — low enough not to cover the click point. */
 .globe-card {
-  position: absolute; left: 50%; bottom: 2%; transform: translateX(-50%);
+  position: absolute; left: 50%; bottom: 6%; transform: translateX(-50%);
   width: min(300px, 92%); padding: 12px 14px 12px;
   background: var(--white, #fff); border: 1px solid var(--line, #E5E7EB);
-  border-radius: 14px; box-shadow: 0 10px 30px rgba(10,10,11,.14);
+  border-radius: 14px; box-shadow: 0 10px 30px rgba(11,21,32,.14);
   text-align: left; z-index: 2; animation: globe-card-in .25s var(--ease);
+  pointer-events: auto;
 }
 .globe-card[hidden] { display: none; }
 .globe-card__eyebrow {
@@ -101,7 +133,7 @@
   text-transform: uppercase; color: var(--muted);
 }
 .globe-card__row { display: flex; align-items: center; gap: 10px; margin-top: 6px; }
-.globe-card__row img { border-radius: 3px; box-shadow: 0 0 0 1px rgba(10,10,11,.1); flex: none; }
+.globe-card__row img { border-radius: 3px; box-shadow: 0 0 0 1px rgba(11,21,32,.1); flex: none; }
 .globe-card__row > div { flex: 1; min-width: 0; }
 .globe-card__row b { display: block; font-size: 19px; line-height: 1.15; }
 .globe-card__row span { display: block; font-size: 13px; color: var(--muted); }
@@ -109,12 +141,38 @@
   align-self: flex-start; border: 0; background: none; cursor: pointer;
   font-size: 22px; line-height: 1; color: var(--muted); padding: 0 2px;
 }
-.globe-card em { display: block; margin-top: 6px; font-style: normal; font-size: 12.5px; color: var(--faint, var(--muted)); }
+.globe-card em {
+  display: block; margin-top: 6px; font-style: normal;
+  font-size: 12.5px; color: var(--faint, var(--muted));
+}
 @keyframes globe-card-in { from { opacity: 0; transform: translate(-50%, 6px); } }
 @media (prefers-reduced-motion: reduce) { .globe-card { animation: none; } }
 
-/* Sign in and Sign up share the nav. On a phone there is room for those two and
-   the menu, not for "Open the app" as well. The hero has Start learning. */
+/* Stats sit below the first viewport — a quiet rail, not hero clutter. */
+.landing > .stats {
+  margin: 8px auto 0;
+  width: min(940px, calc(100% - 40px));
+}
+
+@media (max-width: 860px) {
+  .hero--brand {
+    min-height: calc(100svh - var(--topbar-h));
+    padding: 48px 20px 64px;
+  }
+  .hero--brand h1 {
+    font-size: clamp(44px, 13vw, 72px);
+    max-width: 11ch;
+  }
+  .cycle > span { white-space: normal; }
+  .hero--brand .hero__sub { font-size: 16px; max-width: 34ch; }
+  .hero--brand .hero__globe {
+    width: min(100vh, 110vw, 720px);
+    transform: translate(-50%, -50%);
+  }
+}
+
 @media (max-width: 600px) {
   .nav > .btn--primary[data-launch] { display: none; }
+  .hero--brand .hero__cta { width: 100%; }
+  .hero--brand .hero__cta .btn { width: min(100%, 320px); }
 }
