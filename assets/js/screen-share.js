@@ -5,6 +5,9 @@
    and Chrome's own picker runs (getDisplayMedia). Nothing is captured
    before that click, and Stop sharing leaves the Daily room.
 
+   The first time they enter the app in a browser session, the same
+   explanation is offered once. Not now leaves the top-bar button.
+
    This is not activity.js. That file reports the name of the view
    (Learn, Games, …). This one sends a live picture of a window the
    person picked, and only while they leave it on.
@@ -43,6 +46,17 @@
     '<p class="t-sm t-muted">This is voluntary. LearnGeo does not capture your screen unless you ' +
     'click Share screen. The names on Screen monitoring are a separate list — which page you ' +
     'are on, not this picture.</p>';
+
+  /* Once per tab. Refresh keeps it; a new tab asks again. */
+  var PROMPT_KEY = 'lg-share-prompt';
+  var promptWait = null;
+  var promptedMem = false;
+
+  var PROMPT =
+    '<p>Your teacher or admin will see the window or tab you pick. ' +
+    'Chrome shows its own sharing indicator. You can stop anytime.</p>' +
+    '<p class="t-sm t-muted">Nothing is shared unless you click Share screen. ' +
+    'Not now leaves the Share screen button in the top bar.</p>';
 
   function signed() {
     return !!(global.Cloud && global.Cloud.signedIn && global.Cloud.sb);
@@ -310,6 +324,23 @@
     });
   }
 
+  function promptSeen() {
+    if (promptedMem) return true;
+    try { return sessionStorage.getItem(PROMPT_KEY) === '1'; }
+    catch (e) { return false; }
+  }
+
+  function markPrompt() {
+    promptedMem = true;
+    try { sessionStorage.setItem(PROMPT_KEY, '1'); }
+    catch (e) { /* still only once while this page stays open */ }
+  }
+
+  function appIsOpen() {
+    var app = document.getElementById('app');
+    return !!(app && app.classList.contains('is-open'));
+  }
+
   function ask() {
     if (asking || busy || live) return;
     if (!signed()) {
@@ -320,6 +351,7 @@
       toast('Use a computer', 'Screen sharing needs Chrome or Edge on a computer. This phone or browser cannot share a tab.');
       return;
     }
+    markPrompt();
     asking = true;
     if (!global.UI || !global.UI.modal) {
       var ok = global.confirm(
@@ -334,6 +366,46 @@
     global.UI.modal({
       title: 'Share your screen',
       body: CONSENT,
+      onClose: function () { if (!decided) asking = false; },
+      actions: [
+        { label: 'Not now', cls: 'btn--ghost', close: true },
+        { label: 'Share screen', cls: 'btn--primary', close: true, onClick: function () {
+          decided = true;
+          asking = false;
+          begin();
+        } }
+      ]
+    });
+  }
+
+  /* After sign-in, once per browser session, while the app is open.
+     The dialog is the consent step, so Share screen goes straight to
+     begin() and Chrome's picker. Not now does not start a share.
+     Guests and phones are skipped; the top-bar button stays. */
+  function offer() {
+    if (promptSeen() || asking || busy || live || promptWait) return;
+    if (!signed() || !appIsOpen() || !desktopShare()) return;
+    if (!global.UI || !global.UI.modal) return;
+    if (document.querySelector('.overlay, .lg-update-overlay')) {
+      promptWait = global.setInterval(function () {
+        if (promptSeen() || !signed() || !appIsOpen()) {
+          global.clearInterval(promptWait);
+          promptWait = null;
+          return;
+        }
+        if (document.querySelector('.overlay, .lg-update-overlay')) return;
+        global.clearInterval(promptWait);
+        promptWait = null;
+        offer();
+      }, 350);
+      return;
+    }
+    markPrompt();
+    asking = true;
+    var decided = false;
+    global.UI.modal({
+      title: 'Share your screen?',
+      body: PROMPT,
       onClose: function () { if (!decided) asking = false; },
       actions: [
         { label: 'Not now', cls: 'btn--ghost', close: true },
@@ -491,7 +563,7 @@
     if (stopBtn) stopBtn.addEventListener('click', stop);
     paint();
     if (global.Cloud && global.Cloud.onChange) {
-      global.Cloud.onChange(function () { paint(); });
+      global.Cloud.onChange(function () { paint(); offer(); });
     }
     global.addEventListener('pagehide', function () {
       if (live && roomName) keepaliveStop(roomName);
@@ -504,6 +576,7 @@
 
   global.ScreenShare = {
     ask: ask,
+    offer: offer,
     stop: stop,
     watch: watch,
     stopWatch: stopWatch,

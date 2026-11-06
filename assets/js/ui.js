@@ -1177,7 +1177,12 @@
     if (appOpen()) {
       go(currentView, { history: 'replace' });
       if (!W.state.roleChosen) askRole();
+      offerShare();
     }
+  }
+
+  function offerShare() {
+    if (global.ScreenShare && global.ScreenShare.offer) global.ScreenShare.offer();
   }
 
   /* ============================ NAVIGATION ========================== */
@@ -1516,6 +1521,7 @@
     refreshTabs();
     go(view || currentView || 'portal', opts);
     if (!W.state.roleChosen) askRole();
+    offerShare();
   }
 
   function showLanding(opts) {
