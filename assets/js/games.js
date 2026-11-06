@@ -172,6 +172,46 @@
       }
     },
     {
+      id: 'chessduel', title: 'Chess Duel', art: 'chessduel',
+      blurb: 'Challenge a friend by gamertag to a live chess match — invite, accept, then take turns on a shared board. Host plays White.',
+      meta: 'PvP · invite by gamertag · chess.js rules',
+      playLabel: 'Open chess lobby',
+      best: function (r) {
+        if (r.wins) return r.wins + (r.wins === 1 ? ' win' : ' wins');
+        return r.runs ? r.runs + (r.runs === 1 ? ' match' : ' matches') : '';
+      },
+      intro: 'Look up a friend’s gamertag and send an invite — same flow as Geo Duel. When they accept, you play a live turn-based chess match. ' +
+        'The challenger is White. Moves follow standard chess rules (castling, en passant, promotion). Rejoin if you disconnect. Resign or offer a draw anytime.',
+      keys: [
+        [['Gamertag'], 'look up a friend and send an invite'],
+        [['Click / tap'], 'your piece, then a highlighted square'],
+        [['Resign'], 'leave a live match from the foot bar']
+      ],
+      filters: false,
+      side: function (r) {
+        var box = global.ChessDuel && global.ChessDuel.inbox ? global.ChessDuel.inbox() : { incoming: [], outgoing: [] };
+        var pending = (box.incoming || []).length;
+        return '<div class="panel">' +
+            '<div class="panel__head"><h3>How invites work</h3></div>' +
+            '<p class="t-sm t-muted" style="margin:0">Your friend needs a gamertag (any Games leaderboard claim works). They see a pending invite in Chess Duel and can accept or decline. Legal moves use the chess.js rules engine.</p>' +
+            (pending
+              ? '<p class="t-sm" style="margin:10px 0 0"><b>' + pending + ' pending invite' + (pending === 1 ? '' : 's') + '</b> waiting in the lobby.</p>'
+              : '') +
+          '</div>' +
+          stats([[r.wins || 0, 'Wins'], [r.draws || 0, 'Draws'], [r.runs || 0, 'Matches']]);
+      },
+      wire: function () {
+        if (global.ChessDuel && global.ChessDuel.fetchInbox) global.ChessDuel.fetchInbox();
+      },
+      mount: function (stage) {
+        return global.ChessDuel.mount(stage, {
+          onBack: toSetup,
+          autoResume: true
+        });
+      },
+      playing: function () { return 'Live chess duel · challenge a friend'; }
+    },
+    {
       id: 'chess', title: 'Geo Chess', art: 'chess', premium: true,
       blurb: 'Build your chess skills, from a forgiving beginner opponent to full-strength Stockfish. Answer a geography question to unlock each move.',
       meta: 'Premium · Chess · five difficulty levels',
@@ -179,7 +219,7 @@
         if (r.best) return 'Best ' + r.best + ' pts';
         return r.wins ? r.wins + (r.wins === 1 ? ' win' : ' wins') : '';
       },
-      intro: 'Play White against the computer. Answer a question from your study set before each move. A wrong answer shows you the answer and gives you another question. Choose a piece, then a highlighted square. Castling, en passant and promotion follow standard chess rules. Higher difficulty levels play stronger and faster, and wins there are worth more points.',
+      intro: 'Play White against the computer. Answer a question from your study set before each move. A wrong answer shows you the answer and gives you another question. Choose a piece, then a highlighted square. Castling, en passant and promotion follow standard chess rules. Higher difficulty levels play stronger and faster, and wins there are worth more points. Want a human opponent? Open Chess Duel from the Games hub.',
       keys: [[['Click / tap'], 'a piece, then its destination'], [['Arrow keys'], 'explore the board; Enter or Space selects a square']],
       filters: { title: 'Chess question filters', heading: 'Move questions', typed: true },
       side: function (r) {
@@ -784,6 +824,7 @@
     }
     if (global.GameBlocks) global.GameBlocks.load();
     if (global.GeoDuel && global.GeoDuel.startWatching) global.GeoDuel.startWatching();
+    if (global.ChessDuel && global.ChessDuel.startWatching) global.ChessDuel.startWatching();
     if (screen === 'play') screen = 'setup';
     stop();
     if (screen === 'setup') renderSetup(); else renderHub();
@@ -910,8 +951,12 @@
     var prem = !off && isPremiumLocked(g.id);
     var locked = off || prem;
     var meta = showPrem ? g.meta : String(g.meta || '').replace(/^Premium\s*·\s*/i, '');
-    var invites = (g.id === 'duel' && global.GeoDuel && global.GeoDuel.pendingCount)
-      ? global.GeoDuel.pendingCount() : 0;
+    var invites = 0;
+    if (g.id === 'duel' && global.GeoDuel && global.GeoDuel.pendingCount) {
+      invites = global.GeoDuel.pendingCount();
+    } else if (g.id === 'chessduel' && global.ChessDuel && global.ChessDuel.pendingCount) {
+      invites = global.ChessDuel.pendingCount();
+    }
     return '<button class="game-card' + (off ? ' is-blocked' : '') + (prem ? ' is-premium-locked' : '') +
       '" data-game="' + g.id + '" type="button"' +
       (locked ? ' aria-disabled="true"' : '') + '>' +
@@ -926,7 +971,8 @@
           (best ? '<span class="game-card__best">' + esc(best) + '</span>' : '') +
           (off ? '<span class="game-card__go">' + I.lock + ' Blocked by your teacher</span>'
                : prem ? '<span class="game-card__go">' + I.lock + ' Premium · Upgrade</span>'
-               : '<span class="game-card__go">' + (g.id === 'duel' ? 'Challenge ' : 'Play ') + I.arrowR + '</span>') + '</div>' +
+               : '<span class="game-card__go">' +
+                   (g.id === 'duel' || g.id === 'chessduel' ? 'Challenge ' : 'Play ') + I.arrowR + '</span>') + '</div>' +
       '</div>' +
     '</button>';
   }
@@ -934,6 +980,13 @@
   function art(kind) {
     if (kind === 'chess') {
       return '<span class="chess-art__board"></span><span class="chess-art__piece">♞</span><span class="chess-art__caption">Your next move starts here</span>';
+    }
+    if (kind === 'chessduel') {
+      return '<span class="chess-art__board"></span><span class="chess-art__piece">♞</span>' +
+        '<span class="gduel-art__pill gduel-art__pill--a" style="top:18%">You</span>' +
+        '<span class="gduel-art__vs" style="top:42%">VS</span>' +
+        '<span class="gduel-art__pill gduel-art__pill--b" style="top:18%">Friend</span>' +
+        '<span class="chess-art__caption">Challenge a friend</span>';
     }
     if (kind === 'dash') {
       return '<span class="ga-cube"></span><span class="ga-spike" style="left:58%"></span>' +
@@ -1120,18 +1173,20 @@
             '</div>' +
           '</div>' +
           '<div class="dash-setup__side">' +
-            '<div class="panel">' +
-              '<div class="panel__head"><h3>' + esc(g.filters.heading) + '</h3>' +
-                '<button class="btn btn--ghost btn--sm" data-filters>Filters</button></div>' +
-              '<div class="dash-cfg">' +
-                '<div><span>Countries</span><b>' + esc(global.StudyFilters.label(cfg)) + '</b></div>' +
-                (g.filters.typed
-                  ? '<div><span>Answer</span><b>' + (cfg.typed ? (g.id === 'chess' ? 'Type the answer' : 'Type the capital') : 'Multiple choice') + '</b></div>'
-                  : '') +
-                '<div><span>Order</span><b>' + (cfg.weakFirst ? 'Weakest first' : 'Random') + '</b></div>' +
-              '</div>' +
-              '<div class="field__hint" style="margin-top:10px">The same filters as Learn: regions, UN members, or the countries you pick.</div>' +
-            '</div>' +
+            (g.filters
+              ? '<div class="panel">' +
+                  '<div class="panel__head"><h3>' + esc(g.filters.heading) + '</h3>' +
+                    '<button class="btn btn--ghost btn--sm" data-filters>Filters</button></div>' +
+                  '<div class="dash-cfg">' +
+                    '<div><span>Countries</span><b>' + esc(global.StudyFilters.label(cfg)) + '</b></div>' +
+                    (g.filters.typed
+                      ? '<div><span>Answer</span><b>' + (cfg.typed ? (g.id === 'chess' ? 'Type the answer' : 'Type the capital') : 'Multiple choice') + '</b></div>'
+                      : '') +
+                    '<div><span>Order</span><b>' + (cfg.weakFirst ? 'Weakest first' : 'Random') + '</b></div>' +
+                  '</div>' +
+                  '<div class="field__hint" style="margin-top:10px">The same filters as Learn: regions, UN members, or the countries you pick.</div>' +
+                '</div>'
+              : '') +
             g.side(r) +
           '</div>' +
         '</div>' +
@@ -1142,16 +1197,19 @@
     W.$('[data-board]', el).addEventListener('click', function () {
       if (global.GameBoards) global.GameBoards.open(g.id);
     });
-    W.$('[data-filters]', el).addEventListener('click', function () {
-      global.StudyFilters.open({
-        cfg: cfg, title: g.filters.title, types: false, mapChoices: false, answerStyle: g.filters.typed,
-        onApply: function (f) {
-          r.cfg = { regions: f.regions, scope: f.scope, countries: f.countries, typed: f.typed, weakFirst: f.weakFirst };
-          W.save();
-          renderSetup();
-        }
+    var filtersBtn = W.$('[data-filters]', el);
+    if (filtersBtn && g.filters) {
+      filtersBtn.addEventListener('click', function () {
+        global.StudyFilters.open({
+          cfg: cfg, title: g.filters.title, types: false, mapChoices: false, answerStyle: g.filters.typed,
+          onApply: function (f) {
+            r.cfg = { regions: f.regions, scope: f.scope, countries: f.countries, typed: f.typed, weakFirst: f.weakFirst };
+            W.save();
+            renderSetup();
+          }
+        });
       });
-    });
+    }
     g.wire(el, r);
   }
 

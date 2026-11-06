@@ -14,8 +14,17 @@
   var W = global.WW;
   var I = W.Icons;
 
-  /* Newest first. Bump `id` when shipping so returning users see it. */
+  /* Newest first. Bump `id` when shipping so returning users see it.
+     Chess Duel (LEA-56) is its own short entry so openings/rules/bots
+     (LEA-57/58) can ship a separate What’s New without sharing an id. */
   var UPDATES = [
+    {
+      id: '2026-11-chess-duel',
+      title: 'Chess Duel: challenge a friend',
+      body: 'Invite a classmate by gamertag to a live chess match — same invite inbox as Geo Duel, then take turns on a shared board. Host plays White.',
+      image: '/assets/img/updates/chess-duel.svg',
+      date: '2026-11-06'
+    },
     {
       id: '2026-11-rivers-lakes-select',
       title: 'Rivers & lakes in Select',

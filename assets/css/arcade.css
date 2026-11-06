@@ -314,6 +314,25 @@
 .duel-end__badge.is-loss { background: #D7262B; }
 .duel-end__actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
 
+/* ============================ Chess Duel ========================== */
+.game-art--chessduel {
+  background: #172e2b; position: relative; overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+}
+.cduel-play {
+  max-width: 560px; margin: 0 auto; display: grid; gap: 10px;
+}
+.cduel-board { max-width: 100%; }
+.cduel-opening {
+  display: inline-block; margin: 0 auto; padding: 4px 10px; border-radius: 999px;
+  background: rgba(23, 46, 43, .08); color: var(--muted); font-size: 12.5px;
+  text-align: center;
+}
+.cduel-opening--hook[hidden] { display: none; }
+.cduel-foot { justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.cduel .chess-status { text-align: center; margin: 4px 0 2px; }
+.cduel .chess-history { margin-top: 4px; }
+
 @media (max-width: 640px) {
   .duel-scoreboard { grid-template-columns: 1fr 1fr; }
   .duel-round { grid-column: 1 / -1; order: -1; }
