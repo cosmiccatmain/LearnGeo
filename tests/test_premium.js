@@ -44,5 +44,8 @@ var admin = fs.readFileSync(path.join(root, 'assets/js/administrator.js'), 'utf8
 assert(/prempreview/.test(admin) && /Premium plans &amp; gating preview|Premium plans \& gating preview|Turn preview/.test(admin),
   'Development panel has Premium preview toggle');
 assert(!/Screen monitoring/.test(admin), 'Screen monitoring nav is gone');
+assert(/reftrial/.test(admin) && /Referral → 3-day all-games trial/.test(admin),
+  'Development panel has referral trial TEST toggle');
+assert(/ReferralTrial/.test(prem), 'premium.js honors referral trial');
 
 console.log('test_premium.js: ok');

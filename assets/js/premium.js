@@ -58,8 +58,16 @@
     return !!on;
   }
 
+  function trialActive() {
+    /* LEA-49: 3-day all-games trial from referral TEST switch. */
+    if (global.ReferralTrial && typeof global.ReferralTrial.trialActive === 'function') {
+      return !!global.ReferralTrial.trialActive();
+    }
+    return false;
+  }
+
   function active() {
-    return !!flags().premium;
+    return !!flags().premium || trialActive();
   }
 
   function gameRequires(id) {
