@@ -216,6 +216,11 @@
     view = {
       el: el,
       classId: opts.classId || '',
+      /* Friend rounds have no class: explorers host with a join code.
+         Class rounds (teacher or student host) keep teacher oversight. */
+      friends: !!(opts.friends || opts.mode === 'friends'),
+      hostKind: opts.hostKind || ((opts.friends || opts.mode === 'friends')
+        ? 'friends' : 'teacher'),
       roster: normaliseRoster(opts.roster, opts.members),
       chosen: {},
       stage: 'start',
@@ -258,15 +263,15 @@
 
     /* The backstop on the off switch. oy-09 gates the tab, but if this is
        ever mounted for a class that has GeoLive switched off, off has to
-       mean off here too: no probe, no room, no network at all. Anything
-       less and a switched-off feature is still talking to the database,
-       which is the exact thing this project has already nearly shipped. */
-    if (global.ClassFeatures && !global.ClassFeatures.on('geolive', view.classId)) {
+       mean off here too: no probe, no room, no network at all. Friend
+       rounds have no class switch — only class-tied hosts are gated. */
+    if (view.classId && global.ClassFeatures &&
+        !global.ClassFeatures.on('geolive', view.classId)) {
       view.stage = 'off';
       view.el.innerHTML =
         '<div class="gl__empty">' +
           '<b>The live quiz is switched off for this class</b>' +
-          '<span>Turn it back on under what this class uses.</span>' +
+          '<span>Ask your teacher to turn it back on under what this class uses.</span>' +
         '</div>';
       return view;
     }
@@ -454,14 +459,64 @@
     } catch (e) { /* a private window forgets; nothing breaks */ }
   }
 
+  function startHeadline() {
+    if (view.friends) return 'Play a live quiz<br>with friends';
+    if (view.hostKind === 'student') return 'Host a live quiz<br>for your class';
+    return 'Play a live quiz<br>with the whole class';
+  }
+
+  function startSub() {
+    if (view.friends) {
+      return 'Share the join code. Friends answer on their own devices. You run it from this screen.';
+    }
+    if (view.hostKind === 'student') {
+      return 'Classmates answer on their own devices. You run the round from this screen.';
+    }
+    return 'Everyone answers on their own device. You run it from this screen.';
+  }
+
+  function startWhoLabel(n, faces) {
+    if (view.friends) {
+      return faces.length
+        ? '<small>' + n + (n === 1 ? ' player' : ' players') + ' invited</small>'
+        : '<small>Anyone with the code</small>';
+    }
+    return faces.length
+      ? '<small>' + (n === playable().length ? 'Whole class · ' : '') + n +
+          (n === 1 ? ' player' : ' players') + '</small>'
+      : '<small>Anyone in the class</small>';
+  }
+
+  function startHow() {
+    if (view.friends) {
+      return '<ol class="gl-how">' +
+        '<li><b>1</b><span>Press <em>Start a game</em></span></li>' +
+        '<li><b>2</b><span>Friends open GeoLive and type your join code</span></li>' +
+        '<li><b>3</b><span>Press <em>Go</em> when everyone is in</span></li>' +
+      '</ol>';
+    }
+    if (view.hostKind === 'student') {
+      return '<ol class="gl-how">' +
+        '<li><b>1</b><span>Press <em>Start a game</em></span></li>' +
+        '<li><b>2</b><span>Classmates open Classroom → GeoLive. The game pops up, or they type your code.</span></li>' +
+        '<li><b>3</b><span>Press <em>Go</em> when everyone is in</span></li>' +
+      '</ol>';
+    }
+    return '<ol class="gl-how">' +
+      '<li><b>1</b><span>Press <em>Start a game</em></span></li>' +
+      '<li><b>2</b><span>Students open your class in LearnGeo. The game pops up on its own.</span></li>' +
+      '<li><b>3</b><span>Press <em>Go</em> when everyone is in</span></li>' +
+    '</ol>';
+  }
+
   function startScreen() {
     var n = chosenPlayers().length;
     var faces = chosenPlayers().slice(0, 6);
     return '<div class="gl-stagebar">' + brand() + '</div>' +
       problemHtml() +
       '<div class="gl-start">' +
-        '<h2 class="gl-start__h">Play a live quiz<br>with the whole class</h2>' +
-        '<p class="gl-start__sub">Everyone answers on their own device. You run it from this screen.</p>' +
+        '<h2 class="gl-start__h">' + startHeadline() + '</h2>' +
+        '<p class="gl-start__sub">' + startSub() + '</p>' +
         '<div class="gl-start__card">' +
           '<span class="gl-start__ic" aria-hidden="true">' + (SET_ICONS[view.setId] || '🌍') + '</span>' +
           '<span class="gl-start__what"><b>' + esc(gameTitle()) + '</b>' +
@@ -470,19 +525,15 @@
             (faces.length
               ? '<span class="gl-faces">' + faces.map(function (p, i) {
                   return '<i style="--gl-n:' + i + '">' + esc(initials(p.name)) + '</i>';
-                }).join('') + '</span>' +
-                '<small>' + (n === playable().length ? 'Whole class · ' : '') + n + (n === 1 ? ' player' : ' players') + '</small>'
-              : '<small>Anyone in the class</small>') +
+                }).join('') + '</span>'
+              : '') +
+            startWhoLabel(n, faces) +
           '</span>' +
         '</div>' +
         '<button type="button" class="btn btn--accent btn--lg gl-cta gl-cta--xl" id="gl-open" data-act="open"' +
           (canOpen() ? '' : ' disabled') + '>Start a game ' + I.arrowR + '</button>' +
         '<button type="button" class="gl-textbtn" data-act="customize">Change the questions or who plays</button>' +
-        '<ol class="gl-how">' +
-          '<li><b>1</b><span>Press <em>Start a game</em></span></li>' +
-          '<li><b>2</b><span>Students open your class in LearnGeo. The game pops up on its own.</span></li>' +
-          '<li><b>3</b><span>Press <em>Go</em> when everyone is in</span></li>' +
-        '</ol>' +
+        startHow() +
       '</div>';
   }
 
@@ -748,7 +799,9 @@
   function diagnosis() {
     var C = global.GeoLiveCloud;
     if (!C) return { head: 'The live quiz did not load', body: 'Reload the page and try again.' };
-    if (!view.classId) return {
+    /* Friend hosts need only a signed-in account. Class hosts still need
+       the class online so the room can sit on that class_id. */
+    if (!view.friends && !view.classId) return {
       head: 'This class is not online yet',
       body: 'A live game runs through your account, so the class has to be put online first. ' +
         'Use the class code button at the top of the class, then come back.' };

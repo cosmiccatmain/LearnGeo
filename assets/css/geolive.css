@@ -1579,3 +1579,30 @@
 }
 .gl-radar i + i { animation-delay: 1.3s; }
 .gl-wait--idle .gl-textbtn { margin-top: 10px; }
+
+/* ==================================================================
+   STUDENT HOST / JOIN PICKER
+   ================================================================== */
+.gl-pickbar {
+  padding: 8px 4px 0;
+}
+.gl-pickbar .gl-textbtn {
+  color: var(--ink-2);
+  text-decoration-color: rgba(0,0,0,.2);
+}
+.gl-pickbar .gl-textbtn:hover {
+  color: var(--ink);
+  background: rgba(0,0,0,.04);
+}
+.gl--pick {
+  min-height: min(100dvh, 520px);
+  padding: var(--gl-pad, 20px);
+}
+.gl-pick {
+  display: grid;
+  gap: 12px;
+  width: 100%;
+  max-width: 360px;
+  margin-top: 4px;
+}
+.gl-pick .btn { width: 100%; }

@@ -19,6 +19,11 @@
      watch and the countdown running against a container that is no longer in
      the page. */
   var liveStudent = null;
+  /* Student host screen (GeoLiveTeacher). Separate from liveStudent so a
+     redraw can tear either down without guessing which was mounted. */
+  var liveHost = null;
+  /* 'pick' chooses host vs join; 'host' / 'join' mount the matching screen. */
+  var liveMode = 'pick';
   var featuresFor = null;
   var featuresWatched = false;
 
@@ -345,7 +350,13 @@
   function panel() {
     if (tab === 'stream') return streamPanel();
     if (tab === 'grades') return gradesPanel();
-    if (tab === 'geolive') return '<div id="cl-geolive"></div>';
+    if (tab === 'geolive') {
+      return (liveMode === 'pick' ? '' :
+        '<div class="gl-pickbar">' +
+          '<button type="button" class="gl-textbtn" data-gl-back>← Host or join</button>' +
+        '</div>') +
+        '<div id="cl-geolive"></div>';
+    }
     if (tab === 'leaderboard') return '<div id="cl-leaderboard"></div>';
     if (tab === 'people') return '<div id="cl-people"></div>';
     return classworkPanel();
@@ -804,16 +815,10 @@
        tab changes. A sync that redraws while GeoLive is still the open tab
        detaches the old container just as thoroughly as switching away does,
        and that one is the common case: the class syncs on its own. */
-    if (liveStudent) {
-      try { liveStudent.destroy(); } catch (e) { /* it is going anyway */ }
-      liveStudent = null;
-    }
+    tearLive();
 
     var glHost = document.getElementById('cl-geolive');
-    if (glHost && geoliveOn() && global.GeoLiveStudent && global.GeoLiveStudent.mount) {
-      /* keep the handle: it is the only route to destroy() */
-      liveStudent = global.GeoLiveStudent.mount(glHost, { code: '' }) || null;
-    }
+    if (glHost && geoliveOn()) mountGeoLive(glHost);
 
     /* the header and the empty state both carry an Add button */
     W.$$('[data-add]', host).forEach(function (b) { b.addEventListener('click', checkForWork); });
@@ -1054,12 +1059,98 @@
     return { learn: 'Learn', test: 'Practice test', cards: 'Flashcards', quiz: 'Class quiz' }[m] || W.escapeHtml(m);
   }
 
+  /* ============================ GeoLive host/join =================== */
+
+  function tearLive(forceHost) {
+    if (liveStudent) {
+      try { liveStudent.destroy(); } catch (e) { /* it is going anyway */ }
+      liveStudent = null;
+    }
+    if (liveHost || (global.GeoLiveTeacher && global.GeoLiveTeacher.stage)) {
+      var GT = global.GeoLiveTeacher;
+      /* force when leaving host deliberately (pick/join). Soft on sync redraws
+         so a mid-round remount keeps the open room, same as the teacher tab. */
+      if (GT && GT.unmount) { try { GT.unmount(!!forceHost); } catch (e) {} }
+      liveHost = null;
+    }
+  }
+
+  function classmateRoster() {
+    var en = enrolled() || {};
+    var members = en.members || [];
+    return members.map(function (m) {
+      if (!m) return null;
+      if (typeof m === 'string') return { id: '', name: m };
+      return { id: m.id || m.student_id || '', name: m.name || m.display_name || m.displayName || '' };
+    }).filter(function (p) { return p && p.name; });
+  }
+
+  function geoLivePickHtml() {
+    return '<div class="gl gl--pick gl--stage" data-fresh>' +
+      '<div class="gl-brand" aria-hidden="true">' +
+        '<span class="gl-brand__globe">' + I.bolt + '</span>' +
+        '<span class="gl-brand__word">Geo<b>Live</b></span>' +
+      '</div>' +
+      '<div class="gl-start">' +
+        '<h2 class="gl-start__h">Play a live quiz<br>with your class</h2>' +
+        '<p class="gl-start__sub">Host a round for classmates, or join one someone else started.</p>' +
+        '<div class="gl-pick">' +
+          '<button type="button" class="btn btn--accent btn--lg gl-cta" data-gl-mode="host">' +
+            'Host a round ' + I.arrowR + '</button>' +
+          '<button type="button" class="btn btn--ghost btn--lg" data-gl-mode="join">' +
+            'Join a round</button>' +
+        '</div>' +
+        '<ol class="gl-how">' +
+          '<li><b>1</b><span>One person hosts and gets a join code</span></li>' +
+          '<li><b>2</b><span>Everyone else joins from this tab</span></li>' +
+          '<li><b>3</b><span>The host presses Go when the lobby is ready</span></li>' +
+        '</ol>' +
+      '</div>' +
+    '</div>';
+  }
+
+  function mountGeoLive(glHost) {
+    var back = document.querySelector('#view-classroom [data-gl-back]');
+    if (back) {
+      back.addEventListener('click', function () {
+        tearLive(true);
+        liveMode = 'pick';
+        render(true);
+      });
+    }
+    if (liveMode === 'host' && global.GeoLiveTeacher && global.GeoLiveTeacher.mount) {
+      var en = enrolled() || {};
+      var roster = classmateRoster();
+      liveHost = global.GeoLiveTeacher.mount(glHost, {
+        classId: en.classId || '',
+        roster: roster,
+        members: roster.slice(),
+        hostKind: 'student'
+      }) || null;
+      return;
+    }
+    if (liveMode === 'join' && global.GeoLiveStudent && global.GeoLiveStudent.mount) {
+      liveStudent = global.GeoLiveStudent.mount(glHost, { code: '' }) || null;
+      return;
+    }
+    liveMode = 'pick';
+    glHost.innerHTML = geoLivePickHtml();
+    W.$$('[data-gl-mode]', glHost).forEach(function (b) {
+      b.addEventListener('click', function () {
+        liveMode = b.getAttribute('data-gl-mode') === 'host' ? 'host' : 'join';
+        render(true);
+      });
+    });
+  }
+
   global.Classroom = {
     render: render,
     checkForWork: checkForWork, prefill: prefill,
     joinedElsewhere: joinedElsewhere,
     syncSoon: syncSoon,
-    forget: function () { lastSync = 0; },
-    get tab() { return tab; }, set tab(v) { tab = v; }
+    forget: function () { lastSync = 0; liveMode = 'pick'; tearLive(true); },
+    get tab() { return tab; }, set tab(v) { tab = v; },
+    /* LEA-50 two-agent tests: open Classroom → GeoLive → Join, enter host code. */
+    get liveMode() { return liveMode; }, set liveMode(v) { liveMode = v; }
   };
 })(window);
