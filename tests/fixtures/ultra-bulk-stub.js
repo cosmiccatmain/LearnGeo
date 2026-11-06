@@ -52,6 +52,7 @@
     ultra_find_accounts: 1,
     ultra_banned: 1,
     ultra_recent_actions: 1,
+    ultra_admin_logins: 1,
     ultra_message_thread: 1
   };
 
@@ -81,6 +82,7 @@
     }
     if (fn === 'ultra_banned') return { data: [], error: null };
     if (fn === 'ultra_recent_actions') return { data: [], error: null };
+    if (fn === 'ultra_admin_logins') return { data: [], error: null };
     if (fn === 'ultra_message_thread') return { data: [], error: null };
     if (fn === 'ultra_send_message') return { data: '2026-01-02T00:00:00Z', error: null };
     if (fn === 'ultra_adjust_gems') return { data: 1000, error: null };

@@ -143,6 +143,7 @@
           navItem('gems', I.gem, 'Gems') +
           navItem('messages', I.message || I.inbox, 'Messages') +
           navItem('activity', I.list || I.chart, 'Activity') +
+          navItem('logins', I.lock || I.list, 'Logins') +
           navItem('permissions', I.lock, 'Permissions') +
           navItem('commands', I.bolt, 'Commands') +
           navItem('development', I.flask || I.bolt, 'Development') +
@@ -284,6 +285,7 @@
     gems: 'Gems',
     messages: 'Messages',
     activity: 'Activity',
+    logins: 'Logins',
     permissions: 'Permissions',
     commands: 'Commands',
     development: 'Development'
@@ -301,7 +303,8 @@
     else if (section === 'accounts') host.innerHTML = panelAccounts();
     else if (section === 'gems') host.innerHTML = panelGems();
     else if (section === 'messages') host.innerHTML = panelMessages();
-    else if (section === 'activity') host.innerHTML = panelActivity();
+    else     if (section === 'activity') host.innerHTML = panelActivity();
+    else if (section === 'logins') host.innerHTML = panelLogins();
     else if (section === 'permissions') host.innerHTML = panelPermissions();
     else if (section === 'commands') host.innerHTML = panelCommands();
     else if (section === 'development') host.innerHTML = panelDevelopment();
@@ -322,6 +325,9 @@
     }
     if (section === 'activity') {
       ops().recent(30).then(function (r) { guard(r, renderLog); });
+    }
+    if (section === 'logins') {
+      loadLogins();
     }
     if (section === 'permissions') loadGrants();
   }
@@ -421,6 +427,15 @@
       '<h3>Recent admin actions</h3>' +
       '<p class="t-sm t-muted">Everything any admin has done to anybody else. Written by the server.</p>' +
       '<div id="ap-log" class="adminp__rows"></div>' +
+    '</section>';
+  }
+
+  function panelLogins() {
+    return '<section class="adminp__sec">' +
+      '<h3>Admin panel logins</h3>' +
+      '<p class="t-sm t-muted">Who unlocked UltraAdmin, and when. Written by the server when a session opens. ' +
+        'Shows account email and time only — no screen sharing.</p>' +
+      '<div id="ap-logins" class="adminp__rows"></div>' +
     '</section>';
   }
 
@@ -700,6 +715,7 @@
       if (section === 'accounts' || !rows.length) search();
       if (section === 'permissions') loadGrants();
       if (section === 'activity') o.recent(30).then(function (r) { guard(r, renderLog); });
+      if (section === 'logins') loadLogins();
       renderPanel();
     });
   }
@@ -1613,6 +1629,47 @@
         '<span class="t-muted">→</span>' +
         '<span>' + esc(a.target_email || '—') + '</span>' +
         '<span class="grow">' + what + '</span>' +
+      '</div>';
+    }).join('');
+  }
+
+  function loadLogins() {
+    var o = ops();
+    if (!o || !o.logins) {
+      renderLogins([]);
+      return;
+    }
+    o.logins(50).then(function (r) { guard(r, renderLogins); });
+  }
+
+  function loginWhen(iso) {
+    if (!iso) return '—';
+    try {
+      var d = new Date(iso);
+      if (isNaN(d.getTime())) return String(iso);
+      return d.toLocaleString(undefined, {
+        year: 'numeric', month: 'short', day: 'numeric',
+        hour: 'numeric', minute: '2-digit'
+      });
+    } catch (e) {
+      return String(iso);
+    }
+  }
+
+  function renderLogins(list) {
+    var host = root && W.$('#ap-logins', root);
+    if (!host) return;
+    if (!list || !list.length) {
+      host.innerHTML = '<div class="adminp__empty">No admin logins recorded yet.</div>';
+      return;
+    }
+    host.innerHTML = list.map(function (row) {
+      var how = row.method === 'private' ? 'Private Password' : 'Admin code';
+      var whenAbs = loginWhen(row.logged_at);
+      return '<div class="adminp__logrow adminp__logrow--login">' +
+        '<span class="t-muted" title="' + esc(ago(row.logged_at)) + '">' + esc(whenAbs) + '</span>' +
+        '<span class="grow">' + esc(row.email || 'unknown') + '</span>' +
+        '<span class="t-muted">' + esc(how) + '</span>' +
       '</div>';
     }).join('');
   }
