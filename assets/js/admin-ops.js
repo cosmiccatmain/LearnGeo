@@ -237,50 +237,6 @@
       .then(function (r) { if (r.ok) markPrivate(false); return r; });
   }
 
-  /* A Daily meeting token for the owner. p_token is the ultra session,
-     the same one every other call sends. The answer's token is a Daily
-     meeting JWT, not the API key. */
-  function invokeDaily(name, body) {
-    var client = sb();
-    if (!client || !signedIn()) {
-      return Promise.resolve(fault('notready', 'Signed out. Sign in and open UltraAdmin again.'));
-    }
-    if (!client.functions || !client.functions.invoke) {
-      return Promise.resolve(fault('error', 'This page cannot call the screen-share function.'));
-    }
-    var wait = opening ? opening : Promise.resolve(null);
-    return wait.then(function () {
-      if (!live()) {
-        return fault('expired', 'The admin session has ended. Close this and open UltraAdmin again.');
-      }
-      var payload = { p_token: token };
-      for (var k in body) {
-        if (Object.prototype.hasOwnProperty.call(body, k)) payload[k] = body[k];
-      }
-      return client.functions.invoke(name, { body: payload }).then(function (res) {
-        if (!res || !res.error) return { ok: true, data: res ? res.data : null };
-        return readInvokeError(res.error);
-      }, function (e) {
-        return fault('error', String((e && e.message) || e));
-      });
-    });
-  }
-
-  function readInvokeError(error) {
-    var ctx = error && error.context;
-    if (ctx && typeof ctx.json === 'function') {
-      return ctx.json().then(function (body) {
-        return fault('error', (body && body.error) || error.message || 'The server refused that.');
-      }, function () {
-        return fault('error', error.message || 'The server refused that.');
-      });
-    }
-    if (ctx && typeof ctx === 'object' && ctx.error) {
-      return Promise.resolve(fault('error', String(ctx.error)));
-    }
-    return Promise.resolve(fault('error', (error && error.message) || 'The server refused that.'));
-  }
-
   function disconnect() {
     var client = sb(), t = token;
     token = null; until = 0; scope = '';
@@ -384,13 +340,6 @@
     },
     banned:   function ()                 { return call('ultra_banned', {}); },
     activity: function (mins)             { return call('ultra_activity', { p_minutes: mins || 15 }); },
-    /* 0012 screen shares. The list is owner-gated in SQL. The viewer
-       token is minted by the Edge Function, which checks the same
-       session. The Daily API key is not in this file. */
-    screenShares: function ()             { return call('list_screen_shares', {}); },
-    viewerToken: function (roomName)      {
-      return invokeDaily('daily-share-token', { role: 'viewer', room_name: roomName });
-    },
     rename:   function (id, name)         { return call('ultra_set_name', { p_target: id, p_name: String(name || '') }); },
     wipeScores:    function (id)          { return call('ultra_wipe_scores', { p_target: id }); },
     resetProgress: function (id)          { return call('ultra_reset_progress', { p_target: id }); },

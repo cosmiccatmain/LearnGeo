@@ -2,8 +2,8 @@
    0012 — per-admin command grants for the Administrator page.
 
    Owner account alexjschendel@gmail.com always has every command.
-   Screen monitoring (`activity`) is hard-gated to that owner only —
-   it cannot be granted to anyone else.
+   (Historical note: an earlier `activity` / screen-monitoring grant gate
+   lived here; live screen mirroring was removed from the client in LEA-46.)
 
    Everyone else on admin_allow starts with no grants: they can open
    the page and read accounts/stats/log, but cannot ban, change gems,

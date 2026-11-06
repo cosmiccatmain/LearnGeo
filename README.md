@@ -364,7 +364,8 @@ assets/js/quiz.js               question generation
 assets/js/assignments.js        suggestions, share codes, handing in work
 assets/js/cloud.js              Supabase accounts, save sync, online classes
 assets/js/activity.js           reports the view name (Learn, Games, …) for signed-in accounts
-assets/js/screen-share.js       voluntary screen share. Separate from the view-name board.
+assets/js/premium.js            account Premium entitlement checks + Development preview switch
+assets/js/subscription-dev.js   Premium plans UI (mock / TEST checkout only)
 assets/js/ui.js                 shell, profile menu, sign in, settings, customization, shop
 assets/js/passkey.js            passkey sign-in and the eye on password boxes
 assets/js/portal.js             study center home screen, built around the map
@@ -407,25 +408,18 @@ is served by Vercel; a local Python server won't provide that endpoint.
 
 ## Screen sharing
 
-Signed-in students can click **Share screen** in the top bar. That is
-voluntary: Chrome or Edge shows its own picker, and **Stop sharing**
-leaves the call. The names on Administrator → Screen monitoring are a
-different thing — which page someone is on, not a picture of it. Live
-shares are the section underneath that list, and only the site owner
-(`alexjschendel@gmail.com`, with UltraAdmin open) can watch one tile.
+Removed (LEA-46). LearnGeo does not ship screen mirroring, remote desktop,
+display capture, or an Administrator “Screen monitoring” live-share viewer.
+`activity.js` still reports only the view name (Learn, Games, …) for
+signed-in accounts — never pixels. Historical SQL under
+`supabase/deployed/0012_screen_shares.sql` may remain on an older database;
+the client no longer calls it.
 
-Daily includes about 10,000 participant-minutes a month, then about
-$0.004 a minute. A student sharing counts as one participant. The owner
-watching them counts as a second. Stop watching when you are done.
-There is no recording, and the microphone and camera stay off.
+## Premium (development preview)
 
-The Daily API key is not in this repo and must not be a Vercel
-environment variable. Set it as a Supabase secret, apply
-`supabase/deployed/0012_screen_shares.sql`, and deploy `daily-share-token`
-and `daily-share-stop`. See `supabase/deployed/README.md`.
-
-To try it: two browsers. In one, sign in as a student and share a tab.
-In the other, sign in as the owner, open UltraAdmin, and on Screen
-monitoring press Watch, then Stop watching. In the student’s network
-log the only Daily credential is the meeting token from the Edge
-Function — not the API key.
+Premium is account / player level (not teacher-based). Public checkout is
+**mock / TEST only** — Stripe is not connected. Owner
+`alexjschendel@gmail.com` (UltraAdmin → Development) flips the **Premium
+plans & gating preview** switch to show or hide plans UI and client gates
+while testing. When the switch is off, users do not see Premium paywalls
+or plans as if they were live.

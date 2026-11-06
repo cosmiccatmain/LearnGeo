@@ -6,10 +6,10 @@
    account, so each call keeps that command's permission check.
    Sidebar layout (deep blue, profile, section nav, Leave Admin) with
    server-backed command grants (0012). Owner
-   alexjschendel@gmail.com has every command. Screen monitoring is
-   owner-only, including the live Daily shares under that tab. Other
-   admins default to read-only accounts/stats/log until the owner
-   grants gems / ban / messages / etc.
+   alexjschendel@gmail.com has every command. Development hosts the
+   Premium plans preview switch (mock / TEST only). Other admins
+   default to read-only accounts/stats/log until the owner grants
+   gems / ban / messages / etc.
 
    NOTHING HERE IS A PERMISSION CHECK. Every call goes through
    AdminOps to a security definer function that re-checks the session
@@ -53,9 +53,6 @@
   var querySeen = false;
   var bulkBusy = false;
   var bulkGen = 0;
-  var watchingRoom = '';
-  var watchingName = '';
-  var shareTimer = null;
 
   var DEAD = {
     live: function () { return false; },
@@ -64,7 +61,7 @@
     stats: no, find: no, recent: no, gems: no, staff: no, allowList: no, allow: no,
     message: no, thread: no, override: no, myAccess: no, grantsList: no, grantsSet: no,
     activity: no, ban: no, banned: no, rename: no, wipeScores: no, resetProgress: no,
-    leaveClasses: no, screenShares: no, viewerToken: no
+    leaveClasses: no
   };
   function no() {
     return Promise.resolve({ ok: false, kind: 'error', message: 'admin-ops.js did not load.' });
@@ -111,8 +108,6 @@
 
   function close() {
     if (!root) return;
-    disarmSharePoll();
-    stopWatching();
     root.remove();
     root = null; rows = []; picked = null; stats = null; banner = '';
     section = 'overview'; grants = [];
@@ -143,7 +138,6 @@
         '</div>' +
         '<nav class="adminp__navlist" id="ap-nav">' +
           navItem('overview', I.home || I.grid, 'Overview') +
-          navItem('monitor', I.monitor || I.eye, 'Screen monitoring') +
           navItem('accounts', I.users, 'Accounts') +
           navItem('gems', I.gem, 'Gems') +
           navItem('messages', I.message || I.inbox, 'Messages') +
@@ -210,9 +204,6 @@
       if (d.do === 'wipescores')   return wipeScores();
       if (d.do === 'resetprog')    return resetProgress();
       if (d.do === 'leaveclasses') return leaveClasses();
-      if (d.do === 'watch')    { loadShares(false); return loadActivity(true); }
-      if (d.do === 'sharewatch') return watchShare(d.room, d.name || '');
-      if (d.do === 'sharestop') return stopWatching();
       if (d.do === 'search')   return search();
       if (d.do === 'select-everyone') return selectEveryone();
       if (d.do === 'clear-selection') return clearSelection();
@@ -227,6 +218,7 @@
         return sendMessage(box ? box.value : '', box);
       }
       if (d.do === 'subdev') return openSubscriptionDev();
+      if (d.do === 'prempreview') return setPremiumPreview(d.on === '1');
     });
 
     root.addEventListener('keydown', function (e) {
@@ -267,22 +259,22 @@
     for (var i = 0; i < nodes.length; i++) {
       var id = nodes[i].getAttribute('data-nav');
       var show = true;
-      if (id === 'monitor' || id === 'permissions') show = !!access.owner;
+      if (id === 'permissions') show = !!access.owner;
       if (id === 'gems' && !access.owner && !can('gems')) show = false;
       if (id === 'messages' && !access.owner && !can('messages')) show = false;
       nodes[i].hidden = !show;
       nodes[i].classList.toggle('is-on', show && section === id);
     }
-    if ((section === 'monitor' || section === 'permissions') && !access.owner) {
+    if (section === 'permissions' && !access.owner) {
       section = 'overview';
     }
+    if (section === 'monitor') section = 'overview';
     if (section === 'gems' && !can('gems')) section = 'overview';
     if (section === 'messages' && !can('messages')) section = 'overview';
   }
 
   var TITLES = {
     overview: 'Overview',
-    monitor: 'Screen monitoring',
     accounts: 'Accounts',
     gems: 'Gems',
     messages: 'Messages',
@@ -295,15 +287,12 @@
   function renderPanel() {
     if (!root) return;
     syncNav();
-    /* Leaving the monitor tab drops the watch so Daily stops billing it. */
-    if (section !== 'monitor' && watchingRoom) stopWatching();
     var head = W.$('#ap-heading', root);
     if (head) head.textContent = TITLES[section] || 'Administrator';
     var host = W.$('#ap-panel', root);
     if (!host) return;
 
     if (section === 'overview') host.innerHTML = panelOverview();
-    else if (section === 'monitor') host.innerHTML = panelMonitor();
     else if (section === 'accounts') host.innerHTML = panelAccounts();
     else if (section === 'gems') host.innerHTML = panelGems();
     else if (section === 'messages') host.innerHTML = panelMessages();
@@ -315,16 +304,6 @@
 
     /* Fill dynamic bits after the shell is in the DOM. */
     if (section === 'overview') { renderStats(); renderStaff(); }
-    if (section === 'monitor') {
-      loadActivity(false);
-      loadShares(false);
-      armSharePoll();
-      if (watchingRoom && global.ScreenShare && global.ScreenShare.attach) {
-        global.ScreenShare.attach();
-      }
-    } else {
-      disarmSharePoll();
-    }
     if (section === 'accounts') {
       var qEl = W.$('#ap-q', root);
       if (qEl && querySeen) qEl.value = loadedQuery;
@@ -344,7 +323,7 @@
 
   function panelOverview() {
     var note = access.owner
-      ? 'You are the owner account. Every administrator command is available, including screen monitoring and the permissions panel.'
+      ? 'You are the owner account. Every administrator command is available, including the permissions panel and Development Premium preview.'
       : 'Your access is limited to what the owner has granted. Destructive gems, bans, and moderation stay off until granted.';
     return '<div class="adminp__grid" id="ap-stats"></div>' +
       '<section class="adminp__sec">' +
@@ -363,7 +342,7 @@
     var labels = {
       accounts: 'Accounts', stats: 'Stats', log: 'Activity log', gems: 'Gems',
       ban: 'Bans', messages: 'Messages', staff: 'Staff', allow: 'Allowlist',
-      moderate: 'Moderate', classes: 'Classes', activity: 'Screen monitoring',
+      moderate: 'Moderate', classes: 'Classes',
       permissions: 'Permissions'
     };
     var cmds = access.owner
@@ -376,147 +355,6 @@
     }).map(function (c) {
       return '<span class="adminp__chip">' + esc(labels[c]) + '</span>';
     }).join('') || '<span class="t-sm t-muted">Read-only default</span>';
-  }
-
-  function panelMonitor() {
-    if (!access.owner) {
-      return '<section class="adminp__sec"><h3>Screen monitoring</h3>' +
-        '<p class="t-sm t-muted">Only the owner account can use screen monitoring.</p></section>';
-    }
-    return '<section class="adminp__sec">' +
-      '<div class="row row--between">' +
-        '<h3 style="margin:0">Who is on now</h3>' +
-        '<button class="btn btn--ghost btn--sm" data-do="watch">' + I.refresh + ' Refresh</button>' +
-      '</div>' +
-      '<p class="t-sm t-muted">Which screen each signed-in account is on, and when they were ' +
-        'last there. Screen names only — not what they type, what they answer, or anything on ' +
-        'their screen. A live picture is a separate choice, listed under Live shares, and only ' +
-        'after that person clicks Share screen.</p>' +
-      '<div id="ap-activity" class="adminp__rows"></div>' +
-    '</section>' +
-    '<section class="adminp__sec">' +
-      '<h3 style="margin:0 0 4px">Live shares</h3>' +
-      '<p class="t-sm t-muted">The window or tab they picked. This is not the name list above. ' +
-        'Nobody is captured unless they click Share screen, and they can stop it themselves. ' +
-        'Watch one at a time, from a different window than the one being shared. ' +
-        'Stop watching leaves the call.</p>' +
-      '<p class="t-sm t-muted">Daily includes about 10,000 participant-minutes a month, then about ' +
-        '$0.004 a minute. Someone sharing is one participant. You watching them is a second. ' +
-        'Spot-checks stay near the free allowance; watching everyone at once does not.</p>' +
-      '<div id="ap-shares" class="adminp__rows"><div class="t-sm t-muted">Looking…</div></div>' +
-      '<div id="ap-watch">' + (watchingRoom ? watchShell(watchingName) : '') + '</div>' +
-    '</section>';
-  }
-
-  function watchShell(name) {
-    return '<div class="adminp__watch">' +
-      '<div class="adminp__watchbar">' +
-        '<span class="adminp__watchdot" aria-hidden="true"></span>' +
-        '<b>' + esc(name || 'Student') + '</b>' +
-        '<span id="ap-watch-status">Joining…</span>' +
-        '<button type="button" class="btn btn--sm" data-do="sharestop">Stop watching</button>' +
-      '</div>' +
-      '<video id="ap-watch-video" autoplay playsinline muted></video>' +
-    '</div>';
-  }
-
-  function setWatchStatus(msg) {
-    var el = root && W.$('#ap-watch-status', root);
-    if (el) el.textContent = msg || '';
-  }
-
-  function roomOk(name) {
-    return /^lg-u-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(String(name || ''));
-  }
-
-  function watchShare(room, name) {
-    if (!access.owner || !roomOk(room)) return;
-    if (watchingRoom === room && global.ScreenShare && global.ScreenShare.watching &&
-        global.ScreenShare.watching() === room) return;
-    watchingRoom = room;
-    watchingName = name || 'Student';
-    var host = root && W.$('#ap-watch', root);
-    if (host) host.innerHTML = watchShell(watchingName);
-    if (!global.ScreenShare || !global.ScreenShare.watch) {
-      setWatchStatus('screen-share.js did not load.');
-      return;
-    }
-    global.ScreenShare.watch(room).then(function (r) {
-      if (!root || watchingRoom !== room) return;
-      if (!r || !r.ok) setWatchStatus((r && r.message) || 'Could not join that share.');
-    });
-  }
-
-  function stopWatching() {
-    watchingRoom = '';
-    watchingName = '';
-    var host = root && W.$('#ap-watch', root);
-    if (host) host.innerHTML = '';
-    if (global.ScreenShare && global.ScreenShare.stopWatch) global.ScreenShare.stopWatch();
-  }
-
-  function armSharePoll() {
-    disarmSharePoll();
-    shareTimer = global.setInterval(function () {
-      if (!root || section !== 'monitor') { disarmSharePoll(); return; }
-      loadShares(false);
-    }, 8000);
-  }
-
-  function disarmSharePoll() {
-    if (shareTimer) global.clearInterval(shareTimer);
-    shareTimer = null;
-  }
-
-  function loadShares(loud) {
-    var host = root && W.$('#ap-shares', root);
-    if (!host) return;
-    if (!access.owner) {
-      host.innerHTML = '<div class="t-sm t-muted">Only the owner can watch a live share.</div>';
-      return;
-    }
-    var o = ops();
-    if (!o || !o.screenShares) return;
-    if (loud) host.innerHTML = '<div class="t-sm t-muted">Looking…</div>';
-    o.screenShares().then(function (r) {
-      host = root && W.$('#ap-shares', root);
-      if (!host || section !== 'monitor') return;
-      if (!r || !r.ok) {
-        host.innerHTML = '<div class="t-sm t-muted">' +
-          (r && r.kind === 'nomigration'
-            ? 'Run supabase/deployed/0012_screen_shares.sql in the SQL editor, then deploy daily-share-token.'
-            : r && r.kind === 'forbidden'
-            ? 'Only the owner can watch a live share.'
-            : esc((r && r.message) || 'Could not list live shares.')) + '</div>';
-        return;
-      }
-      var list = r.data || [];
-      if (!list.length) {
-        host.innerHTML = '<div class="t-sm t-muted">No one is sharing. Students must click Share screen.</div>';
-        return;
-      }
-      host.innerHTML =
-        '<div class="adminp__row adminp__row--share adminp__row--head">' +
-          '<span>Name</span><span>Email</span><span>In app</span><span>Sharing</span><span></span>' +
-        '</div>' +
-        list.map(function (a) {
-          var room = a.room_name || '';
-          var on = watchingRoom && watchingRoom === room;
-          var nm = a.display_name || 'Explorer';
-          var btn = roomOk(room)
-            ? '<button type="button" class="btn btn--primary btn--sm" data-do="sharewatch" data-room="' +
-              esc(room) + '" data-name="' + esc(nm) + '"' + (on ? ' disabled' : '') + '>' +
-              (on ? 'Watching' : 'Watch') + '</button>'
-            : '';
-          return '<div class="adminp__row adminp__row--share' + (on ? ' is-on' : '') + '">' +
-            '<span class="adminp__nm">' + esc(nm) + '</span>' +
-            '<span class="t-muted">' + esc(a.email || '—') + '</span>' +
-            '<span>' + esc(a.screen || '—') + '</span>' +
-            '<span class="t-muted">' + esc(ago(a.started_at)) + '</span>' +
-            '<span>' + btn + '</span>' +
-          '</div>';
-        }).join('');
-    });
   }
 
   function panelAccounts() {
@@ -585,8 +423,7 @@
     return '<section class="adminp__sec">' +
       '<h3>Permissions</h3>' +
       '<p class="t-sm t-muted">Limit other admins to certain commands. Default is restricted: ' +
-        'no bans, no taking gems, no destructive moderation. Screen monitoring stays owner-only ' +
-        'and cannot be granted. Example: check only <b>Gems</b>, or use <b>Gems only</b>.</p>' +
+        'no bans, no taking gems, no destructive moderation. Example: check only <b>Gems</b>, or use <b>Gems only</b>.</p>' +
       '<div id="ap-grants" class="adminp__grants">Loading…</div>' +
     '</section>';
   }
@@ -595,8 +432,7 @@
     return '<section class="adminp__sec">' +
       '<h3>Commands</h3>' +
       '<p class="t-sm t-muted">Type <code>help</code> for the list. A command that needs an account uses the selected one. ' +
-        '<code>watch</code> refreshes screen monitoring (owner only). ' +
-        '<code>plans</code> opens the Premium plans TEST grant UI.</p>' +
+        '<code>plans</code> opens the Premium plans TEST grant UI (mock checkout only).</p>' +
       '<div class="adminp__search">' +
         '<input class="input mono" id="ap-cmd" type="text" placeholder="take 500" ' +
           'autocomplete="off" spellcheck="false">' +
@@ -608,15 +444,30 @@
 
   function panelDevelopment() {
     var premOn = !!(global.Premium && global.Premium.active && global.Premium.active());
+    var previewOn = !!(global.Premium && global.Premium.previewEnabled && global.Premium.previewEnabled());
     return '<section class="adminp__sec">' +
       '<h3>Development</h3>' +
       '<p class="t-sm t-muted">TEST Premium tools for owner <code>alexjschendel@gmail.com</code> and UltraAdmin. ' +
-        'Premium is <b>account / player</b> level — not teacher-based.</p>' +
+        'Premium is <b>account / player</b> level — not teacher-based. Public checkout stays mock / TEST only.</p>' +
       '<div class="adminp__warn adminp__warn--expired" style="margin-bottom:14px">' +
         '<div class="row" style="gap:10px;align-items:flex-start">' + (I.info || '') +
-          '<div class="grow"><b>TEST grants.</b> Mock checkout can set <code>flags.premium</code> for this account. ' +
-            'Live Stripe is not connected. Locked Games show an Upgrade path for everyone.</div>' +
+          '<div class="grow"><b>Not live billing.</b> Stripe is not connected. Turning the switch on only previews ' +
+            'Premium plans UI and client gates for testing. When off, learners do not see paywalls or plans as if live.</div>' +
         '</div>' +
+      '</div>' +
+      '<div class="adminp__who" style="align-items:flex-start;margin-bottom:14px">' +
+        '<div class="grow">' +
+          '<div class="adminp__nm">' + (I.flask || I.bolt || '') +
+            '<span>Premium plans &amp; gating preview</span></div>' +
+          '<p class="t-sm t-muted" style="margin:6px 0 0">' +
+            (previewOn
+              ? 'Preview is <b>on</b>. Games hub and cosmetics show Premium locks and the polished plans upgrade path.'
+              : 'Preview is <b>off</b>. Premium paywalls, plan cards, and upgrade CTAs stay hidden from users.') +
+          '</p>' +
+        '</div>' +
+        '<button type="button" class="btn btn--sm' + (previewOn ? '' : ' btn--accent') +
+          '" data-do="prempreview" data-on="' + (previewOn ? '0' : '1') + '" id="ap-prem-preview">' +
+          (previewOn ? 'Turn preview off' : 'Turn preview on') + '</button>' +
       '</div>' +
       '<div class="adminp__who" style="align-items:flex-start">' +
         '<div class="grow">' +
@@ -624,7 +475,7 @@
             '<span>Premium plans (Free / Premium)</span></div>' +
           '<p class="t-sm t-muted" style="margin:6px 0 0">Account Premium UI for Games and profile effects. ' +
             'This account is currently <b>' + (premOn ? 'Premium' : 'Free') + '</b>. ' +
-            'See <code>assets/js/premium.js</code> and <code>subscription-dev.js</code>.</p>' +
+            'Open always works here for owner/admin TEST grants.</p>' +
         '</div>' +
         '<button type="button" class="btn btn--accent btn--sm" data-do="subdev">' +
           (I.arrowR || '') + ' Open Premium plans</button>' +
@@ -633,13 +484,31 @@
     '</section>';
   }
 
+  function setPremiumPreview(on) {
+    if (!global.Premium || !global.Premium.setPreviewEnabled) {
+      say('premium.js did not load.');
+      return;
+    }
+    global.Premium.setPreviewEnabled(!!on);
+    if (section === 'development') renderPanel();
+    W.toast(
+      'Premium preview',
+      on ? 'Plans UI and gates are on for testing (still mock checkout).' : 'Plans UI and gates hidden from users.',
+      I.flask || I.info,
+      3600
+    );
+    say(on ? 'Premium preview ON (dev / mock only).' : 'Premium preview OFF.');
+  }
+
   function openSubscriptionDev() {
-    if (!global.SubscriptionDev || !global.SubscriptionDev.open) {
+    var S = global.SubscriptionDev;
+    if (!S || (!S.openForced && !S.open)) {
       say('subscription-dev.js did not load.');
       W.toast('Missing preview', 'subscription-dev.js did not load.', I.info, 3200);
       return;
     }
-    global.SubscriptionDev.open();
+    if (S.openForced) S.openForced('');
+    else S.open({ force: true });
   }
 
   /* ========================= server round trips ==================== */
@@ -699,7 +568,6 @@
         if (!r.ok && section === 'overview') renderStats();
       });
       loadBans();
-      if (section === 'monitor') loadActivity(false);
       if (section === 'overview') renderStaff();
       if (section === 'accounts' || !rows.length) search();
       if (section === 'permissions') loadGrants();
@@ -762,48 +630,6 @@
     });
   }
 
-  function loadActivity(loud) {
-    var o = ops();
-    var host = root && W.$('#ap-activity', root);
-    if (!host) return;
-    if (!access.owner) {
-      host.innerHTML = '<div class="t-sm t-muted">Only the owner can use screen monitoring.</div>';
-      return;
-    }
-    if (!o || !o.activity) return;
-    if (loud) host.innerHTML = '<div class="t-sm t-muted">Looking…</div>';
-    o.activity(15).then(function (r) {
-      if (!r || !r.ok) {
-        host.innerHTML = '<div class="t-sm t-muted">' +
-          (r && r.kind === 'nomigration'
-            ? 'This needs 0009 / 0012 on the database.'
-            : r && r.kind === 'forbidden'
-            ? 'Only the owner can use screen monitoring.'
-            : 'Could not read who is on right now.') + '</div>';
-        return;
-      }
-      var list = r.data || [];
-      if (!list.length) {
-        host.innerHTML = '<div class="t-sm t-muted">Nobody signed in has been active in the last 15 minutes.</div>';
-        return;
-      }
-      host.innerHTML =
-        '<div class="adminp__row adminp__row--watch adminp__row--head">' +
-          '<span>Name</span><span>Email</span><span>On</span><span>Last seen</span>' +
-        '</div>' +
-        list.map(function (a) {
-          return '<button type="button" class="adminp__row adminp__row--watch' +
-            (picked && picked.id === a.user_id ? ' is-picked' : '') +
-            '" data-pick="' + esc(a.user_id) + '">' +
-            '<span class="adminp__nm">' + esc(a.display_name || 'Explorer') +
-              (a.banned ? '<i class="adminp__ban" title="Banned">BANNED</i>' : '') + '</span>' +
-            '<span class="t-muted">' + esc(a.email || '—') + '</span>' +
-            '<span>' + esc(a.screen || '—') + '</span>' +
-            '<span class="t-muted">' + esc(ago(a.seen_at)) + '</span>' +
-          '</button>';
-        }).join('');
-    });
-  }
 
   function sessionPill() {
     var el = root && W.$('#ap-session', root);
@@ -1098,8 +924,8 @@
     return Math.round(h / 24) + 'd ago';
   }
 
-  /* Clicking a screen-monitor row used to no-op when that account was
-     not in the current search results. Resolve via find by id/email. */
+  /* Resolve via find by id/email when the account is not in the
+     current search results. */
   function select(id) {
     var found = null;
     for (var i = 0; i < rows.length; i++) { if (rows[i].id === id) found = rows[i]; }
@@ -1130,9 +956,6 @@
     else if (section === 'gems' || section === 'messages') {
       renderPickedMini();
       if (section === 'messages') loadThread();
-    } else if (section === 'monitor') {
-      section = 'accounts';
-      renderPanel();
     } else {
       say(picked
         ? 'Selected ' + (picked.display_name || picked.email || picked.id)
@@ -1710,7 +1533,6 @@
       'plans              open Premium plans (TEST grant for owner/admin)',
       'subscription       same as plans'
     ];
-    if (access.owner) lines.push('watch              refresh screen monitoring');
     if (can('gems')) {
       lines = lines.concat([
         'take <n>           take n diamonds from the selected account',
@@ -1768,12 +1590,6 @@
     if (cmd === 'log') {
       section = 'activity'; renderPanel();
       return say('Opening Activity…');
-    }
-    if (cmd === 'watch') {
-      if (!access.owner) return say('Screen monitoring is owner-only.');
-      section = 'monitor'; renderPanel();
-      loadActivity(true);
-      return say('Refreshing screen monitoring…');
     }
     if (cmd === 'find') {
       section = 'accounts'; renderPanel();

@@ -181,9 +181,6 @@
   background: var(--white); border: 0; border-bottom: 1px solid var(--line-soft);
   cursor: pointer; font-family: inherit; color: inherit;
 }
-.adminp__row--watch {
-  grid-template-columns: 1.3fr 1.8fr 1fr .9fr;
-}
 .adminp__row:last-child { border-bottom: 0; }
 .adminp__row:hover { background: var(--paper); }
 .adminp__row.is-picked { background: var(--accent-soft); }
@@ -197,8 +194,7 @@
 }
 .adminp__row--head:hover { background: var(--paper); }
 
-/* Account rows grow a checkbox column. Screen-monitoring rows stay
-   on the original grid. */
+/* Account rows grow a checkbox column. */
 .adminp__row--acct {
   grid-template-columns: 32px 1.4fr 1.6fr .55fr .7fr .7fr .7fr;
 }
@@ -450,38 +446,7 @@
   .adminp__row.adminp__row--acct .adminp__seen {
     grid-column: 3; grid-row: 3; text-align: right; font-size: 11px; color: var(--faint);
   }
-  .adminp__row--watch span:nth-child(3) { grid-column: 1; }
-  .adminp__row--watch span:nth-child(4) { grid-row: 1; grid-column: 2; }
   .adminp__act .eyebrow { width: 100%; }
   .adminp__logrow { flex-wrap: wrap; gap: 4px 8px; }
   .adminp__grantlist { grid-template-columns: 1fr; }
-  .adminp__row--share { grid-template-columns: minmax(0, 1fr) auto; }
-  .adminp__row--share span:nth-child(2),
-  .adminp__row--share span:nth-child(3) { display: none; }
-}
-
-/* Live screen share under Screen monitoring. One tile. */
-.adminp__row--share {
-  grid-template-columns: 1.15fr 1.5fr .8fr .7fr auto;
-  cursor: default;
-}
-.adminp__row--share:hover { background: var(--white); }
-.adminp__row--share.is-on { background: var(--accent-soft); }
-.adminp__watch {
-  margin-top: 14px; background: #141A22; color: #fff;
-  border-radius: var(--r); overflow: hidden;
-}
-.adminp__watch video {
-  display: block; width: 100%; max-height: 480px; background: #000;
-  object-fit: contain;
-}
-.adminp__watchbar {
-  display: flex; align-items: center; gap: 10px;
-  padding: 10px 12px; font-size: 13px;
-}
-.adminp__watchbar b { font-weight: 620; }
-#ap-watch-status { color: rgba(255,255,255,.72); font-size: 12.5px; }
-.adminp__watchbar .btn { margin-left: auto; background: #fff; color: #141A22; }
-.adminp__watchdot {
-  width: 8px; height: 8px; border-radius: 50%; background: #FB7185; flex: none;
 }

@@ -724,6 +724,13 @@
         else if (screen === 'setup' && isBlocked(current)) renderSetup();
       });
     }
+    if (!start.previewHook) {
+      start.previewHook = true;
+      global.addEventListener('learngeo:premium-preview', function () {
+        if (screen === 'hub') renderHub();
+        else if (screen === 'setup') renderSetup();
+      });
+    }
     if (global.GameBlocks) global.GameBlocks.load();
     if (screen === 'play') screen = 'setup';
     stop();
@@ -823,7 +830,12 @@
 
   function isBlocked(id) { return !!(global.GameBlocks && global.GameBlocks.blocked(id)); }
 
+  function premiumPreviewOn() {
+    return !!(global.Premium && global.Premium.previewEnabled && global.Premium.previewEnabled());
+  }
+
   function isPremiumLocked(id) {
+    if (!premiumPreviewOn()) return false;
     var g = byId(id);
     var needs = !!(g && g.premium) || !!(global.Premium && global.Premium.gameRequires && global.Premium.gameRequires(id));
     if (!needs) return false;
@@ -842,18 +854,20 @@
   function card(g) {
     var best = g.best(record(g.id));
     var off = isBlocked(g.id);
+    var showPrem = premiumPreviewOn() && !!g.premium;
     var prem = !off && isPremiumLocked(g.id);
     var locked = off || prem;
+    var meta = showPrem ? g.meta : String(g.meta || '').replace(/^Premium\s*·\s*/i, '');
     return '<button class="game-card' + (off ? ' is-blocked' : '') + (prem ? ' is-premium-locked' : '') +
       '" data-game="' + g.id + '" type="button"' +
       (locked ? ' aria-disabled="true"' : '') + '>' +
       '<div class="game-card__art game-art--' + g.art + '" aria-hidden="true">' + art(g.art) +
-        (g.premium ? '<span class="game-card__prem-badge">Premium</span>' : '') +
+        (showPrem ? '<span class="game-card__prem-badge">Premium</span>' : '') +
       '</div>' +
       '<div class="game-card__body">' +
         '<h3>' + esc(g.title) + '</h3>' +
         '<p>' + esc(g.blurb) + '</p>' +
-        '<div class="game-card__foot"><span>' + esc(g.meta) + '</span>' +
+        '<div class="game-card__foot"><span>' + esc(meta) + '</span>' +
           (best ? '<span class="game-card__best">' + esc(best) + '</span>' : '') +
           (off ? '<span class="game-card__go">' + I.lock + ' Blocked by your teacher</span>'
                : prem ? '<span class="game-card__go">' + I.lock + ' Premium · Upgrade</span>'
