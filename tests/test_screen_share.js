@@ -83,4 +83,8 @@ test('the app shell exposes Share screen and the monitor tab lists live shares',
   assert.match(share, /selfBrowserSurface: 'exclude'/);
   assert.match(share, /role: 'publisher'/);
   assert.doesNotMatch(share, /daily-share-stop[\s\S]{0,80}viewer/);
+  assert.match(share, /lg-share-prompt/);
+  assert.match(share, /sessionStorage/);
+  assert.match(share, /function offer\(/);
+  assert.match(read('assets/js/ui.js'), /ScreenShare\.offer/);
 });
