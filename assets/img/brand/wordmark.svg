@@ -1,18 +1,19 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 176 32" role="img" aria-label="LearnGeo">
   <defs>
-    <linearGradient id="lgTile" x1="4" y1="2" x2="28" y2="30" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#0C8F7F"/>
+    <linearGradient id="lgBg" x1="3" y1="1" x2="29" y2="31" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#12A394"/>
+      <stop offset=".48" stop-color="#0C8F7F"/>
       <stop offset="1" stop-color="#0B1520"/>
     </linearGradient>
   </defs>
-  <rect width="32" height="32" rx="8" fill="url(#lgTile)"/>
-  <path fill="#fff" d="M5.6 22.2 11.2 19.4c.35-.18.76.05.76.44v5.1c0 .28-.16.53-.41.65L5.95 28.1c-.42.2-.9-.1-.9-.57v-4.7c0-.25.14-.48.35-.63z"/>
-  <path fill="#fff" d="M12.1 19.85h7.1c.4 0 .72.32.72.72v.1l-3.35 1.7c-.2.1-.44.1-.64 0l-3.83-1.92v-.6z"/>
-  <path fill="#fff" opacity=".85" d="M19.9 20.67v4.95c0 .3-.17.56-.44.68l-5.2 2.35c-.4.18-.86-.11-.86-.56v-5.05l2.95 1.48c.35.18.76.18 1.11 0l2.44-1.22z"/>
-  <path fill="#fff" fill-rule="evenodd" d="M16 3.6c-4.05 0-7.35 3.3-7.35 7.35 0 5.2 6.35 11.35 6.9 11.85.24.22.66.22.9 0 .55-.5 6.9-6.65 6.9-11.85C23.35 6.9 20.05 3.6 16 3.6zm0 11.55a4.2 4.2 0 1 1 0-8.4 4.2 4.2 0 0 1 0 8.4z"/>
-  <path stroke="#fff" stroke-width="1.25" stroke-linecap="round" fill="none"
-        d="M16 7.3c1.75 1.55 1.75 5.65 0 7.2M16 7.3c-1.75 1.55-1.75 5.65 0 7.2"/>
-  <path stroke="#fff" stroke-width="1.25" stroke-linecap="round" d="M12.35 10.9h7.3"/>
+  <rect width="32" height="32" rx="8" fill="url(#lgBg)"/>
+  <path fill="#fff" d="M5.6 6.2h3.85v15.35h6.7v3.45H5.6z"/>
+  <path fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round"
+        d="M25.7 9.7a8.5 8.5 0 1 0 .25 12.45"/>
+  <path fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round"
+        d="M17.9 16.2H27.05"/>
+  <path fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round"
+        d="M20.7 9.55c-2.95 2.7-2.95 10.6 0 13.3"/>
   <text x="42" y="21.5"
         font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif"
         font-size="17" font-weight="700" letter-spacing="-0.5"
