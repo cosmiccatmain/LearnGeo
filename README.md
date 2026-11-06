@@ -68,10 +68,11 @@ question before each move. It shares the other games' region, scope, custom coun
 weakest-first and answer-style filters, with flags, capitals or mixed questions.
 Wrong answers show the answer and offer another question; correct answers unlock a move
 and earn the usual geography rewards. Choose **Level 1 difficulty** through **Level 5 difficulty**.
-Level 1 plays random legal moves for beginners; Level 2 mixes mostly random moves with
-occasional Stockfish moves; Levels 3–5 use progressively stronger Stockfish opponents.
-Wins, draws, finished games
-and settings are saved under `games.chess`.
+Level 1 plays random legal moves for beginners; Level 2 mixes occasional random moves with
+Stockfish; Levels 3–5 use progressively stronger Stockfish opponents (higher skill, deeper
+search, more think time, and larger hash). Random replies land faster than before. Wins at
+higher levels score more points (`best` tracks the best single-win points). Wins, draws,
+finished games, score and settings are saved under `games.chess`.
 
 The game uses the local chess.js 1.4.0 rules API and Stockfish 17.1's UCI engine API in a
 Web Worker. It supports castling, en passant, all four promotion choices, checkmate and
