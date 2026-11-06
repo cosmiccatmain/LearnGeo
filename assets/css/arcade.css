@@ -17,7 +17,8 @@
 .game-art--match,
 .game-art--sort,
 .game-art--stack,
-.game-art--echo {
+.game-art--echo,
+.game-art--duel {
   position: relative;
   height: 150px;
   overflow: hidden;
@@ -181,6 +182,42 @@
 }
 .ge-art__pad i { position: absolute; inset: 4px; border-radius: 3px; }
 
+/* Geo Duel */
+.game-art--duel {
+  background:
+    radial-gradient(circle at 20% 30%, rgba(27, 77, 255, .35), transparent 42%),
+    radial-gradient(circle at 80% 70%, rgba(14, 159, 110, .28), transparent 46%),
+    linear-gradient(160deg, #07101f 0%, #0b1634 55%, #050a18 100%);
+}
+.gduel-art__pill {
+  position: absolute; top: 22%; padding: 5px 10px; border-radius: 999px;
+  font-size: 11px; font-weight: 700; letter-spacing: .02em; color: #fff;
+}
+.gduel-art__pill--a { left: 12%; background: #1B4DFF; }
+.gduel-art__pill--b { right: 12%; background: #0E9F6E; }
+.gduel-art__vs {
+  position: absolute; left: 50%; top: 24%; transform: translateX(-50%);
+  font-size: 12px; font-weight: 800; letter-spacing: .08em; color: #FFD23F;
+}
+.gduel-art__flag {
+  position: absolute; width: 34px; height: 22px; border-radius: 3px;
+  background: linear-gradient(#D7262B 50%, #fff 50%);
+  box-shadow: 0 4px 12px rgba(0,0,0,.35);
+}
+.gduel-art__flag--b { background: linear-gradient(90deg, #0E9F6E 33%, #fff 33% 66%, #D7262B 66%); }
+.gduel-art__bolt {
+  position: absolute; left: 50%; top: 58%; width: 10px; height: 28px;
+  transform: translate(-50%, -20%) rotate(18deg);
+  background: linear-gradient(#FFD23F, #FF9A3D);
+  clip-path: polygon(40% 0, 100% 0, 60% 45%, 90% 45%, 20% 100%, 45% 52%, 15% 52%);
+}
+
+.game-card__invite-badge {
+  position: absolute; top: 10px; left: 10px; z-index: 2;
+  padding: 3px 8px; border-radius: 999px;
+  background: #FFD23F; color: #1a1400; font-size: 11px; font-weight: 700;
+}
+
 /* ------------------------ the games themselves -------------------- */
 /* Backgrounds behind each canvas, so a game that has not painted its
    first frame does not flash the default blue. */
@@ -194,6 +231,94 @@
 .gk-sort     { background: #0a1024; }
 .gk-stack    { background: #0b1030; }
 .gk-echo     { background: #080c22; }
+
+/* ============================ Geo Duel UI ========================= */
+.duel {
+  min-height: 420px;
+  background:
+    radial-gradient(circle at 12% 0%, rgba(27, 77, 255, .12), transparent 40%),
+    radial-gradient(circle at 88% 100%, rgba(14, 159, 110, .1), transparent 42%),
+    linear-gradient(180deg, #f7f9ff 0%, #eef3fb 100%);
+  border: 1px solid var(--line, #d8e0ef);
+  border-radius: 18px;
+  overflow: hidden;
+}
+.duel__body { padding: 18px 18px 20px; }
+.duel-lobby { display: grid; gap: 14px; max-width: 720px; margin: 0 auto; }
+.duel-lobby__hero h2 {
+  margin: 4px 0 6px; font-size: clamp(22px, 3vw, 28px); letter-spacing: -.03em;
+}
+.duel-lobby__hero p { color: var(--muted); margin: 0; max-width: 52ch; }
+.duel-invite__row {
+  display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 12px;
+}
+.duel-invite__row .seg { flex: 1; min-width: 180px; }
+.duel-note {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 12px 0; border-top: 1px solid var(--line, #d8e0ef);
+}
+.duel-note:first-child { border-top: 0; padding-top: 2px; }
+.duel-note b { display: block; }
+.duel-note span { color: var(--muted); font-size: 12.5px; }
+.duel-note__actions { display: flex; gap: 8px; flex-shrink: 0; }
+.duel-note--live {
+  background: rgba(27, 77, 255, .06); border: 1px solid rgba(27, 77, 255, .18);
+  border-radius: 12px; padding: 12px 14px; margin-bottom: 8px;
+}
+.duel-empty { margin: 4px 0 0; }
+.duel-wait, .duel-end {
+  min-height: 360px; display: grid; place-content: center; text-align: center; gap: 14px;
+}
+.duel-wait__pulse {
+  width: 52px; height: 52px; margin: 0 auto; border-radius: 50%;
+  border: 3px solid rgba(27, 77, 255, .2); border-top-color: #1B4DFF;
+  animation: duelSpin 0.9s linear infinite;
+}
+@keyframes duelSpin { to { transform: rotate(360deg); } }
+.duel-vs {
+  display: flex; align-items: center; justify-content: center; gap: 14px;
+  font-weight: 700; flex-wrap: wrap;
+}
+.duel-vs b {
+  color: #b88700; letter-spacing: .08em; font-size: 12px;
+  padding: 4px 8px; border-radius: 999px; background: rgba(255, 210, 63, .22);
+}
+.duel-scoreboard {
+  display: grid; grid-template-columns: 1fr auto 1fr; gap: 10px; align-items: center;
+  margin-bottom: 14px;
+}
+.duel-score {
+  display: flex; flex-direction: column; gap: 2px; padding: 10px 12px;
+  border-radius: 12px; background: rgba(255,255,255,.72); border: 1px solid var(--line, #d8e0ef);
+}
+.duel-score.is-me { border-color: rgba(27, 77, 255, .45); box-shadow: 0 0 0 2px rgba(27, 77, 255, .08); }
+.duel-score span { font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.duel-score b { font-size: 22px; letter-spacing: -.03em; }
+.duel-score:last-child { text-align: right; align-items: flex-end; }
+.duel-round {
+  text-align: center; font-size: 12.5px; color: var(--muted);
+  display: flex; flex-direction: column; gap: 2px;
+}
+.duel-round small {
+  display: inline-block; margin: 0 auto; padding: 2px 8px; border-radius: 999px;
+  background: #12204a; color: #fff; font-size: 11px; font-weight: 700;
+}
+.duel-q { background: #fff; border-radius: 16px; padding: 18px 18px 14px; border: 1px solid var(--line, #d8e0ef); }
+.duel-status { margin: 14px 0 0; }
+.duel-play__foot { margin-top: 12px; display: flex; justify-content: flex-end; }
+.duel-end__badge {
+  display: inline-block; margin: 0 auto; padding: 8px 16px; border-radius: 999px;
+  background: #12204a; color: #fff; font-weight: 800; letter-spacing: .02em;
+}
+.duel-end__badge.is-win { background: #0E9F6E; }
+.duel-end__badge.is-loss { background: #D7262B; }
+.duel-end__actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+
+@media (max-width: 640px) {
+  .duel-scoreboard { grid-template-columns: 1fr 1fr; }
+  .duel-round { grid-column: 1 / -1; order: -1; }
+  .duel-score:last-child { text-align: left; align-items: flex-start; }
+}
 
 /* the slot the kit's shell leaves for a game's own HUD widgets */
 .gk__extra { margin-left: auto; display: flex; gap: 6px; align-items: center; }

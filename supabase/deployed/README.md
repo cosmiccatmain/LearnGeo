@@ -25,6 +25,7 @@ This folder is for the live project — the one whose URL is in
 | `admin_actions` replies | `0011_admin_message_replies.sql` adds `reply_to_admin_message` (recipient → admin) and `ultra_message_thread` (admin reads the conversation). Applied on the live project 2026-11-06 (LEA-42). Without it, Send reply 404s and the inbox shows a vague server error. |
 | `screen_shares` | Legacy table from `0012_screen_shares.sql`. Screen mirroring / live share was removed from the client (LEA-46); do not redeploy Daily share Edge Functions. `account_activity` remains view-name only. |
 | Premium entitlements | `0013_premium_subscriptions.sql` — `flags.premium` on `profiles.save`, `ultra_set_premium`, entitlement-flag protect trigger, and Premium game check inside `submit_game_score`. Account / player level (not teacher-based). Apply after `0012`. Client gates also require the Development preview switch (LEA-46). |
+| Geo Duel PvP | `0014_pvp_geo_duel.sql` — `pvp_invites` / `pvp_matches` plus RPCs for gamertag lookup, invite send/respond, match seed/answer/state. Applied on the live project for LEA-48. Device-scoped like gamertags; no direct table access. |
 
 Authorisation goes through two `security definer` helpers in the
 `private` schema, `is_class_teacher(cid)` and `is_class_member(cid)`,
