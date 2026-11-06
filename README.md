@@ -418,6 +418,11 @@ Daily includes about 10,000 participant-minutes a month, then about
 $0.004 a minute. A student sharing counts as one participant. The owner
 watching them counts as a second. Stop watching when you are done.
 There is no recording, and the microphone and camera stay off.
+The public rules for that, including children, are in `terms.html`.
+A child’s click on Share screen is not parental consent. Do not watch
+a child under 13 until a parent or a school has agreed in a way you
+can show later, and do not save your own recording of a student’s
+screen unless that agreement specifically allows a saved copy.
 
 The Daily API key is not in this repo and must not be a Vercel
 environment variable. Set it as a Supabase secret, apply

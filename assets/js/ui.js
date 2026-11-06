@@ -338,6 +338,9 @@
         row('Mastered', strong + ' places at box 4 or 5', '') +
         row('Best answer streak', W.state.streak.best + ' in a row', '') +
         '<div class="divider"></div>' +
+        row('Terms of Service', 'Accounts, classes, and live screen sharing, including the rules for children.',
+          '<a class="btn btn--ghost btn--sm" href="/terms.html">Read</a>') +
+        '<div class="divider"></div>' +
         '<div class="setting-row"><div class="setting-row__t">' +
           '<b>Reset all progress</b><span>This deletes your XP, diamonds, progress, purchases and achievements' +
             (signedIn() ? ', here and in your account' : '') + '. You can’t undo it.</span>' +
@@ -1087,7 +1090,8 @@
         ? '<div class="field"><label class="field__label">I’m a</label><div class="seg" id="au-role">' +
             '<button data-v="student">Student</button>' +
             '<button data-v="teacher">Teacher</button>' +
-          '</div><div class="field__hint">This controls which tools you see. You can change it anytime in Settings.</div></div>'
+          '</div><div class="field__hint">This controls which tools you see. You can change it anytime in Settings.</div></div>' +
+          '<p class="t-sm" style="margin:0 0 14px">Creating an account agrees to the <a href="/terms.html">Terms of Service</a>, including live screen sharing. A child under 13 needs a parent or a school. Clicking the button is not that permission.</p>'
         : '') +
       '<div id="au-msg"></div>' +
       '<div class="auth-switch">' +

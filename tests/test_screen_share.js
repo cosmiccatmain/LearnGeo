@@ -87,4 +87,18 @@ test('the app shell exposes Share screen and the monitor tab lists live shares',
   assert.match(share, /sessionStorage/);
   assert.match(share, /function offer\(/);
   assert.match(read('assets/js/ui.js'), /ScreenShare\.offer/);
+  assert.match(share, /\/terms\.html#screen/);
+  assert.match(share, /does not save a video/);
+  assert.doesNotMatch(share, /teacher or the site owner will see/);
+  assert.doesNotMatch(share, /teacher or admin will see/);
+});
+
+test('the terms tell families the live picture is not a saved recording', () => {
+  const terms = read('terms.html');
+  assert.match(terms, /id="screen"/);
+  assert.match(terms, /does not save a video/);
+  assert.match(terms, /under 13/);
+  assert.match(terms, /alexjschendel@gmail\.com/);
+  assert.match(terms, /COPPA/);
+  assert.doesNotMatch(terms, /by using the site you agree we may record/);
 });

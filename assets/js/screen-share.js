@@ -39,24 +39,20 @@
   var watchGen = 0;
 
   var CONSENT =
-    '<p>Your teacher or the site owner will see the window or tab you pick. ' +
-    'Chrome shows its own sharing indicator. You can stop anytime.</p>' +
+    '<p>The site owner can see the window or tab you pick, and only while sharing stays on. ' +
+    'LearnGeo does not save a video of it. Your camera and microphone stay off. ' +
+    'The browser shows its own sharing light. You can stop anytime.</p>' +
     '<p>Choose a browser tab if you can, on Chrome or Edge on a computer. ' +
-    'Sharing a whole screen can show other tabs, email, or your home screen.</p>' +
-    '<p class="t-sm t-muted">This is voluntary. LearnGeo does not capture your screen unless you ' +
-    'click Share screen. The names on Screen monitoring are a separate list — which page you ' +
-    'are on, not this picture.</p>';
+    'Sharing a whole screen can show other tabs, email, or your home screen. Leave those out.</p>' +
+    '<p class="t-sm t-muted">This is voluntary. Nothing is captured unless you click Share screen. ' +
+    'Screen monitoring also lists which LearnGeo page you are on. That list is not this picture. ' +
+    'A child needs a parent or a school to agree before sharing. ' +
+    '<a href="/terms.html#screen">Screen terms</a>.</p>';
 
   /* Once per tab. Refresh keeps it; a new tab asks again. */
   var PROMPT_KEY = 'lg-share-prompt';
   var promptWait = null;
   var promptedMem = false;
-
-  var PROMPT =
-    '<p>Your teacher or admin will see the window or tab you pick. ' +
-    'Chrome shows its own sharing indicator. You can stop anytime.</p>' +
-    '<p class="t-sm t-muted">Nothing is shared unless you click Share screen. ' +
-    'Not now leaves the Share screen button in the top bar.</p>';
 
   function signed() {
     return !!(global.Cloud && global.Cloud.signedIn && global.Cloud.sb);
@@ -355,8 +351,9 @@
     asking = true;
     if (!global.UI || !global.UI.modal) {
       var ok = global.confirm(
-        'Share your screen?\n\nYour teacher or the site owner will see the window or tab you pick. ' +
-        'You can stop anytime. Choose a browser tab on Chrome or Edge if you can.'
+        'Share your screen?\n\nThe site owner can see the window or tab you pick, only while sharing stays on. ' +
+        'LearnGeo does not save a video. You can stop anytime. Choose a browser tab if you can. ' +
+        'A child needs a parent or school to agree first. The full rules are at /terms.html#screen.'
       );
       asking = false;
       if (ok) begin();
@@ -405,7 +402,7 @@
     var decided = false;
     global.UI.modal({
       title: 'Share your screen?',
-      body: PROMPT,
+      body: CONSENT,
       onClose: function () { if (!decided) asking = false; },
       actions: [
         { label: 'Not now', cls: 'btn--ghost', close: true },
