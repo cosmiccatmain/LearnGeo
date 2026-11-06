@@ -12,6 +12,7 @@
        and does not grant entitlement.
 
    Label: Premium. School-safe player entitlements only.
+   LEA-45: Premium card visual polish (glow / sparkle / hover) — still mock.
 -------------------------------------------------------------------*/
 (function (global) {
   'use strict';
@@ -214,7 +215,7 @@
       '</div>' +
 
       '<p class="subdev__foot">' +
-        'LEA-43 · Premium gates for Games and profile effects. ' +
+        'LEA-45 · Premium plans UI (account / player). Mock checkout only. ' +
         'Documented in <code>assets/js/subscription-dev.js</code> and <code>assets/js/premium.js</code>.</p>';
 
     body.querySelectorAll('[data-cycle]').forEach(function (btn) {
@@ -223,8 +224,20 @@
         render();
       });
     });
+    body.querySelectorAll('.subdev__plan--featured').forEach(function (card) {
+      card.addEventListener('pointerenter', function () { card.classList.add('is-hot'); });
+      card.addEventListener('pointerleave', function () {
+        card.classList.remove('is-hot');
+        card.classList.remove('is-press');
+      });
+    });
     body.querySelectorAll('[data-plan]').forEach(function (btn) {
       btn.addEventListener('click', function () {
+        var card = btn.closest('.subdev__plan');
+        if (card && card.classList.contains('subdev__plan--featured')) {
+          card.classList.add('is-press');
+          setTimeout(function () { card.classList.remove('is-press'); }, 180);
+        }
         openCheckout(btn.getAttribute('data-plan'));
       });
     });
@@ -237,11 +250,30 @@
         (f.on ? (I.check || '') : (I.x || '')) +
         '<span>' + esc(f.t) + '</span></li>';
     }).join('');
-    var cls = 'subdev__plan' + (plan.featured ? ' subdev__plan--featured' : '');
-    var btnCls = plan.featured ? 'btn btn--accent' : 'btn btn--ghost';
+    var featured = !!plan.featured;
+    var cls = 'subdev__plan' +
+      (featured ? ' subdev__plan--featured' : ' subdev__plan--free');
+    var btnCls = featured
+      ? 'btn btn--accent subdev__cta--premium'
+      : 'btn btn--ghost';
+    var badge = featured
+      ? '<div class="subdev__plan-badge" aria-hidden="true">' +
+          (I.sparkle || I.bolt || '') + ' Most rewarding</div>'
+      : '';
+    var sparkles = featured
+      ? '<div class="subdev__sparkles" aria-hidden="true">' +
+          '<span class="subdev__spark"></span>' +
+          '<span class="subdev__spark"></span>' +
+          '<span class="subdev__spark"></span>' +
+          '<span class="subdev__spark"></span>' +
+          '<span class="subdev__spark"></span>' +
+        '</div>'
+      : '';
+    var nameIcon = featured ? ((I.sparkle || I.bolt || '') + ' ') : '';
     return '<article class="' + cls + '">' +
+      badge + sparkles +
       '<div class="subdev__plan-top">' +
-        '<h3 class="subdev__plan-name">' + esc(plan.name) + '</h3>' +
+        '<h3 class="subdev__plan-name">' + nameIcon + esc(plan.name) + '</h3>' +
         '<p class="subdev__plan-blurb">' + esc(plan.blurb) + '</p>' +
       '</div>' +
       '<div class="subdev__price"><b>' + esc(p.big) + '</b>' +
@@ -250,7 +282,7 @@
       '<p class="subdev__price-note">' + esc(p.note) + '</p>' +
       '<ul class="subdev__feats">' + feats + '</ul>' +
       '<button type="button" class="subdev__cta ' + btnCls + '" data-plan="' + esc(plan.id) + '">' +
-        esc(plan.cta) + '</button>' +
+        (featured ? ((I.sparkle || '') + ' ') : '') + esc(plan.cta) + '</button>' +
     '</article>';
   }
 
@@ -303,7 +335,7 @@
                 : 'Live billing is not enabled; this sheet does not grant Premium yet.') +
             '</div>' +
           '</div>' +
-          '<div class="subdev-checkout__plan">' +
+          '<div class="subdev-checkout__plan' + (plan.id === 'premium' ? ' subdev-checkout__plan--prem' : '') + '">' +
             '<div><b>' + esc(plan.name) + '</b>' +
               '<div class="t-sm t-muted" style="margin-top:2px">' + esc(plan.blurb) + '</div></div>' +
             '<span>' + esc(charge) + '</span>' +
@@ -311,7 +343,7 @@
           '<div class="subdev-checkout__fields">' +
             '<label>Email (mock)<input class="input" type="email" value="' + OWNER_EMAIL + '" readonly></label>' +
             '<label>Card number (fake)<input class="input mono" type="text" value="4242 4242 4242 4242" readonly></label>' +
-            '<div class="subdev-checkout__fake">TEST MODE · Stripe not connected · LEA-43</div>' +
+            '<div class="subdev-checkout__fake">TEST MODE · Stripe not connected · LEA-45</div>' +
           '</div>' +
         '</div>',
       actions: [
@@ -331,8 +363,8 @@
               var host = m.querySelector('#subdev-co');
               if (host) {
                 host.innerHTML =
-                  '<div class="subdev-checkout__ok">' +
-                    (I.check || '') +
+                  '<div class="subdev-checkout__ok' + (wantPremium ? ' subdev-checkout__ok--prem' : '') + '">' +
+                    (I.check || I.sparkle || '') +
                     '<b>' + (wantPremium
                       ? (grant && ok !== false ? 'Premium granted (TEST)' : 'Mock purchase recorded')
                       : 'Back on Free') + '</b>' +
