@@ -65,6 +65,18 @@
     { value: 30, name: 'Every 30s', blurb: 'Gates are less frequent' },
     { value: 45, name: 'Every 45s', blurb: 'Gates are rare' }
   ];
+  /* Geo Dash tracks — labels for the setup picker; layouts live in GeoDash.maps. */
+  var DASH_MAPS = [
+    ['classic', 'Classic Ridge'],
+    ['andes', 'Andes Ascent'],
+    ['sahara', 'Sahara Sprint'],
+    ['isles', 'Pacific Isles']
+  ];
+  function dashMapId(r) {
+    var id = r && r.map;
+    for (var i = 0; i < DASH_MAPS.length; i++) if (DASH_MAPS[i][0] === id) return id;
+    return 'classic';
+  }
   var HOLES_DIFF = [
     { value: '6', name: '6 holes', blurb: 'A short course' },
     { value: '9', name: '9 holes', blurb: 'A half-round course' },
@@ -153,28 +165,44 @@
       filters: { title: 'Capital question filters', heading: 'Capital questions', typed: true },
       side: function (r) {
         var every = EVERY.indexOf(r.every) !== -1 ? r.every : 20;
-        return '<div class="panel">' +
-            sliderHtml({
-              name: 'every',
-              label: 'A capital gate every',
-              value: every,
-              levels: EVERY_DIFF,
-              ends: ['Every 10s', 'Every 45s']
-            }, 'every', EVERY.map(function (s) { return [String(s), s + 's']; }), String(every)) +
+        var map = dashMapId(r);
+        return '<div class="panel dash-track">' +
+            '<div class="panel__head"><h3>Map</h3></div>' +
+            '<div class="dash-maps" data-map role="group" aria-label="Geo Dash map">' +
+              DASH_MAPS.map(function (m) {
+                return '<button type="button" data-v="' + m[0] + '" class="' +
+                  (m[0] === map ? 'is-active' : '') + '">' + esc(m[1]) + '</button>';
+              }).join('') +
+            '</div>' +
+            '<div class="dash-track__gate">' +
+              sliderHtml({
+                name: 'every',
+                label: 'A capital gate every',
+                value: every,
+                levels: EVERY_DIFF,
+                ends: ['Every 10s', 'Every 45s']
+              }, 'every', EVERY.map(function (s) { return [String(s), s + 's']; }), String(every)) +
+            '</div>' +
           '</div>' +
           stats([[(r.best || 0) + ' m', 'Best distance'], [r.bestCaps || 0, 'Most capitals'], [r.runs || 0, 'Runs']]);
       },
       wire: function (el, r) {
+        seg(el, '[data-map]', function (v) { r.map = v; });
         wireSlider(el, { name: 'every', levels: EVERY_DIFF }, '[data-every]', function (v) { r.every = +v; });
       },
       mount: function (stage, r) {
         return global.GeoDash.mount(stage, {
           every: EVERY.indexOf(r.every) !== -1 ? r.every : 20,
+          map: dashMapId(r),
           cfg: function () { return gameCfg('dash'); },
           onBack: toSetup
         });
       },
-      playing: function () { return 'Capitals from ' + global.StudyFilters.label(gameCfg('dash')); }
+      playing: function () {
+        var map = dashMapId(record('dash'));
+        var label = DASH_MAPS.filter(function (m) { return m[0] === map; })[0][1];
+        return label + ' · Capitals from ' + global.StudyFilters.label(gameCfg('dash'));
+      }
     },
     {
       id: 'orbit', title: 'Globe Defender', art: 'orbit',
