@@ -93,31 +93,28 @@
     </div>
   </nav>
 
-  <header class="hero hero--gem" id="top">
+  <header class="hero hero--brand" id="top">
     <div class="hero__wash" aria-hidden="true"></div>
     <div class="hero__grid" aria-hidden="true"></div>
-    <div class="hero__inner">
-      <div class="hero__copy">
-        <h1>
-          <span class="sr-only">LearnGeo, for school, for party tricks, for pub quizzes and for showing off.</span>
-          <span class="hero__brand" aria-hidden="true">LearnGeo</span>
-          <span class="hero__for" aria-hidden="true">for <span class="cycle" data-cycle><span class="is-on">school.</span><span>my party trick.</span><span>a pub quiz.</span><span>road trips.</span><span>bragging rights.</span><span>homework.</span><span>settling bets.</span><span>trivia night.</span><span>a rainy Sunday.</span><span>showing off.</span></span></span>
-        </h1>
-        <p class="hero__sub">
-          Staring at a list of capitals doesn't really work. Here you answer a question and the map
-          shows you where the place is, so the name sticks to an actual spot.
-        </p>
-        <div class="hero__cta">
-          <button class="btn btn--accent btn--lg" data-launch="learn">Start learning</button>
-          <a class="btn btn--ghost btn--lg" href="#try">Try 3 questions first</a>
-        </div>
-        <p class="hero__note">You can start as a guest without signing up. <button class="linkbtn" id="hero-signup" type="button">Make a free account</button> if you want your progress on every device.</p>
-      </div>
-      <div class="hero__gem"><canvas id="hero-globe" aria-label="A rotating globe. Click anywhere on it to see the nearest capital."></canvas></div>
+    <div class="hero__globe" aria-hidden="true"><canvas id="hero-globe"></canvas></div>
+    <div class="hero__scrim" aria-hidden="true"></div>
+    <h1>
+      <span class="sr-only">LearnGeo, for school, for party tricks, for pub quizzes and for showing off.</span>
+      <span class="hero__brand" aria-hidden="true">LearnGeo</span>
+      <span class="hero__for" aria-hidden="true">for <span class="cycle" data-cycle><span class="is-on">school.</span><span>my party trick.</span><span>a pub quiz.</span><span>road trips.</span><span>bragging rights.</span><span>homework.</span><span>settling bets.</span><span>trivia night.</span><span>a rainy Sunday.</span><span>showing off.</span></span></span>
+    </h1>
+    <p class="hero__sub">
+      Staring at a list of capitals doesn't really work. Here you answer a question and the map
+      shows you where the place is, so the name sticks to an actual spot.
+    </p>
+    <div class="hero__cta">
+      <button class="btn btn--accent btn--lg" data-launch="learn">Start learning</button>
+      <a class="btn btn--ghost btn--lg" href="#try">Try 3 questions first</a>
     </div>
+    <p class="hero__note">You can start as a guest without signing up. <button class="linkbtn" id="hero-signup" type="button">Make a free account</button> if you want your progress on every device.</p>
   </header>
 
-  <section class="stats">
+  <section class="stats" aria-label="Coverage">
     <div class="stat"><div class="stat__n" id="s-total">213</div><div class="stat__l">Countries and territories</div></div>
     <div class="stat"><div class="stat__n" id="s-members">193</div><div class="stat__l">UN member states</div></div>
     <div class="stat"><div class="stat__n">3</div><div class="stat__l">Ways to study</div></div>
