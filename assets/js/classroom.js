@@ -708,6 +708,8 @@
     global.UI.refreshHud();
     tab = 'classwork';
     render(true);
+    /* Joining the class this note is about, while already signed in. */
+    if (global.StudentNotice && global.StudentNotice.sync) global.StudentNotice.sync();
   }
 
   function leaveClass() {

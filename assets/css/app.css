@@ -2209,6 +2209,45 @@ textarea.input:focus { outline: none; border-color: var(--accent); box-shadow: 0
   .share-btn__short { display: inline; }
 }
 
+/* One-time student note. Sits with the other shell bars, in the accent
+   wash the rest of the classroom uses, and stays out of the way of the
+   page underneath. */
+.student-notice {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  background: var(--accent-soft);
+  color: var(--ink);
+  border-bottom: 1px solid rgba(var(--accent-rgb), .28);
+  font-size: 14.5px;
+  line-height: 1.4;
+  position: relative;
+  z-index: 30;
+  animation: studentNoticeIn .22s var(--ease);
+}
+.student-notice__mark {
+  width: 28px; height: 28px; border-radius: 8px; flex: none;
+  display: grid; place-items: center;
+  background: var(--white); color: var(--accent-ink);
+}
+.student-notice__mark svg { width: 16px; height: 16px; }
+.student-notice__text {
+  flex: 1; min-width: 0; margin: 0;
+  font-weight: 600; letter-spacing: -.011em;
+}
+.student-notice__dismiss { flex: none; }
+@keyframes studentNoticeIn {
+  from { opacity: 0; transform: translateY(-6px); }
+}
+@media (max-width: 560px) {
+  .student-notice { gap: 10px; padding: 10px 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .student-notice { animation: none; }
+}
+
 /* ---- student join card ---- */
 .join-card {
   border: 1px solid var(--line); border-radius: 18px; background: var(--white);

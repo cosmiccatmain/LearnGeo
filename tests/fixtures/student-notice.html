@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Student notice harness</title>
+  <link rel="stylesheet" href="/assets/css/app.css">
+</head>
+<body>
+  <div id="landing" class="landing hidden"></div>
+  <div id="app" class="app is-open">
+    <header class="topbar">
+      <span class="brand">
+        <span class="brand__mark" aria-hidden="true"><img src="/assets/img/brand/mark.svg" alt=""></span>
+        <span class="brand__text">LearnGeo</span>
+      </span>
+      <nav class="tabs" aria-label="Sections">
+        <button class="tab is-active" type="button">Home</button>
+        <button class="tab" type="button">Classroom</button>
+      </nav>
+      <div class="grow"></div>
+      <span class="hud__item">Lv 4</span>
+      <span class="avatar" aria-hidden="true" style="width:32px;height:32px;border-radius:50%;display:grid;place-items:center;background:#E4F5F2;color:#0A6F63;font-weight:700">A</span>
+    </header>
+    <div id="share-bar" class="share-bar hidden"></div>
+    <div id="view-portal" class="portal">
+      <div class="portal__inner">
+        <p class="eyebrow">Classroom</p>
+        <h1 style="font-size:32px;margin:8px 0 6px">Good afternoon, Amina.</h1>
+        <p style="color:var(--muted);margin-bottom:22px">this is a test.</p>
+        <div class="cr-card">
+          <div class="cr-card__head"><h3>Stream</h3></div>
+          <div class="st-post">
+            <p class="st-post__body">Africa practice is on your classwork list.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="/assets/js/core.js"></script>
+  <script src="/assets/js/student-notice.js"></script>
+  <script>
+    window.Cloud = { signedIn: false, ready: false, status: 'off', user: null };
+
+    function classRow(code) {
+      return { code: code || 'DJZN4Y', className: 'this is a test.', name: 'Amina' };
+    }
+
+    window.__noticeSignIn = function (id, code) {
+      var row = classRow(code);
+      window.WW.useAccount(id);
+      window.WW.replaceState({
+        role: 'student',
+        roleChosen: true,
+        profile: { displayName: 'Amina' },
+        enrolments: [row],
+        enrolled: row,
+        flags: {}
+      });
+      window.Cloud.signedIn = true;
+      window.Cloud.ready = true;
+      window.Cloud.status = 'synced';
+      window.Cloud.user = { id: id };
+      window.StudentNotice.sync();
+    };
+
+    window.__noticeSignOut = function () {
+      window.Cloud.signedIn = false;
+      window.Cloud.ready = false;
+      window.Cloud.status = 'off';
+      window.Cloud.user = null;
+      window.WW.useAccount(null);
+      window.WW.replaceState({
+        role: 'student',
+        roleChosen: true,
+        enrolments: [classRow()],
+        enrolled: classRow()
+      });
+      window.StudentNotice.sync();
+    };
+
+    if (location.search.indexOf('demo=1') !== -1) window.__noticeSignIn('demo-student');
+  </script>
+</body>
+</html>
