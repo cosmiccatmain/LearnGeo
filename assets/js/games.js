@@ -65,17 +65,27 @@
     { value: 30, name: 'Every 30s', blurb: 'Gates are less frequent' },
     { value: 45, name: 'Every 45s', blurb: 'Gates are rare' }
   ];
-  /* Geo Dash tracks — labels for the setup picker; layouts live in GeoDash.maps. */
-  var DASH_MAPS = [
-    ['classic', 'Classic Ridge'],
-    ['andes', 'Andes Ascent'],
-    ['sahara', 'Sahara Sprint'],
-    ['isles', 'Pacific Isles']
+  /* Geo Dash tracks for the shared DifficultySlider. Prefer live GeoDash.maps
+     so any tracks added there show up without retyping the list here. */
+  var MAP_DIFF_FALLBACK = [
+    { value: 'classic', name: 'Classic Ridge', blurb: 'The original mixed track of spikes, blocks, pads and rings.' },
+    { value: 'andes', name: 'Andes Ascent', blurb: 'Stacked mountain stairs — climb the blocks, watch the edges.' },
+    { value: 'sahara', name: 'Sahara Sprint', blurb: 'Open desert runs of spikes with pads to clear the dunes.' },
+    { value: 'isles', name: 'Pacific Isles', blurb: 'Island hops — pads and mid-air rings between short platforms.' }
   ];
+  function dashMapLevels() {
+    if (global.GeoDash && global.GeoDash.maps && global.GeoDash.maps.length) {
+      return global.GeoDash.maps.map(function (m) {
+        return { value: m.id, name: m.name, blurb: m.blurb || '' };
+      });
+    }
+    return MAP_DIFF_FALLBACK;
+  }
   function dashMapId(r) {
+    var levels = dashMapLevels();
     var id = r && r.map;
-    for (var i = 0; i < DASH_MAPS.length; i++) if (DASH_MAPS[i][0] === id) return id;
-    return 'classic';
+    for (var i = 0; i < levels.length; i++) if (levels[i].value === id) return id;
+    return levels[0].value;
   }
   var HOLES_DIFF = [
     { value: '6', name: '6 holes', blurb: 'A short course' },
@@ -165,15 +175,16 @@
       filters: { title: 'Capital question filters', heading: 'Capital questions', typed: true },
       side: function (r) {
         var every = EVERY.indexOf(r.every) !== -1 ? r.every : 20;
+        var maps = dashMapLevels();
         var map = dashMapId(r);
         return '<div class="panel dash-track">' +
-            '<div class="panel__head"><h3>Map</h3></div>' +
-            '<div class="dash-maps" data-map role="group" aria-label="Geo Dash map">' +
-              DASH_MAPS.map(function (m) {
-                return '<button type="button" data-v="' + m[0] + '" class="' +
-                  (m[0] === map ? 'is-active' : '') + '">' + esc(m[1]) + '</button>';
-              }).join('') +
-            '</div>' +
+            sliderHtml({
+              name: 'map',
+              label: 'Map',
+              value: map,
+              levels: maps,
+              ends: [maps[0].name, maps[maps.length - 1].name]
+            }, 'map', maps.map(function (m) { return [m.value, m.name]; }), map) +
             '<div class="dash-track__gate">' +
               sliderHtml({
                 name: 'every',
@@ -187,7 +198,7 @@
           stats([[(r.best || 0) + ' m', 'Best distance'], [r.bestCaps || 0, 'Most capitals'], [r.runs || 0, 'Runs']]);
       },
       wire: function (el, r) {
-        seg(el, '[data-map]', function (v) { r.map = v; });
+        wireSlider(el, { name: 'map', levels: dashMapLevels() }, '[data-map]', function (v) { r.map = v; });
         wireSlider(el, { name: 'every', levels: EVERY_DIFF }, '[data-every]', function (v) { r.every = +v; });
       },
       mount: function (stage, r) {
@@ -200,7 +211,8 @@
       },
       playing: function () {
         var map = dashMapId(record('dash'));
-        var label = DASH_MAPS.filter(function (m) { return m[0] === map; })[0][1];
+        var levels = dashMapLevels();
+        var label = (levels.filter(function (m) { return m.value === map; })[0] || levels[0]).name;
         return label + ' · Capitals from ' + global.StudyFilters.label(gameCfg('dash'));
       }
     },
