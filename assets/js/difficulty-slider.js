@@ -13,8 +13,9 @@
    leave the thumb/fill out of sync with stored state.
 
    --pct is unitless 0–100; CSS maps it through thumb-inset math so
-   the fill edge meets the thumb center. Tick dots mark each step.
-   A short Web Audio click plays once per discrete step change.
+   the fill edge meets the thumb center. Tick notches mark each step
+   and highlight passed / active rungs. A short Web Audio click plays
+   once per discrete step change.
 -------------------------------------------------------------------*/
 (function (global) {
   'use strict';
@@ -74,12 +75,22 @@
     var i;
     var out = '<div class="diff-slider__ticks" aria-hidden="true">';
     for (i = 0; i < count; i++) {
-      out += '<span class="diff-slider__tick" style="left: ' + tickLeft(i, max) + '"></span>';
+      out += '<span class="diff-slider__tick" data-diff-tick="' + i +
+        '" style="left: ' + tickLeft(i, max) + '"></span>';
     }
     return out + '</div>';
   }
 
-  /* Short, quiet classroom-safe click — one beep per step change. */
+  function syncTicks(root, discrete) {
+    var ticks = root.querySelectorAll('[data-diff-tick]');
+    var i;
+    for (i = 0; i < ticks.length; i++) {
+      ticks[i].classList.toggle('is-passed', i <= discrete);
+      ticks[i].classList.toggle('is-active', i === discrete);
+    }
+  }
+
+  /* Soft, quiet classroom-safe click — one beep per step change. */
   function playTick() {
     try {
       var Ctx = global.AudioContext || global.webkitAudioContext;
@@ -91,16 +102,16 @@
       var t0 = audioCtx.currentTime;
       var osc = audioCtx.createOscillator();
       var gain = audioCtx.createGain();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(980, t0);
-      osc.frequency.exponentialRampToValueAtTime(720, t0 + 0.035);
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(880, t0);
+      osc.frequency.exponentialRampToValueAtTime(640, t0 + 0.04);
       gain.gain.setValueAtTime(0.0001, t0);
-      gain.gain.exponentialRampToValueAtTime(0.045, t0 + 0.004);
-      gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.045);
+      gain.gain.exponentialRampToValueAtTime(0.038, t0 + 0.005);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.055);
       osc.connect(gain);
       gain.connect(audioCtx.destination);
       osc.start(t0);
-      osc.stop(t0 + 0.05);
+      osc.stop(t0 + 0.06);
     } catch (err) {
       /* Audio optional — ignore autoplay / context failures. */
     }
@@ -143,16 +154,18 @@
       '</div>' +
       '<div class="diff-slider__control">' +
         '<div class="diff-slider__track">' +
-          '<div class="diff-slider__fill" aria-hidden="true"></div>' +
-          ticksHtml(levels.length) +
+          '<div class="diff-slider__rail">' +
+            '<div class="diff-slider__fill" aria-hidden="true"></div>' +
+          '</div>' +
           /* step=any → fluid drag; discrete snap happens in wire() on release */
           '<input class="diff-slider__input" type="range" min="0" max="' + max +
             '" step="any" value="' + index + '" aria-label="' + esc(label) +
             '" aria-valuetext="' + esc(active.name) + '">' +
         '</div>' +
+        ticksHtml(levels.length) +
         '<div class="diff-slider__ends">' +
-          '<span>' + esc(ends[0]) + '</span>' +
-          '<span>' + esc(ends[1] || ends[0]) + '</span>' +
+          '<span data-diff-end="min">' + esc(ends[0]) + '</span>' +
+          '<span data-diff-end="max">' + esc(ends[1] || ends[0]) + '</span>' +
         '</div>' +
       '</div>' +
       (hint ? '<p class="diff-slider__hint">' + esc(hint) + '</p>' : '') +
@@ -171,6 +184,7 @@
 
     root.style.setProperty('--pct', String(pctOf(continuous, 0, max)));
     root.classList.toggle('is-max', discrete === max);
+    syncTicks(root, discrete);
 
     if (title) title.textContent = active.name;
     if (blurb) blurb.textContent = active.blurb || '';
@@ -242,6 +256,7 @@
     function endDrag() {
       if (!dragging) return;
       dragging = false;
+      root.classList.remove('is-dragging');
       window.removeEventListener('pointerup', endDrag, true);
       window.removeEventListener('pointercancel', endDrag, true);
       commit(input.value, true);
@@ -251,6 +266,7 @@
       /* Unlock AudioContext on the same user gesture as the drag. */
       soundReady = true;
       dragging = true;
+      root.classList.add('is-dragging');
       window.addEventListener('pointerup', endDrag, true);
       window.addEventListener('pointercancel', endDrag, true);
     });
