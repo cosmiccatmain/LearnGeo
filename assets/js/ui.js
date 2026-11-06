@@ -93,6 +93,9 @@
             global.LearnGeoUpdates && global.LearnGeoUpdates.maybeShow) {
           global.LearnGeoUpdates.maybeShow();
         }
+        /* The student note waits out this dialog, then paints if it
+           still has not been seen. */
+        studentNoticeSync();
       }
     }
     modalClosers.set(ov, close);
@@ -968,6 +971,10 @@
      the Back button walks back into the signed-in screens. */
   var suppressApp = false;
 
+  function studentNoticeSync() {
+    if (global.StudentNotice && global.StudentNotice.sync) global.StudentNotice.sync();
+  }
+
   function signOut() {
     suppressApp = true;
     global.Cloud.signOut().then(function () {
@@ -1205,11 +1212,15 @@
     refreshHud();
     if (global.Teacher && global.Teacher.forget) global.Teacher.forget();
     if (global.Classroom && global.Classroom.forget) global.Classroom.forget();
-    if (suppressApp) return;
+    /* Sign-out sets suppressApp before the guest save is on screen, and
+       still has to take the note down. Login paints from go() below. */
+    if (suppressApp) { studentNoticeSync(); return; }
     if (appOpen()) {
       go(currentView, { history: 'replace' });
       if (!W.state.roleChosen) askRole();
       offerShare();
+    } else {
+      studentNoticeSync();
     }
   }
 
@@ -1476,6 +1487,7 @@
     settleThumb();                     /* correct for any reflow the mode caused */
     global.GeoMap.invalidate();
     refreshHud();
+    studentNoticeSync();
   }
 
   /* Asked once, the first time someone opens the app. Students never see
@@ -1573,6 +1585,7 @@
     VIEWS.forEach(function (v) { document.body.classList.remove('view-' + v); });
     window.scrollTo(0, 0);
     if (global.Demo) global.Demo.restart();
+    studentNoticeSync();
   }
 
   global.UI = {
