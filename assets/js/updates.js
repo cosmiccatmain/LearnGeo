@@ -306,11 +306,9 @@
         if (UI && UI.openFriendInbox) UI.openFriendInbox();
         return;
       case 'duel-spectate':
+        if (global.Teacher) global.Teacher.tab = 'duels';
         if (UI && UI.go) UI.go('teacher');
-        if (global.Teacher) {
-          global.Teacher.tab = 'duels';
-          if (global.Teacher.render) global.Teacher.render();
-        }
+        else if (global.Teacher && global.Teacher.render) global.Teacher.render();
         return;
       default:
         return;
