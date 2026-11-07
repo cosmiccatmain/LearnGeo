@@ -19,6 +19,13 @@
      their own What’s New id so PRs can merge in any order. */
   var UPDATES = [
     {
+      id: '2026-11-cooking-loader',
+      title: 'Cooking… while you wait',
+      body: 'Loading screens across LearnGeo now simmer with a little pot animation and a “cooking” caption — games, maps, Learn, and more.',
+      image: '/assets/img/updates/cooking-loader.svg',
+      date: '2026-11-07'
+    },
+    {
       id: '2026-11-geo-chess-openings-bots',
       title: 'Geo Chess: openings & tougher bots',
       body: 'After a few moves you’ll see the opening name. Pawn promotion and the usual chess rules are clearer, and you can challenge Grandmaster (~3200) or Engine Max.',

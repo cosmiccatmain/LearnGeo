@@ -2,6 +2,13 @@
   "_comment": "Append newest entries at the top of `updates`. Each needs a unique `id`. Optional `image` is a path under /assets/. Keep entries public-safe: no Pets/Brainrot, no admin-only or subscription marketing.",
   "updates": [
     {
+      "id": "2026-11-cooking-loader",
+      "title": "Cooking… while you wait",
+      "body": "Loading screens across LearnGeo now simmer with a little pot animation and a “cooking” caption — games, maps, Learn, and more.",
+      "image": "/assets/img/updates/cooking-loader.svg",
+      "date": "2026-11-07"
+    },
+    {
       "id": "2026-11-geo-chess-openings-bots",
       "title": "Geo Chess: openings & tougher bots",
       "body": "After a few moves you’ll see the opening name. Pawn promotion and the usual chess rules are clearer, and you can challenge Grandmaster (~3200) or Engine Max.",

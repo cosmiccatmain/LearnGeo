@@ -211,7 +211,12 @@
   function render() {
     var host = root();
     if (!host) return;
-    if (!q) { host.innerHTML = '<div class="empty">Loading…</div>'; return; }
+    if (!q) {
+      host.innerHTML = global.CookingLoader
+        ? '<div class="empty">' + global.CookingLoader.html({ size: 'md' }) + '</div>'
+        : '<div class="empty">Loading…</div>';
+      return;
+    }
 
     var streak = W.state.streak.current;
     var html = jobCard();

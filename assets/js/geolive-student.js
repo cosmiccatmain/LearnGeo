@@ -1029,7 +1029,9 @@
         pictureHtml(q) +
         targetsHtml(q, 'locked') +
         '<div class="gl-locked" role="status">' +
-          '<span class="gl-locked__spin" aria-hidden="true"></span>' +
+          (global.CookingLoader
+            ? global.CookingLoader.html({ size: 'inline', caption: false, onDark: true, label: head })
+            : '<span class="gl-locked__spin" aria-hidden="true"></span>') +
           '<span><b>' + esc(head) + '</b><small>' + esc(sub) + '</small></span>' +
         '</div>';
     }

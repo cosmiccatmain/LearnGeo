@@ -319,7 +319,9 @@
 
         function load() {
           var id = current, mine = ++token;
-          body.innerHTML = '<div class="lb-empty lb-empty--loading"><span class="gb__pulse" aria-hidden="true"></span>Loading…</div>';
+          body.innerHTML = global.CookingLoader
+            ? '<div class="lb-empty lb-empty--loading">' + global.CookingLoader.html({ size: 'inline' }) + '</div>'
+            : '<div class="lb-empty lb-empty--loading"><span class="gb__pulse" aria-hidden="true"></span>Loading…</div>';
           if (id === ALL) {
             metric.textContent = 'Top scores across every game';
             loadAll(mine);
