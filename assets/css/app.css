@@ -1338,11 +1338,27 @@ textarea.input:focus { outline: none; border-color: var(--accent); box-shadow: 0
 .cz-duel-preview__mid { font-weight: 700; letter-spacing: .08em; color: var(--muted); font-size: 12px; }
 
 .shop-item__prem {
+  display: inline-flex; align-items: center; gap: 3px;
   font-family: var(--mono); font-size: 9.5px; font-weight: 700;
   letter-spacing: .05em; text-transform: uppercase;
   color: #92400E; background: #FEF3C7; border: 1px solid #FDE68A;
   border-radius: 4px; padding: 1px 5px; margin-left: 4px;
   vertical-align: middle;
+}
+.shop-item__prem svg { width: 10px; height: 10px; flex: none; }
+.shop-item--premium .shop-item__vis::after {
+  content: "";
+  position: absolute; top: -2px; right: -2px;
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  border: 1px solid #FDE68A;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, .08);
+  /* crown drawn via background SVG so every locked Premium tile shows one */
+  background-color: #FEF3C7;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23B45309' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M3 17 4.5 8l4.2 3.2L12 5l3.3 6.2L19.5 8 21 17z'/><path d='M4 20h16'/></svg>");
+  background-size: 11px 11px;
+  background-repeat: no-repeat;
+  background-position: center;
 }
 
 /* achievements */

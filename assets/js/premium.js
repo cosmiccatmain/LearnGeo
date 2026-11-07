@@ -21,12 +21,20 @@
 
   var PREVIEW_KEY = 'learngeo.dev.premiumPreview';
 
-  /* Keep in sync with public.premium_game_ids() in 0013. */
+  /* Keep in sync with public.premium_game_ids() in 0021 (and 0013 base).
+     Popular titles stay free: Geo Duel, Chess Duel, Geo Chess, Geo Dash,
+     Capital Snake, Flag Match, Capital Maze. Gate lesser-played hub games. */
   var PREMIUM_GAMES = {
-    chess: true,
-    dash: true,
     golf: true,
-    orbit: true
+    orbit: true,
+    invaders: true,
+    breakout: true,
+    typer: true,
+    crossing: true,
+    whack: true,
+    sort: true,
+    stack: true,
+    echo: true
   };
 
   function flags() {

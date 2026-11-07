@@ -290,12 +290,21 @@
 .game-card__art { position: relative; }
 .game-card__prem-badge {
   position: absolute; top: 10px; right: 10px; z-index: 2;
+  display: inline-flex; align-items: center; gap: 4px;
   font-family: var(--mono); font-size: 10px; font-weight: 700;
   letter-spacing: .06em; text-transform: uppercase;
   padding: 3px 7px; border-radius: 6px;
   background: rgba(254, 243, 199, .96); color: #92400E;
   border: 1px solid #FDE68A;
   box-shadow: 0 1px 2px rgba(15, 23, 42, .08);
+}
+.game-card__prem-badge svg { width: 11px; height: 11px; flex: none; }
+.game-card__crown {
+  display: inline-flex; vertical-align: -2px; color: #B45309;
+}
+.game-card__crown svg { width: 14px; height: 14px; }
+.game-card.is-premium-locked h3 {
+  display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap;
 }
 
 .dash-setup__go { display: flex; flex-wrap: wrap; gap: 10px; }

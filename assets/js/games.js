@@ -219,9 +219,9 @@
       playing: function () { return 'Live chess duel · challenge a friend'; }
     },
     {
-      id: 'chess', title: 'Geo Chess', art: 'chess', premium: true,
+      id: 'chess', title: 'Geo Chess', art: 'chess',
       blurb: 'Build your chess skills, from a forgiving beginner opponent up to Grandmaster (~3200) and Engine Max. Answer a geography question to unlock each move.',
-      meta: 'Premium · Chess · seven difficulty levels',
+      meta: 'Chess · seven difficulty levels',
       best: function (r) {
         if (r.best) return 'Best ' + r.best + ' pts';
         return r.wins ? r.wins + (r.wins === 1 ? ' win' : ' wins') : '';
@@ -258,9 +258,9 @@
       playing: function () { return 'Move questions from ' + global.StudyFilters.label(gameCfg('chess')); }
     },
     {
-      id: 'dash', title: 'Geo Dash', art: 'dash', premium: true,
+      id: 'dash', title: 'Geo Dash', art: 'dash',
       blurb: 'Jump over spikes and onto blocks to the beat of your own taps. Every so often a capital gate comes up, and you have to name the capital to keep running.',
-      meta: 'Premium · One button · capital gates',
+      meta: 'One button · capital gates',
       best: function (r) { return r.best ? 'Best ' + r.best + ' m' : ''; },
       intro: 'Your cube runs by itself. Jump over spikes, land on blocks, and get as far as you can. ' +
         'Every so often a capital gate comes down the track: name the capital and the run speeds up, ' +
@@ -464,9 +464,9 @@
       }
     },
     {
-      id: 'invaders', title: 'Geo Invaders', art: 'invaders',
+      id: 'invaders', title: 'Geo Invaders', art: 'invaders', premium: true,
       blurb: 'Space Invaders, where the formation is the answer sheet. Four pods march down carrying flags or capitals, and you shoot the one the banner names.',
-      meta: 'Steer and shoot · three lives',
+      meta: 'Premium · Steer and shoot · three lives',
       best: function (r) { return r.best ? 'Best ' + r.best + ' pts' : ''; },
       intro: 'Pods march across the sky and drop a step every time they reach the edge. Shoot the one the banner asks for. A wrong pod costs a life, and so does letting the formation reach your cannon, so a slow answer is punished by the game rather than by a timer.',
       keys: [[['←', '→'], 'or A / D, or the mouse, to steer'], [['Space'], 'fire'], [['Esc'], 'pause']],
@@ -486,9 +486,9 @@
       playing: function () { return whatKind(kind_(record('invaders'))) + ' from ' + global.StudyFilters.label(gameCfg('invaders')); }
     },
     {
-      id: 'breakout', title: 'Flag Breakout', art: 'breakout',
+      id: 'breakout', title: 'Flag Breakout', art: 'breakout', premium: true,
       blurb: 'Breakout against a wall of flags. The banner names a country and rings its flag in the wall; knock that brick out without losing the ball.',
-      meta: 'Paddle and ball · flag wall',
+      meta: 'Premium · Paddle and ball · flag wall',
       best: function (r) { return r.best ? 'Best ' + r.best + ' pts' : ''; },
       intro: 'A wall of flags from your study set, with the one you are after ringed in gold. Aiming a bouncing ball at one brick is the skill, so a wrong brick is not punished with a life: it tells you whose flag you just hit and the hunt carries on. Only losing the ball costs you.',
       keys: [[['←', '→'], 'or the mouse, to move the paddle'], [['Space'], 'serve'], [['Esc'], 'pause']],
@@ -541,9 +541,9 @@
       playing: function () { return whatKind(pick(FOODS, record('maze').kind, 'capitals')) + ' from ' + global.StudyFilters.label(gameCfg('maze')); }
     },
     {
-      id: 'typer', title: 'Capital Typer', art: 'typer',
+      id: 'typer', title: 'Capital Typer', art: 'typer', premium: true,
       blurb: 'Countries fall and you shoot them down by typing their capital. The only game here that asks you to produce the answer rather than recognise it.',
-      meta: 'Typing · no multiple choice',
+      meta: 'Premium · Typing · no multiple choice',
       best: function (r) { return r.best ? 'Best ' + r.best + ' pts' : ''; },
       intro: 'Countries drift down the screen. Type the capital of one and it goes down, and a box lights up as soon as what you have typed could be it. Enter submits, and a wrong guess shows you the answer. Three reaching the bottom ends the run. Spelling is marked the way the rest of the app marks typed answers, so the usual slips are forgiven.',
       keys: [[['A', '–', 'Z'], 'type the capital'], [['Enter'], 'submit'], [['Esc'], 'pause']],
@@ -573,9 +573,9 @@
       playing: function () { return 'Capitals, typed, from ' + global.StudyFilters.label(gameCfg('typer')); }
     },
     {
-      id: 'crossing', title: 'Border Crossing', art: 'crossing',
+      id: 'crossing', title: 'Border Crossing', art: 'crossing', premium: true,
       blurb: 'Frogger with four border gates along the top. Cross five lanes of traffic and go through the gate with the right answer on it.',
-      meta: 'Hop the lanes · pick a gate',
+      meta: 'Premium · Hop the lanes · pick a gate',
       best: function (r) { return r.best ? 'Best ' + r.best + ' pts' : ''; },
       intro: 'Five lanes of traffic between you and four gates. The banner names a country; get across and through the right gate. Picking the wrong gate from the kerb is cheap, but realising halfway across is not, and a car costs a life.',
       keys: [[['←', '↑', '↓', '→'], 'or WASD, to hop'], [['Tap'], 'where you want to go'], [['Esc'], 'pause']],
@@ -595,9 +595,9 @@
       playing: function () { return whatKind(pick(FOODS, record('crossing').kind, 'capitals')) + ' from ' + global.StudyFilters.label(gameCfg('crossing')); }
     },
     {
-      id: 'whack', title: 'Capital Whack', art: 'whack',
+      id: 'whack', title: 'Capital Whack', art: 'whack', premium: true,
       blurb: 'Nine holes, answers popping out of them, and a clock. Whack the right one before it ducks back down.',
-      meta: 'Reflex · against the clock',
+      meta: 'Premium · Reflex · against the clock',
       best: function (r) { return r.best ? 'Best ' + r.best + ' pts' : ''; },
       intro: 'Answers pop out of nine holes and duck back down on their own. Whack the one the banner asks for, by clicking it or pressing 1 to 9. There are no lives: a wrong one costs you three seconds, and the clock is the whole game.',
       keys: [[['1', '–', '9'], 'whack that hole'], [['Click'], 'or tap a head'], [['Esc'], 'pause']],
@@ -659,9 +659,9 @@
       playing: function () { return 'Flags from ' + global.StudyFilters.label(gameCfg('match')); }
     },
     {
-      id: 'sort', title: 'Continent Sort', art: 'sort',
+      id: 'sort', title: 'Continent Sort', art: 'sort', premium: true,
       blurb: 'A belt brings countries along and six bins wait underneath. Drop each one into its region before it runs off the end.',
-      meta: 'Sorting · six regions',
+      meta: 'Premium · Sorting · six regions',
       best: function (r) { return r.best ? 'Best ' + r.best + ' pts' : ''; },
       intro: 'The only game here that asks about region rather than capitals or flags, which is the thing a map quiz always wants and no other mode drills on its own. Send each one to its bin by clicking it or pressing 1 to 6. A wrong bin costs two seconds; letting one run off the end just loses it.',
       keys: [[['1', '–', '6'], 'drop into that bin'], [['Click'], 'or tap a bin'], [['Esc'], 'pause']],
@@ -696,9 +696,9 @@
       playing: function () { return 'Regions from ' + global.StudyFilters.label(gameCfg('sort')); }
     },
     {
-      id: 'stack', title: 'Capital Stack', art: 'stack',
+      id: 'stack', title: 'Capital Stack', art: 'stack', premium: true,
       blurb: 'Four columns, each headed by a country. A capital falls; slide it under the country it belongs to before it lands.',
-      meta: 'Falling blocks · four columns',
+      meta: 'Premium · Falling blocks · four columns',
       best: function (r) { return r.best ? 'Best ' + r.best + ' pts' : ''; },
       intro: 'A wrong drop does not end anything: the block stays where it fell and that column grows. A right one clears the column and brings in a new country. The game ends when a column reaches the headers, so mistakes cost you room rather than a life.',
       keys: [[['←', '→'], 'or A / D, to slide'], [['Space'], 'drop it now'], [['1', '–', '4'], 'send it to that column'], [['Esc'], 'pause']],
@@ -728,9 +728,9 @@
       playing: function () { return 'Capitals from ' + global.StudyFilters.label(gameCfg('stack')); }
     },
     {
-      id: 'echo', title: 'Flag Echo', art: 'echo',
+      id: 'echo', title: 'Flag Echo', art: 'echo', premium: true,
       blurb: 'Simon, played with flags. The board lights a sequence and you play it back, one longer every round.',
-      meta: 'Memory · one longer each round',
+      meta: 'Premium · Memory · one longer each round',
       best: function (r) { return r.longest ? 'Longest ' + r.longest : ''; },
       intro: 'The board lights a sequence of flags and you play it back in order. Each round adds one, and the flag that joins is named as it lights, so the name goes in with the picture. Playing a sequence back right counts as a right answer for every country in it, which is what makes a long chain worth chasing.',
       keys: [[['1', '–', '9'], 'press that flag'], [['Click'], 'or tap a flag'], [['Esc'], 'pause']],
@@ -1011,7 +1011,7 @@
   function premiumToast(id) {
     var g = byId(id);
     var title = (g && g.title) || 'This game';
-    W.toast('Premium', title + ' needs LearnGeo Premium.', I.lock, 3600);
+    W.toast('Premium', title + ' needs LearnGeo Premium.', I.crown || I.lock, 3600);
     if (global.Premium && global.Premium.openUpgrade) {
       global.Premium.openUpgrade(title + ' is a Premium game.');
     }
@@ -1025,6 +1025,7 @@
     var prem = !off && !guest && isPremiumLocked(g.id);
     var locked = off || prem || guest;
     var meta = showPrem ? g.meta : String(g.meta || '').replace(/^Premium\s*·\s*/i, '');
+    var crown = I.crown || I.lock || '';
     var invites = 0;
     if (g.id === 'duel' && global.GeoDuel && global.GeoDuel.pendingCount) {
       invites = global.GeoDuel.pendingCount();
@@ -1036,17 +1037,20 @@
       '" data-game="' + g.id + '" type="button"' +
       (locked ? ' aria-disabled="true"' : '') + '>' +
       '<div class="game-card__art game-art--' + g.art + '" aria-hidden="true">' + art(g.art) +
-        (showPrem ? '<span class="game-card__prem-badge">Premium</span>' : '') +
+        (showPrem ? '<span class="game-card__prem-badge" title="Premium">' +
+          crown + '<span>Premium</span></span>' : '') +
         (invites ? '<span class="game-card__invite-badge">' + invites + ' invite' + (invites === 1 ? '' : 's') + '</span>' : '') +
       '</div>' +
       '<div class="game-card__body">' +
-        '<h3>' + esc(g.title) + '</h3>' +
+        '<h3>' + esc(g.title) +
+          (prem ? ' <span class="game-card__crown" title="Premium" aria-hidden="true">' + crown + '</span>' : '') +
+        '</h3>' +
         '<p>' + esc(g.blurb) + '</p>' +
         '<div class="game-card__foot"><span>' + esc(meta) + '</span>' +
           (best ? '<span class="game-card__best">' + esc(best) + '</span>' : '') +
           (off ? '<span class="game-card__go">' + I.lock + ' Blocked by your teacher</span>'
                : guest ? '<span class="game-card__go">' + I.lock + ' Account to play</span>'
-               : prem ? '<span class="game-card__go">' + I.lock + ' Premium · Upgrade</span>'
+               : prem ? '<span class="game-card__go">' + crown + ' Premium · Upgrade</span>'
                : '<span class="game-card__go">' +
                    (g.id === 'duel' || g.id === 'chessduel' ? 'Challenge ' : 'Play ') + I.arrowR + '</span>') + '</div>' +
       '</div>' +
