@@ -843,12 +843,24 @@
     return GAMES.filter(function (g) { return g.id === id; })[0] || GAMES[0];
   }
 
-  function openChessPvp() {
-    var r = record('chess');
-    r.opponent = 'pvp';
-    W.save();
-    current = 'chess';
+  /* Deep-link helper (What’s New Try it, toasts). Opens a game’s setup
+     screen. opts.opponent: 'bot' | 'pvp' for Geo Chess. */
+  function open(gameId, opts) {
+    opts = opts || {};
+    if (gameId === 'chessduel') gameId = 'chess';
+    var g = byId(gameId);
+    if (!g) return;
+    if (g.id === 'chess') {
+      var r = record('chess');
+      r.opponent = opts.opponent === 'pvp' ? 'pvp' : 'bot';
+      W.save();
+    }
+    current = g.id;
     toSetup();
+  }
+
+  function openChessPvp() {
+    open('chess', { opponent: 'pvp' });
   }
 
   /* LEA-80: jump into Geo Chess PvP from Friend inbox (accept / rejoin). */
@@ -1422,7 +1434,7 @@
     start: start, stop: stop, catalogue: catalogue, art: art,
     playing: playing, abandon: abandon,
     needsAccount: needsAccount, promptAccount: promptAccount,
-    openChessPvp: openChessPvp,
+    open: open, openChessPvp: openChessPvp,
     openChessMatch: openChessMatch,
     get current() { return game; },
     get game() { return current; },

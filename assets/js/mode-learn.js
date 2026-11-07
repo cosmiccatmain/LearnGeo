@@ -465,6 +465,7 @@
 
   global.LearnMode = {
     start: start, next: next, render: render, applyAssignment: applyAssignment,
+    openFilters: openConfig,
     get config() { return cfg; }
   };
 })(window);
