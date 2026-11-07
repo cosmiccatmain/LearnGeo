@@ -239,6 +239,7 @@
       acctBlock() +
       item('settings', I.gear, 'Settings') +
       item('custom', I.palette, 'Customization') +
+      item('friend-inbox', I.inbox, 'Friend inbox') +
       item('achievements', I.trophy, 'Achievements') +
       item('badges', I.shield, 'Badges') +
       '<div class="menu__sep"></div>' +
@@ -262,6 +263,7 @@
         closeMenu();
         if (dest === 'settings') openSettings();
         else if (dest === 'custom') openCustomization();
+        else if (dest === 'friend-inbox') openFriendInbox();
         else if (dest === 'achievements') go('achievements');
         else if (dest === 'badges') global.Badges.openCase();
         else if (dest === 'signin') openAuth('signin');
@@ -1449,6 +1451,16 @@
     go('achievements');
   }
 
+  /* LEA-84: Friend inbox lives in the profile menu (beside Customization),
+     not under the Achievements tab. */
+  function openFriendInbox() {
+    if (global.AchievementCards && global.AchievementCards.openFriendInbox) {
+      global.AchievementCards.openFriendInbox();
+      return;
+    }
+    W.toast('Friend inbox', 'Reload the page to open Friend inbox.', I.inbox, 3200);
+  }
+
   /* ============================= ACCOUNTS =========================== */
   function signedIn() { return !!(global.Cloud && global.Cloud.signedIn); }
   function appOpen() { return document.getElementById('app').classList.contains('is-open'); }
@@ -2102,7 +2114,8 @@
   global.UI = {
     modal: modal, closeModals: closeModals, wireSeg: wireSeg, wireCheck: wireCheck, wireTabs: wireTabs,
     refreshHud: refreshHud, toggleMenu: toggleMenu, closeMenu: closeMenu,
-    openSettings: openSettings, openCustomization: openCustomization, openAchievements: openAchievements,
+    openSettings: openSettings, openCustomization: openCustomization,
+    openFriendInbox: openFriendInbox, openAchievements: openAchievements,
     /* the Codex's World / Skills switch, reached by the seg's data-onchange */
     codexLens: function (v) { if (global.Codex) global.Codex.setLens(v); },
     profileCard: profileCard, runEffect: runEffect,

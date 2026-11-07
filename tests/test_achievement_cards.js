@@ -1,4 +1,4 @@
-/* Node smoke checks for LEA-64 / LEA-67 / LEA-80 Achievement wallet + Friend inbox (no browser). */
+/* Node smoke checks for LEA-64 / LEA-67 / LEA-80 / LEA-84 Achievement wallet + Friend inbox (no browser). */
 var assert = require('assert');
 var fs = require('fs');
 var path = require('path');
@@ -106,31 +106,39 @@ assert(/does NOT|does not unlock|not unlock/i.test(sqlWallet),
 
 assert(/0023_achievement_cards/.test(readme), 'deployed README documents 0023');
 assert(/0025_achievement_wallet_share/.test(readme), 'deployed README documents 0025');
-assert(/Friend inbox \(LEA-80\)/.test(readme) || /LEA-80/.test(readme),
-  'deployed README documents LEA-80 Friend inbox');
+assert(/LEA-80/.test(readme) && /LEA-84/.test(readme),
+  'deployed README documents Friend inbox LEA-80/84');
 assert(/2026-11-achievement-cards/.test(updates), 'updates.json What’s New entry');
 assert(/2026-11-achievement-wallet/.test(updates), 'updates.json wallet entry');
 assert(/2026-11-achievement-awards/.test(updates), 'updates.json award-back entry');
 assert(/2026-11-friend-inbox/.test(updates), 'updates.json Friend inbox entry');
+assert(/2026-11-friend-inbox-menu/.test(updates), 'updates.json Friend inbox menu entry');
 assert(/2026-11-achievement-cards/.test(updatesJs), 'updates.js seeded entry');
 assert(/2026-11-achievement-wallet/.test(updatesJs), 'updates.js wallet seeded entry');
 assert(/2026-11-achievement-awards/.test(updatesJs), 'updates.js award-back seeded entry');
 assert(/2026-11-friend-inbox/.test(updatesJs), 'updates.js Friend inbox seeded entry');
+assert(/2026-11-friend-inbox-menu/.test(updatesJs), 'updates.js Friend inbox menu seeded entry');
 assert(!/Pets|Brainrot|screen.?mirror/i.test(
-  updates.match(/2026-11-friend-inbox[\s\S]*?\},/)[0]),
-  'What’s New Friend inbox entry stays public-safe');
+  updates.match(/2026-11-friend-inbox-menu[\s\S]*?\},/)[0]),
+  'What’s New Friend inbox menu entry stays public-safe');
 
-/* LEA-80 — unified Friend inbox (cards + wallets + chess) */
-assert(/Friend inbox|data-friend-inbox/.test(cards), 'Friend inbox panel present');
+/* LEA-80 / LEA-84 — Friend inbox (cards + wallets + chess) in profile menu */
+assert(/openFriendInbox/.test(cards) && /openFriendInbox/.test(ui),
+  'Friend inbox opens via AchievementCards + UI');
+assert(/friend-inbox/.test(ui) && /Customization[\s\S]*?friend-inbox[\s\S]*?Achievements/.test(ui),
+  'Friend inbox sits in profile menu next to Customization');
+assert(!/achv-friend-inbox/.test(cards),
+  'Friend inbox is not embedded under Achievements layout');
 assert(/chessIncoming|chess_duel_respond_invite|data-chess-accept/.test(cards),
   'Friend inbox wires Geo Chess challenges');
 assert(/learngeo:chess-duel-inbox/.test(cards), 'Friend inbox listens for chess poll events');
 assert(/openChessMatch/.test(games) && /openChessMatch/.test(cards),
   'Accept/rejoin opens Geo Chess via Games.openChessMatch');
 assert(/_matchId|matchId/.test(games), 'Games passes matchId into ChessDuel.mount');
-assert(/Friend inbox/.test(chessDuel), 'chess invite toast points at Friend inbox');
+assert(/profile menu → Friend inbox|Friend inbox/.test(chessDuel),
+  'chess invite toast points at Friend inbox');
 assert(/achv-inbox__kind--chess/.test(css), 'Chess kind style in Friend inbox');
-assert(!/Stripe|screen.?mirror|vercel --prod/i.test(cards + games),
+assert(!/Stripe|screen.?mirror|vercel --prod/i.test(cards + games + ui),
   'no Stripe / mirroring / vercel --prod in Friend inbox path');
 
 assert(fs.existsSync(path.join(root, 'assets/img/updates/achievement-cards.svg')),

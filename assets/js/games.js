@@ -226,7 +226,7 @@
           return mode +
             '<div class="panel">' +
               '<div class="panel__head"><h3>How invites work</h3></div>' +
-              '<p class="t-sm t-muted" style="margin:0">Your friend needs a gamertag (any Games leaderboard claim works). They see the invite in Friend inbox (Achievements) and here in Geo Chess. Wins and losses change your Chess Elo.</p>' +
+              '<p class="t-sm t-muted" style="margin:0">Your friend needs a gamertag (any Games leaderboard claim works). They see the invite in profile → Friend inbox and here in Geo Chess. Wins and losses change your Chess Elo.</p>' +
               (pending
                 ? '<p class="t-sm" style="margin:10px 0 0"><b>' + pending + ' pending invite' + (pending === 1 ? '' : 's') + '</b> waiting in the lobby.</p>'
                 : '') +
