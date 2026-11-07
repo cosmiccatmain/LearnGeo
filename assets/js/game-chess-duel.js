@@ -1,10 +1,11 @@
 /* ------------------------------------------------------------------
-   LearnGeo — Chess Duel (PvP)
+   LearnGeo — Geo Chess PvP (invite by gamertag)
 
-   Invite a friend by gamertag. They accept from the inbox, then you
-   play a live turn-based chess match. Host is White. Moves are
-   validated with chess.js on the client; the server stores FEN +
-   enforces turns. Server: supabase/deployed/0018_chess_duel.sql.
+   Mounted from Geo Chess when Opponent = Challenge a friend (LEA-68).
+   Formerly a separate “Chess Duel” Games hub entry. Invite → inbox
+   accept → live turn-based match. Host is White. Moves validated with
+   chess.js; server stores FEN + enforces turns.
+   Server: supabase/deployed/0018_chess_duel.sql (RPC names unchanged).
 -------------------------------------------------------------------*/
 import { Chess } from '../vendor/chess.js/chess.js';
 
@@ -67,7 +68,7 @@ import { Chess } from '../vendor/chess.js/chess.js';
       already_pending: 'An invite is already pending with them.',
       too_many: 'Too many open invites. Cancel one first.',
       no_gamertag: 'Claim a gamertag first.',
-      busy: 'One of you is already in a chess duel.',
+      busy: 'One of you is already in a Geo Chess match.',
       offline: 'Cloud is offline right now.',
       invalid_tag: 'Use 3–16 letters, numbers, or underscores.',
       gone: 'That invite expired.',
@@ -100,8 +101,8 @@ import { Chess } from '../vendor/chess.js/chess.js';
       if (!inv || !inv.id || seenInvite[inv.id]) return;
       seenInvite[inv.id] = true;
       W.toast(
-        'Chess Duel invite',
-        (inv.from_tag || 'Someone') + ' challenged you. Open Chess Duel to accept.',
+        'Geo Chess invite',
+        (inv.from_tag || 'Someone') + ' challenged you. Open Geo Chess → Challenge a friend to accept.',
         I.gamepad,
         6500
       );
@@ -184,7 +185,7 @@ import { Chess } from '../vendor/chess.js/chess.js';
               W.toast('Could not accept', errMsg(res && res.error), I.info, 3600);
               return refresh();
             }
-            W.toast('Challenge accepted', 'Starting Chess Duel…', I.check, 2800);
+            W.toast('Challenge accepted', 'Starting Geo Chess…', I.check, 2800);
             if (onMatch) onMatch(res.match_id);
           });
         });
@@ -250,7 +251,7 @@ import { Chess } from '../vendor/chess.js/chess.js';
       var box = (ev && ev.detail) || lastInbox;
       if (box && box.active && box.active.id) {
         entering = true;
-        W.toast('Challenge accepted', 'Entering Chess Duel…', I.check, 2800);
+        W.toast('Challenge accepted', 'Entering Geo Chess…', I.check, 2800);
         enterMatch(box.active.id);
         return;
       }
@@ -385,7 +386,7 @@ import { Chess } from '../vendor/chess.js/chess.js';
             '<div class="duel-score' + (iAmWhite ? ' is-me' : '') + '">' +
               '<span>White · ' + esc(state.white_tag || 'Host') + '</span>' +
               '<b>' + (state.turn === 'w' ? '●' : '') + '</b></div>' +
-            '<div class="duel-round mono">Chess Duel' +
+            '<div class="duel-round mono">Geo Chess' +
               '<small>' + (state.my_turn ? 'Your turn' : 'Their turn') + '</small></div>' +
             '<div class="duel-score' + (!iAmWhite ? ' is-me' : '') + '">' +
               '<span>Black · ' + esc(state.black_tag || 'Guest') + '</span>' +
@@ -613,13 +614,21 @@ import { Chess } from '../vendor/chess.js/chess.js';
       if (seen[matchId]) return;
       seen[matchId] = 1;
       scored = true;
-      var rec = (W.state.games || (W.state.games = {})).chessduel || (W.state.games.chessduel = {});
+      /* Keep legacy chessduel tallies + fold into Geo Chess record (LEA-68). */
+      var games = W.state.games || (W.state.games = {});
+      var rec = games.chessduel || (games.chessduel = {});
+      var chess = games.chess || (games.chess = {});
       rec.runs = (rec.runs || 0) + 1;
+      chess.completed = (chess.completed || 0) + 1;
       if (state.i_won) {
         rec.wins = (rec.wins || 0) + 1;
         rec.best = Math.max(rec.best || 0, rec.wins);
+        chess.wins = (chess.wins || 0) + 1;
       }
-      if (state.draw) rec.draws = (rec.draws || 0) + 1;
+      if (state.draw) {
+        rec.draws = (rec.draws || 0) + 1;
+        chess.draws = (chess.draws || 0) + 1;
+      }
       W.save();
       if (global.ChessElo && global.ChessElo.afterDuel) {
         global.ChessElo.afterDuel(matchId).then(function (r) {
@@ -637,7 +646,7 @@ import { Chess } from '../vendor/chess.js/chess.js';
     }
 
     function forfeit() {
-      if (!window.confirm('Resign this chess duel?')) return;
+      if (!window.confirm('Resign this Geo Chess match?')) return;
       var id = matchId;
       rpc('chess_duel_forfeit_match', { p_device: deviceId(), p_match: id }).then(function () {
         refresh();

@@ -36,6 +36,10 @@
     { value: 7, name: 'Engine Max', blurb: 'Deepest on-device search this lite engine allows' }
   ];
   var CHESS_DIFF_HINT = 'Level 1 plays random legal moves. Level 2 mixes occasional random moves with Stockfish. Levels 3–5 use increasingly strong Stockfish opponents. Grandmaster is near the ~3200 rated ceiling; Engine Max goes deeper still. Wins at higher levels score more points.';
+  var CHESS_OPP = [['bot', 'Vs bot'], ['pvp', 'Challenge a friend']];
+  function chessOpponent(r) {
+    return (r && r.opponent === 'pvp') ? 'pvp' : 'bot';
+  }
   var RATE_DIFF = [
     { value: 'calm', name: 'Calm', blurb: 'Countries drift down slowly' },
     { value: 'brisk', name: 'Brisk', blurb: 'A steady fall pace' },
@@ -179,61 +183,59 @@
       }
     },
     {
-      id: 'chessduel', title: 'Chess Duel', art: 'chessduel',
-      blurb: 'Challenge a friend by gamertag to a live chess match — invite, accept, then take turns on a shared board. Host plays White. Rated on the shared Chess Elo board.',
-      meta: 'PvP · invite by gamertag · Chess Elo',
-      playLabel: 'Open chess lobby',
-      best: function () {
-        var elo = global.ChessElo ? global.ChessElo.current() : ((global.WW.state.games.chess || {}).elo);
-        return elo ? elo + ' Elo' : '';
-      },
-      intro: 'Look up a friend’s gamertag and send an invite — same flow as Geo Duel. When they accept, you play a live turn-based chess match. ' +
-        'The challenger is White. Moves follow standard chess rules (castling, en passant, promotion). Finished games update your shared Chess Elo (same rating as Geo Chess). Rejoin if you disconnect. Resign or offer a draw anytime.',
-      keys: [
-        [['Gamertag'], 'look up a friend and send an invite'],
-        [['Click / tap'], 'your piece, then a highlighted square'],
-        [['Resign'], 'leave a live match from the foot bar']
-      ],
-      filters: false,
-      side: function (r) {
-        var box = global.ChessDuel && global.ChessDuel.inbox ? global.ChessDuel.inbox() : { incoming: [], outgoing: [] };
-        var pending = (box.incoming || []).length;
-        var elo = global.ChessElo ? global.ChessElo.current() : ((global.WW.state.games.chess || {}).elo || 1000);
-        return '<div class="panel">' +
-            '<div class="panel__head"><h3>How invites work</h3></div>' +
-            '<p class="t-sm t-muted" style="margin:0">Your friend needs a gamertag (any Games leaderboard claim works). They see a pending invite in Chess Duel and can accept or decline. Legal moves use the chess.js rules engine. Wins and losses change your Chess Elo.</p>' +
-            (pending
-              ? '<p class="t-sm" style="margin:10px 0 0"><b>' + pending + ' pending invite' + (pending === 1 ? '' : 's') + '</b> waiting in the lobby.</p>'
-              : '') +
-          '</div>' +
-          stats([[elo, 'Chess Elo'], [r.wins || 0, 'Wins'], [r.draws || 0, 'Draws'], [r.runs || 0, 'Matches']]);
-      },
-      wire: function () {
-        if (global.ChessDuel && global.ChessDuel.fetchInbox) global.ChessDuel.fetchInbox();
-      },
-      mount: function (stage) {
-        return global.ChessDuel.mount(stage, {
-          onBack: toSetup,
-          autoResume: true
-        });
-      },
-      playing: function () { return 'Live chess duel · challenge a friend'; }
-    },
-    {
-      /* LEA-61/62: Geo Chess stays free (not in premium_game_ids). */
+      /* LEA-61/62: Geo Chess stays free (not in premium_game_ids).
+         LEA-68: PvP (invite by gamertag) lives inside Geo Chess — no
+         separate Chess Duel hub entry. Backend RPCs stay chess_duel_*. */
       id: 'chess', title: 'Geo Chess', art: 'chess',
-      blurb: 'Build your chess skills, from a forgiving beginner opponent up to Grandmaster (~3200) and Engine Max. Answer a geography question to unlock each move. Rated with Chess Elo.',
-      meta: 'Chess Elo · seven difficulty levels',
+      blurb: 'Play bots from Beginner to Engine Max, or challenge a classmate by gamertag. Geography questions unlock bot moves. Every rated game updates your Chess Elo.',
+      meta: 'Chess Elo · bots + play other players',
+      playLabel: function (r) {
+        return chessOpponent(r) === 'pvp' ? 'Open lobby' : 'Play';
+      },
       best: function (r) {
         var elo = global.ChessElo ? global.ChessElo.ensure(r) : (typeof r.elo === 'number' ? r.elo : 0);
         return elo ? elo + ' Elo' : '';
       },
-      intro: 'Play White against the computer. Answer a question from your study set before each move. A wrong answer shows you the answer and gives you another question. Choose a piece, then a highlighted square. Castling, en passant, promotion, check, checkmate, stalemate, threefold repetition and the fifty-move rule follow standard chess rules. After the first few moves, the opening name appears when it is known. Every finished game updates your Chess Elo (starts at 1000; stronger bots are worth more). Want a human opponent? Open Chess Duel — it uses the same Elo.',
-      keys: [[['Click / tap'], 'a piece, then its destination'], [['Arrow keys'], 'explore the board; Enter or Space selects a square']],
-      filters: { title: 'Chess question filters', heading: 'Move questions', typed: true },
+      intro: 'Choose Vs bot or Challenge a friend. Against the computer you play White and answer a study-set question before each move — wrong answers show the key and deal another question. Choose a piece, then a highlighted square. Castling, en passant, promotion, check, checkmate, stalemate, threefold repetition and the fifty-move rule follow standard chess. Known openings appear after the first few moves. Against a friend, invite by gamertag (same inbox flow as Geo Duel); the challenger is White. Every finished rated game updates your Chess Elo (starts at 1000; prior wins convert into a starting rating).',
+      keys: function (r) {
+        if (chessOpponent(r) === 'pvp') {
+          return [
+            [['Gamertag'], 'look up a friend and send an invite'],
+            [['Click / tap'], 'your piece, then a highlighted square'],
+            [['Resign'], 'leave a live match from the foot bar']
+          ];
+        }
+        return [
+          [['Click / tap'], 'a piece, then its destination'],
+          [['Arrow keys'], 'explore the board; Enter or Space selects a square']
+        ];
+      },
+      filters: function (r) {
+        if (chessOpponent(r) === 'pvp') return false;
+        return { title: 'Chess question filters', heading: 'Move questions', typed: true };
+      },
       side: function (r) {
-        var level = +pick(LEVELS, String(r.level), '1');
         var elo = global.ChessElo ? global.ChessElo.ensure(r) : (typeof r.elo === 'number' ? r.elo : 1000);
+        var opp = chessOpponent(r);
+        var mode = '<div class="panel"><div class="panel__head"><h3>Opponent</h3></div>' +
+          segHtml('opponent', CHESS_OPP, opp) + '</div>';
+        if (opp === 'pvp') {
+          var box = global.ChessDuel && global.ChessDuel.inbox ? global.ChessDuel.inbox() : { incoming: [], outgoing: [] };
+          var pending = (box.incoming || []).length;
+          var duel = record('chessduel');
+          return mode +
+            '<div class="panel">' +
+              '<div class="panel__head"><h3>How invites work</h3></div>' +
+              '<p class="t-sm t-muted" style="margin:0">Your friend needs a gamertag (any Games leaderboard claim works). They see a pending invite here in Geo Chess and can accept or decline. Wins and losses change your Chess Elo.</p>' +
+              (pending
+                ? '<p class="t-sm" style="margin:10px 0 0"><b>' + pending + ' pending invite' + (pending === 1 ? '' : 's') + '</b> waiting in the lobby.</p>'
+                : '') +
+            '</div>' +
+            stats([[elo, 'Chess Elo'], [(r.wins || 0) + (duel.wins || 0), 'Wins'],
+              [(r.draws || 0) + (duel.draws || 0), 'Draws'],
+              [(r.completed || 0) + (duel.runs || 0), 'Finished games']]);
+        }
+        var level = +pick(LEVELS, String(r.level), '1');
         var slider = global.DifficultySlider
           ? global.DifficultySlider.html({
               name: 'level',
@@ -243,22 +245,42 @@
               hint: CHESS_DIFF_HINT
             })
           : segHtml('level', LEVELS, String(level));
-        return '<div class="panel">' + slider + '</div>' +
+        return mode +
+          '<div class="panel">' + slider + '</div>' +
           '<div class="panel"><div class="panel__head"><h3>Questions</h3></div>' +
           segHtml('kind', KINDS, kind_(r)) + '</div>' +
           stats([[elo, 'Chess Elo'], [r.wins || 0, 'Wins'], [r.draws || 0, 'Draws'], [r.completed || 0, 'Finished games']]);
       },
       wire: function (el, r) {
+        if (global.ChessElo && global.ChessElo.pull) global.ChessElo.pull();
+        seg(el, '[data-opponent]', function (v) {
+          r.opponent = v === 'pvp' ? 'pvp' : 'bot';
+          W.save();
+          renderSetup();
+        });
+        if (chessOpponent(r) === 'pvp') {
+          if (global.ChessDuel && global.ChessDuel.fetchInbox) global.ChessDuel.fetchInbox();
+          return;
+        }
         wireSlider(el, { name: 'level', levels: CHESS_DIFF }, '[data-level]', function (v) { r.level = +v; });
         seg(el, '[data-kind]', function (v) { r.kind = v; });
       },
       mount: function (stage, r) {
+        if (chessOpponent(r) === 'pvp') {
+          return global.ChessDuel.mount(stage, {
+            onBack: toSetup,
+            autoResume: true
+          });
+        }
         return global.GeoChess.mount(stage, {
           level: +pick(LEVELS, String(r.level), '1'), kind: kind_(r),
           cfg: function () { return gameCfg('chess'); }, onBack: toSetup
         });
       },
-      playing: function () { return 'Move questions from ' + global.StudyFilters.label(gameCfg('chess')); }
+      playing: function (r) {
+        if (chessOpponent(r) === 'pvp') return 'Live Geo Chess · challenge a friend';
+        return 'Move questions from ' + global.StudyFilters.label(gameCfg('chess'));
+      }
     },
     {
       id: 'dash', title: 'Geo Dash', art: 'dash',
@@ -813,7 +835,17 @@
   }
 
   function byId(id) {
+    /* LEA-68: Chess Duel folded into Geo Chess — keep old ids working. */
+    if (id === 'chessduel') id = 'chess';
     return GAMES.filter(function (g) { return g.id === id; })[0] || GAMES[0];
+  }
+
+  function openChessPvp() {
+    var r = record('chess');
+    r.opponent = 'pvp';
+    W.save();
+    current = 'chess';
+    toSetup();
   }
 
   function start() {
@@ -1032,7 +1064,7 @@
     var invites = 0;
     if (g.id === 'duel' && global.GeoDuel && global.GeoDuel.pendingCount) {
       invites = global.GeoDuel.pendingCount();
-    } else if (g.id === 'chessduel' && global.ChessDuel && global.ChessDuel.pendingCount) {
+    } else if (g.id === 'chess' && global.ChessDuel && global.ChessDuel.pendingCount) {
       invites = global.ChessDuel.pendingCount();
     }
     return '<button class="game-card' + (off ? ' is-blocked' : '') +
@@ -1055,7 +1087,7 @@
                : guest ? '<span class="game-card__go">' + I.lock + ' Account to play</span>'
                : prem ? '<span class="game-card__go">' + crown + ' Premium · Upgrade</span>'
                : '<span class="game-card__go">' +
-                   (g.id === 'duel' || g.id === 'chessduel' ? 'Challenge ' : 'Play ') + I.arrowR + '</span>') + '</div>' +
+                   (g.id === 'duel' ? 'Challenge ' : 'Play ') + I.arrowR + '</span>') + '</div>' +
       '</div>' +
     '</button>';
   }
@@ -1228,6 +1260,7 @@
     stop();
     var el = host();
     if (!el) return;
+    var fromChessDuel = (current === 'chessduel');
     var g = byId(current);
     current = g.id;
     if (isBlocked(g.id)) { blockedToast(); renderHub(); return; }
@@ -1241,7 +1274,16 @@
     }
     if (isPremiumLocked(g.id)) { premiumToast(g.id); renderHub(); return; }
     var r = record(g.id);
+    /* Old Chess Duel deep-links / toasts open Geo Chess in Challenge mode. */
+    if (g.id === 'chess' && (fromChessDuel || r._openPvp)) {
+      r.opponent = 'pvp';
+      delete r._openPvp;
+      W.save();
+    }
     var cfg = gameCfg(g.id);
+    var keys = typeof g.keys === 'function' ? g.keys(r) : g.keys;
+    var filters = typeof g.filters === 'function' ? g.filters(r) : g.filters;
+    var playLabel = typeof g.playLabel === 'function' ? g.playLabel(r) : (g.playLabel || 'Play');
 
     el.innerHTML =
       '<div class="portal__inner games">' +
@@ -1252,25 +1294,25 @@
             '<h1>' + esc(g.title) + '</h1>' +
             '<p>' + esc(g.intro) + '</p>' +
             '<div class="dash-keys">' +
-              g.keys.map(function (k) {
+              keys.map(function (k) {
                 return '<div>' + k[0].map(function (x) { return '<kbd>' + esc(x) + '</kbd>'; }).join('') +
                   '<span>' + esc(k[1]) + '</span></div>';
               }).join('') +
             '</div>' +
             '<div class="dash-setup__go">' +
               '<button class="btn btn--accent btn--lg" data-play>' + I.play + ' ' +
-                esc(g.playLabel || 'Play') + '</button>' +
+                esc(playLabel) + '</button>' +
               '<button class="btn btn--ghost btn--lg" data-board type="button">' + I.trophy + ' Leaderboard</button>' +
             '</div>' +
           '</div>' +
           '<div class="dash-setup__side">' +
-            (g.filters
+            (filters
               ? '<div class="panel">' +
-                  '<div class="panel__head"><h3>' + esc(g.filters.heading) + '</h3>' +
+                  '<div class="panel__head"><h3>' + esc(filters.heading) + '</h3>' +
                     '<button class="btn btn--ghost btn--sm" data-filters>Filters</button></div>' +
                   '<div class="dash-cfg">' +
                     '<div><span>Countries</span><b>' + esc(global.StudyFilters.label(cfg)) + '</b></div>' +
-                    (g.filters.typed
+                    (filters.typed
                       ? '<div><span>Answer</span><b>' + (cfg.typed ? (g.id === 'chess' ? 'Type the answer' : 'Type the capital') : 'Multiple choice') + '</b></div>'
                       : '') +
                     '<div><span>Order</span><b>' + (cfg.weakFirst ? 'Weakest first' : 'Random') + '</b></div>' +
@@ -1289,10 +1331,10 @@
       if (global.GameBoards) global.GameBoards.open(g.id);
     });
     var filtersBtn = W.$('[data-filters]', el);
-    if (filtersBtn && g.filters) {
+    if (filtersBtn && filters) {
       filtersBtn.addEventListener('click', function () {
         global.StudyFilters.open({
-          cfg: cfg, title: g.filters.title, types: false, mapChoices: false, answerStyle: g.filters.typed,
+          cfg: cfg, title: filters.title, types: false, mapChoices: false, answerStyle: filters.typed,
           onApply: function (f) {
             r.cfg = { regions: f.regions, scope: f.scope, countries: f.countries, typed: f.typed, weakFirst: f.weakFirst };
             W.save();
@@ -1325,7 +1367,7 @@
       '<div class="portal__inner games games--play">' +
         '<div class="games__playbar">' +
           '<button class="games__back" data-setup>' + I.arrowL + ' ' + esc(g.title) + '</button>' +
-          '<span class="t-sm t-muted">' + esc(g.playing()) + '</span>' +
+          '<span class="t-sm t-muted">' + esc(typeof g.playing === 'function' ? g.playing(r) : '') + '</span>' +
         '</div>' +
         '<div class="games__stage" id="games-stage"></div>' +
       '</div>';
@@ -1347,6 +1389,7 @@
     start: start, stop: stop, catalogue: catalogue, art: art,
     playing: playing, abandon: abandon,
     needsAccount: needsAccount, promptAccount: promptAccount,
+    openChessPvp: openChessPvp,
     get current() { return game; },
     get game() { return current; },
     get screen() { return screen; }

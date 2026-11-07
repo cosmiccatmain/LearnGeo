@@ -1,11 +1,15 @@
 /* ------------------------------------------------------------------
-   LearnGeo — Geo Chess Elo helper (LEA-60).
+   LearnGeo — Geo Chess Elo helper (LEA-60 / LEA-68).
 
-   Shared rating for vs-bot Geo Chess and Chess Duel PvP. Starting Elo
-   1000, K=32 (school-friendly). Bot nominal Elos match difficulty.
-   Server RPCs in supabase/deployed/0024_chess_elo.sql are authoritative
-   when online; this module keeps local state.games.chess.elo in sync
-   for UI and offline play.
+   One rating for Geo Chess: vs-bot games and in-game PvP (challenge by
+   gamertag). Starting Elo 1000, K=32 (school-friendly). Bot nominal
+   Elos match difficulty. Server RPCs in supabase/deployed/0024_chess_elo.sql
+   are authoritative when online; this module keeps local
+   state.games.chess.elo in sync for UI and offline play.
+
+   Legacy win/draw/loss counts (pre-Elo, or older Chess Duel records)
+   convert once into a starting rating so existing players are not
+   zeroed at 1000. See seedFromLegacy().
 -------------------------------------------------------------------*/
 (function (global) {
   'use strict';
@@ -14,6 +18,11 @@
   var K = 32;
   var MIN = 100;
   var MAX = 3500;
+  /* Seeded ratings stay in a gentler band until real rated games move them. */
+  var SEED_MAX = 2000;
+  var SEED_WIN = 24;
+  var SEED_LOSS = 16;
+  var SEED_DRAW = 8;
 
   /* Nominal strength for each Geo Chess level (fair vs-bot updates). */
   var BOT = {
@@ -57,9 +66,61 @@
     return games.chess || (games.chess = {});
   }
 
+  function duelRecord() {
+    var W = global.WW;
+    if (!W || !W.state) return {};
+    var games = W.state.games || {};
+    return games.chessduel || {};
+  }
+
+  /* Convert prior win/score tallies → starting Elo.
+     Formula (documented in PR / ship notes):
+       seed = clamp(1000 + 24·wins − 16·losses + 8·draws, 100, 2000)
+     Wins/draws come from Geo Chess + legacy Chess Duel local records.
+     Losses ≈ max(0, finished − wins − draws). Runs once per device
+     while no rated Elo games have been recorded yet and Elo is still
+     at the default (or unset). */
+  function seedEloFromCounts(wins, draws, losses) {
+    wins = Math.max(0, Math.round(Number(wins) || 0));
+    draws = Math.max(0, Math.round(Number(draws) || 0));
+    losses = Math.max(0, Math.round(Number(losses) || 0));
+    if (wins + draws + losses === 0) return START;
+    var raw = START + SEED_WIN * wins - SEED_LOSS * losses + SEED_DRAW * draws;
+    if (raw > SEED_MAX) raw = SEED_MAX;
+    return clamp(raw);
+  }
+
+  function seedFromLegacy(rec) {
+    if (!rec || rec.eloSeeded) return;
+    if ((rec.eloGames || 0) > 0) {
+      rec.eloSeeded = true;
+      return;
+    }
+    /* Already moved off the default by a prior rated path — leave it. */
+    if (typeof rec.elo === 'number' && isFinite(rec.elo) && rec.elo !== START) {
+      rec.eloSeeded = true;
+      return;
+    }
+    var duel = duelRecord();
+    var wins = (rec.wins || 0) + (duel.wins || 0);
+    var draws = (rec.draws || 0) + (duel.draws || 0);
+    var finished = (rec.completed || 0) + (duel.runs || 0);
+    var losses = Math.max(0, finished - wins - draws);
+    var seeded = seedEloFromCounts(wins, draws, losses);
+    rec.elo = seeded;
+    rec.eloSeeded = true;
+    if (seeded !== START && !(rec.eloGames > 0)) {
+      /* Mark as having history so leaderboard can publish the seed. */
+      rec.eloGames = Math.max(1, wins + draws + losses);
+      rec.eloFromLegacy = true;
+    }
+    if (global.WW && global.WW.save) global.WW.save();
+  }
+
   function ensure(rec) {
     rec = rec || chessRecord();
     if (!rec) return START;
+    seedFromLegacy(rec);
     if (typeof rec.elo !== 'number' || !isFinite(rec.elo)) {
       rec.elo = START;
     } else {
@@ -103,21 +164,50 @@
       : (global.WW && global.WW.state && global.WW.state.deviceId) || null;
   }
 
-  /* Pull server rating into local state when available. */
+  /* Pull server rating into local state when available.
+     Prefer server when it already has rated games; otherwise keep a
+     local legacy seed and push it up once. */
   function pull() {
     var c = sb(), id = deviceId(), rec = chessRecord();
     if (!c || !id || !rec) return Promise.resolve(ensure(rec));
+    ensure(rec);
     return c.rpc('get_chess_elo', { p_device: id }).then(function (res) {
       var data = res && res.data;
       if (data && data.ok && typeof data.elo === 'number') {
+        var serverGames = typeof data.games === 'number' ? data.games : 0;
+        if (serverGames > 0 || !rec.eloFromLegacy) {
+          rec.elo = clamp(data.elo);
+          rec.eloGames = serverGames;
+          rec.eloSeeded = true;
+          if (global.WW && global.WW.save) global.WW.save();
+          return rec.elo;
+        }
+        /* Server still provisional — push legacy seed so leaderboard
+           matches what the player sees locally. */
+        return pushSeed(rec);
+      }
+      return ensure(rec);
+    }, function () { return ensure(rec); });
+  }
+
+  function pushSeed(rec) {
+    var c = sb(), id = deviceId();
+    if (!c || !id || !rec || !global.Cloud || !global.Cloud.signedIn) {
+      return Promise.resolve(ensure(rec));
+    }
+    ensure(rec);
+    if (!rec.eloFromLegacy || rec.eloSeedPushed) return Promise.resolve(rec.elo);
+    return c.rpc('submit_chess_elo', { p_device: id, p_elo: rec.elo }).then(function (res) {
+      var data = res && res.data;
+      if (data && data.ok && typeof data.elo === 'number') {
         rec.elo = clamp(data.elo);
-        if (typeof data.games === 'number') rec.eloGames = data.games;
+        rec.eloSeedPushed = true;
+        rememberSent(rec.elo);
         if (global.WW && global.WW.save) global.WW.save();
-      } else {
-        ensure(rec);
+        if (global.GameBoards && global.GameBoards.touch) global.GameBoards.touch();
       }
       return rec.elo;
-    }, function () { return ensure(rec); });
+    }, function () { return rec.elo; });
   }
 
   function rememberSent(elo) {
@@ -152,6 +242,7 @@
         rec.elo = clamp(data.elo);
         if (typeof data.games === 'number') rec.eloGames = data.games;
         if (typeof data.delta === 'number') rec.lastEloDelta = data.delta;
+        rec.eloFromLegacy = false;
         rememberSent(rec.elo);
         if (global.WW && global.WW.saveNow) global.WW.saveNow();
         return done({
@@ -167,7 +258,7 @@
     }, function () { return done(local); });
   }
 
-  /* Chess Duel: server applies both sides once; sync local from result. */
+  /* Geo Chess PvP: server applies both sides once; sync local from result. */
   function afterDuel(matchId) {
     var rec = chessRecord();
     if (!rec) return Promise.resolve(null);
@@ -184,6 +275,7 @@
         rec.elo = clamp(data.elo);
         if (typeof data.games === 'number') rec.eloGames = data.games;
         if (typeof data.delta === 'number') rec.lastEloDelta = data.delta;
+        rec.eloFromLegacy = false;
         rememberSent(rec.elo);
         if (global.WW && global.WW.saveNow) global.WW.saveNow();
         else if (global.WW && global.WW.save) global.WW.save();
@@ -198,8 +290,13 @@
     START: START,
     K: K,
     BOT: BOT,
+    SEED_WIN: SEED_WIN,
+    SEED_LOSS: SEED_LOSS,
+    SEED_DRAW: SEED_DRAW,
+    SEED_MAX: SEED_MAX,
     expected: expected,
     next: next,
+    seedEloFromCounts: seedEloFromCounts,
     ensure: ensure,
     applyLocal: applyLocal,
     botElo: botElo,

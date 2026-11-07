@@ -22,7 +22,7 @@
   var PREVIEW_KEY = 'learngeo.dev.premiumPreview';
 
   /* Keep in sync with public.premium_game_ids() in 0022 (and 0013 base).
-     Free: Geo Duel, Chess Duel, Geo Chess, Geo Dash, Capital Snake,
+     Free: Geo Duel, Geo Chess (bots + PvP), Geo Dash, Capital Snake,
      Flag Match, Capital Maze, Geo Golf, Globe Defender.
      Gate remaining lesser-played hub arcade titles. */
   var PREMIUM_GAMES = {

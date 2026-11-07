@@ -35,23 +35,23 @@
   /* Where each game keeps the number its board is ranked on, whether
      lower is better, how to print it, and a short line for the board
      header. Golf ranks the nine-hole best, in strokes against par.
-     Geo Chess / Chess Duel share one Elo board (game_id chess). Elo
-     can go down, so replace:true always re-submits the current rating. */
+     Geo Chess Elo board (game_id chess) covers vs-bot and in-game PvP.
+     Elo can go down, so replace:true always re-submits the current rating. */
   var SCORERS = {
     chess:    { get: function (r) {
                   if (global.ChessElo) global.ChessElo.ensure(r);
-                  /* Only publish after at least one rated game so everyone
-                     does not land on the board at the starting 1000. */
+                  /* Only publish after at least one rated / seeded game so
+                     everyone does not land on the board at bare 1000. */
                   if (!(r.eloGames > 0) || typeof r.elo !== 'number') return null;
                   return r.elo;
                 },
                 fmt: function (n) { return num(n) + ' Elo'; },
-                metric: 'Chess Elo rating · vs bots and Chess Duel',
+                metric: 'Chess Elo rating · Geo Chess bots and PvP',
                 replace: true },
     duel:     { get: function (r) { return r.wins || 0; },
                 fmt: function (n) { return num(n) + (n === 1 ? ' win' : ' wins'); },
                 metric: 'Wins against friends' },
-    chessduel:{ /* Shared Elo with Geo Chess — board alias opens chess. */
+    chessduel:{ /* LEA-68: Chess Duel removed from hub — alias → Geo Chess. */
                 get: function () { return null; },
                 fmt: function (n) { return num(n) + ' Elo'; },
                 metric: 'Chess Elo rating · same board as Geo Chess',
