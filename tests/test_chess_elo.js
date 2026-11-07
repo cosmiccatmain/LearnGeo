@@ -35,4 +35,12 @@ assert(upset.delta > 16, 'upset win gains more than even, got ' + upset.delta);
 var expected = Elo.expected(1000, 1000);
 assert(Math.abs(expected - 0.5) < 1e-9, 'expected vs equal');
 
+/* LEA-68 legacy win → Elo seed */
+assert(typeof Elo.seedEloFromCounts === 'function', 'seed helper');
+assert(Elo.seedEloFromCounts(0, 0, 0) === 1000, 'empty seed stays 1000');
+assert(Elo.seedEloFromCounts(1, 0, 0) === 1024, 'one win → +24');
+assert(Elo.seedEloFromCounts(0, 0, 1) === 984, 'one loss → −16');
+assert(Elo.seedEloFromCounts(0, 1, 0) === 1008, 'one draw → +8');
+assert(Elo.seedEloFromCounts(100, 0, 0) === 2000, 'seed capped at 2000');
+
 console.log('test_chess_elo.js: ok');

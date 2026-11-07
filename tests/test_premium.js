@@ -16,7 +16,9 @@ assert(/premium:\s*true/.test(games), 'games.js marks Premium titles');
 assert(!/id: 'chess'[\s\S]{0,120}premium:\s*true/.test(games), 'Geo Chess stays free');
 assert(!/id: 'dash'[\s\S]{0,120}premium:\s*true/.test(games), 'Geo Dash stays free');
 assert(!/id: 'duel'[\s\S]{0,120}premium:\s*true/.test(games), 'Geo Duel stays free');
-assert(!/id: 'chessduel'[\s\S]{0,120}premium:\s*true/.test(games), 'Chess Duel stays free');
+/* LEA-68: Chess Duel hub entry removed; PvP lives in free Geo Chess. */
+assert(!/id: 'chessduel'[\s\S]{0,40}title:/.test(games), 'Chess Duel is not a separate Games hub entry');
+assert(/Challenge a friend/.test(games), 'Geo Chess offers Challenge a friend');
 assert(/id: 'snake'/.test(games) && !/id: 'snake'[\s\S]{0,80}premium:\s*true/.test(games),
   'Capital Snake stays free');
 assert(/id: 'match'/.test(games) && !/id: 'match'[\s\S]{0,80}premium:\s*true/.test(games),

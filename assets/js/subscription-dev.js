@@ -221,7 +221,7 @@
         '<article><h3>Does checkout charge a card?</h3>' +
           '<p>Not yet. Mock checkout only. Owner <code>' + OWNER_EMAIL + '</code> and UltraAdmin can grant a TEST Premium flag.</p></article>' +
         '<article><h3>What stays free?</h3>' +
-          '<p>Study modes plus popular Games — Geo Dash, Geo Chess, Geo Duel, Chess Duel, Capital Snake, Flag Match, and Capital Maze — stay playable on Free.</p></article>' +
+          '<p>Study modes plus popular Games — Geo Dash, Geo Chess, Geo Duel, Capital Snake, Flag Match, and Capital Maze — stay playable on Free.</p></article>' +
       '</div>' +
 
       '<p class="subdev__foot">' +
