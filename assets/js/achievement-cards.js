@@ -1,13 +1,16 @@
 /* ------------------------------------------------------------------
-   LearnGeo — Achievement cards (LEA-64 / LEA-67 / LEA-70 / LEA-71)
+   LearnGeo — Achievement cards (LEA-64 / LEA-67 / LEA-70 / LEA-71 / LEA-80)
 
    Credit-card-style stack with flip. Unlocked Cosmetics.achievements
    can be sent to a classmate by gamertag (school-safe; no money).
    LEA-67: fix Chromium button 3D flatten, float + wallet unfold,
    share whole wallet by gamertag.
    LEA-71: award-badge card backs with owner gamertag (wallet kept).
+   LEA-80: Friend inbox unifies card gifts, wallet shares, and Geo Chess
+   challenges in one Achievements side panel (no new SQL).
    Server: supabase/deployed/0023_achievement_cards.sql
            + 0025_achievement_wallet_share.sql
+           + chess invites via 0018_chess_duel.sql RPCs
 -------------------------------------------------------------------*/
 (function (global) {
   'use strict';
@@ -18,9 +21,11 @@
   var flipped = false;
   var lastInbox = {
     incoming: [], outgoing: [], received: [],
-    walletIncoming: [], walletOutgoing: [], walletShared: []
+    walletIncoming: [], walletOutgoing: [], walletShared: [],
+    chessIncoming: [], chessOutgoing: [], chessActive: null
   };
   var pollTimer = null;
+  var chessInboxListener = null;
   var tray = 'mine'; /* mine | gifts | shared */
   var viewingShare = null; /* accepted wallet share row while tray=shared */
   var unfoldTimer = null;
@@ -514,21 +519,36 @@
   }
 
   /* ============================ RPC =============================== */
+  function applyChessBox(box) {
+    box = box || (global.ChessDuel && global.ChessDuel.inbox
+      ? global.ChessDuel.inbox()
+      : null) || {};
+    lastInbox.chessIncoming = box.incoming || [];
+    lastInbox.chessOutgoing = box.outgoing || [];
+    lastInbox.chessActive = box.active || null;
+  }
+
   function fetchInbox() {
     var id = deviceId();
     if (!id || !signedIn()) {
       lastInbox = {
         incoming: [], outgoing: [], received: [],
-        walletIncoming: [], walletOutgoing: [], walletShared: []
+        walletIncoming: [], walletOutgoing: [], walletShared: [],
+        chessIncoming: [], chessOutgoing: [], chessActive: null
       };
       return Promise.resolve(lastInbox);
     }
+    var chessP = (global.ChessDuel && global.ChessDuel.fetchInbox)
+      ? global.ChessDuel.fetchInbox().catch(function () { return null; })
+      : Promise.resolve(null);
     return Promise.all([
       rpc('ach_card_list_inbox', { p_device: id }),
-      rpc('ach_wallet_list', { p_device: id })
+      rpc('ach_wallet_list', { p_device: id }),
+      chessP
     ]).then(function (both) {
       var cards = both[0];
       var wallets = both[1];
+      var chessBox = both[2];
       if (cards && cards.ok) {
         lastInbox.incoming = cards.incoming || [];
         lastInbox.outgoing = cards.outgoing || [];
@@ -551,6 +571,7 @@
         lastInbox.walletOutgoing = lastInbox.walletOutgoing || [];
         lastInbox.walletShared = lastInbox.walletShared || [];
       }
+      applyChessBox(chessBox);
       return lastInbox;
     });
   }
@@ -711,14 +732,48 @@
     var out = lastInbox.outgoing || [];
     var wInc = lastInbox.walletIncoming || [];
     var wOut = lastInbox.walletOutgoing || [];
+    var cInc = lastInbox.chessIncoming || [];
+    var cOut = lastInbox.chessOutgoing || [];
+    var cActive = lastInbox.chessActive;
     var parts = [];
 
     if (!signedIn()) {
-      return '<p class="achv-empty">Sign in and claim a gamertag to send or receive cards.</p>';
+      return '<p class="achv-empty">Sign in and claim a gamertag to send or receive cards, wallets, and chess challenges.</p>';
     }
-    if (!inc.length && !out.length && !wInc.length && !wOut.length) {
-      parts.push('<p class="achv-empty">No pending card or wallet shares.</p>');
+    if (!inc.length && !out.length && !wInc.length && !wOut.length &&
+        !cInc.length && !cOut.length && !cActive) {
+      parts.push('<p class="achv-empty">No pending cards, wallets, or chess challenges.</p>');
     }
+    if (cActive && cActive.id) {
+      var vs = cActive.host_tag === myTag() ? cActive.guest_tag : cActive.host_tag;
+      parts.push(
+        '<div class="achv-inbox__row" data-chess-active="' + esc(cActive.id) + '">' +
+          '<div class="grow">' +
+            '<span class="achv-inbox__kind achv-inbox__kind--chess">Chess</span>' +
+            '<b>Match in progress</b>' +
+            '<span>vs ' + esc(vs || 'friend') +
+              (cActive.my_color === 'w' ? ' · you are White' : ' · you are Black') +
+            '</span></div>' +
+          '<div class="achv-inbox__acts">' +
+            '<button type="button" class="btn btn--accent btn--sm" data-chess-resume>Rejoin</button>' +
+          '</div>' +
+        '</div>'
+      );
+    }
+    cInc.forEach(function (row) {
+      parts.push(
+        '<div class="achv-inbox__row" data-chess="' + esc(row.id) + '">' +
+          '<div class="grow">' +
+            '<span class="achv-inbox__kind achv-inbox__kind--chess">Chess</span>' +
+            '<b>' + esc(row.from_tag || 'Friend') + ' challenged you</b>' +
+            '<span>Geo Chess · they play White</span></div>' +
+          '<div class="achv-inbox__acts">' +
+            '<button type="button" class="btn btn--accent btn--sm" data-chess-accept>Accept</button>' +
+            '<button type="button" class="btn btn--ghost btn--sm" data-chess-decline>Decline</button>' +
+          '</div>' +
+        '</div>'
+      );
+    });
     wInc.forEach(function (row) {
       var n = (row.card_ids && row.card_ids.length) || 0;
       parts.push(
@@ -745,6 +800,19 @@
           '<div class="achv-inbox__acts">' +
             '<button type="button" class="btn btn--accent btn--sm" data-accept>Keep</button>' +
             '<button type="button" class="btn btn--ghost btn--sm" data-decline>No thanks</button>' +
+          '</div>' +
+        '</div>'
+      );
+    });
+    cOut.forEach(function (row) {
+      parts.push(
+        '<div class="achv-inbox__row" data-chess="' + esc(row.id) + '">' +
+          '<div class="grow">' +
+            '<span class="achv-inbox__kind achv-inbox__kind--chess">Chess</span>' +
+            '<b>Challenge → ' + esc(row.to_tag || 'friend') + '</b>' +
+            '<span>Geo Chess · waiting</span></div>' +
+          '<div class="achv-inbox__acts">' +
+            '<button type="button" class="btn btn--ghost btn--sm" data-chess-cancel>Cancel</button>' +
           '</div>' +
         '</div>'
       );
@@ -896,9 +964,10 @@
                 : '<p class="achv-empty" style="margin-top:10px">Sharing ' + have + ' unlocked card' +
                     (have === 1 ? '' : 's') + '.</p>') +
             '</div>' +
-            '<div class="panel">' +
-              '<div class="panel__head"><h3>Inbox</h3></div>' +
-              '<div data-achv-inbox>' + inboxHtml() + '</div>' +
+            '<div class="panel" id="achv-friend-inbox">' +
+              '<div class="panel__head"><h3>Friend inbox</h3></div>' +
+              '<p class="t-sm t-muted" style="margin:0 0 12px">Card gifts, wallet shares, and Geo Chess challenges in one place.</p>' +
+              '<div data-achv-inbox data-friend-inbox>' + inboxHtml() + '</div>' +
             '</div>' +
           '</div>' +
         '</div>' +
@@ -1255,6 +1324,105 @@
         });
       });
     });
+
+    W.$$('[data-chess-accept]', box).forEach(function (b) {
+      b.addEventListener('click', function () {
+        var row = b.closest('[data-chess]');
+        respondChess(row && row.dataset.chess, true);
+      });
+    });
+    W.$$('[data-chess-decline]', box).forEach(function (b) {
+      b.addEventListener('click', function () {
+        var row = b.closest('[data-chess]');
+        respondChess(row && row.dataset.chess, false);
+      });
+    });
+    W.$$('[data-chess-cancel]', box).forEach(function (b) {
+      b.addEventListener('click', function () {
+        var row = b.closest('[data-chess]');
+        var id = row && row.dataset.chess;
+        if (!id) return;
+        ensureTag(function () {
+          rpc('chess_duel_cancel_invite', {
+            p_device: deviceId(),
+            p_invite: id
+          }).then(function (res) {
+            if (!res || !res.ok) {
+              W.toast('Couldn’t cancel', chessErr(res && res.error), I.info, 3600);
+              return;
+            }
+            refreshInbox();
+          });
+        });
+      });
+    });
+    W.$$('[data-chess-resume]', box).forEach(function (b) {
+      b.addEventListener('click', function () {
+        var row = b.closest('[data-chess-active]');
+        var id = row && row.getAttribute('data-chess-active');
+        if (!id) return;
+        openChessFromInbox(id);
+      });
+    });
+  }
+
+  function chessErr(code) {
+    return ({
+      guest: 'Sign in first.',
+      offline: 'Couldn’t reach the server.',
+      no_gamertag: 'Claim a gamertag in Games first.',
+      not_found: 'That invite is gone.',
+      gone: 'That invite expired.',
+      self: 'You cannot challenge yourself.',
+      already_pending: 'An invite is already pending.',
+      too_many: 'Too many open invites.'
+    })[code] || errMsg(code);
+  }
+
+  function openChessFromInbox(matchId) {
+    if (global.Games && global.Games.openChessMatch) {
+      global.Games.openChessMatch(matchId || null);
+      return;
+    }
+    if (global.Games && global.Games.openChessPvp && global.UI && global.UI.go) {
+      global.Games.openChessPvp();
+      global.UI.go('games');
+    }
+  }
+
+  function respondChess(inviteId, accept) {
+    if (!inviteId) return;
+    ensureTag(function () {
+      function once() {
+        return rpc('chess_duel_respond_invite', {
+          p_device: deviceId(),
+          p_invite: inviteId,
+          p_accept: !!accept
+        });
+      }
+      once().then(function (res) {
+        if (!res || !res.ok) {
+          if (res && res.error === 'no_gamertag') {
+            return ensureServerTag().then(once);
+          }
+          return res;
+        }
+        return res;
+      }).then(function (res) {
+        if (!res || !res.ok) {
+          W.toast('Couldn’t update', chessErr(res && res.error), I.info, 3600);
+          refreshInbox();
+          return;
+        }
+        if (accept) {
+          W.toast('Challenge accepted', 'Opening Geo Chess…', I.check, 2800);
+          openChessFromInbox(res.match_id);
+          return;
+        }
+        W.toast('Declined', 'Chess invite closed', I.check, 2400);
+        refreshInbox();
+      });
+    });
   }
 
   function respond(sendId, accept) {
@@ -1446,6 +1614,16 @@
   }
 
   /* ============================ public ============================ */
+  function onChessInboxEvent(ev) {
+    if (!hostEl || !hostEl.isConnected) return;
+    applyChessBox(ev && ev.detail);
+    var box = W.$('[data-achv-inbox]', hostEl);
+    if (box) {
+      box.innerHTML = inboxHtml();
+      wireInbox();
+    }
+  }
+
   function start() {
     hostEl = document.getElementById('view-achievements');
     if (!hostEl) return;
@@ -1457,6 +1635,10 @@
     if (unfoldTimer) { global.clearTimeout(unfoldTimer); unfoldTimer = null; }
     if (settleTimer) { global.clearTimeout(settleTimer); settleTimer = null; }
     if (flipTimer) { global.clearTimeout(flipTimer); flipTimer = null; }
+    if (!chessInboxListener) {
+      chessInboxListener = onChessInboxEvent;
+      global.addEventListener('learngeo:chess-duel-inbox', chessInboxListener);
+    }
     /* Fast first paint without anim, then one unfold after inbox lands
        so a second paint does not tear down the fan-out mid-flight. */
     paint({ skipUnfold: true });
@@ -1469,6 +1651,10 @@
 
   function stop() {
     stopPolling();
+    if (chessInboxListener) {
+      global.removeEventListener('learngeo:chess-duel-inbox', chessInboxListener);
+      chessInboxListener = null;
+    }
     if (unfoldTimer) { global.clearTimeout(unfoldTimer); unfoldTimer = null; }
     if (settleTimer) { global.clearTimeout(settleTimer); settleTimer = null; }
     if (flipTimer) { global.clearTimeout(flipTimer); flipTimer = null; }
@@ -1476,7 +1662,9 @@
   }
 
   function pendingCount() {
-    return (lastInbox.incoming || []).length + (lastInbox.walletIncoming || []).length;
+    return (lastInbox.incoming || []).length +
+      (lastInbox.walletIncoming || []).length +
+      (lastInbox.chessIncoming || []).length;
   }
 
   global.AchievementCards = {

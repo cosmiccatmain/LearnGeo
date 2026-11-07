@@ -20,6 +20,20 @@
      own What’s New id. */
   var UPDATES = [
     {
+      id: '2026-11-friend-inbox',
+      title: 'Friend inbox',
+      body: 'Achievements now has one Friend inbox for card gifts, wallet shares, and Geo Chess challenges — accept or decline without hunting through separate screens.',
+      image: '/assets/img/updates/achievement-cards.svg',
+      date: '2026-11-07'
+    },
+    {
+      id: '2026-11-duel-spectate',
+      title: 'Spectate Geo Duels',
+      body: 'Teachers can open the new Duels tab in My class and watch a live student Geo Duel — scores and questions update as they play. Host view only; you stay out of the match.',
+      image: '/assets/img/updates/chess-duel.svg',
+      date: '2026-11-07'
+    },
+    {
       id: '2026-11-achievement-awards',
       title: 'Award-style card backs',
       body: 'Flip an achievement card to see your gamertag under a colorful enamel award badge — title and status sit underneath, still in the same flip wallet.',
