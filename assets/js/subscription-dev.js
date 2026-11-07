@@ -34,24 +34,24 @@
       featured: false,
       features: [
         { t: 'Learn, practice test, and class quiz', on: true },
-        { t: 'Free Games (Snake, Match, Maze, and more)', on: true },
+        { t: 'Popular Games (Dash, Chess, Duel, Snake, and more)', on: true },
         { t: 'Join a classroom with a class code', on: true },
         { t: 'Basic cosmetics locker', on: true },
-        { t: 'Premium Games (Chess, Dash, Golf, Defender)', on: false },
+        { t: 'Premium Games (Golf, Defender, Invaders, and more)', on: false },
         { t: 'Premium profile effects', on: false }
       ]
     },
     {
       id: 'premium',
       name: 'Premium',
-      blurb: 'For learners and players — unlocks Premium Games and profile effects on your account.',
+      blurb: 'For learners and players — unlocks select Games and profile effects on your account.',
       monthly: 6,
       yearly: 54,
       cta: 'Get Premium (mock)',
       featured: true,
       features: [
         { t: 'Everything in Free', on: true },
-        { t: 'Geo Chess, Geo Dash, Geo Golf, Globe Defender', on: true },
+        { t: 'Geo Golf, Globe Defender, Invaders, and more arcade titles', on: true },
         { t: 'Premium profile effects (Embers, Wings, and more)', on: true },
         { t: 'Account-level — not tied to being a teacher', on: true },
         { t: 'School-safe cosmetics and games', on: true },
@@ -221,11 +221,11 @@
         '<article><h3>Does checkout charge a card?</h3>' +
           '<p>Not yet. Mock checkout only. Owner <code>' + OWNER_EMAIL + '</code> and UltraAdmin can grant a TEST Premium flag.</p></article>' +
         '<article><h3>What stays free?</h3>' +
-          '<p>Study modes and several Games (including Capital Snake, Flag Match, and Capital Maze) stay playable on Free.</p></article>' +
+          '<p>Study modes plus popular Games — Geo Dash, Geo Chess, Geo Duel, Chess Duel, Capital Snake, Flag Match, and Capital Maze — stay playable on Free.</p></article>' +
       '</div>' +
 
       '<p class="subdev__foot">' +
-        'LEA-45 · Premium plans UI (account / player). Mock checkout only. ' +
+        'LEA-61 · Premium plans UI (account / player). Mock checkout only. ' +
         'Documented in <code>assets/js/subscription-dev.js</code> and <code>assets/js/premium.js</code>.</p>';
 
     body.querySelectorAll('[data-cycle]').forEach(function (btn) {

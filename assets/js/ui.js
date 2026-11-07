@@ -631,9 +631,10 @@
       'data-owned="' + (isOwned ? 1 : 0) + '">' +
       visual(kind, it) +
       '<span class="shop-item__name">' + W.escapeHtml(it.name || it.id) +
-        (needsPrem ? ' <span class="shop-item__prem">Premium</span>' : '') + '</span>' +
+        (needsPrem ? ' <span class="shop-item__prem" title="Premium">' +
+          (I.crown || I.lock || '') + '<span>Premium</span></span>' : '') + '</span>' +
       (isEq ? '<span class="shop-item__eq mono">EQUIPPED</span>'
-            : premLocked ? '<span class="shop-item__owned">' + I.lock + ' Premium</span>'
+            : premLocked ? '<span class="shop-item__owned">' + (I.crown || I.lock || '') + ' Premium</span>'
             : isOwned ? '<span class="shop-item__owned">' + (earned ? 'earned' : 'owned') + '</span>'
             /* A locked badge says what to go and do. A grid of grey
                question marks is worth less than a list to aim at. */
@@ -818,7 +819,7 @@
         var previewOn = !!(global.Premium && global.Premium.previewEnabled && global.Premium.previewEnabled());
         if (previewOn && (btn.dataset.premium === '1' || (item && item.premium && !(global.Premium && global.Premium.active && global.Premium.active())))) {
           W.Sound.wrong();
-          W.toast('Premium', (item && item.name ? item.name + ' needs' : 'Needs') + ' LearnGeo Premium', I.lock, 3600);
+          W.toast('Premium', (item && item.name ? item.name + ' needs' : 'Needs') + ' LearnGeo Premium', I.crown || I.lock, 3600);
           if (global.Premium && global.Premium.openUpgrade) {
             global.Premium.openUpgrade((item && item.name ? item.name : 'This cosmetic') + ' needs LearnGeo Premium.');
           }

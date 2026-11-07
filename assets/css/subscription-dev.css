@@ -166,23 +166,26 @@
 }
 
 /* ---- Plans: Free (quiet) vs Premium (hero) ---------------------- */
+/* LEA-61: avoid scale() + overflow:hidden clipping the badge / card edges. */
 .subdev__plans {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 18px;
+  gap: 22px;
   align-items: stretch;
-  margin-bottom: 28px;
-  max-width: 760px;
-  margin-left: auto;
-  margin-right: auto;
+  margin: 0 auto 28px;
+  max-width: 780px;
+  padding: 14px 4px 8px; /* room for the floating Premium badge */
+  box-sizing: border-box;
 }
 @media (max-width: 720px) {
-  .subdev__plans { grid-template-columns: 1fr; max-width: 420px; }
+  .subdev__plans { grid-template-columns: 1fr; max-width: 420px; padding-top: 16px; }
 }
 
 .subdev__plan {
   position: relative;
   display: flex; flex-direction: column;
+  min-width: 0;
+  height: 100%;
   background: var(--white);
   border: 1px solid var(--line);
   border-radius: 18px;
@@ -192,7 +195,8 @@
     transform .22s var(--spring),
     border-color .2s var(--ease),
     box-shadow .22s var(--ease);
-  overflow: hidden;
+  overflow: visible; /* badge sits above the card */
+  box-sizing: border-box;
 }
 .subdev__plan:hover {
   transform: translateY(-2px);
@@ -204,7 +208,7 @@
 .subdev__plan--free .subdev__plan-name { color: var(--ink-2); font-weight: 620; }
 .subdev__plan--free .subdev__price b { font-size: 32px; color: var(--ink-2); }
 
-/* Premium — elevated presence + soft dopamine */
+/* Premium — elevated presence without layout-breaking scale */
 .subdev__plan--featured {
   z-index: 1;
   border: 2px solid rgba(var(--accent-rgb), .48);
@@ -217,24 +221,23 @@
     0 16px 40px rgba(var(--accent-rgb), .20),
     0 0 36px rgba(245, 179, 1, .14),
     0 4px 12px rgba(11, 21, 32, .05);
-  padding-top: 30px;
-  transform: scale(1.03);
+  padding-top: 28px;
   animation: subdevPremGlow 3.2s ease-in-out infinite;
 }
 .subdev__plan--featured:hover,
 .subdev__plan--featured.is-hot {
-  transform: scale(1.055) translateY(-8px);
+  transform: translateY(-6px);
   border-color: rgba(var(--accent-rgb), .78);
   box-shadow:
-    0 0 0 7px rgba(var(--accent-rgb), .18),
-    0 28px 56px rgba(var(--accent-rgb), .32),
-    0 0 56px rgba(245, 179, 1, .28),
-    0 10px 22px rgba(11, 21, 32, .08);
+    0 0 0 6px rgba(var(--accent-rgb), .18),
+    0 22px 48px rgba(var(--accent-rgb), .28),
+    0 0 48px rgba(245, 179, 1, .24),
+    0 8px 18px rgba(11, 21, 32, .08);
   animation: none; /* freeze pulse so hover lift reads clearly */
 }
 .subdev__plan--featured.is-press,
 .subdev__plan--featured:active {
-  transform: scale(1.02) translateY(-2px);
+  transform: translateY(-2px);
   transition-duration: .1s;
 }
 
@@ -287,6 +290,8 @@
 .subdev__sparkles {
   position: absolute; inset: 0; pointer-events: none; overflow: hidden;
   border-radius: inherit; z-index: 0;
+  /* Isolate sparkles so they do not paint outside the rounded card. */
+  clip-path: inset(0 round 18px);
 }
 .subdev__spark {
   position: absolute;
@@ -528,6 +533,7 @@
   }
   .subdev__plan--featured,
   .subdev__plan--featured:hover,
-  .subdev__plan--featured.is-hot { transform: none; }
+  .subdev__plan--featured.is-hot,
+  .subdev__plan:hover { transform: none; }
   .subdev__spark { opacity: .45; }
 }

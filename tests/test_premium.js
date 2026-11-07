@@ -12,10 +12,21 @@ var sql = fs.readFileSync(path.join(root, 'supabase/deployed/0013_premium_subscr
 var sub = fs.readFileSync(path.join(root, 'assets/js/subscription-dev.js'), 'utf8');
 
 assert(/premium:\s*true/.test(games), 'games.js marks Premium titles');
-assert(/id: 'chess'[\s\S]*?premium:\s*true/.test(games), 'Geo Chess is Premium');
-assert(/id: 'dash'[\s\S]*?premium:\s*true/.test(games), 'Geo Dash is Premium');
+/* LEA-61: popular Games stay free; lesser-played hub titles are Premium. */
+assert(!/id: 'chess'[\s\S]{0,120}premium:\s*true/.test(games), 'Geo Chess stays free');
+assert(!/id: 'dash'[\s\S]{0,120}premium:\s*true/.test(games), 'Geo Dash stays free');
+assert(!/id: 'duel'[\s\S]{0,120}premium:\s*true/.test(games), 'Geo Duel stays free');
+assert(!/id: 'chessduel'[\s\S]{0,120}premium:\s*true/.test(games), 'Chess Duel stays free');
 assert(/id: 'snake'/.test(games) && !/id: 'snake'[\s\S]{0,80}premium:\s*true/.test(games),
   'Capital Snake stays free');
+assert(/id: 'match'/.test(games) && !/id: 'match'[\s\S]{0,80}premium:\s*true/.test(games),
+  'Flag Match stays free');
+assert(/id: 'maze'/.test(games) && !/id: 'maze'[\s\S]{0,80}premium:\s*true/.test(games),
+  'Capital Maze stays free');
+assert(/id: 'golf'[\s\S]*?premium:\s*true/.test(games), 'Geo Golf is Premium');
+assert(/id: 'orbit'[\s\S]*?premium:\s*true/.test(games), 'Globe Defender is Premium');
+assert(/id: 'invaders'[\s\S]*?premium:\s*true/.test(games), 'Geo Invaders is Premium');
+assert(/id: 'echo'[\s\S]*?premium:\s*true/.test(games), 'Flag Echo is Premium');
 assert(/id: 'embers'[\s\S]*?premium:\s*true/.test(cos), 'Embers effect is Premium');
 assert(/id: 'bubbles'[\s\S]*?premium:\s*true/.test(cos), 'Deep Current is Premium');
 assert(/id: 'rain'[\s\S]*?premium:\s*true/.test(cos), 'Monsoon is Premium');
@@ -23,10 +34,22 @@ assert(/id: 'wings'[\s\S]*?premium:\s*true/.test(cos), 'Wings is Premium');
 assert(/id: 'gambling'[\s\S]*?premium:\s*true/.test(cos), 'Gambling is Premium');
 assert(/id: 'spark'[\s\S]*?price:\s*0/.test(cos), 'Atlas Sparks is free');
 assert(!/id: 'spark'[\s\S]{0,120}premium:\s*true/.test(cos), 'Atlas Sparks is not Premium');
-assert(/PREMIUM_GAMES/.test(prem) && /chess:\s*true/.test(prem), 'premium.js lists gated games');
+assert(/PREMIUM_GAMES/.test(prem) && /golf:\s*true/.test(prem) && /invaders:\s*true/.test(prem),
+  'premium.js lists gated lesser-played games');
+assert(!/chess:\s*true/.test(prem) && !/dash:\s*true/.test(prem),
+  'premium.js does not gate Chess or Dash');
+assert(/crown:/.test(fs.readFileSync(path.join(root, 'assets/js/core.js'), 'utf8')),
+  'Icons.crown exists for Premium locks');
+assert(/game-card__crown|game-card__prem-badge/.test(games),
+  'Games hub renders crown / Premium badge on locked cards');
 assert(/ultra_set_premium/.test(sql), 'SQL exposes ultra_set_premium');
 assert(/premium_game_ids/.test(sql), 'SQL lists premium_game_ids');
 assert(/raise exception 'premium'/.test(sql), 'submit_game_score refuses Premium without flag');
+var sql21 = fs.readFileSync(path.join(root, 'supabase/deployed/0021_premium_game_ids.sql'), 'utf8');
+assert(/'golf'/.test(sql21) && /'invaders'/.test(sql21) && /'echo'/.test(sql21),
+  '0021 lists lesser-played Premium games');
+assert(!/'chess'/.test(sql21) && !/'dash'/.test(sql21),
+  '0021 does not gate Chess or Dash');
 assert(/name: 'Premium'/.test(sub), 'plans UI uses Premium label');
 assert(!/Brainrot/i.test(sub), 'no Brainrot copy in subscription UI');
 assert(/not tied to being a teacher/i.test(sub) || /not teacher/i.test(sub),
@@ -39,6 +62,9 @@ assert(/force:\s*true/.test(sub) || /openForced/.test(sub),
   'admin can force-open plans for TEST while preview is off');
 assert(/mock checkout/i.test(sub) && /Stripe is not connected/.test(sub),
   'checkout stays mock / TEST only');
+assert(/overflow:\s*visible/.test(fs.readFileSync(
+  path.join(root, 'assets/css/subscription-dev.css'), 'utf8')),
+  'Premium plan cards use overflow:visible so badges are not clipped');
 
 /* LEA-54: Geo Dash trails + jumper skins */
 assert(/trails:\s*TRAILS/.test(cos), 'cosmetics exports trails');
