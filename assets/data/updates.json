@@ -2,6 +2,13 @@
   "_comment": "Append newest entries at the top of `updates`. Each needs a unique `id`. Optional `image` is a path under /assets/. Keep entries public-safe: no Pets/Brainrot, no admin-only or subscription marketing.",
   "updates": [
     {
+      "id": "2026-11-duel-spectate",
+      "title": "Spectate Geo Duels",
+      "body": "Teachers can open the new Duels tab in My class and watch a live student Geo Duel — scores and questions update as they play. Host view only; you stay out of the match.",
+      "image": "/assets/img/updates/chess-duel.svg",
+      "date": "2026-11-07"
+    },
+    {
       "id": "2026-11-achievement-awards",
       "title": "Award-style card backs",
       "body": "Flip an achievement card to see your gamertag under a colorful enamel award badge — title and status sit underneath, still in the same flip wallet.",

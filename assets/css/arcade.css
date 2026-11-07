@@ -321,6 +321,26 @@
 .duel-end__badge.is-loss { background: #D7262B; }
 .duel-end__actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
 
+/* Teacher / host spectate (LEA-77) — state only, not screen mirror */
+.duel--spectate .duel__body { max-width: 760px; margin: 0 auto; }
+.duel-spectate-banner {
+  display: flex; align-items: flex-start; gap: 10px;
+  margin: 0 0 14px; padding: 10px 12px;
+  border-radius: 12px; background: rgba(18, 32, 74, .06);
+  border: 1px solid rgba(18, 32, 74, .12); text-align: left;
+}
+.duel-spectate-banner svg { width: 18px; height: 18px; flex-shrink: 0; margin-top: 2px; color: #12204a; }
+.duel-spectate-banner b { display: block; font-size: 13px; }
+.duel-spectate-banner span { display: block; font-size: 12px; color: var(--muted); margin-top: 2px; }
+.duel-play--spectate .option.is-spectate {
+  cursor: default; pointer-events: none; opacity: .92;
+}
+.duel-ans-flag {
+  font-size: 11px; color: var(--muted); font-weight: 600; letter-spacing: .02em;
+}
+.duel-class-live { display: grid; gap: 14px; max-width: 720px; margin: 0 auto; }
+.duel-class-live .duel-note--live .btn svg { width: 14px; height: 14px; vertical-align: -2px; }
+
 /* ============================ Chess Duel ========================== */
 .game-art--chessduel {
   background: #172e2b; position: relative; overflow: hidden;
