@@ -2,6 +2,13 @@
   "_comment": "Append newest entries at the top of `updates`. Each needs a unique `id`. Optional `image` is a path under /assets/. Keep entries public-safe: no Pets/Brainrot, no admin-only or subscription marketing.",
   "updates": [
     {
+      "id": "2026-11-achievement-cards",
+      "title": "Achievement cards",
+      "body": "Flip through your achievements like a stack of cards, then send unlocked ones to classmates by gamertag — school-safe sharing, no real money.",
+      "image": "/assets/img/updates/achievement-cards.svg",
+      "date": "2026-11-07"
+    },
+    {
       "id": "2026-11-geo-chess-openings-bots",
       "title": "Geo Chess: openings & tougher bots",
       "body": "After a few moves you’ll see the opening name. Pawn promotion and the usual chess rules are clearer, and you can challenge Grandmaster (~3200) or Engine Max.",
