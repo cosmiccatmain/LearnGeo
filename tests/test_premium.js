@@ -157,6 +157,10 @@ assert(/prempreview/.test(admin) && /Premium plans &amp; gating preview|Premium 
 assert(!/Screen monitoring/.test(admin), 'Screen monitoring nav is gone');
 assert(/reftrial/.test(admin) && /Referral → 3-day all-games trial/.test(admin),
   'Development panel has referral trial TEST toggle');
+assert(/cookpreview/.test(admin) && /Preview cooking loader/.test(admin),
+  'Development panel has cooking loader preview');
+assert(/cmd === 'cooking'|cmd === \"cooking\"/.test(admin),
+  'Commands include cooking loader preview');
 assert(/ReferralTrial/.test(prem), 'premium.js honors referral trial');
 
 console.log('test_premium.js: ok');

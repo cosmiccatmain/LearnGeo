@@ -15,14 +15,22 @@
   var I = W.Icons;
 
   /* Newest first. Bump `id` when shipping so returning users see it.
-     Geo Chess PvP unify, cooking loader, Chess Elo, achievement cards,
-     openings/bots, and Games cosmetics each keep their own What’s New id. */
+     Geo Chess PvP unify, achievement wallet, cooking loader, Chess Elo,
+     achievement cards, openings/bots, and Games cosmetics each keep their
+     own What’s New id. */
   var UPDATES = [
     {
       id: '2026-11-geo-chess-pvp',
       title: 'Geo Chess: play other players',
       body: 'Challenge a classmate by gamertag right inside Geo Chess — no separate Chess Duel. Bot games and friend matches both update your Chess Elo (prior wins convert into a starting rating).',
       image: '/assets/img/updates/chess-duel.svg',
+      date: '2026-11-07'
+    },
+    {
+      id: '2026-11-achievement-wallet',
+      title: 'Achievement wallet',
+      body: 'Your achievement stack unfolds when you open it, cards float gently, flips work again, and you can share your whole wallet with a classmate by gamertag.',
+      image: '/assets/img/updates/achievement-cards.svg',
       date: '2026-11-07'
     },
     {

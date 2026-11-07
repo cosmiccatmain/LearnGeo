@@ -221,6 +221,7 @@
       }
       if (d.do === 'subdev') return openSubscriptionDev();
       if (d.do === 'prempreview') return setPremiumPreview(d.on === '1');
+      if (d.do === 'cookpreview') return previewCookingLoader();
       if (d.do === 'reftrial') return setReferralTrial(d.on === '1');
       if (d.do === 'refsim') return simulateReferralSignup();
       if (d.do === 'refcopy') return copyReferralLink();
@@ -452,7 +453,8 @@
     return '<section class="adminp__sec">' +
       '<h3>Commands</h3>' +
       '<p class="t-sm t-muted">Type <code>help</code> for the list. A command that needs an account uses the selected one. ' +
-        '<code>plans</code> opens the Premium plans TEST grant UI (mock checkout only).</p>' +
+        '<code>plans</code> opens the Premium plans TEST grant UI (mock checkout only). ' +
+        '<code>cooking</code> previews the cooking loader.</p>' +
       '<div class="adminp__search">' +
         '<input class="input mono" id="ap-cmd" type="text" placeholder="take 500" ' +
           'autocomplete="off" spellcheck="false">' +
@@ -506,6 +508,17 @@
           (I.arrowR || '') + ' Open Premium plans</button>' +
       '</div>' +
       '<p class="t-sm t-muted" style="margin:0 0 18px">Also available from Commands: <code>plans</code> or <code>subscription</code>.</p>' +
+      '<div class="adminp__who" style="align-items:flex-start;margin-bottom:14px">' +
+        '<div class="grow">' +
+          '<div class="adminp__nm">' + (I.flask || I.bolt || '') +
+            '<span>Cooking loader preview</span></div>' +
+          '<p class="t-sm t-muted" style="margin:6px 0 0">' +
+            'Force the little pot “cooking” wait UI on screen for a few seconds. ' +
+            'Dismiss or press Escape anytime. Commands: <code>cooking</code> or <code>loader</code>.</p>' +
+        '</div>' +
+        '<button type="button" class="btn btn--accent btn--sm" data-do="cookpreview" id="ap-cook-preview">' +
+          (I.flask || '') + ' Preview cooking loader</button>' +
+      '</div>' +
       '<div class="adminp__warn adminp__warn--expired" style="margin-bottom:14px">' +
         '<div class="row" style="gap:10px;align-items:flex-start">' + (I.info || '') +
           '<div class="grow"><b>Referral trial is TEST only.</b> Share the site link; after 5 new accounts sign up with ' +
@@ -652,6 +665,18 @@
     }
     if (S.openForced) S.openForced('');
     else S.open({ force: true });
+  }
+
+  function previewCookingLoader() {
+    var CL = global.CookingLoader;
+    if (!CL || !CL.preview) {
+      say('cooking-loader.js did not load.');
+      W.toast('Missing loader', 'cooking-loader.js did not load.', I.info, 3200);
+      return;
+    }
+    CL.preview({ size: 'lg', ms: 4000 });
+    W.toast('Cooking loader', 'Preview on screen — dismiss or wait a few seconds.', I.flask || I.info, 2800);
+    say('Cooking loader preview shown (auto-hides).');
   }
 
   /* ========================= server round trips ==================== */
@@ -1716,7 +1741,9 @@
       'log                reload the action list',
       'help               this',
       'plans              open Premium plans (TEST grant for owner/admin)',
-      'subscription       same as plans'
+      'subscription       same as plans',
+      'cooking            preview the cooking loader (TEST)',
+      'loader             same as cooking'
     ];
     if (can('gems')) {
       lines = lines.concat([
@@ -1770,6 +1797,10 @@
     if (cmd === 'plans' || cmd === 'subscription' || cmd === 'subdev') {
       openSubscriptionDev();
       return say('Opened Premium plans. TEST grant available for owner/admin. No real charges.');
+    }
+    if (cmd === 'cooking' || cmd === 'loader' || cmd === 'cookpreview') {
+      previewCookingLoader();
+      return;
     }
     if (cmd === 'stats') { refresh(); return say('Reloading…'); }
     if (cmd === 'log') {

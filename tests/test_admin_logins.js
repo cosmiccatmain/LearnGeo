@@ -40,6 +40,8 @@ test('Administrator has a Logins section with identity + timestamp roster', () =
   /* Development / Premium preview wiring must stay intact. */
   assert.match(admin, /panelDevelopment/);
   assert.match(admin, /prempreview/);
+  assert.match(admin, /cookpreview/);
+  assert.match(admin, /Preview cooking loader/);
 });
 
 test('deployed README documents 0016', () => {
