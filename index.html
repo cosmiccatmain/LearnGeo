@@ -34,6 +34,7 @@
 <link rel="stylesheet" href="assets/css/game-boards.css">
 <link rel="stylesheet" href="assets/css/arcade.css">
 <link rel="stylesheet" href="assets/css/codex.css">
+<link rel="stylesheet" href="assets/css/roadtrip.css">
 <link rel="stylesheet" href="assets/css/updates.css">
 <link rel="stylesheet" href="assets/css/cooking-loader.css">
 <link rel="stylesheet" href="assets/css/achievement-cards.css">
@@ -121,7 +122,7 @@
   <section class="stats" aria-label="Coverage">
     <div class="stat"><div class="stat__n" id="s-total">213</div><div class="stat__l">Countries and territories</div></div>
     <div class="stat"><div class="stat__n" id="s-members">193</div><div class="stat__l">UN member states</div></div>
-    <div class="stat"><div class="stat__n">3</div><div class="stat__l">Ways to study</div></div>
+    <div class="stat"><div class="stat__n">4</div><div class="stat__l">Ways to study</div></div>
     <div class="stat"><div class="stat__n">6</div><div class="stat__l">Kinds of questions</div></div>
   </section>
 
@@ -152,12 +153,13 @@
   <!-- modes -->
   <section class="section" id="modes">
     <div class="section__head">
-      <span class="eyebrow">Three ways to study</span>
+      <span class="eyebrow">Ways to study</span>
       <h2>Use whichever mode you feel like.</h2>
       <p>They all save to the same progress. So if you keep missing Burkina Faso on a practice
-         test, Learn mode knows about it too and will bring it up more often.</p>
+         test, Learn mode knows about it too and will bring it up more often. Road trips are the
+         short curated packs for the car.</p>
     </div>
-    <div class="modes modes--3">
+    <div class="modes modes--4">
       <div class="mode-card">
         <div class="mode-card__icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></div>
         <h3>Learn</h3>
@@ -192,6 +194,18 @@
           <li>No multiple choice</li>
           <li>Small spelling mistakes are OK</li>
           <li>You get a marked paper at the end</li>
+        </ul>
+      </div>
+      <div class="mode-card">
+        <div class="mode-card__icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13h14l-1.2-4.2A2 2 0 0 0 15.9 7H8.1a2 2 0 0 0-1.9 1.8z"/><path d="M5 13v4h2.2"/><path d="M16.8 17H19v-4"/><circle cx="7.5" cy="17" r="1.6"/><circle cx="16.5" cy="17" r="1.6"/><path d="M3 13h2M19 13h2"/></svg></div>
+        <h3>Road trips</h3>
+        <p>Short curated packs for the car — Grand Tour, Pan-American, Silk Road, and more. Multiple
+           choice with instant answers, about three to four minutes each.</p>
+        <ul>
+          <li>Eight themed packs</li>
+          <li>8–10 questions per pack</li>
+          <li>No long setup screen</li>
+          <li>Still counts toward mastery</li>
         </ul>
       </div>
     </div>
@@ -555,6 +569,9 @@
     <div id="quiz-report" class="hidden"></div>
   </div>
 
+  <!-- ROAD TRIPS (LEA-78 curated short packs) -->
+  <div id="view-roadtrip" class="portal hidden"></div>
+
   <!-- GAMES -->
   <div id="view-games" class="portal hidden"></div>
 
@@ -626,6 +643,7 @@
 <script src="assets/js/mode-learn.js"></script>
 <script src="assets/js/mode-test.js"></script>
 <script src="assets/js/mode-quiz.js"></script>
+<script src="assets/js/mode-roadtrip.js"></script>
 <script src="assets/js/difficulty-slider.js"></script>
 <script src="assets/js/game-kit.js"></script>
 <script src="assets/js/game-dash.js"></script>

@@ -61,7 +61,9 @@
     /* Development / lab previews (Administrator → Development) */
     flask:  svg('<path d="M9 3h6"/><path d="M10 3v6.5L4.8 18.2A2 2 0 0 0 6.5 21h11a2 2 0 0 0 1.7-2.8L14 9.5V3"/><path d="M7.5 14h9"/>'),
     /* Rivers & lakes in study filters */
-    water:  svg('<path d="M12 2.5S7 9 7 13.2a5 5 0 0 0 10 0C17 9 12 2.5 12 2.5z"/>')
+    water:  svg('<path d="M12 2.5S7 9 7 13.2a5 5 0 0 0 10 0C17 9 12 2.5 12 2.5z"/>'),
+    /* Road trip packs (LEA-78) */
+    car:    svg('<path d="M5 13h14l-1.2-4.2A2 2 0 0 0 15.9 7H8.1a2 2 0 0 0-1.9 1.8z"/><path d="M5 13v4h2.2"/><path d="M16.8 17H19v-4"/><circle cx="7.5" cy="17" r="1.6"/><circle cx="16.5" cy="17" r="1.6"/><path d="M3 13h2M19 13h2"/>')
   };
 
   /* The verified seal. Solid rather than line art, because it has to read as
