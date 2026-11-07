@@ -1,8 +1,8 @@
 /* ------------------------------------------------------------------
-   LearnGeo — public landing helpers (LEA-86).
+   LearnGeo — public landing helpers (LEA-88).
 
-   Nav section highlighting and soft stage parallax. Does not touch the
-   signed-in app shell. Motion reveals stay in motion.js.
+   Nav section highlighting and soft globe-orbit parallax. Does not
+   touch the signed-in app shell. Motion reveals stay in motion.js.
 -------------------------------------------------------------------*/
 (function (global) {
   'use strict';
@@ -75,12 +75,12 @@
     pick();
   }
 
-  /* Soft parallax on the layered atlas stage */
-  function stageParallax() {
+  /* Soft parallax on the decorative orbit ring — atmosphere only */
+  function orbitParallax() {
     if (still()) return;
-    var stage = land.querySelector('.hero__stage');
+    var orbit = land.querySelector('.hero__orbit');
     var hero = land.querySelector('.hero--brand');
-    if (!stage || !hero) return;
+    if (!orbit || !hero) return;
 
     var ticking = false;
     function frame() {
@@ -89,8 +89,8 @@
       if (rect.bottom < 0 || rect.top > global.innerHeight) return;
       var mid = (rect.top + rect.bottom) / 2;
       var t = (mid - global.innerHeight / 2) / global.innerHeight;
-      var y = Math.max(-14, Math.min(14, t * -22));
-      stage.style.transform = 'translate3d(0, ' + y.toFixed(1) + 'px, 0)';
+      var y = Math.max(-18, Math.min(18, t * -28));
+      orbit.style.transform = 'translate(-50%, calc(-50% + ' + y.toFixed(1) + 'px))';
     }
     function onScroll() {
       if (!ticking) {
@@ -104,5 +104,5 @@
 
   navScroll();
   sectionNav();
-  stageParallax();
+  orbitParallax();
 })(window);

@@ -1,11 +1,10 @@
 /* ------------------------------------------------------------------
-   Landing (LEA-86): Dribbble-inspired SaaS homepage, LearnGeo adapt.
+   Landing (LEA-88): restore full-bleed globe hero.
 
-   Structure inspired by Outcrowd shot 26366091 (wollo-style centered
-   hero + layered stage). Geography / road-trip product voice — not a
-   social-media clone. Teal atlas palette (no purple). Original fonts:
-   Inter + Instrument Serif + EB Garamond. Brand-first hero; LEA-72
-   centering (for-word inside each cycle line). App shell untouched.
+   Keeps LEA-86 pill nav + LEA-72 centered brand stack; replaces the
+   Dribbble layered stage with the previous globe / orbit / scrim
+   composition behind the copy. Teal atlas (no purple). Fonts: Inter +
+   Instrument Serif + EB Garamond. App shell untouched.
 -------------------------------------------------------------------*/
 
 .sr-only {
@@ -18,21 +17,12 @@
   --lg-land-glow: rgba(var(--accent-rgb), .16);
   --lg-land-mist: #F4F9F8;
   --lg-land-deep: #0A1C22;
-  --lg-land-sand: #D9C48A;
-  --lg-land-clay: #C4A46A;
   overflow-x: clip;
   background:
-    radial-gradient(ellipse 80% 42% at 50% -6%, rgba(var(--accent-rgb), .08), transparent 58%),
-    linear-gradient(180deg, #FBFCFD 0%, #F7FBFC 42%, #F1F6F7 100%);
+    radial-gradient(ellipse 90% 52% at 50% -8%, rgba(var(--accent-rgb), .12), transparent 58%),
+    radial-gradient(ellipse 48% 36% at 92% 18%, rgba(56, 189, 248, .07), transparent 55%),
+    linear-gradient(180deg, #F7FBFC 0%, var(--paper) 38%, #F1F6F7 100%);
 }
-
-/* Kill indigo/purple aurora from motion.css */
-.landing .hero__wash::before {
-  background:
-    radial-gradient(48% 42% at 50% 18%, rgba(var(--accent-rgb), .12), transparent 70%),
-    radial-gradient(34% 36% at 78% 40%, rgba(56, 189, 248, .08), transparent 72%);
-}
-.landing .hero__wash::after { background: none; }
 
 /* ---------- sticky SaaS nav (centered pill links) ---------- */
 .landing > .nav {
@@ -120,38 +110,76 @@
   border-radius: 999px;
 }
 
-/* ---------- hero: brand-first + layered stage ---------- */
+/* ---------- hero: brand-first over full-bleed globe ---------- */
 .hero--brand {
   position: relative;
   min-height: calc(100svh - 72px);
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-start;
-  padding: 56px 32px 0;
+  justify-content: center;
+  padding: 80px 32px 96px;
   text-align: center;
   box-sizing: border-box;
   isolation: isolate;
-  overflow: hidden;
 }
 
-.hero__wash {
+/* Kill indigo/purple aurora from motion.css — atlas teal + soft cyan */
+.landing .hero__wash::before {
+  background:
+    radial-gradient(42% 48% at 30% 40%, rgba(var(--accent-rgb), .22), transparent 68%),
+    radial-gradient(36% 44% at 72% 34%, rgba(56, 189, 248, .14), transparent 70%),
+    radial-gradient(30% 38% at 52% 64%, rgba(14, 159, 110, .12), transparent 72%);
+}
+.landing .hero__wash::after {
+  background: radial-gradient(34% 40% at 58% 46%, rgba(var(--accent-rgb), .14), transparent 70%);
+}
+
+.hero--brand .hero__orbit {
   position: absolute;
-  inset: 0;
+  left: 50%;
+  top: 48%;
+  width: min(92vh, 88vw, 820px);
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
   z-index: 0;
   pointer-events: none;
+  border-radius: 50%;
+  border: 1px solid rgba(var(--accent-rgb), .12);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, .35),
+    0 0 80px rgba(var(--accent-rgb), .06);
+  opacity: .7;
+  animation: lgOrbitPulse 12s var(--ease) infinite alternate;
+}
+.hero--brand .hero__orbit::before,
+.hero--brand .hero__orbit::after {
+  content: "";
+  position: absolute;
+  inset: 8%;
+  border-radius: 50%;
+  border: 1px dashed rgba(var(--accent-rgb), .1);
+}
+.hero--brand .hero__orbit::after {
+  inset: 18%;
+  border-style: solid;
+  border-color: rgba(var(--accent-rgb), .07);
 }
 
-/* Brand + copy + CTAs as one centered stack (LEA-72). */
+@keyframes lgOrbitPulse {
+  to { transform: translate(-50%, -50%) scale(1.03); opacity: .9; }
+}
+
+/* Brand + copy + CTAs as one centered stack over the globe (LEA-72). */
 .hero__copy {
   position: relative;
-  z-index: 2;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   width: max-content;
-  max-width: min(920px, 100%);
+  max-width: 100%;
   margin: 0 auto;
   text-align: center;
   box-sizing: border-box;
@@ -163,7 +191,7 @@
   max-width: 100%;
   margin: 0 auto;
   font-family: var(--serif);
-  font-size: clamp(56px, 8.5vw, 104px);
+  font-size: clamp(56px, 9vw, 116px);
   font-weight: 400;
   letter-spacing: -.02em;
   line-height: 1.0;
@@ -184,8 +212,8 @@
 }
 
 .hero__for {
-  margin-top: .06em;
-  font-size: .9em;
+  margin-top: .04em;
+  font-size: .92em;
 }
 
 /* Each full "for …" line shares one grid cell; for-word centers the line. */
@@ -228,12 +256,12 @@
 }
 
 .hero--brand .hero__sub {
-  margin: 22px auto 0;
+  margin: 24px auto 0;
   max-width: 40ch;
   width: 100%;
   font-size: 17.5px;
   color: var(--ink-2);
-  line-height: 1.55;
+  line-height: 1.58;
   text-align: center;
 }
 
@@ -242,8 +270,8 @@
   justify-content: center;
   align-items: center;
   flex-wrap: wrap;
-  gap: 12px;
-  margin-top: 28px;
+  gap: 14px;
+  margin-top: 32px;
   width: 100%;
 }
 
@@ -260,7 +288,7 @@
 }
 
 .hero--brand .hero__cta .btn--ghost {
-  background: rgba(252, 253, 254, .88);
+  background: rgba(252, 253, 254, .72);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
 }
@@ -268,7 +296,7 @@
 .hero--brand .hero__note {
   text-align: center;
   margin: 16px auto 0;
-  max-width: 44ch;
+  max-width: 46ch;
   width: 100%;
   font-size: 13.5px;
   color: var(--muted);
@@ -281,141 +309,20 @@
 }
 .hero__note.is-signed-in .linkbtn { display: none; }
 
-/* Layered stage — Dribbble slabs, atlas teal/sand (not purple) */
-.hero__stage {
-  position: relative;
-  z-index: 1;
-  width: min(1120px, calc(100% + 24px));
-  margin: 48px auto 0;
-  height: clamp(280px, 42vh, 460px);
-  pointer-events: none;
-}
-
-.hero__slab {
-  position: absolute;
-  inset-inline: 0;
-  border-radius: 36px 36px 0 0;
-  transform-origin: 50% 100%;
-}
-
-.hero__slab--sand {
-  bottom: 56px;
-  height: 72%;
-  background: linear-gradient(160deg, #E8D9A8 0%, var(--lg-land-sand) 55%, var(--lg-land-clay) 100%);
-  transform: rotate(-2.2deg) scale(.96);
-  opacity: .92;
-}
-
-.hero__slab--mist {
-  bottom: 28px;
-  height: 78%;
-  background: linear-gradient(155deg, #B7E4DE 0%, #7BC9BE 48%, #3FA99A 100%);
-  transform: rotate(1.6deg) scale(.98);
-  opacity: .95;
-}
-
-.hero__slab--atlas {
-  bottom: 0;
-  height: 86%;
-  background:
-    radial-gradient(ellipse 70% 80% at 62% 40%, rgba(56, 189, 248, .18), transparent 55%),
-    linear-gradient(165deg, #123040 0%, #0A1C22 48%, #0B3D38 100%);
-  box-shadow: 0 -18px 50px -28px rgba(11, 21, 32, .45);
-  overflow: hidden;
-}
-
-.hero--brand .hero__orbit {
-  position: absolute;
-  left: 28%;
-  top: 46%;
-  width: min(52%, 340px);
-  aspect-ratio: 1;
-  transform: translate(-50%, -50%);
-  border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, .16);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .08);
-  opacity: .85;
-  animation: lgOrbitPulse 12s var(--ease) infinite alternate;
-}
-.hero--brand .hero__orbit::before,
-.hero--brand .hero__orbit::after {
-  content: "";
-  position: absolute;
-  inset: 12%;
-  border-radius: 50%;
-  border: 1px dashed rgba(255, 255, 255, .14);
-}
-.hero--brand .hero__orbit::after {
-  inset: 24%;
-  border-style: solid;
-  border-color: rgba(255, 255, 255, .1);
-}
-
-@keyframes lgOrbitPulse {
-  to { transform: translate(-50%, -50%) scale(1.04); opacity: 1; }
-}
-
+/* Globe atmosphere behind the brand line */
 .hero--brand .hero__globe {
-  position: absolute;
-  left: 28%;
-  top: 48%;
-  width: min(58%, 380px);
-  aspect-ratio: 1;
-  transform: translate(-50%, -50%);
-  -webkit-mask-image: radial-gradient(closest-side, #000 52%, transparent 96%);
-          mask-image: radial-gradient(closest-side, #000 52%, transparent 96%);
-  opacity: .95;
-}
-.hero--brand .hero__globe canvas {
-  width: 100%;
-  height: 100%;
-  display: block;
+  pointer-events: none;
+  width: min(118vh, 96vw, 980px);
+  transform: translate(-50%, -54%);
+  -webkit-mask-image: radial-gradient(closest-side, #000 40%, rgba(0,0,0,.58) 72%, transparent 97%);
+          mask-image: radial-gradient(closest-side, #000 40%, rgba(0,0,0,.58) 72%, transparent 97%);
 }
 
-.hero__pin {
-  position: absolute;
-  right: 18%;
-  top: 28%;
-  width: 72px;
-  height: 72px;
-  border-radius: 22px;
-  background:
-    radial-gradient(circle at 35% 30%, #F4FAF9, transparent 45%),
-    linear-gradient(145deg, #2BB8A6, #0C8F7F 60%, #0A6B5E);
-  box-shadow:
-    10px 14px 0 rgba(212, 164, 74, .92),
-    0 18px 40px -16px rgba(0, 0, 0, .45);
-  transform: rotate(8deg);
-}
-.hero__pin::before {
-  content: "";
-  position: absolute;
-  inset: 18px;
-  border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, .55);
-  box-shadow: inset 0 0 0 6px rgba(10, 28, 34, .25);
-}
-
-.hero__chip {
-  position: absolute;
-  padding: 10px 14px;
-  border-radius: 14px;
-  font: 600 12.5px/1.2 Inter, system-ui, sans-serif;
-  letter-spacing: -.01em;
-  color: var(--ink);
-  background: rgba(252, 253, 254, .94);
-  border: 1px solid rgba(255, 255, 255, .7);
-  box-shadow: 0 14px 30px -16px rgba(0, 0, 0, .4);
-  white-space: nowrap;
-}
-.hero__chip--streak {
-  left: 8%;
-  bottom: 22%;
-}
-.hero__chip--route {
-  right: 10%;
-  bottom: 18%;
-  color: #0A1C22;
+.hero--brand .hero__scrim {
+  background: radial-gradient(58% 50% at 50% 48%,
+    rgba(252,253,254,.94),
+    rgba(252,253,254,.72) 44%,
+    rgba(252,253,254,0) 78%);
 }
 
 .globe-card {
@@ -870,7 +777,7 @@
   }
   .hero--brand {
     min-height: calc(100svh - 60px);
-    padding: 36px 20px 0;
+    padding: 48px 20px 64px;
   }
   .hero__copy { max-width: 100%; }
   .hero--brand h1 {
@@ -879,16 +786,13 @@
   }
   .cycle > span { white-space: normal; }
   .hero--brand .hero__sub { font-size: 16px; max-width: 34ch; }
-  .hero__stage {
-    width: calc(100% + 20px);
-    height: clamp(240px, 38vh, 360px);
-    margin-top: 36px;
+  .hero--brand .hero__globe {
+    width: min(100vh, 110vw, 720px);
+    transform: translate(-50%, -50%);
   }
-  .hero__slab { border-radius: 28px 28px 0 0; }
-  .hero--brand .hero__globe,
-  .hero--brand .hero__orbit { left: 34%; }
-  .hero__pin { width: 56px; height: 56px; right: 12%; top: 24%; }
-  .hero__chip { font-size: 11.5px; padding: 8px 11px; }
+  .hero--brand .hero__orbit {
+    width: min(100vh, 100vw, 620px);
+  }
   .landing .section { padding: 72px 20px; }
   .landing > .stats { width: min(940px, calc(100% - 32px)); }
   .landing .land-cta { padding: 12px 20px 80px; }
@@ -900,7 +804,6 @@
   .landing .nav__actions #nav-signup { display: none; }
   .hero--brand .hero__cta { width: 100%; }
   .hero--brand .hero__cta .btn { width: min(100%, 320px); }
-  .hero__chip--route { display: none; }
   .landing .steps { grid-template-columns: 1fr; }
   .landing .step {
     border-right: none;
