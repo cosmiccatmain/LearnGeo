@@ -63,7 +63,10 @@
     /* Rivers & lakes in study filters */
     water:  svg('<path d="M12 2.5S7 9 7 13.2a5 5 0 0 0 10 0C17 9 12 2.5 12 2.5z"/>'),
     /* Road trip packs (LEA-78) */
-    car:    svg('<path d="M5 13h14l-1.2-4.2A2 2 0 0 0 15.9 7H8.1a2 2 0 0 0-1.9 1.8z"/><path d="M5 13v4h2.2"/><path d="M16.8 17H19v-4"/><circle cx="7.5" cy="17" r="1.6"/><circle cx="16.5" cy="17" r="1.6"/><path d="M3 13h2M19 13h2"/>')
+    car:    svg('<path d="M5 13h14l-1.2-4.2A2 2 0 0 0 15.9 7H8.1a2 2 0 0 0-1.9 1.8z"/><path d="M5 13v4h2.2"/><path d="M16.8 17H19v-4"/><circle cx="7.5" cy="17" r="1.6"/><circle cx="16.5" cy="17" r="1.6"/><path d="M3 13h2M19 13h2"/>'),
+    /* Duo-style road path nodes (LEA-85) */
+    star:   svg('<path d="m12 3 2.4 4.9 5.4.8-3.9 3.8.9 5.4L12 15.9 7.2 18l.9-5.4L4.2 8.7l5.4-.8z"/>'),
+    chest:  svg('<rect x="3" y="8" width="18" height="12" rx="2"/><path d="M3 13h18M12 8v12"/><path d="M8 8V6.5A2.5 2.5 0 0 1 10.5 4h3A2.5 2.5 0 0 1 16 6.5V8"/>')
   };
 
   /* The verified seal. Solid rather than line art, because it has to read as
@@ -186,6 +189,15 @@
       enrolments: [],
       enrolled: null,             /* { code, className, name, classId?, background? } */
       customSets: [],             /* saved lists of hand-picked countries */
+      /* Road Trips path (LEA-85). done/claimed/read are open maps keyed by
+         unitId.nodeId. Mastery still seeds lesson completion on open — this
+         only stores explicit path progress (and never wipes mastery). */
+      roadtrip: {
+        unitId: 'africa-north',
+        done: {},
+        claimed: {},
+        read: {}
+      },
       settings: {
         sound: true,
         effects: true,
