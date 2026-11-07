@@ -2395,6 +2395,7 @@ textarea.input:focus { outline: none; border-color: var(--accent); box-shadow: 0
 }
 .signin-hint svg { flex: none; }
 .signin-hint .btn { margin-left: auto; flex: none; }
+.signin-hint .btn + .btn { margin-left: 0; }
 
 .cr-banner__sync { display: flex; align-items: center; gap: 6px; margin-top: 8px; font-size: 12px; opacity: .85; }
 

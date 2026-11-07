@@ -278,6 +278,15 @@
   color: #92400E; font-weight: 620;
 }
 .game-card.is-premium-locked .game-card__go svg { width: 14px; height: 14px; }
+
+/* Guest gate — browse hub, sign in to play (LEA-55) */
+.game-card.is-auth-locked { cursor: pointer; }
+.game-card.is-auth-locked .game-card__art { filter: saturate(.7); }
+.game-card.is-auth-locked .game-card__go {
+  display: inline-flex; align-items: center; gap: 6px;
+  color: var(--accent); font-weight: 620;
+}
+.game-card.is-auth-locked .game-card__go svg { width: 14px; height: 14px; }
 .game-card__art { position: relative; }
 .game-card__prem-badge {
   position: absolute; top: 10px; right: 10px; z-index: 2;
