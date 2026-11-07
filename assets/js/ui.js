@@ -1722,7 +1722,7 @@
   }
 
   /* ============================ NAVIGATION ========================== */
-  var VIEWS = ['portal', 'codex', 'classroom', 'teacher', 'learn', 'test', 'quiz', 'games', 'achievements'];
+  var VIEWS = ['portal', 'codex', 'classroom', 'teacher', 'learn', 'test', 'quiz', 'roadtrip', 'games', 'achievements'];
 
   /* The switcher shows Classroom to students and Teacher to teachers, so
      teacher mode is a place you can leave and come back to rather than a
@@ -1738,6 +1738,7 @@
     { view: 'learn',     icon: 'book',   label: 'Learn',         role: null },
     { view: 'test',      icon: 'clip',   label: 'Practice test', role: null },
     { view: 'quiz',      icon: 'target', label: 'Class quiz',    role: null },
+    { view: 'roadtrip',  icon: 'car',    label: 'Road trips',    role: null },
     { view: 'games',     icon: 'gamepad', label: 'Games',        role: null },
     { view: 'achievements', icon: 'trophy', label: 'Achievements', role: null }
   ];
@@ -1866,6 +1867,7 @@
   function runKind() {
     if (currentView === 'test' && global.TestMode && global.TestMode.active && global.TestMode.active()) return 'practice test';
     if (currentView === 'quiz' && global.QuizMode && global.QuizMode.active && global.QuizMode.active()) return 'quiz';
+    if (currentView === 'roadtrip' && global.RoadTripMode && global.RoadTripMode.active && global.RoadTripMode.active()) return 'road-trip pack';
     if (currentView === 'games' && global.Games && global.Games.playing && global.Games.playing()) return 'game';
     return '';
   }
@@ -1873,6 +1875,7 @@
   function abandonRun() {
     if (currentView === 'test' && global.TestMode && global.TestMode.abandon) global.TestMode.abandon();
     if (currentView === 'quiz' && global.QuizMode && global.QuizMode.abandon) global.QuizMode.abandon();
+    if (currentView === 'roadtrip' && global.RoadTripMode && global.RoadTripMode.abandon) global.RoadTripMode.abandon();
     if (currentView === 'games' && global.Games && global.Games.abandon) global.Games.abandon();
   }
 
@@ -1918,7 +1921,7 @@
     /* A teacher may look round Learn, Practice test and Class quiz. It
        opens as a browse — a preview with an "Assign to class" button — so
        nothing they do there is handed in. */
-    if (isTeacher && !previewing && ['learn', 'test', 'quiz'].indexOf(view) !== -1) {
+    if (isTeacher && !previewing && ['learn', 'test', 'quiz', 'roadtrip'].indexOf(view) !== -1) {
       startPreview('Browsing as a teacher', { assign: true });
     }
     /* heading back to the class by any route ends a preview */
@@ -1985,6 +1988,7 @@
     if (view === 'learn') global.LearnMode.start();
     if (view === 'test') global.TestMode.start();
     if (view === 'quiz') global.QuizMode.start();
+    if (view === 'roadtrip' && global.RoadTripMode) global.RoadTripMode.start();
     if (view === 'games') global.Games.start();
     if (view === 'achievements' && global.AchievementCards) global.AchievementCards.start();
     settleThumb();                     /* correct for any reflow the mode caused */
