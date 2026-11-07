@@ -48,7 +48,7 @@
     });
     /* sign up is one tap from the nav and from the hero, not only from
        inside the sign-in box */
-    ['nav-signup', 'hero-signup'].forEach(function (id) {
+    ['nav-signup', 'hero-signup', 'cta-signup'].forEach(function (id) {
       var b = document.getElementById(id);
       if (b) b.addEventListener('click', function () { global.UI.openAuth('signup'); });
     });

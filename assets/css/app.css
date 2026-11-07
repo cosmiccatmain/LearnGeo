@@ -213,7 +213,7 @@ a { color: inherit; text-decoration: none; }
   position: absolute; inset: 0; z-index: 0;
   overflow: hidden; pointer-events: none;
 }
-.hero > *:not(.hero__grid):not(.hero__globe):not(.hero__relief):not(.hero__scrim):not(.hero__wash) { position: relative; z-index: 1; }
+.hero > *:not(.hero__grid):not(.hero__globe):not(.hero__relief):not(.hero__scrim):not(.hero__wash):not(.hero__orbit) { position: relative; z-index: 1; }
 
 .hero h1 {
   margin: 0 auto; max-width: 16ch;
