@@ -24,8 +24,27 @@
   box-sizing: border-box;
 }
 
+/* Brand + copy + CTAs as one centered stack over the full-bleed globe.
+   max-content width follows the longest cycle line so the stack stays
+   centered as a unit; short phrases still center inside that width. */
+.hero__copy {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: max-content;
+  max-width: 100%;
+  margin: 0 auto;
+  text-align: center;
+  box-sizing: border-box;
+  padding-inline: 0;
+}
+
 .hero--brand h1 {
-  max-width: 14ch;
+  width: max-content;
+  max-width: 100%;
   margin: 0 auto;
   font-family: var(--serif);
   font-size: clamp(56px, 9vw, 112px);
@@ -33,11 +52,13 @@
   letter-spacing: -.02em;
   line-height: 1.0;
   text-wrap: balance;
+  text-align: center;
 }
 
 .hero__brand,
 .hero__for {
   display: block;
+  text-align: center;
 }
 
 .hero__brand {
@@ -50,17 +71,18 @@
   font-size: .92em;
 }
 
-/* Each phrase shares one grid cell so the headline does not jump.
-   Left-align inside the cell so "for" sits flush against the teal
-   phrase — center alignment left a visible gap after "for" for every
-   phrase shorter than the longest one. Skip blur: a blurred crossfade
-   blanks the line mid-swap and reads as a stuck/empty headline. */
+/* Each full "for …" line shares one grid cell so height does not jump.
+   "for" lives inside every phrase (ink via .hero__for-word) so the whole
+   line can center without a gap after a bare "for " for shorter phrases.
+   Skip blur: a blurred crossfade blanks the line mid-swap. */
 .cycle {
   display: inline-grid;
-  justify-items: start;
+  justify-items: center;
+  justify-content: center;
   color: var(--accent);
-  text-align: start;
+  text-align: center;
   vertical-align: baseline;
+  margin-inline: auto;
 }
 .cycle > span {
   grid-area: 1 / 1;
@@ -78,6 +100,11 @@
   transform: none;
   z-index: 1;
 }
+.hero__for-word {
+  color: var(--ink);
+  font-style: inherit;
+  font-weight: inherit;
+}
 
 @media (prefers-reduced-motion: reduce) {
   .cycle > span {
@@ -89,20 +116,28 @@
 .hero--brand .hero__sub {
   margin: 22px auto 0;
   max-width: 42ch;
+  width: 100%;
   font-size: 17.5px;
   color: var(--ink-2);
   line-height: 1.58;
+  text-align: center;
 }
 
 .hero--brand .hero__cta {
+  display: flex;
   justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
   margin-top: 30px;
+  width: 100%;
 }
 
 .hero--brand .hero__note {
   text-align: center;
-  margin-top: 14px;
+  margin: 14px auto 0;
   max-width: 46ch;
+  width: 100%;
 }
 
 /* Globe sits behind the words as a rising sphere, not a side panel.
@@ -171,9 +206,10 @@
     min-height: calc(100svh - var(--topbar-h));
     padding: 48px 20px 64px;
   }
+  .hero__copy { max-width: 100%; }
   .hero--brand h1 {
     font-size: clamp(44px, 13vw, 72px);
-    max-width: 11ch;
+    max-width: 100%;
   }
   .cycle > span { white-space: normal; }
   .hero--brand .hero__sub { font-size: 16px; max-width: 34ch; }
