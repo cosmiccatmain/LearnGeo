@@ -61,6 +61,25 @@ function mount(host, opts) {
   const panel = root.querySelector('.chess-question');
   const status = root.querySelector('.chess-status');
 
+  /* Apply Customise → Games board / piece themes (LEA-59). */
+  (function applyChessCosmetics() {
+    const Cos = window.Cosmetics;
+    const p = W.state && W.state.profile;
+    if (!Cos || !board || !p) return;
+    const boardTheme = Cos.find(Cos.chessBoards, p.chessBoard || 'classic');
+    const pieceTheme = Cos.find(Cos.chessPieces, p.chessPieces || 'classic');
+    if (boardTheme) {
+      board.style.setProperty('--chess-light', boardTheme.light || '#e8ebd5');
+      board.style.setProperty('--chess-dark', boardTheme.dark || '#72957d');
+      board.style.setProperty('--chess-border', boardTheme.border || '#23443b');
+    }
+    if (pieceTheme) {
+      board.style.setProperty('--chess-white', pieceTheme.white || '#fffdf2');
+      board.style.setProperty('--chess-black', pieceTheme.black || '#172e2b');
+      board.style.setProperty('--chess-outline', pieceTheme.outline || '#243c35');
+    }
+  })();
+
   function canMove() { return ready && !engineError && !thinking && !ended && unlocked && chess.turn() === 'w'; }
 
   function clearFx() {

@@ -70,6 +70,50 @@ assert(/equippedTrail/.test(dash) && /equippedJumper/.test(dash),
 assert(/drawJumperCube/.test(dash) && /spawnTrail/.test(dash),
   'Geo Dash draws jumper skins and trail particles');
 
+/* LEA-59: more Games cosmetics beyond Geo Dash */
+assert(/chessBoards:\s*CHESS_BOARDS/.test(cos), 'cosmetics exports chessBoards');
+assert(/chessPieces:\s*CHESS_PIECES/.test(cos), 'cosmetics exports chessPieces');
+assert(/snakeBodies:\s*SNAKE_BODIES/.test(cos), 'cosmetics exports snakeBodies');
+assert(/matchBacks:\s*MATCH_BACKS/.test(cos), 'cosmetics exports matchBacks');
+assert(/mazeRunners:\s*MAZE_RUNNERS/.test(cos), 'cosmetics exports mazeRunners');
+assert(/duelAccents:\s*DUEL_ACCENTS/.test(cos), 'cosmetics exports duelAccents');
+assert(/id: 'parchment'[\s\S]*?price:\s*0/.test(cos), 'Parchment chess board is free');
+assert(/id: 'meridian'[\s\S]*?premium:\s*true/.test(cos), 'Meridian chess board is Premium');
+assert(/SNAKE_BODIES[\s\S]*?id: 'neon'[\s\S]*?premium:\s*true/.test(cos),
+  'Neon snake coil is Premium');
+assert(/chessBoard/.test(prem) && /snakeBody/.test(prem) && /duelAccent/.test(prem),
+  'premium.js strips LEA-59 Games cosmetics without entitlement');
+
+var sql20 = fs.readFileSync(path.join(root, 'supabase/deployed/0020_more_games_cosmetics.sql'), 'utf8');
+assert(/chessBoard/.test(sql20) && /snakeBody/.test(sql20) && /matchBack/.test(sql20),
+  '0020 strips Premium multi-game cosmetics');
+assert(/'aurora',\s*'meridian'/.test(sql20), '0020 lists Premium chess boards');
+assert(/duelAccent/.test(sql20) && /mazeRunner/.test(sql20), '0020 covers duel + maze');
+assert(!fs.existsSync(path.join(root, 'supabase/deployed/0019_more_games_cosmetics.sql')),
+  'old 0019_more_games_cosmetics filename must not exist (renamed to 0020)');
+
+assert(/Games cosmetics/.test(ui) && /chessBoards/.test(ui) && /snakeBodies/.test(ui),
+  'Games panel lists Chess and Snake cosmetics');
+assert(/renderGamesPreview/.test(ui) || /chessPreviewHtml/.test(ui),
+  'Games tab preview covers more than Dash');
+
+var chess = fs.readFileSync(path.join(root, 'assets/js/game-chess.js'), 'utf8');
+assert(/applyChessCosmetics|--chess-light|chessBoard/.test(chess),
+  'Geo Chess applies board/piece cosmetics');
+var snake = fs.readFileSync(path.join(root, 'assets/js/game-snake.js'), 'utf8');
+assert(/equippedSnakeBody/.test(snake), 'Capital Snake reads coil cosmetics');
+var match = fs.readFileSync(path.join(root, 'assets/js/game-match.js'), 'utf8');
+assert(/equippedMatchBack/.test(match), 'Flag Match reads tile-back cosmetics');
+var maze = fs.readFileSync(path.join(root, 'assets/js/game-maze.js'), 'utf8');
+assert(/equippedMazeRunner/.test(maze), 'Capital Maze reads explorer cosmetics');
+var duel = fs.readFileSync(path.join(root, 'assets/js/game-duel.js'), 'utf8');
+assert(/applyDuelAccent|equippedDuelAccent/.test(duel), 'Geo Duel applies accent cosmetics');
+
+var updates = fs.readFileSync(path.join(root, 'assets/data/updates.json'), 'utf8');
+assert(/2026-11-games-cosmetics-more/.test(updates), 'updates.json has LEA-59 What’s New entry');
+assert(!/Pets|Brainrot|screen.?mirror/i.test(updates.match(/2026-11-games-cosmetics-more[\s\S]*?\},/)[0]),
+  'LEA-59 What’s New stays public-safe');
+
 var admin = fs.readFileSync(path.join(root, 'assets/js/administrator.js'), 'utf8');
 assert(/prempreview/.test(admin) && /Premium plans &amp; gating preview|Premium plans \& gating preview|Turn preview/.test(admin),
   'Development panel has Premium preview toggle');

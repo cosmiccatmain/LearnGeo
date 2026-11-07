@@ -62,6 +62,24 @@
     }
   }
 
+  function equippedDuelAccent() {
+    var Cos = global.Cosmetics;
+    if (!Cos || !Cos.duelAccents) {
+      return { accent: '#1B4DFF', soft: 'rgba(27,77,255,.08)' };
+    }
+    var id = (W.state && W.state.profile && W.state.profile.duelAccent) || 'brand';
+    var item = Cos.find(Cos.duelAccents, id);
+    if (!item || !item.accent) return Cos.find(Cos.duelAccents, 'brand');
+    return item;
+  }
+
+  function applyDuelAccent(el) {
+    if (!el) return;
+    var theme = equippedDuelAccent();
+    el.style.setProperty('--duel-accent', theme.accent || '#1B4DFF');
+    el.style.setProperty('--duel-accent-soft', theme.soft || 'rgba(27,77,255,.08)');
+  }
+
   /* ========================= question pack ======================== */
   function typeFor(kind, c) {
     if (kind === 'flags') return c.flag ? (Math.random() < 0.5 ? 'flag' : 'flagpick') : 'capital';
@@ -293,6 +311,7 @@
       if (!matchId) return paintLobby();
       if (!state) {
         body.innerHTML = '<div class="duel-wait"><div class="duel-wait__pulse"></div><p>Loading match…</p></div>';
+        applyDuelAccent(body.firstChild);
         return;
       }
       if (state.status === 'seeding') return paintSeeding();
@@ -411,6 +430,7 @@
         var box = W.$('[data-duel-inbox]', body);
         if (box) { box.innerHTML = inboxHtml(lastInbox); wireInbox(body, function (id) { enterMatch(id); }); }
       });
+      applyDuelAccent(body.firstChild);
     }
 
     function paintSeeding() {
@@ -430,6 +450,7 @@
         '</div>';
       var leave = W.$('[data-duel-forfeit]', body);
       if (leave) leave.addEventListener('click', forfeit);
+      applyDuelAccent(body.firstChild);
       if (iAmHost) seedIfNeeded();
     }
 
@@ -523,6 +544,7 @@
       var ff = W.$('[data-duel-forfeit]', body);
       if (ff) ff.addEventListener('click', forfeit);
 
+      applyDuelAccent(body.firstChild);
       global.addEventListener('keydown', onKey);
     }
 
@@ -579,6 +601,7 @@
           '</div>' +
         '</div>';
       maybeRecordWin();
+      applyDuelAccent(body.firstChild);
       W.$('[data-duel-again]', body).addEventListener('click', function () {
         matchId = null; state = null; entering = false; stopPoll(); paint();
       });

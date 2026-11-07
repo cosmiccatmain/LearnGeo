@@ -300,7 +300,10 @@
     var kinds = {
       avatars: 'avatar', decorations: 'decoration', effects: 'effect',
       nameplates: 'nameplate', banners: 'banner', themes: 'theme',
-      trails: 'trail', jumpers: 'jumper'
+      trails: 'trail', jumpers: 'jumper',
+      chessBoards: 'chess board', chessPieces: 'chess set',
+      snakeBodies: 'snake coil', matchBacks: 'match back',
+      mazeRunners: 'maze runner', duelAccents: 'duel accent'
     };
     var best = null;
     Object.keys(kinds).forEach(function (k) {

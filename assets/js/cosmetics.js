@@ -297,6 +297,138 @@
       blurb: 'Meridian gold with a bright rim. Premium.' }
   ];
 
+  /* --------------------- more Games cosmetics (LEA-59) ----------------
+     Board / runner / tile themes for Chess, Snake, Match, Maze, and Duel.
+     Premium ids must stay in sync with 0020_more_games_cosmetics.sql. */
+  var CHESS_BOARDS = [
+    { id: 'classic', name: 'Classic Green', price: 0,
+      light: '#e8ebd5', dark: '#72957d', border: '#23443b',
+      blurb: 'The familiar LearnGeo board.' },
+    { id: 'parchment', name: 'Parchment', price: 0,
+      light: '#f3e6c8', dark: '#b08968', border: '#6b4f3a',
+      blurb: 'Warm map-paper squares. Free.' },
+    { id: 'atlas', name: 'Atlas Blue', price: 300,
+      light: '#dbe7ff', dark: '#3b6fd9', border: '#1B4DFF',
+      blurb: 'Brand-blue checker for Geo Chess.' },
+    { id: 'midnight', name: 'Midnight Sea', price: 450,
+      light: '#c7d7e8', dark: '#2a4060', border: '#152238',
+      blurb: 'Cool navy for evening matches.' },
+    { id: 'canopy', name: 'Canopy', price: 550,
+      light: '#e4f0d4', dark: '#4f7a3c', border: '#2f4a24',
+      blurb: 'Forest greens across the ranks.' },
+    { id: 'aurora', name: 'Aurora Board', price: 1400, premium: true,
+      light: '#e8ddff', dark: '#5b4fcf', border: '#7C3AED',
+      blurb: 'Violet aurora squares. Premium.' },
+    { id: 'meridian', name: 'Meridian Gold', price: 1800, premium: true,
+      light: '#fff3cc', dark: '#c4891a', border: '#8a5a08',
+      blurb: 'Gold and parchment. Premium.' }
+  ];
+
+  var CHESS_PIECES = [
+    { id: 'classic', name: 'Classic Set', price: 0,
+      white: '#fffdf2', black: '#172e2b', outline: '#243c35',
+      blurb: 'Cream white and deep green-black.' },
+    { id: 'ivory', name: 'Ivory & Ink', price: 0,
+      white: '#fffaf0', black: '#1f2937', outline: '#374151',
+      blurb: 'Soft ivory against ink black. Free.' },
+    { id: 'ocean', name: 'Ocean Set', price: 250,
+      white: '#e0f2fe', black: '#0c4a6e', outline: '#0369a1',
+      blurb: 'Sea-foam white and deep ocean.' },
+    { id: 'ember', name: 'Ember Set', price: 500,
+      white: '#fff7ed', black: '#7c2d12', outline: '#9a3412',
+      blurb: 'Warm cream and ember black.' },
+    { id: 'neon', name: 'Neon Set', price: 1200, premium: true,
+      white: '#f5f3ff', black: '#4c1d95', outline: '#7c3aed',
+      blurb: 'Bright violet pair. Premium.' },
+    { id: 'gilded', name: 'Gilded Set', price: 1600, premium: true,
+      white: '#fffbeb', black: '#78350f', outline: '#b45309',
+      blurb: 'Meridian gold outline. Premium.' }
+  ];
+
+  var SNAKE_BODIES = [
+    { id: 'meadow', name: 'Meadow Coil', price: 0,
+      bands: ['#1d5a24', '#8BD650', '#B5EE7A'], face: '#9BE15D',
+      blurb: 'The original Capital Snake greens.' },
+    { id: 'cobalt', name: 'Cobalt Coil', price: 0,
+      bands: ['#123a8a', '#3b82f6', '#93c5fd'], face: '#60a5fa',
+      blurb: 'Brand-blue body. Free.' },
+    { id: 'slate', name: 'Slate Coil', price: 250,
+      bands: ['#1e293b', '#64748b', '#cbd5e1'], face: '#94a3b8',
+      blurb: 'Quiet steel for night runs.' },
+    { id: 'sunset', name: 'Sunset Coil', price: 450,
+      bands: ['#9a3412', '#f97316', '#fdba74'], face: '#fb923c',
+      blurb: 'Warm orange coil.' },
+    { id: 'neon', name: 'Neon Coil', price: 1100, premium: true,
+      bands: ['#6d28d9', '#a78bfa', '#f472b6'], face: '#c4b5fd',
+      blurb: 'Violet-pink neon. Premium.' },
+    { id: 'aurora', name: 'Aurora Coil', price: 1500, premium: true,
+      bands: ['#0e7490', '#22d3ee', '#a3e635'], face: '#67e8f9',
+      blurb: 'Northern-light greens and cyan. Premium.' }
+  ];
+
+  var MATCH_BACKS = [
+    { id: 'indigo', name: 'Indigo Back', price: 0,
+      down: '#1B2A5E', up: '#16205a', mark: 'rgba(124,243,255,.22)',
+      blurb: 'The classic Flag Match card back.' },
+    { id: 'chalk', name: 'Chalk Back', price: 0,
+      down: '#334155', up: '#475569', mark: 'rgba(226,232,240,.28)',
+      blurb: 'Soft chalkboard backs. Free.' },
+    { id: 'atlas', name: 'Atlas Back', price: 250,
+      down: '#1B4DFF', up: '#2563eb', mark: 'rgba(34,211,238,.3)',
+      blurb: 'Brand-blue card backs.' },
+    { id: 'meadow', name: 'Meadow Back', price: 400,
+      down: '#166534', up: '#15803d', mark: 'rgba(187,247,208,.28)',
+      blurb: 'Forest green backs.' },
+    { id: 'neon', name: 'Neon Back', price: 1000, premium: true,
+      down: '#5b21b6', up: '#7c3aed', mark: 'rgba(244,114,182,.35)',
+      blurb: 'Violet neon backs. Premium.' },
+    { id: 'aurora', name: 'Aurora Back', price: 1400, premium: true,
+      down: '#0e7490', up: '#0891b2', mark: 'rgba(163,230,53,.32)',
+      blurb: 'Cyan aurora backs. Premium.' }
+  ];
+
+  var MAZE_RUNNERS = [
+    { id: 'cyan', name: 'Cyan Explorer', price: 0,
+      fill: '#7CF3FF', glow: 'rgba(124,243,255,.45)',
+      blurb: 'The classic Capital Maze runner.' },
+    { id: 'cobalt', name: 'Cobalt Explorer', price: 0,
+      fill: '#1B4DFF', glow: 'rgba(27,77,255,.4)',
+      blurb: 'Solid brand blue. Free.' },
+    { id: 'gold', name: 'Gold Explorer', price: 300,
+      fill: '#F5B301', glow: 'rgba(245,179,1,.4)',
+      blurb: 'Meridian gold glow.' },
+    { id: 'meadow', name: 'Meadow Explorer', price: 400,
+      fill: '#4ade80', glow: 'rgba(74,222,128,.4)',
+      blurb: 'Fresh green runner.' },
+    { id: 'neon', name: 'Neon Explorer', price: 1100, premium: true,
+      fill: '#c084fc', glow: 'rgba(192,132,252,.5)',
+      blurb: 'Violet neon trail. Premium.' },
+    { id: 'aurora', name: 'Aurora Explorer', price: 1500, premium: true,
+      fill: '#22d3ee', glow: 'rgba(34,211,238,.5)',
+      blurb: 'Aurora cyan glow. Premium.' }
+  ];
+
+  var DUEL_ACCENTS = [
+    { id: 'brand', name: 'Brand Accent', price: 0,
+      accent: '#1B4DFF', soft: 'rgba(27,77,255,.08)',
+      blurb: 'Default Geo Duel highlight.' },
+    { id: 'emerald', name: 'Emerald Accent', price: 0,
+      accent: '#0E9F6E', soft: 'rgba(14,159,110,.1)',
+      blurb: 'Cool emerald scoreboard. Free.' },
+    { id: 'gold', name: 'Gold Accent', price: 300,
+      accent: '#F5B301', soft: 'rgba(245,179,1,.12)',
+      blurb: 'Gold rim on your side of the board.' },
+    { id: 'coral', name: 'Coral Accent', price: 450,
+      accent: '#FB7185', soft: 'rgba(251,113,133,.12)',
+      blurb: 'Warm coral duel highlight.' },
+    { id: 'neon', name: 'Neon Accent', price: 1100, premium: true,
+      accent: '#A78BFA', soft: 'rgba(167,139,250,.14)',
+      blurb: 'Violet neon duel rim. Premium.' },
+    { id: 'aurora', name: 'Aurora Accent', price: 1500, premium: true,
+      accent: '#22D3EE', soft: 'rgba(34,211,238,.14)',
+      blurb: 'Aurora cyan duel rim. Premium.' }
+  ];
+
   var ACHIEVEMENTS = [
     { id: 'first-steps', name: 'First Steps', desc: 'Answer your first question', reward: 25 },
     { id: 'streak-10', name: 'On a Roll', desc: 'Hit a 10-answer streak', reward: 75 },
@@ -320,6 +452,12 @@
     statuses: STATUSES,
     trails: TRAILS,
     jumpers: JUMPERS,
+    chessBoards: CHESS_BOARDS,
+    chessPieces: CHESS_PIECES,
+    snakeBodies: SNAKE_BODIES,
+    matchBacks: MATCH_BACKS,
+    mazeRunners: MAZE_RUNNERS,
+    duelAccents: DUEL_ACCENTS,
     achievements: ACHIEVEMENTS,
     earned: EARNED,
 

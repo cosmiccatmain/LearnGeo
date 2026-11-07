@@ -1193,8 +1193,14 @@ textarea.input:focus { outline: none; border-color: var(--accent); box-shadow: 0
   color: #92400E;
 }
 .shop-item--premium .shop-item__owned svg { width: 12px; height: 12px; }
-/* Customise → Games (Geo Dash trails + jumpers) */
-.cz-games-sec { margin-top: 18px; }
+/* Customise → Games (Dash + Chess + Snake + Match + Maze + Duel) */
+.cz-games-group { margin-top: 22px; padding-top: 6px; border-top: 1px solid var(--line-soft); }
+.cz-games-group:first-of-type { margin-top: 0; padding-top: 0; border-top: 0; }
+.cz-games-group__title {
+  font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+  color: var(--muted); margin-bottom: 8px;
+}
+.cz-games-sec { margin-top: 14px; }
 .cz-games-sec:first-of-type { margin-top: 0; }
 .cz-games-sec__head {
   display: flex; flex-direction: column; gap: 2px;
@@ -1202,7 +1208,13 @@ textarea.input:focus { outline: none; border-color: var(--accent); box-shadow: 0
 }
 .cz-games-sec__head b { font-size: 13.5px; }
 .shop-item__vis--trail,
-.shop-item__vis--jumper {
+.shop-item__vis--jumper,
+.shop-item__vis--board,
+.shop-item__vis--pieces,
+.shop-item__vis--snake,
+.shop-item__vis--match,
+.shop-item__vis--maze,
+.shop-item__vis--duel {
   border-radius: 12px; overflow: hidden;
   background: linear-gradient(160deg, #e8eefc, #d7e3f7 55%, #c5d4ef);
 }
@@ -1248,11 +1260,82 @@ textarea.input:focus { outline: none; border-color: var(--accent); box-shadow: 0
   position: absolute; inset: 0; display: grid; place-items: center;
   font-size: 12px; font-weight: 700; line-height: 1;
 }
+.shop-item__vis--board {
+  display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr;
+  gap: 0; padding: 8px;
+}
+.shop-item__vis--board i { display: block; border-radius: 2px; }
+.shop-item__vis--pieces {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  font-size: 22px; line-height: 1;
+}
+.shop-item__vis--snake {
+  display: flex; align-items: center; justify-content: center; gap: 3px; padding: 0 8px;
+}
+.shop-item__vis--snake i {
+  width: 10px; height: 10px; border-radius: 50%;
+}
+.shop-item__vis--match {
+  display: grid; place-items: center;
+  font-size: 22px; font-weight: 700; color: rgba(124,243,255,.85);
+}
+.shop-item__vis--maze { display: grid; place-items: center; }
+.shop-item__vis--maze i {
+  width: 18px; height: 18px; border-radius: 50% 50% 45% 45%;
+}
+.shop-item__vis--duel {
+  display: grid; place-items: center;
+  border: 2px solid #1B4DFF; margin: 6px; border-radius: 10px;
+  background: #fff;
+}
+.shop-item__vis--duel b { font-size: 12px; letter-spacing: .06em; }
+.cz-games-preview { display: grid; gap: 10px; }
+.cz-games-preview__seg { flex-wrap: wrap; }
+.cz-games-preview__seg button { font-size: 11.5px; padding: 5px 8px; }
 .cz-dash-preview {
   border-radius: 14px; overflow: hidden; border: 1px solid var(--line);
   background: #1B4DFF; box-shadow: var(--shadow);
 }
-.cz-dash-preview__canvas { display: block; width: 100%; height: auto; }
+.cz-dash-preview__canvas,
+.cz-snake-preview__canvas { display: block; width: 100%; height: auto; border-radius: 14px; }
+.cz-chess-preview {
+  display: grid; grid-template-columns: repeat(4, 1fr); grid-template-rows: repeat(4, 1fr);
+  aspect-ratio: 1; border: 4px solid #23443b; border-radius: 10px; overflow: hidden;
+  box-shadow: var(--shadow);
+}
+.cz-chess-preview i {
+  display: grid; place-items: center; font-size: 18px; line-height: 1;
+}
+.cz-match-preview {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+}
+.cz-match-preview span {
+  aspect-ratio: 1.15; border-radius: 12px; display: grid; place-items: center;
+  font-size: 28px; font-weight: 700; border: 1px solid rgba(255,255,255,.12);
+}
+.cz-maze-preview {
+  position: relative; height: 140px; border-radius: 14px; overflow: hidden;
+  background: #05081c; border: 1px solid var(--line);
+}
+.cz-maze-preview__walls {
+  position: absolute; inset: 18px; border: 14px solid #16205a; border-radius: 8px;
+}
+.cz-maze-preview i {
+  position: absolute; left: 50%; top: 50%; width: 22px; height: 22px;
+  margin: -11px 0 0 -11px; border-radius: 50% 50% 45% 45%;
+}
+.cz-duel-preview {
+  display: grid; grid-template-columns: 1fr auto 1fr; gap: 10px; align-items: center;
+  padding: 14px; border-radius: 14px; background: #fff; border: 1px solid var(--line);
+}
+.cz-duel-preview__score {
+  display: flex; flex-direction: column; gap: 2px; padding: 10px 12px;
+  border-radius: 12px; border: 1.5px solid var(--line);
+}
+.cz-duel-preview__score span { font-size: 11px; color: var(--muted); }
+.cz-duel-preview__score b { font-size: 20px; font-family: var(--mono); }
+.cz-duel-preview__score:last-child { text-align: right; align-items: flex-end; }
+.cz-duel-preview__mid { font-weight: 700; letter-spacing: .08em; color: var(--muted); font-size: 12px; }
 
 .shop-item__prem {
   font-family: var(--mono); font-size: 9.5px; font-weight: 700;

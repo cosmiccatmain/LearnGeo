@@ -105,21 +105,28 @@
       ['theme', 'themes'],
       ['avatar', 'avatars'],
       ['dashTrail', 'trails'],
-      ['dashJumper', 'jumpers']
+      ['dashJumper', 'jumpers'],
+      ['chessBoard', 'chessBoards'],
+      ['chessPieces', 'chessPieces'],
+      ['snakeBody', 'snakeBodies'],
+      ['matchBack', 'matchBacks'],
+      ['mazeRunner', 'mazeRunners'],
+      ['duelAccent', 'duelAccents']
     ];
+    var freeFallback = {
+      theme: 'default', banner: 'plain', decoration: 'ring-slate', avatar: 'globe',
+      dashTrail: 'dust', dashJumper: 'classic',
+      chessBoard: 'classic', chessPieces: 'classic',
+      snakeBody: 'meadow', matchBack: 'indigo', mazeRunner: 'cyan', duelAccent: 'brand'
+    };
     slots.forEach(function (pair) {
       var slot = pair[0], list = Cos[pair[1]];
       if (!list) return;
       var id = s.profile[slot];
       var item = Cos.find(list, id);
       if (item && item.premium) {
-        s.profile[slot] = list[0] ? list[0].id : (slot === 'avatar' ? 'globe' : 'none');
-        if (slot === 'theme') s.profile.theme = 'default';
-        if (slot === 'banner') s.profile.banner = 'plain';
-        if (slot === 'decoration') s.profile.decoration = 'ring-slate';
-        if (slot === 'avatar') s.profile.avatar = 'globe';
-        if (slot === 'dashTrail') s.profile.dashTrail = 'dust';
-        if (slot === 'dashJumper') s.profile.dashJumper = 'classic';
+        if (freeFallback[slot] != null) s.profile[slot] = freeFallback[slot];
+        else s.profile[slot] = list[0] ? list[0].id : 'none';
         changed = true;
       }
     });

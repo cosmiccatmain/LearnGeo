@@ -43,6 +43,19 @@
     return null;
   }
 
+  function equippedSnakeBody() {
+    var Cos = global.Cosmetics;
+    if (!Cos || !Cos.snakeBodies) {
+      return { bands: ['#1d5a24', '#8BD650', '#B5EE7A'], face: '#9BE15D' };
+    }
+    var id = (W.state && W.state.profile && W.state.profile.snakeBody) || 'meadow';
+    var item = Cos.find(Cos.snakeBodies, id);
+    if (!item || !item.bands || item.bands.length < 3) {
+      return Cos.find(Cos.snakeBodies, 'meadow');
+    }
+    return item;
+  }
+
   function mount(host, opts) {
     var esc = W.escapeHtml;
     host.innerHTML =
@@ -614,8 +627,11 @@
       if (r.state === 'over' && r.reason === 'tail') return;
       var hide = r.state === 'dead' && Math.floor(clock * 12) % 2;
       if (hide) return;
+      var body = equippedSnakeBody();
+      var bands = body.bands || ['#1d5a24', '#8BD650', '#B5EE7A'];
+      var face = body.face || '#9BE15D';
       c.lineCap = 'round'; c.lineJoin = 'round';
-      [[0.84, '#1d5a24'], [0.66, '#8BD650'], [0.3, '#B5EE7A']].forEach(function (band) {
+      [[0.84, bands[0]], [0.66, bands[1]], [0.3, bands[2]]].forEach(function (band) {
         c.strokeStyle = band[1];
         c.lineWidth = s * band[0];
         c.beginPath();
@@ -630,12 +646,12 @@
 
       var h = pts[0], hx = X(h.x), hy = Y(h.y), hr = s * 0.48;
       c.beginPath(); c.arc(hx, hy, hr, 0, TAU);
-      c.fillStyle = '#1d5a24'; c.fill();
+      c.fillStyle = bands[0]; c.fill();
       var img = r.skin && flag(r.skin);
       c.save();
       c.beginPath(); c.arc(hx, hy, hr * 0.86, 0, TAU); c.clip();
       if (img) c.drawImage(img, hx - hr * 1.3, hy - hr * 0.86, hr * 2.6, hr * 1.72);
-      else { c.fillStyle = '#9BE15D'; c.fillRect(hx - hr, hy - hr, hr * 2, hr * 2); }
+      else { c.fillStyle = face; c.fillRect(hx - hr, hy - hr, hr * 2, hr * 2); }
       c.restore();
       var d = r.dir, px = -d.y, py = d.x;
       [-1, 1].forEach(function (side) {
