@@ -1,7 +1,8 @@
 /* ------------------------------------------------------------------
-   LEA-64 / LEA-67 / LEA-70 — Achievement wallet (stack / flip / share).
+   LEA-64 / LEA-67 / LEA-70 / LEA-71 — Achievement wallet.
    Light polish: Inter / Instrument, teal accent.
    LEA-70: isolate active flip above peeks; reliable deck navigation.
+   LEA-71: award-badge card backs + owner gamertag (deck/flip kept).
 -------------------------------------------------------------------*/
 
 .achv {
@@ -199,14 +200,21 @@
     linear-gradient(145deg, #1a3d50 0%, #0f2a40 55%, #163f4a 100%);
 }
 .achv-card__face--back {
+  /* Per-achievement atmosphere via --achv-back-* set inline in JS */
   background:
-    linear-gradient(160deg, #0e9f6e 0%, #166534 42%, #12352f 100%);
+    radial-gradient(120% 90% at 50% -10%, color-mix(in srgb, var(--achv-back-accent, #0e9f6e) 35%, transparent), transparent 55%),
+    radial-gradient(80% 70% at 100% 110%, color-mix(in srgb, var(--achv-back-c, #0e9f6e) 28%, transparent), transparent 50%),
+    linear-gradient(165deg, var(--achv-back-a, #0b1f1c) 0%, var(--achv-back-b, #12352f) 48%, var(--achv-back-a, #0a221e) 100%);
   color: #fff;
   transform: rotateY(180deg) translateZ(1px);
   align-items: center;
   justify-content: center;
   text-align: center;
-  gap: 10px;
+  gap: 4px;
+  padding: 14px 18px 16px;
+}
+.achv-card__face--back.is-locked {
+  filter: saturate(.55);
 }
 .achv-card__chip {
   width: 42px;
@@ -254,18 +262,57 @@
   border-radius: 999px;
   background: rgba(255,255,255,.14);
 }
-.achv-card__brand {
+
+/* LEA-71 — award-badge back (username + title + date) */
+.achv-award-wrap {
+  flex: none;
+  width: 92px;
+  height: 92px;
+  margin: 0 0 6px;
+  filter: drop-shadow(0 6px 10px rgba(0, 0, 0, .28));
+}
+.achv-award {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.achv-award__rim {
+  stroke: rgba(255, 255, 255, .18);
+  stroke-width: 0.6;
+}
+.achv-award__motif circle[fill]:not([fill="none"]) {
+  fill: currentColor;
+}
+.achv-card__owner {
   font-family: var(--serif);
-  font-size: 34px;
+  font-size: 22px;
+  font-weight: 400;
   letter-spacing: -.02em;
   line-height: 1.1;
+  max-width: 18ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, .25);
 }
-.achv-card__brand-sub {
-  font-size: 19px;
-  line-height: 1.35;
-  font-weight: 600;
-  opacity: .95;
-  max-width: 28ch;
+.achv-card__award-title {
+  font-size: 13px;
+  font-weight: 620;
+  letter-spacing: .01em;
+  line-height: 1.2;
+  margin-top: 2px;
+  max-width: 22ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  opacity: .96;
+}
+.achv-card__award-date {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: .04em;
+  opacity: .72;
+  margin-top: 1px;
 }
 
 /* Decorative peeks — flat layers under the active card */

@@ -20,6 +20,13 @@
      own What’s New id. */
   var UPDATES = [
     {
+      id: '2026-11-achievement-awards',
+      title: 'Award-style card backs',
+      body: 'Flip an achievement card to see your gamertag under a colorful enamel award badge — title and status sit underneath, still in the same flip wallet.',
+      image: '/assets/img/updates/achievement-cards.svg',
+      date: '2026-11-07'
+    },
+    {
       id: '2026-11-geo-chess-pvp',
       title: 'Geo Chess: play other players',
       body: 'Challenge a classmate by gamertag right inside Geo Chess — no separate Chess Duel. Bot games and friend matches both update your Chess Elo (prior wins convert into a starting rating).',
