@@ -18,6 +18,7 @@
   var lastSync = 0;
   var featuresFor = null;      /* class whose switches we have already asked for */
   var featuresWatched = false;
+  var duelSpectate = null;     /* GeoDuel.mountClassLive handle (LEA-77) */
 
   /* The two switches. on() is synchronous on purpose, and answers from the
      module's own defaults until the class has been read: live quiz on,
@@ -502,6 +503,7 @@
           crTab('people', I.users, 'People', counts.people) +
           crTab('analytics', I.chart, 'Grades', counts.analytics) +
           (featureOn('geolive') ? crTab('geolive', I.bolt, 'GeoLive') : '') +
+          crTab('duels', I.eye || I.users, 'Duels') +
           crTab('leaderboard', I.trophy, 'Leaderboard',
                 featureOn('leaderboard') ? 0 : 'Off') +
           crTab('settings', I.gear, 'Settings') +
@@ -547,6 +549,17 @@
     return '<div id="cr-geolive"></div>';
   }
 
+  /* Host/teacher spectate for Geo Duel — live match state only (LEA-77).
+     Intentionally not pixel capture or admin monitoring. */
+  function duelsPanel() {
+    if (!global.Cloud || !global.Cloud.signedIn) return signinHint();
+    if (!cls().cloudId) {
+      return '<div class="empty">Put your class online first, then you can ' +
+        'spectate student Geo Duels. Use the class code button at the top.</div>';
+    }
+    return '<div id="cr-duels"></div>';
+  }
+
   /* Off is a state worth showing, not a reason to hide. A feature that is
      invisible by default, behind a switch that is also not obvious, cannot be
      told apart from a feature nobody built. Two people went looking for this
@@ -575,6 +588,7 @@
     }
     if (tab === 'settings') return settingsPanel();
     if (tab === 'geolive') return geolivePanel();
+    if (tab === 'duels') return duelsPanel();
     if (tab === 'leaderboard') return leaderboardPanel();
     return streamPanel();
   }
@@ -591,6 +605,12 @@
     var GT = global.GeoLiveTeacher;
     if (tab !== 'geolive' && GT && GT.unmount) { try { GT.unmount(); } catch (e) {} }
 
+    /* Geo Duel spectate poll must stop when leaving the Duels tab. */
+    if (tab !== 'duels' && duelSpectate && duelSpectate.destroy) {
+      try { duelSpectate.destroy(); } catch (e) {}
+      duelSpectate = null;
+    }
+
     var glHost = document.getElementById('cr-geolive');
     if (glHost && GT && GT.mount) {
       GT.mount(glHost, {
@@ -601,6 +621,17 @@
            would otherwise collapse into a single player. */
         roster: people(),
         members: (cls().members || []).slice()
+      });
+    }
+
+    var duelHost = document.getElementById('cr-duels');
+    if (duelHost && global.GeoDuel && global.GeoDuel.mountClassLive) {
+      if (duelSpectate && duelSpectate.destroy) {
+        try { duelSpectate.destroy(); } catch (e2) {}
+        duelSpectate = null;
+      }
+      duelSpectate = global.GeoDuel.mountClassLive(duelHost, {
+        classId: cls().cloudId || ''
       });
     }
 
@@ -1653,6 +1684,10 @@
   }
 
   function leaveTeacher() {
+    if (duelSpectate && duelSpectate.destroy) {
+      try { duelSpectate.destroy(); } catch (e) {}
+      duelSpectate = null;
+    }
     W.state.role = 'student';
     W.saveNow();
     global.UI.refreshTabs();
@@ -1663,7 +1698,13 @@
     render: render, openBuilder: openBuilder,
     becomeTeacher: becomeTeacher,
     leaveTeacher: leaveTeacher, classCode: classCode, joinLink: joinLink, copy: copy,
-    forget: function () { lastSync = 0; },
+    forget: function () {
+      lastSync = 0;
+      if (duelSpectate && duelSpectate.destroy) {
+        try { duelSpectate.destroy(); } catch (e) {}
+        duelSpectate = null;
+      }
+    },
     /* Exported so the leaderboard can ask who is in the class instead of
        keeping its own copy of the rule that a typed name and the account
        that joined under it are one student. */
