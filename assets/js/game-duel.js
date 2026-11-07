@@ -310,7 +310,9 @@
       if (destroyed || !body) return;
       if (!matchId) return paintLobby();
       if (!state) {
-        body.innerHTML = '<div class="duel-wait"><div class="duel-wait__pulse"></div><p>Loading match…</p></div>';
+        body.innerHTML = global.CookingLoader
+          ? global.CookingLoader.host({ tall: true, note: 'Loading match…' })
+          : '<div class="duel-wait"><div class="duel-wait__pulse"></div><p>Loading match…</p></div>';
         applyDuelAccent(body.firstChild);
         return;
       }
@@ -435,6 +437,7 @@
 
     function paintSeeding() {
       var iAmHost = state.role === 'host';
+      var seedNote = iAmHost ? 'Building your question set…' : 'Waiting for the host to deal the questions…';
       body.innerHTML =
         '<div class="duel-wait">' +
           '<div class="duel-vs">' +
@@ -442,8 +445,10 @@
             '<b>VS</b>' +
             '<span>' + esc(state.guest_tag || 'Guest') + '</span>' +
           '</div>' +
-          '<div class="duel-wait__pulse"></div>' +
-          '<p>' + (iAmHost ? 'Building your question set…' : 'Waiting for the host to deal the questions…') + '</p>' +
+          (global.CookingLoader
+            ? global.CookingLoader.html({ size: 'md' }) +
+              '<p class="cook-loader-host__note">' + esc(seedNote) + '</p>'
+            : '<div class="duel-wait__pulse"></div><p>' + esc(seedNote) + '</p>') +
           '<div class="duel-play__foot" style="margin-top:18px">' +
             '<button class="btn btn--ghost btn--sm" type="button" data-duel-forfeit>Leave match</button>' +
           '</div>' +

@@ -265,7 +265,9 @@ import { Chess } from '../vendor/chess.js/chess.js';
       if (destroyed || !body) return;
       if (!matchId) return paintLobby();
       if (!state) {
-        body.innerHTML = '<div class="duel-wait"><div class="duel-wait__pulse"></div><p>Loading match…</p></div>';
+        body.innerHTML = global.CookingLoader
+          ? global.CookingLoader.host({ tall: true, note: 'Loading match…' })
+          : '<div class="duel-wait"><div class="duel-wait__pulse"></div><p>Loading match…</p></div>';
         return;
       }
       if (state.status === 'finished') return paintFinished();

@@ -66,7 +66,9 @@
     }
     if (!games.length) { frame('<div class="lb-empty">Games have not loaded yet.</div>'); return; }
 
-    frame('<div class="lb-empty">Loading…</div>');
+    frame(global.CookingLoader
+      ? global.CookingLoader.host({ size: 'sm' })
+      : '<div class="lb-empty">Loading…</div>');
     sb().rpc('list_class_game_blocks', { p_class: classId }).then(function (res) {
       if (res && res.error) {
         frame('<div class="lb-empty">Game blocks are not switched on yet. They arrive with the latest database update.</div>');

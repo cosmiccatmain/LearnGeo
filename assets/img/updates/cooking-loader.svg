@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 280" role="img" aria-label="Cooking loader">
+  <defs>
+    <linearGradient id="cookSky" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#E4F5F2"/>
+      <stop offset="100%" stop-color="#EEF3F5"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="280" fill="url(#cookSky)"/>
+  <rect x="170" y="36" width="300" height="208" rx="24" fill="#FCFDFE" stroke="#D5E0E6" stroke-width="3"/>
+  <!-- pot -->
+  <ellipse cx="320" cy="198" rx="56" ry="10" fill="rgba(11,21,32,.08)"/>
+  <path d="M268 150 C268 142 276 138 284 138 H356 C364 138 372 142 372 150 V186 C372 198 360 206 320 206 C280 206 268 198 268 186 Z" fill="#3A4A56"/>
+  <path d="M276 154 C278 150 284 148 290 148 H350 C356 148 362 150 364 154 V180 C362 188 352 194 320 194 C288 194 278 188 276 180 Z" fill="#5B6B76"/>
+  <ellipse cx="320" cy="164" rx="32" ry="9" fill="#0C8F7F" opacity=".55"/>
+  <path d="M372 158 C396 154 400 170 384 174" fill="none" stroke="#2A3640" stroke-width="6" stroke-linecap="round"/>
+  <!-- lid -->
+  <ellipse cx="320" cy="136" rx="44" ry="11" fill="#2A3640"/>
+  <ellipse cx="320" cy="132" rx="40" ry="8" fill="#5B6B76"/>
+  <circle cx="320" cy="124" r="7" fill="#2A3640"/>
+  <circle cx="320" cy="122" r="3.5" fill="#0C8F7F"/>
+  <!-- steam -->
+  <path d="M300 118 C296 106 304 98 300 86" fill="none" stroke="rgba(12,143,127,.45)" stroke-width="4" stroke-linecap="round"/>
+  <path d="M320 114 C316 102 324 94 320 80" fill="none" stroke="rgba(12,143,127,.45)" stroke-width="4" stroke-linecap="round"/>
+  <path d="M340 118 C336 106 344 98 340 86" fill="none" stroke="rgba(12,143,127,.45)" stroke-width="4" stroke-linecap="round"/>
+  <!-- flames -->
+  <path d="M300 198 C300 186 308 182 312 174 C316 182 320 186 320 198 Z" fill="#F5B301"/>
+  <path d="M320 198 C320 188 326 184 330 178 C336 186 338 190 338 198 Z" fill="#FDE68A"/>
+  <text x="320" y="236" text-anchor="middle" font-family="JetBrains Mono, ui-monospace, monospace" font-size="14" font-weight="500" letter-spacing="2.2" fill="#8A9AA6">cooking...</text>
+</svg>

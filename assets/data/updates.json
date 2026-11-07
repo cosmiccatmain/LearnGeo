@@ -2,6 +2,13 @@
   "_comment": "Append newest entries at the top of `updates`. Each needs a unique `id`. Optional `image` is a path under /assets/. Keep entries public-safe: no Pets/Brainrot, no admin-only or subscription marketing.",
   "updates": [
     {
+      "id": "2026-11-cooking-loader",
+      "title": "Cooking… while you wait",
+      "body": "Loading screens across LearnGeo now simmer with a little pot animation and a “cooking” caption — games, maps, Learn, and more.",
+      "image": "/assets/img/updates/cooking-loader.svg",
+      "date": "2026-11-07"
+    },
+    {
       "id": "2026-11-geo-chess-elo",
       "title": "Geo Chess Elo & leaderboard",
       "body": "Geo Chess and Chess Duel now share a Chess Elo rating (starts at 1000). Finished games update your rating, and the Games leaderboard ranks Elo instead of win counts.",

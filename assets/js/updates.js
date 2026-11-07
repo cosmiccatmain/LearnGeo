@@ -15,9 +15,16 @@
   var I = W.Icons;
 
   /* Newest first. Bump `id` when shipping so returning users see it.
-     Chess Elo, achievement cards, openings/bots, Chess Duel, and Games
-     cosmetics each keep their own What’s New id so PRs can merge in any order. */
+     Cooking loader, Chess Elo, achievement cards, openings/bots, Chess Duel,
+     and Games cosmetics each keep their own What’s New id so PRs can merge in any order. */
   var UPDATES = [
+    {
+      id: '2026-11-cooking-loader',
+      title: 'Cooking… while you wait',
+      body: 'Loading screens across LearnGeo now simmer with a little pot animation and a “cooking” caption — games, maps, Learn, and more.',
+      image: '/assets/img/updates/cooking-loader.svg',
+      date: '2026-11-07'
+    },
     {
       id: '2026-11-geo-chess-elo',
       title: 'Geo Chess Elo & leaderboard',

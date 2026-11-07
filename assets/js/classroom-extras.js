@@ -185,7 +185,11 @@
       return;
     }
     var have = rosters[classId];
-    host.innerHTML = have ? peopleHtml(have) : empty('Loading the class…');
+    host.innerHTML = have
+      ? peopleHtml(have)
+      : (global.CookingLoader
+          ? global.CookingLoader.host({ size: 'sm', note: 'Loading the class…' })
+          : empty('Loading the class…'));
     if (have) wirePeople(host, have);
 
     roster(classId).then(function (r) {
@@ -350,7 +354,11 @@
       return;
     }
     host.innerHTML = head +
-      '<div class="tch-list" data-tch-list><div class="t-sm t-muted">Loading…</div></div>' +
+      '<div class="tch-list" data-tch-list>' +
+        (global.CookingLoader
+          ? global.CookingLoader.html({ size: 'inline' })
+          : '<div class="t-sm t-muted">Loading…</div>') +
+      '</div>' +
       '<div class="row" style="gap:8px;margin-top:10px">' +
         '<input class="input" data-tch-email type="email" placeholder="Another teacher&rsquo;s email" ' +
           'autocapitalize="off" spellcheck="false" style="flex:1;min-width:0">' +
@@ -425,7 +433,11 @@
           'style="flex:1;min-width:0" autocapitalize="off" spellcheck="false">' +
         '<button class="btn btn--sm" data-ac-go>Search</button>' +
       '</div>' +
-      '<div data-ac-list><div class="t-sm t-muted">Loading…</div></div>' +
+      '<div data-ac-list>' +
+        (global.CookingLoader
+          ? global.CookingLoader.html({ size: 'inline' })
+          : '<div class="t-sm t-muted">Loading…</div>') +
+      '</div>' +
       '<div class="t-sm" data-ac-msg style="margin-top:8px"></div>';
     var listEl = W.$('[data-ac-list]', host), msg = W.$('[data-ac-msg]', host), q = W.$('[data-ac-q]', host);
     function tell(t, bad) { msg.textContent = t; msg.style.color = bad ? 'var(--danger)' : 'var(--muted)'; }

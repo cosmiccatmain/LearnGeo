@@ -267,7 +267,8 @@
     if (!host) return;
     opts = opts || {};
     host.classList.toggle('is-loading', !geometry);
-    host.innerHTML = svg(opts);
+    host.innerHTML = svg(opts) +
+      (!geometry && global.CookingLoader ? global.CookingLoader.overlay({ size: 'sm' }) : '');
     if (geometry) return;
     load().then(function () {
       if (!document.contains(host)) return;

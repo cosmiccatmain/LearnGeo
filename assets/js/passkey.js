@@ -186,7 +186,11 @@
       title: 'Passkeys', icon: PASSKEY_ICON,
       body: '<p class="t-muted" style="margin-bottom:14px">A passkey signs you in with your ' +
               'fingerprint, face or screen lock, so there is no password to type.</p>' +
-            '<div id="pk-list" class="pk-list"><div class="pk-empty">Loading…</div></div>' +
+            '<div id="pk-list" class="pk-list">' +
+              (global.CookingLoader
+                ? global.CookingLoader.html({ size: 'inline' })
+                : '<div class="pk-empty">Loading…</div>') +
+            '</div>' +
             '<div id="pk-msg"></div>',
       actions: [
         { label: 'Done', cls: 'btn--ghost', close: true },
