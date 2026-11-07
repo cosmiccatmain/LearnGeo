@@ -1,8 +1,8 @@
 /* ------------------------------------------------------------------
-   LearnGeo — public landing helpers (LEA-65).
+   LearnGeo — public landing helpers (LEA-86).
 
-   Nav section highlighting and a light hero orbit parallax. Does not
-   touch the signed-in app shell. Motion reveals stay in motion.js.
+   Nav section highlighting and soft stage parallax. Does not touch the
+   signed-in app shell. Motion reveals stay in motion.js.
 -------------------------------------------------------------------*/
 (function (global) {
   'use strict';
@@ -14,6 +14,17 @@
   var REDUCE = '(prefers-reduced-motion: reduce)';
   function still() {
     return !!(global.matchMedia && global.matchMedia(REDUCE).matches);
+  }
+
+  /* Sticky nav scrolled state */
+  function navScroll() {
+    var nav = land.querySelector('.nav');
+    if (!nav) return;
+    function tick() {
+      nav.classList.toggle('lg-scrolled', global.scrollY > 8);
+    }
+    global.addEventListener('scroll', tick, { passive: true });
+    tick();
   }
 
   /* Active section link in the sticky nav */
@@ -64,12 +75,12 @@
     pick();
   }
 
-  /* Soft parallax on the decorative orbit ring — atmosphere only */
-  function orbitParallax() {
+  /* Soft parallax on the layered atlas stage */
+  function stageParallax() {
     if (still()) return;
-    var orbit = land.querySelector('.hero__orbit');
+    var stage = land.querySelector('.hero__stage');
     var hero = land.querySelector('.hero--brand');
-    if (!orbit || !hero) return;
+    if (!stage || !hero) return;
 
     var ticking = false;
     function frame() {
@@ -78,8 +89,8 @@
       if (rect.bottom < 0 || rect.top > global.innerHeight) return;
       var mid = (rect.top + rect.bottom) / 2;
       var t = (mid - global.innerHeight / 2) / global.innerHeight;
-      var y = Math.max(-18, Math.min(18, t * -28));
-      orbit.style.transform = 'translate(-50%, calc(-50% + ' + y.toFixed(1) + 'px))';
+      var y = Math.max(-14, Math.min(14, t * -22));
+      stage.style.transform = 'translate3d(0, ' + y.toFixed(1) + 'px, 0)';
     }
     function onScroll() {
       if (!ticking) {
@@ -91,6 +102,7 @@
     frame();
   }
 
+  navScroll();
   sectionNav();
-  orbitParallax();
+  stageParallax();
 })(window);
