@@ -463,7 +463,10 @@
   }
 
   /* ========================== CUSTOMIZATION ========================= */
-  function openCustomization() {
+  /* opts.tab — optional Customization vtab id (e.g. 'games' for What’s New). */
+  function openCustomization(opts) {
+    opts = opts || {};
+    var startTab = opts.tab ? String(opts.tab) : 'profile';
     var body =
       '<div class="cz-layout">' +
         '<div id="cz-panels" class="cz-panels">' +
@@ -483,7 +486,7 @@
       '</div>';
 
     var tabs = '<div class="vtabs" id="cz-tabs">' +
-      vt('profile', I.user, 'Profile', true) + vt('avatars', I.globe, 'Avatar') +
+      vt('profile', I.user, 'Profile') + vt('avatars', I.globe, 'Avatar') +
       vt('decorations', I.sparkle, 'Frames') + vt('effects', I.bolt, 'Effects') +
       vt('nameplates', I.grid, 'Nameplates') + vt('banners', I.layers, 'Banner') +
       vt('themes', I.palette, 'Theme') +
@@ -496,13 +499,18 @@
         wireTabs(root, '#cz-tabs');
         wireShop(root);
         wireProfileFields(root);
+        if (startTab && startTab !== 'profile') {
+          var tabBtn = W.$('.vtab[data-t="' + startTab + '"]', root);
+          if (tabBtn) tabBtn.click();
+        }
         drawPreview(root);
         wireGamesTabPreview(root);
       }
     });
 
-    function vt(id, icon, label, active) {
-      return '<button class="vtab' + (active ? ' is-active' : '') + '" data-t="' + id + '">' + icon + ' ' + label + '</button>';
+    function vt(id, icon, label) {
+      return '<button class="vtab' + (id === startTab ? ' is-active' : '') +
+        '" data-t="' + id + '">' + icon + ' ' + label + '</button>';
     }
   }
 

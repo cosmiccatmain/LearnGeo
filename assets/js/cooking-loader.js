@@ -138,12 +138,16 @@
     previewEl = null;
   }
 
-  /* Full-screen TEST preview for Administrator → Development.
-     Auto-hides after `ms` (default 4s). Click Dismiss / press Escape to close. */
+  /* Full-screen preview (Admin Development + What’s New Try it).
+     Auto-hides after `ms` (default 4s). Click Dismiss / press Escape to close.
+     opts.hint overrides the small caption under the pot. */
   function preview(opts) {
     opts = opts || {};
     hidePreview();
     var ms = opts.ms == null ? 4000 : Math.max(800, Number(opts.ms) || 4000);
+    var hint = opts.hint != null
+      ? String(opts.hint)
+      : 'Admin preview · auto-hides in a few seconds';
     var el = document.createElement('div');
     el.className = 'cook-loader-preview';
     el.setAttribute('role', 'dialog');
@@ -157,7 +161,9 @@
           dots: opts.dots,
           label: opts.label || 'Cooking loader preview'
         }) +
-        '<p class="cook-loader-preview__hint">Admin preview · auto-hides in a few seconds</p>' +
+        (hint
+          ? '<p class="cook-loader-preview__hint">' + hint + '</p>'
+          : '') +
         '<button type="button" class="btn btn--sm cook-loader-preview__dismiss" data-cook-dismiss>' +
           'Dismiss</button>' +
       '</div>';
