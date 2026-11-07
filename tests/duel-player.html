@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Geo Duel test player</title>
+</head>
+<body>
+  <div id="stage"></div>
+  <script src="/assets/js/cooking-loader.js"></script>
+  <script>
+    (function () {
+      var params = new URLSearchParams(location.search);
+      var device = params.get('d') || 'deviceduel0001';
+      var tag = params.get('t') || 'DuelTest';
+      window.confirm = function () { return true; };
+      window.WW = {
+        Icons: { play: '', check: '', info: '', gamepad: '', trophy: '' },
+        escapeHtml: function (s) {
+          return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+          });
+        },
+        state: {
+          deviceId: device,
+          gamertag: tag,
+          games: {},
+          duelSeen: {},
+          profile: {}
+        },
+        toast: function () {},
+        $: function (sel, root) { return (root || document).querySelector(sel); },
+        $$: function (sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); },
+        shuffle: function (a) { return a; },
+        save: function () {},
+        saveNow: function () {}
+      };
+      var countries = [
+        ['France', 'Paris'], ['Japan', 'Tokyo'], ['Brazil', 'Brasilia'], ['Canada', 'Ottawa'],
+        ['Egypt', 'Cairo'], ['Kenya', 'Nairobi'], ['Peru', 'Lima'], ['Spain', 'Madrid']
+      ].map(function (p) { return { name: p[0], capital: p[1], flag: '' }; });
+      window.StudyFilters = { pool: function () { return countries.slice(); } };
+      window.Quiz = {
+        pool: function () { return countries.slice(); },
+        flagImg: function () { return ''; },
+        make: function (type, c) {
+          return {
+            type: 'capital',
+            prompt: 'What is the capital of ' + c.name + '?',
+            subject: c.name,
+            sub: 'Capital',
+            choices: [
+              { text: c.capital, correct: true },
+              { text: 'Decoy A', correct: false },
+              { text: 'Decoy B', correct: false },
+              { text: 'Decoy C', correct: false }
+            ]
+          };
+        }
+      };
+      window.GameBoards = {
+        deviceId: function () { return window.WW.state.deviceId; },
+        ensureTag: function (cb) { cb(window.WW.state.gamertag); },
+        touch: function () {}
+      };
+      window.GameKit = { award: function () {} };
+      var trapped = false;
+      function rawRpc(name, args) {
+        return fetch('/mock/rpc', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ name: name, args: args })
+        }).then(function (r) { return r.json(); });
+      }
+      window.Cloud = {
+        sb: {
+          rpc: function (name, args) {
+            var p = rawRpc(name, args);
+            if (params.get('stale') !== '1' || name !== 'pvp_match_state' || trapped) return p;
+            return p.then(function (res) {
+              var data = res && res.data;
+              if (!trapped && data && data.ok && data.status === 'active' && data.current_round === 0) {
+                trapped = true;
+                return new Promise(function (resolve) {
+                  setTimeout(function () {
+                    window.__staleDelivered = true;
+                    resolve(res);
+                  }, 20000);
+                });
+              }
+              return res;
+            });
+          }
+        }
+      };
+      window.__boot = async function () {
+        await window.Cloud.sb.rpc('claim_gamertag', {
+          p_device: window.WW.state.deviceId,
+          p_tag: window.WW.state.gamertag
+        });
+        var rec = (window.WW.state.games && window.WW.state.games.duel) || {};
+        var allowed = ['flags', 'capitals', 'mix'];
+        var kind = allowed.indexOf(rec.kind) >= 0 ? rec.kind : 'flags';
+        var stage = document.getElementById('stage');
+        window.__session = window.GeoDuel.mount(stage, { kind: kind, autoResume: true, cfg: {} });
+      };
+    })();
+  </script>
+  <script src="/assets/js/game-duel.js"></script>
+</body>
+</html>

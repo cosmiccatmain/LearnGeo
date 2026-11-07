@@ -2,9 +2,12 @@
    LearnGeo — Chess Duel (PvP)
 
    Invite a friend by gamertag. They accept from the inbox, then you
-   play a live turn-based chess match. Host is White. Moves are
+   play a live turn-based chess match. Host is White.    Moves are
    validated with chess.js on the client; the server stores FEN +
    enforces turns. Server: supabase/deployed/0018_chess_duel.sql.
+
+   The board is not rebuilt on an unchanged poll, so a selected square
+   and an open move history survive. Out-of-order match polls are dropped.
 -------------------------------------------------------------------*/
 import { Chess } from '../vendor/chess.js/chess.js';
 
@@ -17,6 +20,16 @@ import { Chess } from '../vendor/chess.js/chess.js';
   var seenInvite = {};
   var pollTimer = null;
   var lastInbox = { incoming: [], outgoing: [], active: null };
+
+  function inboxSignature(box) {
+    box = box || lastInbox;
+    function ids(list) {
+      return (list || []).map(function (inv) { return inv && inv.id ? String(inv.id) : ''; }).join(',');
+    }
+    var act = '';
+    if (box.active && box.active.id) act = box.active.id + ':' + (box.active.status || '');
+    return ids(box.incoming) + '|' + ids(box.outgoing) + '|' + act;
+  }
 
   function sb() { return global.Cloud && global.Cloud.sb; }
   function deviceId() {
@@ -168,6 +181,9 @@ import { Chess } from '../vendor/chess.js/chess.js';
     }
     W.$$('[data-cduel-accept]', el).forEach(function (b) {
       b.addEventListener('click', function () {
+        if (b.disabled || b.getAttribute('data-busy') === '1') return;
+        b.disabled = true;
+        b.setAttribute('data-busy', '1');
         ensureTag(function () {
           function acceptOnce() {
             return rpc('chess_duel_respond_invite', {
@@ -181,6 +197,8 @@ import { Chess } from '../vendor/chess.js/chess.js';
             return res;
           }).then(function (res) {
             if (!res || !res.ok) {
+              b.disabled = false;
+              b.removeAttribute('data-busy');
               W.toast('Could not accept', errMsg(res && res.error), I.info, 3600);
               return refresh();
             }
@@ -218,6 +236,9 @@ import { Chess } from '../vendor/chess.js/chess.js';
     if (myTag() && tag.toLowerCase() === myTag().toLowerCase()) {
       return Promise.resolve({ ok: false, error: 'self' });
     }
+    if (lastInbox.active && lastInbox.active.id) {
+      return Promise.resolve({ ok: false, error: 'busy' });
+    }
     return rpc('pvp_lookup_tag', { p_tag: tag }).then(function (rows) {
       if (rows && rows.ok === false) return rows;
       var row = Array.isArray(rows) ? rows[0] : rows;
@@ -241,9 +262,24 @@ import { Chess } from '../vendor/chess.js/chess.js';
     var promotion = null;
     var lastMove = null;
     var submitting = false;
+    var paintedBoard = '';
+    var lastPaintedFen = '';
+    var inboxSigSeen = '';
+    var refreshGen = 0;
 
     host.innerHTML = '<div class="duel cduel" tabindex="-1"><div class="duel__body" data-cduel-body></div></div>';
     var body = W.$('[data-cduel-body]', host);
+
+    function renderInbox() {
+      var inboxEl = body && W.$('[data-cduel-inbox]', body);
+      if (!inboxEl) return;
+      var sig = inboxSignature(lastInbox);
+      if (sig === inboxSigSeen && inboxEl.getAttribute('data-inbox-sig') === sig) return;
+      inboxSigSeen = sig;
+      inboxEl.setAttribute('data-inbox-sig', sig);
+      inboxEl.innerHTML = inboxHtml(lastInbox);
+      wireInbox(body, function (id) { enterMatch(id); });
+    }
 
     function onInboxEvent(ev) {
       if (destroyed || matchId || entering) return;
@@ -254,24 +290,69 @@ import { Chess } from '../vendor/chess.js/chess.js';
         enterMatch(box.active.id);
         return;
       }
-      var inboxEl = body && W.$('[data-cduel-inbox]', body);
-      if (!inboxEl) return;
-      inboxEl.innerHTML = inboxHtml(box || lastInbox);
-      wireInbox(body, function (id) { enterMatch(id); });
+      renderInbox();
     }
     global.addEventListener('learngeo:chess-duel-inbox', onInboxEvent);
 
+    function boardSig(s) {
+      var offer = (s.last_move && s.last_move.draw_offer) || '';
+      var lm = s.last_move ? ((s.last_move.from || '') + (s.last_move.to || '')) : '';
+      return [
+        s.status || '',
+        s.fen || '',
+        s.turn || '',
+        s.my_turn ? 1 : 0,
+        offer,
+        lm,
+        s.opening_name || ''
+      ].join('|');
+    }
+
     function paint() {
       if (destroyed || !body) return;
-      if (!matchId) return paintLobby();
+      if (!matchId) { paintedBoard = ''; return paintLobby(); }
       if (!state) {
+        if (paintedBoard === 'loading') return;
+        paintedBoard = 'loading';
         body.innerHTML = global.CookingLoader
           ? global.CookingLoader.host({ tall: true, note: 'Loading match…' })
           : '<div class="duel-wait"><div class="duel-wait__pulse"></div><p>Loading match…</p></div>';
         return;
       }
-      if (state.status === 'finished') return paintFinished();
-      return paintBoard();
+      if (state.status === 'finished') {
+        var fin = 'fin:' + (state.end_reason || '') + ':' + (state.winner_tag || '') + ':' + (state.draw ? 1 : 0);
+        if (paintedBoard === fin && W.$('.duel-end', body)) return;
+        paintedBoard = fin;
+        return paintFinished();
+      }
+      if (state.status !== 'active') return paintClosed();
+      var sig = boardSig(state);
+      if (sig === paintedBoard && W.$('.cduel-board', body)) return;
+      if (state.fen && state.fen !== lastPaintedFen) {
+        selected = null;
+        promotion = null;
+      }
+      lastPaintedFen = state.fen || '';
+      paintedBoard = sig;
+      paintBoard();
+    }
+
+    function paintClosed() {
+      if (paintedBoard === 'closed' && W.$('[data-cduel-closed]', body)) return;
+      paintedBoard = 'closed';
+      stopPoll();
+      if (lastInbox.active && lastInbox.active.id === matchId) lastInbox.active = null;
+      body.innerHTML =
+        '<div class="duel-end" data-cduel-closed>' +
+          '<div class="duel-end__badge">Match closed</div>' +
+          '<p>This chess duel was closed. You can challenge them again from the lobby.</p>' +
+          '<div class="duel-end__actions">' +
+            '<button class="btn btn--accent" type="button" data-cduel-again>Back to lobby</button>' +
+          '</div>' +
+        '</div>';
+      W.$('[data-cduel-again]', body).addEventListener('click', function () {
+        matchId = null; state = null; entering = false; paintedBoard = ''; stopPoll(); paint();
+      });
     }
 
     function paintLobby() {
@@ -314,13 +395,7 @@ import { Chess } from '../vendor/chess.js/chess.js';
                   }
                   W.toast('Invite sent', 'Waiting for ' + (retry.to_tag || tag) + '…', I.check, 3600);
                   input.value = '';
-                  fetchInbox().then(function () {
-                    var box = W.$('[data-cduel-inbox]', body);
-                    if (box) {
-                      box.innerHTML = inboxHtml(lastInbox);
-                      wireInbox(body, function (id) { enterMatch(id); });
-                    }
-                  });
+                  fetchInbox().then(function () { renderInbox(); });
                 });
                 return;
               }
@@ -329,16 +404,13 @@ import { Chess } from '../vendor/chess.js/chess.js';
             }
             W.toast('Invite sent', 'Waiting for ' + (res.to_tag || tag) + '…', I.check, 3600);
             input.value = '';
-            fetchInbox().then(function () {
-              var box = W.$('[data-cduel-inbox]', body);
-              if (box) {
-                box.innerHTML = inboxHtml(lastInbox);
-                wireInbox(body, function (id) { enterMatch(id); });
-              }
-            });
+            fetchInbox().then(function () { renderInbox(); });
           });
         });
       });
+      inboxSigSeen = inboxSignature(lastInbox);
+      var seeded = W.$('[data-cduel-inbox]', body);
+      if (seeded) seeded.setAttribute('data-inbox-sig', inboxSigSeen);
       wireInbox(body, function (id) { enterMatch(id); });
       fetchInbox().then(function () {
         if (destroyed || matchId) return;
@@ -347,8 +419,7 @@ import { Chess } from '../vendor/chess.js/chess.js';
           enterMatch(lastInbox.active.id);
           return;
         }
-        var box = W.$('[data-cduel-inbox]', body);
-        if (box) { box.innerHTML = inboxHtml(lastInbox); wireInbox(body, function (id) { enterMatch(id); }); }
+        renderInbox();
       });
     }
 
@@ -366,6 +437,9 @@ import { Chess } from '../vendor/chess.js/chess.js';
     }
 
     function paintBoard() {
+      var keepHistory = false;
+      var prevDetails = W.$('.chess-history', body);
+      if (prevDetails && prevDetails.open) keepHistory = true;
       syncChess();
       var iAmWhite = state.my_color === 'w';
       var flipped = !iAmWhite;
@@ -407,6 +481,10 @@ import { Chess } from '../vendor/chess.js/chess.js';
         '</div>';
 
       renderSquares(flipped);
+      if (keepHistory) {
+        var hist = W.$('.chess-history', body);
+        if (hist) hist.open = true;
+      }
       var ff = W.$('[data-cduel-forfeit]', body);
       if (ff) ff.addEventListener('click', forfeit);
       var od = W.$('[data-cduel-draw]', body);
@@ -652,6 +730,9 @@ import { Chess } from '../vendor/chess.js/chess.js';
       selected = null;
       promotion = null;
       submitting = false;
+      paintedBoard = '';
+      lastPaintedFen = '';
+      refreshGen = 0;
       paint();
       refresh();
       startPoll();
@@ -659,7 +740,10 @@ import { Chess } from '../vendor/chess.js/chess.js';
 
     function refresh() {
       if (destroyed || !matchId) return Promise.resolve();
-      return rpc('chess_duel_match_state', { p_device: deviceId(), p_match: matchId }).then(function (res) {
+      var gen = ++refreshGen;
+      var id = matchId;
+      return rpc('chess_duel_match_state', { p_device: deviceId(), p_match: id }).then(function (res) {
+        if (destroyed || gen !== refreshGen || matchId !== id) return;
         if (!res || !res.ok) {
           if (res && (res.error === 'not_found' || res.error === 'forbidden')) {
             matchId = null;

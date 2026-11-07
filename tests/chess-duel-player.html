@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Chess Duel test player</title>
+</head>
+<body>
+  <div id="stage"></div>
+  <script>
+    (function () {
+      var params = new URLSearchParams(location.search);
+      var device = params.get('d') || 'devicechess0001';
+      var tag = params.get('t') || 'ChessTest';
+      window.confirm = function () { return true; };
+      window.WW = {
+        Icons: { play: '', check: '', info: '', gamepad: '', trophy: '' },
+        escapeHtml: function (s) {
+          return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+          });
+        },
+        state: {
+          deviceId: device,
+          gamertag: tag,
+          games: { chess: { elo: 1000 }, chessduel: {} },
+          chessDuelSeen: {},
+          profile: {}
+        },
+        toast: function () {},
+        $: function (sel, root) { return (root || document).querySelector(sel); },
+        $$: function (sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); },
+        shuffle: function (a) { return a; },
+        save: function () {}
+      };
+      window.GameBoards = {
+        deviceId: function () { return window.WW.state.deviceId; },
+        ensureTag: function (cb) { cb(window.WW.state.gamertag); },
+        touch: function () {}
+      };
+      window.ChessElo = { current: function () { return 1000; }, afterDuel: function () { return Promise.resolve(null); } };
+      function rawRpc(name, args) {
+        return fetch('/mock/rpc', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ name: name, args: args })
+        }).then(function (r) { return r.json(); });
+      }
+      window.Cloud = { sb: { rpc: rawRpc } };
+      window.__boot = async function () {
+        await window.Cloud.sb.rpc('claim_gamertag', {
+          p_device: window.WW.state.deviceId,
+          p_tag: window.WW.state.gamertag
+        });
+        var stage = document.getElementById('stage');
+        window.__session = window.ChessDuel.mount(stage, { autoResume: true });
+      };
+    })();
+  </script>
+  <script type="module" src="/assets/js/game-chess-duel.js"></script>
+</body>
+</html>
