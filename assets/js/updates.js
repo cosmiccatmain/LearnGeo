@@ -20,9 +20,16 @@
      own What’s New id. */
   var UPDATES = [
     {
+      id: '2026-11-friend-inbox-menu',
+      title: 'Friend inbox in your menu',
+      body: 'Open your profile menu (next to Customization) for Friend inbox — card gifts, wallet shares, and Geo Chess challenges in one place.',
+      image: '/assets/img/updates/achievement-cards.svg',
+      date: '2026-11-07'
+    },
+    {
       id: '2026-11-friend-inbox',
       title: 'Friend inbox',
-      body: 'Achievements now has one Friend inbox for card gifts, wallet shares, and Geo Chess challenges — accept or decline without hunting through separate screens.',
+      body: 'One Friend inbox for card gifts, wallet shares, and Geo Chess challenges — accept or decline without hunting through separate screens.',
       image: '/assets/img/updates/achievement-cards.svg',
       date: '2026-11-07'
     },

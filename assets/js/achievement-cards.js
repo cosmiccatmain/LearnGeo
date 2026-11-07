@@ -7,7 +7,9 @@
    share whole wallet by gamertag.
    LEA-71: award-badge card backs with owner gamertag (wallet kept).
    LEA-80: Friend inbox unifies card gifts, wallet shares, and Geo Chess
-   challenges in one Achievements side panel (no new SQL).
+   challenges (no new SQL).
+   LEA-84: Friend inbox entry moves to the profile menu beside
+   Customization (modal); Achievements keeps send/share only.
    Server: supabase/deployed/0023_achievement_cards.sql
            + 0025_achievement_wallet_share.sql
            + chess invites via 0018_chess_duel.sql RPCs
@@ -17,6 +19,8 @@
   var W = global.WW, I = W.Icons;
   var esc = W.escapeHtml;
   var hostEl = null;
+  var inboxModalRoot = null;
+  var inboxModalPoll = null;
   var index = 0;
   var flipped = false;
   var lastInbox = {
@@ -949,7 +953,7 @@
             '</div>' +
             '<div class="panel" id="achv-wallet-panel">' +
               '<div class="panel__head"><h3>Share wallet</h3></div>' +
-              '<p class="t-sm t-muted" style="margin:0 0 12px">Send a snapshot of your unlocked cards. Friends can flip through them — it doesn’t unlock achievements or diamonds for them.</p>' +
+              '<p class="t-sm t-muted" style="margin:0 0 12px">Send a snapshot of your unlocked cards. Friends can flip through them — it doesn’t unlock achievements or diamonds for them. Open Friend inbox from your profile menu to accept shares.</p>' +
               '<div class="achv-send__row">' +
                 '<div class="field"><label class="field__label" for="achv-wallet-tag">Friend’s gamertag</label>' +
                   '<input class="input" id="achv-wallet-tag" maxlength="16" autocomplete="off" autocapitalize="off" ' +
@@ -963,11 +967,6 @@
                 ? '<p class="achv-empty" style="margin-top:10px">Unlock at least one achievement to share your wallet.</p>'
                 : '<p class="achv-empty" style="margin-top:10px">Sharing ' + have + ' unlocked card' +
                     (have === 1 ? '' : 's') + '.</p>') +
-            '</div>' +
-            '<div class="panel" id="achv-friend-inbox">' +
-              '<div class="panel__head"><h3>Friend inbox</h3></div>' +
-              '<p class="t-sm t-muted" style="margin:0 0 12px">Card gifts, wallet shares, and Geo Chess challenges in one place.</p>' +
-              '<div data-achv-inbox data-friend-inbox>' + inboxHtml() + '</div>' +
             '</div>' +
           '</div>' +
         '</div>' +
@@ -1259,12 +1258,12 @@
 
     var walletBtn = W.$('[data-wallet-send]', hostEl);
     if (walletBtn) walletBtn.addEventListener('click', onWalletSend);
-
-    wireInbox();
   }
 
-  function wireInbox() {
-    var box = W.$('[data-achv-inbox]', hostEl);
+  function wireInbox(root) {
+    root = root || inboxModalRoot;
+    if (!root) return;
+    var box = W.$('[data-friend-inbox]', root) || W.$('[data-achv-inbox]', root);
     if (!box) return;
 
     W.$$('[data-accept]', box).forEach(function (b) {
@@ -1380,6 +1379,7 @@
   }
 
   function openChessFromInbox(matchId) {
+    if (global.UI && global.UI.closeModals) global.UI.closeModals();
     if (global.Games && global.Games.openChessMatch) {
       global.Games.openChessMatch(matchId || null);
       return;
@@ -1578,14 +1578,19 @@
     paintDeck();
   }
 
+  function paintInboxModal() {
+    if (!inboxModalRoot || !inboxModalRoot.isConnected) return;
+    var box = W.$('[data-friend-inbox]', inboxModalRoot);
+    if (!box) return;
+    box.innerHTML = inboxHtml();
+    wireInbox(inboxModalRoot);
+  }
+
   function refreshInbox(fullPaint) {
     return fetchInbox().then(function () {
-      if (fullPaint || !hostEl) { paint({ skipUnfold: true }); return; }
-      var box = W.$('[data-achv-inbox]', hostEl);
-      if (box) {
-        box.innerHTML = inboxHtml();
-        wireInbox();
-      }
+      paintInboxModal();
+      if (!hostEl || !hostEl.isConnected) return;
+      if (fullPaint) { paint({ skipUnfold: true }); return; }
       var trayBtns = W.$$('[data-tray] button', hostEl);
       trayBtns.forEach(function (b) {
         if (b.dataset.v === 'gifts') {
@@ -1613,17 +1618,61 @@
     if (pollTimer) { global.clearInterval(pollTimer); pollTimer = null; }
   }
 
-  /* ============================ public ============================ */
-  function onChessInboxEvent(ev) {
-    if (!hostEl || !hostEl.isConnected) return;
-    applyChessBox(ev && ev.detail);
-    var box = W.$('[data-achv-inbox]', hostEl);
-    if (box) {
-      box.innerHTML = inboxHtml();
-      wireInbox();
-    }
+  function stopInboxModalPoll() {
+    if (inboxModalPoll) { global.clearInterval(inboxModalPoll); inboxModalPoll = null; }
   }
 
+  function onChessInboxEvent(ev) {
+    applyChessBox(ev && ev.detail);
+    paintInboxModal();
+  }
+
+  function openFriendInbox() {
+    if (!global.UI || !global.UI.modal) return;
+    if (inboxModalRoot && inboxModalRoot.isConnected) {
+      paintInboxModal();
+      return;
+    }
+    stopInboxModalPoll();
+    global.UI.modal({
+      title: 'Friend inbox',
+      icon: I.inbox,
+      wide: true,
+      body:
+        '<p class="t-sm t-muted" style="margin:0 0 14px">Card gifts, wallet shares, and Geo Chess challenges in one place.</p>' +
+        '<div class="panel" style="padding:12px">' +
+          '<div data-friend-inbox data-achv-inbox>' + inboxHtml() + '</div>' +
+        '</div>',
+      actions: [{ label: 'Done', cls: 'btn--ghost', close: true }],
+      onMount: function (root) {
+        inboxModalRoot = root;
+        if (!chessInboxListener) {
+          chessInboxListener = onChessInboxEvent;
+          global.addEventListener('learngeo:chess-duel-inbox', chessInboxListener);
+        }
+        wireInbox(root);
+        fetchInbox().then(paintInboxModal);
+        stopInboxModalPoll();
+        inboxModalPoll = global.setInterval(function () {
+          if (!inboxModalRoot || !inboxModalRoot.isConnected) {
+            stopInboxModalPoll();
+            return;
+          }
+          refreshInbox(false);
+        }, 8000);
+      },
+      onClose: function () {
+        stopInboxModalPoll();
+        inboxModalRoot = null;
+        if ((!hostEl || !hostEl.isConnected) && chessInboxListener) {
+          global.removeEventListener('learngeo:chess-duel-inbox', chessInboxListener);
+          chessInboxListener = null;
+        }
+      }
+    });
+  }
+
+  /* ============================ public ============================ */
   function start() {
     hostEl = document.getElementById('view-achievements');
     if (!hostEl) return;
@@ -1635,10 +1684,6 @@
     if (unfoldTimer) { global.clearTimeout(unfoldTimer); unfoldTimer = null; }
     if (settleTimer) { global.clearTimeout(settleTimer); settleTimer = null; }
     if (flipTimer) { global.clearTimeout(flipTimer); flipTimer = null; }
-    if (!chessInboxListener) {
-      chessInboxListener = onChessInboxEvent;
-      global.addEventListener('learngeo:chess-duel-inbox', chessInboxListener);
-    }
     /* Fast first paint without anim, then one unfold after inbox lands
        so a second paint does not tear down the fan-out mid-flight. */
     paint({ skipUnfold: true });
@@ -1651,7 +1696,7 @@
 
   function stop() {
     stopPolling();
-    if (chessInboxListener) {
+    if ((!inboxModalRoot || !inboxModalRoot.isConnected) && chessInboxListener) {
       global.removeEventListener('learngeo:chess-duel-inbox', chessInboxListener);
       chessInboxListener = null;
     }
@@ -1671,6 +1716,7 @@
     start: start,
     stop: stop,
     pendingCount: pendingCount,
+    openFriendInbox: openFriendInbox,
     refresh: function () { return refreshInbox(true); }
   };
 })(window);
