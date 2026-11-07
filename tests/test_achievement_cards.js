@@ -1,4 +1,4 @@
-/* Node smoke checks for LEA-64 Achievement cards (no browser). */
+/* Node smoke checks for LEA-64 / LEA-67 Achievement wallet (no browser). */
 var assert = require('assert');
 var fs = require('fs');
 var path = require('path');
@@ -13,6 +13,7 @@ var vercel = fs.readFileSync(path.join(root, 'vercel.json'), 'utf8');
 var updates = fs.readFileSync(path.join(root, 'assets/data/updates.json'), 'utf8');
 var updatesJs = fs.readFileSync(path.join(root, 'assets/js/updates.js'), 'utf8');
 var sql = fs.readFileSync(path.join(root, 'supabase/deployed/0023_achievement_cards.sql'), 'utf8');
+var sqlWallet = fs.readFileSync(path.join(root, 'supabase/deployed/0025_achievement_wallet_share.sql'), 'utf8');
 var readme = fs.readFileSync(path.join(root, 'supabase/deployed/README.md'), 'utf8');
 
 assert(/view: 'achievements'/.test(ui) || /view:\s*'achievements'/.test(ui),
@@ -37,9 +38,20 @@ assert(/achievement-cards\.css/.test(html), 'index loads achievement-cards.css')
 assert(/global\.AchievementCards/.test(cards), 'module exports AchievementCards');
 assert(/ach_card_send/.test(cards) && /ach_card_list_inbox/.test(cards),
   'client calls ach_card RPCs');
+assert(/ach_wallet_share/.test(cards) && /ach_wallet_list/.test(cards),
+  'client calls ach_wallet RPCs');
 assert(/pvp_lookup_tag/.test(cards), 'send flow reuses gamertag lookup');
+assert(/role="button"/.test(cards), 'cards use div role=button (Chromium 3D fix)');
+assert(!/<button[^>]*class="achv-card/.test(cards),
+  'achievement cards are not native <button> elements');
 assert(/is-flipped|rotateY/.test(cards + css), 'flip animation present');
+assert(/achv-float|is-floating/.test(css), 'float motion present');
+assert(/is-unfolding/.test(css) && /runUnfold|is-unfolding/.test(cards),
+  'wallet unfold animation present');
+assert(/Share wallet|data-wallet-send|ach_wallet_share/.test(cards),
+  'share wallet UI wired');
 assert(/achv-stack|achv-card/.test(css), 'card stack styles present');
+assert(/translateZ\(1px\)/.test(css), 'faces use translateZ for stacking');
 assert(!/Brainrot|Pets|screen.?mirror|Stripe\.checkout|vercel --prod/i.test(cards),
   'no Pets/Brainrot/mirroring/live Stripe in achievement-cards.js');
 assert(!/Syne|Plus Jakarta/i.test(css), 'keeps original LearnGeo fonts');
@@ -53,12 +65,25 @@ assert(/does NOT|does not unlock|not unlock/i.test(sql) ||
   /Accepting adds the card/.test(sql) || /no money/i.test(sql),
   'SQL comments keep share school-safe');
 
+assert(/achievement_wallet_shares/.test(sqlWallet), 'SQL creates achievement_wallet_shares');
+assert(/ach_wallet_share/.test(sqlWallet) && /ach_wallet_respond/.test(sqlWallet),
+  'SQL has wallet share/respond RPCs');
+assert(/grant execute[\s\S]*authenticated/.test(sqlWallet),
+  'wallet RPCs granted to authenticated');
+assert(/revoke[\s\S]*anon/.test(sqlWallet) || /from public, anon/.test(sqlWallet),
+  'anon cannot execute wallet RPCs');
+assert(/does NOT|does not unlock|not unlock/i.test(sqlWallet),
+  'wallet SQL keeps share school-safe');
+
 assert(/0023_achievement_cards/.test(readme), 'deployed README documents 0023');
+assert(/0025_achievement_wallet_share/.test(readme), 'deployed README documents 0025');
 assert(/2026-11-achievement-cards/.test(updates), 'updates.json What’s New entry');
+assert(/2026-11-achievement-wallet/.test(updates), 'updates.json wallet entry');
 assert(/2026-11-achievement-cards/.test(updatesJs), 'updates.js seeded entry');
+assert(/2026-11-achievement-wallet/.test(updatesJs), 'updates.js wallet seeded entry');
 assert(!/Pets|Brainrot|screen.?mirror/i.test(
-  updates.match(/2026-11-achievement-cards[\s\S]*?\},/)[0]),
-  'What’s New entry stays public-safe');
+  updates.match(/2026-11-achievement-wallet[\s\S]*?\},/)[0]),
+  'What’s New wallet entry stays public-safe');
 
 assert(fs.existsSync(path.join(root, 'assets/img/updates/achievement-cards.svg')),
   'What’s New art exists');
