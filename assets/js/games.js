@@ -315,9 +315,9 @@
       }
     },
     {
-      id: 'orbit', title: 'Globe Defender', art: 'orbit', premium: true,
+      id: 'orbit', title: 'Globe Defender', art: 'orbit',
       blurb: 'Circle the globe and shoot down the meteors before they land. Between waves, shoot the satellite with the right flag or capital for a power-up.',
-      meta: 'Premium · Steer and shoot · supply drops',
+      meta: 'Steer and shoot · supply drops',
       best: function (r) { return r.best ? 'Best ' + r.best + ' pts' : ''; },
       intro: 'Your ship orbits the globe and fires outward on its own; you steer it round to meet the meteors. ' +
         'Each one that gets through costs a shield and lights up the country it hit. ' +
@@ -407,9 +407,9 @@
       }
     },
     {
-      id: 'golf', title: 'Geo Golf', art: 'golf', premium: true,
+      id: 'golf', title: 'Geo Golf', art: 'golf',
       blurb: 'Top-down golf on the world map. Each hole names a country or a capital, and there’s no pin to aim at: putt to where it is.',
-      meta: 'Premium · Drag and putt · on the map',
+      meta: 'Drag and putt · on the map',
       best: function (r) {
         var b = r.best || {}, n = b['9'] !== undefined ? '9' : Object.keys(b)[0];
         return n ? 'Best ' + parToText(b[n]) + ' · ' + n + ' holes' : '';

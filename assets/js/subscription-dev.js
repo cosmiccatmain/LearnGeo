@@ -34,10 +34,10 @@
       featured: false,
       features: [
         { t: 'Learn, practice test, and class quiz', on: true },
-        { t: 'Popular Games (Dash, Chess, Duel, Snake, and more)', on: true },
+        { t: 'Popular Games (Dash, Chess, Golf, Defender, and more)', on: true },
         { t: 'Join a classroom with a class code', on: true },
         { t: 'Basic cosmetics locker', on: true },
-        { t: 'Premium Games (Golf, Defender, Invaders, and more)', on: false },
+        { t: 'Premium Games (Invaders, Breakout, Typer, and more)', on: false },
         { t: 'Premium profile effects', on: false }
       ]
     },
@@ -51,7 +51,7 @@
       featured: true,
       features: [
         { t: 'Everything in Free', on: true },
-        { t: 'Geo Golf, Globe Defender, Invaders, and more arcade titles', on: true },
+        { t: 'Invaders, Breakout, Typer, Crossing, and more arcade titles', on: true },
         { t: 'Premium profile effects (Embers, Wings, and more)', on: true },
         { t: 'Account-level — not tied to being a teacher', on: true },
         { t: 'School-safe cosmetics and games', on: true },
