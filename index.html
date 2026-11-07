@@ -69,7 +69,7 @@
       <span class="brand__mark" aria-hidden="true"><img src="assets/img/brand/mark.svg" alt=""></span>
       <span class="brand__text">LearnGeo</span>
     </a>
-    <div class="nav__links">
+    <div class="nav__links" role="navigation" aria-label="Sections">
       <a href="#try">Try it</a>
       <a href="#modes">Modes</a>
       <a href="#coverage">What's in it</a>
@@ -77,11 +77,12 @@
       <a href="#rewards">Rewards</a>
       <a href="teachers.html">For teachers</a>
     </div>
-    <div class="nav__spacer"></div>
-    <button class="btn btn--ghost btn--sm hidden" id="nav-continue">Continue where you left off</button>
-    <button class="btn btn--ghost btn--sm" id="nav-signin">Sign in</button>
-    <button class="btn btn--accent btn--sm" id="nav-signup">Sign up free</button>
-    <button class="btn btn--primary btn--sm" data-launch="portal">Open the app</button>
+    <div class="nav__actions">
+      <button class="btn btn--ghost btn--sm hidden" id="nav-continue">Continue where you left off</button>
+      <button class="btn btn--quiet btn--sm" id="nav-signin">Sign in</button>
+      <button class="btn btn--accent btn--sm" id="nav-signup">Sign up free</button>
+      <button class="btn btn--primary btn--sm" data-launch="portal">Open the app</button>
+    </div>
     <!-- the same links again, for the widths where the row above does not fit -->
     <button class="nav__burger" id="nav-menu-btn" aria-expanded="false" aria-controls="nav-menu" aria-label="Sections">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
@@ -98,10 +99,6 @@
 
   <header class="hero hero--brand" id="top">
     <div class="hero__wash" aria-hidden="true"></div>
-    <div class="hero__grid" aria-hidden="true"></div>
-    <div class="hero__orbit" aria-hidden="true"></div>
-    <div class="hero__globe" aria-hidden="true"><canvas id="hero-globe"></canvas></div>
-    <div class="hero__scrim" aria-hidden="true"></div>
     <div class="hero__copy">
       <h1>
         <span class="sr-only">LearnGeo, for school, for party tricks, for pub quizzes and for showing off.</span>
@@ -109,14 +106,24 @@
         <span class="hero__for" aria-hidden="true"><span class="cycle" data-cycle><span class="is-on"><span class="hero__for-word">for</span> school.</span><span><span class="hero__for-word">for</span> my party trick.</span><span><span class="hero__for-word">for</span> a pub quiz.</span><span><span class="hero__for-word">for</span> road trips.</span><span><span class="hero__for-word">for</span> bragging rights.</span><span><span class="hero__for-word">for</span> homework.</span><span><span class="hero__for-word">for</span> settling bets.</span><span><span class="hero__for-word">for</span> trivia night.</span><span><span class="hero__for-word">for</span> a rainy Sunday.</span><span><span class="hero__for-word">for</span> showing off.</span></span></span>
       </h1>
       <p class="hero__sub">
-        Staring at a list of capitals doesn't really work. Here you answer a question and the map
-        shows you where the place is, so the name sticks to an actual spot.
+        Capitals stick when the map shows you the place. Learn every country for class, quizzes, and the next road trip.
       </p>
       <div class="hero__cta">
         <button class="btn btn--accent btn--lg" data-launch="learn">Start learning</button>
         <a class="btn btn--ghost btn--lg" href="#try">Try 3 questions first</a>
       </div>
-      <p class="hero__note">You can start as a guest without signing up. <button class="linkbtn" id="hero-signup" type="button">Make a free account</button> if you want your progress on every device.</p>
+      <p class="hero__note">Guest mode works instantly. <button class="linkbtn" id="hero-signup" type="button">Make a free account</button> if you want progress on every device.</p>
+    </div>
+    <div class="hero__stage" aria-hidden="true">
+      <div class="hero__slab hero__slab--sand"></div>
+      <div class="hero__slab hero__slab--mist"></div>
+      <div class="hero__slab hero__slab--atlas">
+        <div class="hero__orbit"></div>
+        <div class="hero__globe"><canvas id="hero-globe"></canvas></div>
+        <div class="hero__pin" title=""></div>
+        <div class="hero__chip hero__chip--streak">Day 12 streak</div>
+        <div class="hero__chip hero__chip--route">Silk Road · 8 stops</div>
+      </div>
     </div>
   </header>
 
