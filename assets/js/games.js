@@ -19,16 +19,23 @@
   var WALLS = [['solid', 'Solid'], ['wrap', 'Wrap round']];
   var TARGETS = [['countries', 'Countries'], ['capitals', 'Capitals'], ['mix', 'Mix']];
   var HOLES = [['6', '6 holes'], ['9', '9 holes'], ['18', '18 holes']];
-  var LEVELS = [['1', 'Level 1 difficulty'], ['2', 'Level 2 difficulty'], ['3', 'Level 3 difficulty'], ['4', 'Level 4 difficulty'], ['5', 'Level 5 difficulty']];
-  /* Named rungs for the shared DifficultySlider (values stay 1–5). */
+  var LEVELS = [
+    ['1', 'Level 1 difficulty'], ['2', 'Level 2 difficulty'], ['3', 'Level 3 difficulty'],
+    ['4', 'Level 4 difficulty'], ['5', 'Level 5 difficulty'], ['6', 'Level 6 difficulty'],
+    ['7', 'Level 7 difficulty']
+  ];
+  /* Named rungs for the shared DifficultySlider (values 1–7). Levels 1–5 keep
+     the hardened LEA-35 levers; 6–7 add ~3200 and Engine Max. */
   var CHESS_DIFF = [
     { value: 1, name: 'Beginner', blurb: 'Plays random legal moves' },
     { value: 2, name: 'Easy', blurb: 'Fewer random slips; light Stockfish pressure' },
     { value: 3, name: 'Intermediate', blurb: 'A sharp Stockfish opponent' },
     { value: 4, name: 'Advanced', blurb: 'Deep search and high skill' },
-    { value: 5, name: 'Expert', blurb: 'Full-strength Stockfish on your device' }
+    { value: 5, name: 'Expert', blurb: 'Full-strength Stockfish on your device' },
+    { value: 6, name: 'Grandmaster', blurb: 'Near Stockfish’s rated ceiling (~3200)' },
+    { value: 7, name: 'Engine Max', blurb: 'Deepest on-device search this lite engine allows' }
   ];
-  var CHESS_DIFF_HINT = 'Level 1 plays random legal moves. Level 2 mixes occasional random moves with Stockfish. Levels 3–5 use increasingly strong Stockfish opponents. Wins at higher levels score more points.';
+  var CHESS_DIFF_HINT = 'Level 1 plays random legal moves. Level 2 mixes occasional random moves with Stockfish. Levels 3–5 use increasingly strong Stockfish opponents. Grandmaster is near the ~3200 rated ceiling; Engine Max goes deeper still. Wins at higher levels score more points.';
   var RATE_DIFF = [
     { value: 'calm', name: 'Calm', blurb: 'Countries drift down slowly' },
     { value: 'brisk', name: 'Brisk', blurb: 'A steady fall pace' },
@@ -213,13 +220,13 @@
     },
     {
       id: 'chess', title: 'Geo Chess', art: 'chess', premium: true,
-      blurb: 'Build your chess skills, from a forgiving beginner opponent to full-strength Stockfish. Answer a geography question to unlock each move.',
-      meta: 'Premium · Chess · five difficulty levels',
+      blurb: 'Build your chess skills, from a forgiving beginner opponent up to Grandmaster (~3200) and Engine Max. Answer a geography question to unlock each move.',
+      meta: 'Premium · Chess · seven difficulty levels',
       best: function (r) {
         if (r.best) return 'Best ' + r.best + ' pts';
         return r.wins ? r.wins + (r.wins === 1 ? ' win' : ' wins') : '';
       },
-      intro: 'Play White against the computer. Answer a question from your study set before each move. A wrong answer shows you the answer and gives you another question. Choose a piece, then a highlighted square. Castling, en passant and promotion follow standard chess rules. Higher difficulty levels play stronger and faster, and wins there are worth more points. Want a human opponent? Open Chess Duel from the Games hub.',
+      intro: 'Play White against the computer. Answer a question from your study set before each move. A wrong answer shows you the answer and gives you another question. Choose a piece, then a highlighted square. Castling, en passant, promotion, check, checkmate, stalemate, threefold repetition and the fifty-move rule follow standard chess rules. After the first few moves, the opening name appears when it is known. Higher difficulty levels play stronger and faster, and wins there are worth more points. Want a human opponent? Open Chess Duel from the Games hub.',
       keys: [[['Click / tap'], 'a piece, then its destination'], [['Arrow keys'], 'explore the board; Enter or Space selects a square']],
       filters: { title: 'Chess question filters', heading: 'Move questions', typed: true },
       side: function (r) {
@@ -229,7 +236,7 @@
               name: 'level',
               value: level,
               levels: CHESS_DIFF,
-              ends: ['Beginner', 'Expert +'],
+              ends: ['Beginner', 'Engine Max'],
               hint: CHESS_DIFF_HINT
             })
           : segHtml('level', LEVELS, String(level));

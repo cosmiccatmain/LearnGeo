@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 280" role="img" aria-label="Geo Chess openings and stronger bots">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#eef6ef"/>
+      <stop offset="100%" stop-color="#f7f3e4"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="280" fill="url(#sky)"/>
+  <!-- board -->
+  <g transform="translate(56,44)">
+    <rect width="192" height="192" rx="10" fill="#23443b"/>
+    <g transform="translate(8,8)">
+      <rect width="44" height="44" fill="#e8ebd5"/><rect x="44" width="44" height="44" fill="#72957d"/>
+      <rect x="88" width="44" height="44" fill="#e8ebd5"/><rect x="132" width="44" height="44" fill="#72957d"/>
+      <rect y="44" width="44" height="44" fill="#72957d"/><rect x="44" y="44" width="44" height="44" fill="#e8ebd5"/>
+      <rect x="88" y="44" width="44" height="44" fill="#72957d"/><rect x="132" y="44" width="44" height="44" fill="#e8ebd5"/>
+      <rect y="88" width="44" height="44" fill="#e8ebd5"/><rect x="44" y="88" width="44" height="44" fill="#72957d"/>
+      <rect x="88" y="88" width="44" height="44" fill="#e8ebd5"/><rect x="132" y="88" width="44" height="44" fill="#72957d"/>
+      <rect y="132" width="44" height="44" fill="#72957d"/><rect x="44" y="132" width="44" height="44" fill="#e8ebd5"/>
+      <rect x="88" y="132" width="44" height="44" fill="#72957d"/><rect x="132" y="132" width="44" height="44" fill="#e8ebd5"/>
+      <text x="22" y="120" text-anchor="middle" font-size="28" fill="#fffdf2">^</text>
+      <text x="110" y="76" text-anchor="middle" font-size="28" fill="#172e2b">Z</text>
+    </g>
+  </g>
+  <!-- opening banner -->
+  <g transform="translate(280,52)">
+    <rect width="300" height="64" rx="12" fill="#fff" stroke="#c5d6c4" stroke-width="2"/>
+    <text x="20" y="28" font-family="Georgia, serif" font-size="12" font-weight="700" fill="#3d5a45" letter-spacing="1">OPENING</text>
+    <text x="20" y="50" font-family="Georgia, serif" font-size="18" font-weight="700" fill="#173d36">C60 · Ruy Lopez</text>
+  </g>
+  <!-- promotion chips -->
+  <g transform="translate(280,136)">
+    <text x="0" y="0" font-family="Georgia, serif" font-size="13" fill="#3d5a45">Promote</text>
+    <g transform="translate(0,12)">
+      <rect width="64" height="56" rx="10" fill="#f7faf4" stroke="#c5d6c4"/>
+      <text x="32" y="34" text-anchor="middle" font-size="24">[</text>
+      <rect x="72" width="64" height="56" rx="10" fill="#f7faf4" stroke="#c5d6c4"/>
+      <text x="104" y="34" text-anchor="middle" font-size="24">\</text>
+      <rect x="144" width="64" height="56" rx="10" fill="#f7faf4" stroke="#c5d6c4"/>
+      <text x="176" y="34" text-anchor="middle" font-size="24">]</text>
+      <rect x="216" width="64" height="56" rx="10" fill="#f7faf4" stroke="#c5d6c4"/>
+      <text x="248" y="34" text-anchor="middle" font-size="24">^</text>
+    </g>
+  </g>
+  <!-- bot labels -->
+  <g transform="translate(280,228)">
+    <rect width="140" height="28" rx="14" fill="#23443b"/>
+    <text x="70" y="19" text-anchor="middle" font-family="Georgia, serif" font-size="12" fill="#fff8e2">Grandmaster ~3200</text>
+    <rect x="152" width="128" height="28" rx="14" fill="#3d5a45"/>
+    <text x="216" y="19" text-anchor="middle" font-family="Georgia, serif" font-size="12" fill="#fff8e2">Engine Max</text>
+  </g>
+</svg>

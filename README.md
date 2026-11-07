@@ -67,18 +67,22 @@ Games also includes **Geo Chess**: play White against the computer, answering a 
 question before each move. It shares the other games' region, scope, custom country,
 weakest-first and answer-style filters, with flags, capitals or mixed questions.
 Wrong answers show the answer and offer another question; correct answers unlock a move
-and earn the usual geography rewards. Choose **Level 1 difficulty** through **Level 5 difficulty**.
-Level 1 plays random legal moves for beginners; Level 2 mixes occasional random moves with
-Stockfish; Levels 3–5 use progressively stronger Stockfish opponents (higher skill, deeper
-search, more think time, and larger hash). Random replies land faster than before. Wins at
-higher levels score more points (`best` tracks the best single-win points). Wins, draws,
-finished games, score and settings are saved under `games.chess`.
+and earn the usual geography rewards. Choose **Level 1 difficulty** through **Level 7 difficulty**
+(Beginner → Engine Max). Level 1 plays random legal moves for beginners; Level 2 mixes
+occasional random moves with Stockfish; Levels 3–5 use progressively stronger Stockfish
+opponents (higher skill, deeper search, more think time, and larger hash). Level 6
+**Grandmaster** uses Stockfish’s UCI Elo ceiling (~3200). Level 7 **Engine Max** keeps full
+strength with deeper on-device search. Wins at higher levels score more points (`best`
+tracks the best single-win points). Wins, draws, finished games, score and settings are
+saved under `games.chess`.
 
 The game uses the local chess.js 1.4.0 rules API and Stockfish 17.1's UCI engine API in a
-Web Worker. It supports castling, en passant, all four promotion choices, checkmate and
-draws. No chess API key or backend is required. The approximately 7.3 MB engine loads
-only when you start Level 2 or above. Level 1 needs no engine download. Dependency sources
-and licenses are in `assets/vendor/README.md`.
+Web Worker. It supports castling, en passant, all four promotion choices (Q/R/B/N), check,
+checkmate, stalemate, threefold repetition and the fifty-move rule. After the first few
+moves, a known opening’s ECO code and common name appear above the board. No chess API key
+or backend is required. The approximately 7.3 MB engine loads only when you start Level 2
+or above. Level 1 needs no engine download. Dependency sources and licenses are in
+`assets/vendor/README.md`.
 
 With the local server running, the chess browser checks can be run with
 `python3 tests/test_chess.py` (requires Python Playwright and Chromium).
