@@ -19,6 +19,13 @@
      and Games cosmetics each keep their own What’s New id so PRs can merge in any order. */
   var UPDATES = [
     {
+      id: '2026-11-achievement-wallet',
+      title: 'Achievement wallet',
+      body: 'Your achievement stack unfolds when you open it, cards float gently, flips work again, and you can share your whole wallet with a classmate by gamertag.',
+      image: '/assets/img/updates/achievement-cards.svg',
+      date: '2026-11-07'
+    },
+    {
       id: '2026-11-cooking-loader',
       title: 'Cooking… while you wait',
       body: 'Loading screens across LearnGeo now simmer with a little pot animation and a “cooking” caption — games, maps, Learn, and more.',

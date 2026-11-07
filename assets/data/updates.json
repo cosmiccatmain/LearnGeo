@@ -2,6 +2,13 @@
   "_comment": "Append newest entries at the top of `updates`. Each needs a unique `id`. Optional `image` is a path under /assets/. Keep entries public-safe: no Pets/Brainrot, no admin-only or subscription marketing.",
   "updates": [
     {
+      "id": "2026-11-achievement-wallet",
+      "title": "Achievement wallet",
+      "body": "Your achievement stack unfolds when you open it, cards float gently, flips work again, and you can share your whole wallet with a classmate by gamertag.",
+      "image": "/assets/img/updates/achievement-cards.svg",
+      "date": "2026-11-07"
+    },
+    {
       "id": "2026-11-cooking-loader",
       "title": "Cooking… while you wait",
       "body": "Loading screens across LearnGeo now simmer with a little pot animation and a “cooking” caption — games, maps, Learn, and more.",

@@ -1,9 +1,12 @@
 /* ------------------------------------------------------------------
-   LearnGeo — Achievement cards (LEA-64)
+   LearnGeo — Achievement cards (LEA-64 / LEA-67)
 
    Credit-card-style stack with flip. Unlocked Cosmetics.achievements
    can be sent to a classmate by gamertag (school-safe; no money).
-   Server: supabase/deployed/0023_achievement_cards.sql.
+   LEA-67: fix Chromium button 3D flatten, float + wallet unfold,
+   share whole wallet by gamertag.
+   Server: supabase/deployed/0023_achievement_cards.sql
+           + 0025_achievement_wallet_share.sql
 -------------------------------------------------------------------*/
 (function (global) {
   'use strict';
@@ -12,9 +15,22 @@
   var hostEl = null;
   var index = 0;
   var flipped = false;
-  var lastInbox = { incoming: [], outgoing: [], received: [] };
+  var lastInbox = {
+    incoming: [], outgoing: [], received: [],
+    walletIncoming: [], walletOutgoing: [], walletShared: []
+  };
   var pollTimer = null;
-  var tray = 'mine'; /* mine | gifts */
+  var tray = 'mine'; /* mine | gifts | shared */
+  var viewingShare = null; /* accepted wallet share row while tray=shared */
+  var unfoldTimer = null;
+  var settleTimer = null;
+  var didUnfold = false;
+  var reduceMotion = false;
+
+  try {
+    reduceMotion = !!(global.matchMedia &&
+      global.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  } catch (e) { reduceMotion = false; }
 
   function sb() { return global.Cloud && global.Cloud.sb; }
   function deviceId() {
@@ -98,8 +114,36 @@
     });
   }
 
+  function sharedCards() {
+    var row = viewingShare;
+    if (!row) {
+      var list = lastInbox.walletShared || [];
+      if (!list.length) return [];
+      row = list[0];
+      viewingShare = row;
+    }
+    var ids = row.card_ids || [];
+    return ids.map(function (id) {
+      var a = findAch(id) || {
+        id: id,
+        name: id,
+        desc: 'From ' + (row.from_tag || 'a friend') + '’s wallet',
+        reward: 0
+      };
+      return {
+        kind: 'shared',
+        id: 'shared:' + row.id + ':' + id,
+        fromTag: row.from_tag || 'Friend',
+        unlocked: true,
+        ach: a
+      };
+    });
+  }
+
   function deck() {
-    return tray === 'gifts' ? giftCards() : mineCards();
+    if (tray === 'gifts') return giftCards();
+    if (tray === 'shared') return sharedCards();
+    return mineCards();
   }
 
   function findAch(id) {
@@ -114,13 +158,14 @@
       invalid: 'Something looked off — try again.',
       invalid_tag: 'Gamertags are 3–16 letters, numbers, or _.',
       invalid_card: 'That achievement card isn’t sendable.',
+      invalid_wallet: 'Nothing unlocked to share yet.',
       not_found: 'No player with that gamertag.',
-      self: 'You can’t send a card to yourself.',
+      self: 'You can’t send to yourself.',
       no_gamertag: 'Claim a gamertag in Games → Leaderboards first.',
       too_many: 'You already have several pending sends. Wait a bit.',
-      already_pending: 'You already sent that card to them.',
+      already_pending: 'You already sent that to them.',
       locked: 'Unlock this achievement before you can send it.',
-      guest: 'Sign in to send cards to classmates.'
+      guest: 'Sign in to share with classmates.'
     })[code] || 'Please try again.';
   }
 
@@ -128,16 +173,39 @@
   function fetchInbox() {
     var id = deviceId();
     if (!id || !signedIn()) {
-      lastInbox = { incoming: [], outgoing: [], received: [] };
+      lastInbox = {
+        incoming: [], outgoing: [], received: [],
+        walletIncoming: [], walletOutgoing: [], walletShared: []
+      };
       return Promise.resolve(lastInbox);
     }
-    return rpc('ach_card_list_inbox', { p_device: id }).then(function (data) {
-      if (data && data.ok) {
-        lastInbox = {
-          incoming: data.incoming || [],
-          outgoing: data.outgoing || [],
-          received: data.received || []
-        };
+    return Promise.all([
+      rpc('ach_card_list_inbox', { p_device: id }),
+      rpc('ach_wallet_list', { p_device: id })
+    ]).then(function (both) {
+      var cards = both[0];
+      var wallets = both[1];
+      if (cards && cards.ok) {
+        lastInbox.incoming = cards.incoming || [];
+        lastInbox.outgoing = cards.outgoing || [];
+        lastInbox.received = cards.received || [];
+      }
+      if (wallets && wallets.ok) {
+        lastInbox.walletIncoming = wallets.incoming || [];
+        lastInbox.walletOutgoing = wallets.outgoing || [];
+        lastInbox.walletShared = wallets.shared || [];
+        if (viewingShare) {
+          var still = null;
+          (lastInbox.walletShared || []).forEach(function (r) {
+            if (r.id === viewingShare.id) still = r;
+          });
+          viewingShare = still;
+        }
+      } else if (wallets && wallets.error === 'offline') {
+        /* migration not applied yet — keep card inbox working */
+        lastInbox.walletIncoming = lastInbox.walletIncoming || [];
+        lastInbox.walletOutgoing = lastInbox.walletOutgoing || [];
+        lastInbox.walletShared = lastInbox.walletShared || [];
       }
       return lastInbox;
     });
@@ -167,21 +235,55 @@
     });
   }
 
+  function sendWallet(tag) {
+    if (!signedIn()) return Promise.resolve({ ok: false, error: 'guest' });
+    if (!tag || !/^[A-Za-z0-9_]{3,16}$/.test(tag)) {
+      return Promise.resolve({ ok: false, error: 'invalid_tag' });
+    }
+    if (myTag() && tag.toLowerCase() === myTag().toLowerCase()) {
+      return Promise.resolve({ ok: false, error: 'self' });
+    }
+    var unlocked = haveIds().slice();
+    if (!unlocked.length) return Promise.resolve({ ok: false, error: 'invalid_wallet' });
+    return rpc('pvp_lookup_tag', { p_tag: tag }).then(function (rows) {
+      if (rows && rows.ok === false) return rows;
+      var row = Array.isArray(rows) ? rows[0] : rows;
+      var found = !!(row && (row.found === true || row.found === 't' || row.gamertag));
+      if (!found) return { ok: false, error: 'not_found' };
+      return rpc('ach_wallet_share', {
+        p_device: deviceId(),
+        p_to_tag: tag,
+        p_card_ids: unlocked
+      });
+    });
+  }
+
   /* ============================ paint ============================= */
   function cardFaceHtml(card, depth) {
     var a = card.ach;
     var unlocked = !!card.unlocked;
     var gift = card.kind === 'gift';
+    var shared = card.kind === 'shared';
     var faceCls = 'achv-card__face achv-card__face--front' +
-      (unlocked ? '' : ' is-locked') + (gift ? ' is-gift' : '');
+      (unlocked ? '' : ' is-locked') +
+      (gift ? ' is-gift' : '') +
+      (shared ? ' is-shared' : '');
     var eyebrow = gift
       ? ('From ' + esc(card.fromTag || 'friend'))
-      : (unlocked ? 'Achievement' : 'Locked');
+      : shared
+        ? ('Wallet · ' + esc(card.fromTag || 'friend'))
+        : (unlocked ? 'Achievement' : 'Locked');
     var reward = unlocked
       ? ('+' + a.reward + ' 💎')
       : 'Locked';
+    var backCopy = gift
+      ? 'A classmate shared this achievement card with you.'
+      : shared
+        ? 'Peeking at a friend’s achievement wallet.'
+        : 'Tap to flip · send unlocked cards to friends by gamertag.';
+    /* div[role=button]: native <button> flattens preserve-3d in Chromium */
     return '' +
-      '<button type="button" class="achv-card' + (depth === 0 ? ' is-front' : '') + '"' +
+      '<div role="button" tabindex="0" class="achv-card' + (depth === 0 ? ' is-front' : '') + '"' +
         ' data-depth="' + (depth > 3 ? 'n' : depth) + '"' +
         ' data-card="' + esc(card.id) + '"' +
         ' aria-label="' + esc(a.name) + (unlocked ? '' : ' (locked)') + '">' +
@@ -202,25 +304,27 @@
           '</div>' +
           '<div class="achv-card__face achv-card__face--back">' +
             '<div class="achv-card__brand">LearnGeo</div>' +
-            '<div class="achv-card__brand-sub">' +
-              (gift
-                ? 'A classmate shared this achievement card with you.'
-                : 'Tap to flip · send unlocked cards to friends by gamertag.') +
-            '</div>' +
+            '<div class="achv-card__brand-sub">' + backCopy + '</div>' +
           '</div>' +
         '</div>' +
-      '</button>';
+      '</div>';
   }
 
   function stackHtml() {
     var cards = deck();
     if (!cards.length) {
-      return '<div class="empty">No cards here yet.</div>';
+      var emptyMsg = tray === 'shared'
+        ? 'No shared wallets yet — accept a wallet invite from Inbox.'
+        : tray === 'gifts'
+          ? 'No received cards yet.'
+          : 'No cards here yet.';
+      return '<div class="empty">' + emptyMsg + '</div>';
     }
     if (index >= cards.length) index = cards.length - 1;
     if (index < 0) index = 0;
     var layers = [];
-    for (var d = 0; d < Math.min(4, cards.length); d++) {
+    var show = Math.min(5, cards.length);
+    for (var d = 0; d < show; d++) {
       var ci = (index + d) % cards.length;
       layers.push(cardFaceHtml(cards[ci], d));
     }
@@ -230,19 +334,38 @@
   function inboxHtml() {
     var inc = lastInbox.incoming || [];
     var out = lastInbox.outgoing || [];
+    var wInc = lastInbox.walletIncoming || [];
+    var wOut = lastInbox.walletOutgoing || [];
     var parts = [];
 
     if (!signedIn()) {
       return '<p class="achv-empty">Sign in and claim a gamertag to send or receive cards.</p>';
     }
-    if (!inc.length && !out.length) {
-      parts.push('<p class="achv-empty">No pending card sends.</p>');
+    if (!inc.length && !out.length && !wInc.length && !wOut.length) {
+      parts.push('<p class="achv-empty">No pending card or wallet shares.</p>');
     }
+    wInc.forEach(function (row) {
+      var n = (row.card_ids && row.card_ids.length) || 0;
+      parts.push(
+        '<div class="achv-inbox__row" data-wallet="' + esc(row.id) + '">' +
+          '<div class="grow">' +
+            '<span class="achv-inbox__kind">Wallet</span>' +
+            '<b>' + esc(row.from_tag || 'Friend') + '’s wallet</b>' +
+            '<span>' + n + ' unlocked card' + (n === 1 ? '' : 's') + '</span></div>' +
+          '<div class="achv-inbox__acts">' +
+            '<button type="button" class="btn btn--accent btn--sm" data-w-accept>Keep</button>' +
+            '<button type="button" class="btn btn--ghost btn--sm" data-w-decline>No thanks</button>' +
+          '</div>' +
+        '</div>'
+      );
+    });
     inc.forEach(function (row) {
       var a = findAch(row.achievement_id);
       parts.push(
         '<div class="achv-inbox__row" data-send="' + esc(row.id) + '">' +
-          '<div class="grow"><b>' + esc((a && a.name) || row.achievement_id) + '</b>' +
+          '<div class="grow">' +
+            '<span class="achv-inbox__kind">Card</span>' +
+            '<b>' + esc((a && a.name) || row.achievement_id) + '</b>' +
             '<span>From ' + esc(row.from_tag || 'friend') + '</span></div>' +
           '<div class="achv-inbox__acts">' +
             '<button type="button" class="btn btn--accent btn--sm" data-accept>Keep</button>' +
@@ -251,11 +374,27 @@
         '</div>'
       );
     });
+    wOut.forEach(function (row) {
+      var n = (row.card_ids && row.card_ids.length) || 0;
+      parts.push(
+        '<div class="achv-inbox__row" data-wallet="' + esc(row.id) + '">' +
+          '<div class="grow">' +
+            '<span class="achv-inbox__kind">Wallet</span>' +
+            '<b>Wallet → ' + esc(row.to_tag || 'friend') + '</b>' +
+            '<span>' + n + ' cards · waiting</span></div>' +
+          '<div class="achv-inbox__acts">' +
+            '<button type="button" class="btn btn--ghost btn--sm" data-w-cancel>Cancel</button>' +
+          '</div>' +
+        '</div>'
+      );
+    });
     out.forEach(function (row) {
       var a = findAch(row.achievement_id);
       parts.push(
         '<div class="achv-inbox__row" data-send="' + esc(row.id) + '">' +
-          '<div class="grow"><b>' + esc((a && a.name) || row.achievement_id) + '</b>' +
+          '<div class="grow">' +
+            '<span class="achv-inbox__kind">Card</span>' +
+            '<b>' + esc((a && a.name) || row.achievement_id) + '</b>' +
             '<span>Waiting on ' + esc(row.to_tag || 'friend') + '</span></div>' +
           '<div class="achv-inbox__acts">' +
             '<button type="button" class="btn btn--ghost btn--sm" data-cancel>Cancel</button>' +
@@ -266,21 +405,38 @@
     return '<div class="achv-inbox__list">' + parts.join('') + '</div>';
   }
 
-  function paint() {
+  function sharedPickerHtml() {
+    var list = lastInbox.walletShared || [];
+    if (!list.length) return '';
+    var opts = list.map(function (r) {
+      var n = (r.card_ids && r.card_ids.length) || 0;
+      var sel = viewingShare && viewingShare.id === r.id ? ' selected' : '';
+      return '<option value="' + esc(r.id) + '"' + sel + '>' +
+        esc(r.from_tag || 'Friend') + ' · ' + n + ' cards</option>';
+    }).join('');
+    return '<div class="field" style="margin:0 0 12px;max-width:280px">' +
+      '<label class="field__label" for="achv-shared-pick">Friend’s wallet</label>' +
+      '<select class="input" id="achv-shared-pick">' + opts + '</select></div>';
+  }
+
+  function paint(opts) {
     if (!hostEl) return;
+    opts = opts || {};
     var cards = deck();
     var have = haveIds().length;
     var total = catalog().length;
     var front = cards[index];
     var canSend = !!(front && front.kind === 'mine' && front.unlocked);
+    var canShareWallet = have > 0;
+    var sharedN = (lastInbox.walletShared || []).length;
 
     hostEl.innerHTML =
       '<div class="achv">' +
         '<div class="achv__hero">' +
           '<div>' +
             '<div class="eyebrow">Collection</div>' +
-            '<h1>Achievement cards</h1>' +
-            '<p>Flip through your stack like a deck of cards. Send unlocked ones to classmates by gamertag — school-safe, no real money.</p>' +
+            '<h1>Achievement wallet</h1>' +
+            '<p>Flip through your stack like a deck of cards. Send unlocked ones — or share your whole wallet — with classmates by gamertag. School-safe, no real money.</p>' +
           '</div>' +
           '<div class="achv__stats">' +
             '<span class="chip mono">' + have + ' / ' + total + ' unlocked</span>' +
@@ -291,15 +447,20 @@
         '</div>' +
         '<div class="achv__layout">' +
           '<div>' +
-            '<div class="seg" data-tray style="margin-bottom:12px;max-width:280px">' +
-              '<button type="button" data-v="mine"' + (tray === 'mine' ? ' class="is-active"' : '') + '>My cards</button>' +
+            '<div class="seg" data-tray style="margin-bottom:12px;max-width:420px">' +
+              '<button type="button" data-v="mine"' + (tray === 'mine' ? ' class="is-active"' : '') + '>My wallet</button>' +
               '<button type="button" data-v="gifts"' + (tray === 'gifts' ? ' class="is-active"' : '') +
                 '>Received' +
                 ((lastInbox.received || []).length
                   ? ' · ' + lastInbox.received.length
                   : '') +
               '</button>' +
+              '<button type="button" data-v="shared"' + (tray === 'shared' ? ' class="is-active"' : '') +
+                '>Friends' +
+                (sharedN ? ' · ' + sharedN : '') +
+              '</button>' +
             '</div>' +
+            (tray === 'shared' ? sharedPickerHtml() : '') +
             '<div class="achv-stage" data-stage>' + stackHtml() + '</div>' +
             '<div class="achv-nav">' +
               '<button type="button" class="btn btn--ghost btn--sm" data-prev aria-label="Previous card">' +
@@ -318,11 +479,15 @@
                 ? '<button type="button" class="btn btn--accent" data-focus-send>' +
                     I.inbox + ' Send this card</button>'
                 : '') +
+              (tray === 'mine'
+                ? '<button type="button" class="btn btn--ghost" data-focus-wallet>' +
+                    I.users + ' Share wallet</button>'
+                : '') +
             '</div>' +
           '</div>' +
           '<div class="achv-side">' +
             '<div class="panel" id="achv-send-panel">' +
-              '<div class="panel__head"><h3>Send to a friend</h3></div>' +
+              '<div class="panel__head"><h3>Send a card</h3></div>' +
               '<p class="t-sm t-muted" style="margin:0 0 12px">They need a Games gamertag. Accepting adds the card to their Received tray — it doesn’t unlock the achievement for them.</p>' +
               '<div class="achv-send__row">' +
                 '<div class="field"><label class="field__label" for="achv-tag">Friend’s gamertag</label>' +
@@ -337,9 +502,28 @@
                 ? '<p class="achv-empty" style="margin-top:10px">' +
                     (front && front.kind === 'gift'
                       ? 'Gifted cards stay in your Received tray.'
-                      : 'Unlock this achievement to send its card.') +
+                      : front && front.kind === 'shared'
+                        ? 'Shared wallets are view-only.'
+                        : 'Unlock this achievement to send its card.') +
                   '</p>'
                 : '') +
+            '</div>' +
+            '<div class="panel" id="achv-wallet-panel">' +
+              '<div class="panel__head"><h3>Share wallet</h3></div>' +
+              '<p class="t-sm t-muted" style="margin:0 0 12px">Send a snapshot of your unlocked cards. Friends can flip through them — it doesn’t unlock achievements or diamonds for them.</p>' +
+              '<div class="achv-send__row">' +
+                '<div class="field"><label class="field__label" for="achv-wallet-tag">Friend’s gamertag</label>' +
+                  '<input class="input" id="achv-wallet-tag" maxlength="16" autocomplete="off" autocapitalize="off" ' +
+                    'spellcheck="false" placeholder="e.g. MapWizard"' +
+                    (canShareWallet ? '' : ' disabled') + '></div>' +
+                '<button class="btn btn--accent" type="button" data-wallet-send' +
+                  (canShareWallet ? '' : ' disabled') + '>' + I.play + ' Share</button>' +
+              '</div>' +
+              '<div class="gt-err" id="achv-wallet-err" role="alert" style="margin-top:8px"></div>' +
+              (!canShareWallet
+                ? '<p class="achv-empty" style="margin-top:10px">Unlock at least one achievement to share your wallet.</p>'
+                : '<p class="achv-empty" style="margin-top:10px">Sharing ' + have + ' unlocked card' +
+                    (have === 1 ? '' : 's') + '.</p>') +
             '</div>' +
             '<div class="panel">' +
               '<div class="panel__head"><h3>Inbox</h3></div>' +
@@ -351,6 +535,8 @@
 
     wire();
     applyFlipClass();
+    if (!opts.skipUnfold) runUnfold();
+    else enableFloat();
   }
 
   function applyFlipClass() {
@@ -360,15 +546,74 @@
     front.classList.toggle('is-flipped', !!flipped);
   }
 
+  function toggleFlip() {
+    flipped = !flipped;
+    applyFlipClass();
+  }
+
+  function enableFloat() {
+    if (!hostEl || reduceMotion) return;
+    var stack = W.$('[data-stack]', hostEl);
+    if (stack) stack.classList.add('is-floating');
+  }
+
+  function runUnfold() {
+    if (!hostEl) return;
+    var stage = W.$('[data-stage]', hostEl);
+    var stack = W.$('[data-stack]', hostEl);
+    if (!stage || !stack) return;
+    if (unfoldTimer) { global.clearTimeout(unfoldTimer); unfoldTimer = null; }
+    if (settleTimer) { global.clearTimeout(settleTimer); settleTimer = null; }
+    stack.classList.remove('is-floating');
+    stage.classList.remove('is-unfolding', 'is-settling');
+
+    if (reduceMotion || didUnfold) {
+      enableFloat();
+      return;
+    }
+    didUnfold = true;
+    /* force reflow so the fan transition plays from the stacked pose */
+    void stage.offsetWidth;
+    stage.classList.add('is-unfolding');
+    unfoldTimer = global.setTimeout(function () {
+      if (!hostEl || !stage.isConnected) return;
+      stage.classList.remove('is-unfolding');
+      stage.classList.add('is-settling');
+      settleTimer = global.setTimeout(function () {
+        if (!hostEl || !stage.isConnected) return;
+        stage.classList.remove('is-settling');
+        enableFloat();
+      }, 560);
+    }, 980);
+  }
+
   function wire() {
     W.$$('[data-tray] button', hostEl).forEach(function (b) {
       b.addEventListener('click', function () {
         tray = b.dataset.v;
         index = 0;
         flipped = false;
-        paint();
+        if (tray === 'shared') {
+          var list = lastInbox.walletShared || [];
+          viewingShare = list[0] || null;
+        }
+        paint({ skipUnfold: true });
       });
     });
+
+    var sharedPick = W.$('#achv-shared-pick', hostEl);
+    if (sharedPick) {
+      sharedPick.addEventListener('change', function () {
+        var id = sharedPick.value;
+        viewingShare = null;
+        (lastInbox.walletShared || []).forEach(function (r) {
+          if (r.id === id) viewingShare = r;
+        });
+        index = 0;
+        flipped = false;
+        paint({ skipUnfold: true });
+      });
+    }
 
     var prev = W.$('[data-prev]', hostEl);
     var next = W.$('[data-next]', hostEl);
@@ -376,10 +621,7 @@
     if (next) next.addEventListener('click', function () { step(1); });
 
     var flipBtn = W.$('[data-flip]', hostEl);
-    if (flipBtn) flipBtn.addEventListener('click', function () {
-      flipped = !flipped;
-      applyFlipClass();
-    });
+    if (flipBtn) flipBtn.addEventListener('click', toggleFlip);
 
     var focusSend = W.$('[data-focus-send]', hostEl);
     if (focusSend) focusSend.addEventListener('click', function () {
@@ -389,15 +631,29 @@
       if (input) input.focus();
     });
 
+    var focusWallet = W.$('[data-focus-wallet]', hostEl);
+    if (focusWallet) focusWallet.addEventListener('click', function () {
+      var input = W.$('#achv-wallet-tag', hostEl);
+      var panel = W.$('#achv-wallet-panel', hostEl);
+      if (panel && panel.scrollIntoView) panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      if (input) input.focus();
+    });
+
     W.$$('.achv-card.is-front', hostEl).forEach(function (card) {
-      card.addEventListener('click', function () {
-        flipped = !flipped;
-        applyFlipClass();
+      card.addEventListener('click', toggleFlip);
+      card.addEventListener('keydown', function (ev) {
+        if (ev.key === 'Enter' || ev.key === ' ') {
+          ev.preventDefault();
+          toggleFlip();
+        }
       });
     });
 
     var sendBtn = W.$('[data-achv-send]', hostEl);
     if (sendBtn) sendBtn.addEventListener('click', onSend);
+
+    var walletBtn = W.$('[data-wallet-send]', hostEl);
+    if (walletBtn) walletBtn.addEventListener('click', onWalletSend);
 
     wireInbox();
   }
@@ -434,6 +690,35 @@
         });
       });
     });
+
+    W.$$('[data-w-accept]', box).forEach(function (b) {
+      b.addEventListener('click', function () {
+        var row = b.closest('[data-wallet]');
+        respondWallet(row && row.dataset.wallet, true);
+      });
+    });
+    W.$$('[data-w-decline]', box).forEach(function (b) {
+      b.addEventListener('click', function () {
+        var row = b.closest('[data-wallet]');
+        respondWallet(row && row.dataset.wallet, false);
+      });
+    });
+    W.$$('[data-w-cancel]', box).forEach(function (b) {
+      b.addEventListener('click', function () {
+        var row = b.closest('[data-wallet]');
+        var id = row && row.dataset.wallet;
+        if (!id) return;
+        ensureTag(function () {
+          rpc('ach_wallet_cancel', { p_device: deviceId(), p_share: id }).then(function (res) {
+            if (!res || !res.ok) {
+              W.toast('Couldn’t cancel', errMsg(res && res.error), I.info, 3600);
+              return;
+            }
+            refreshInbox();
+          });
+        });
+      });
+    });
   }
 
   function respond(sendId, accept) {
@@ -453,6 +738,30 @@
           tray = 'gifts';
         } else {
           W.toast('Declined', 'Invite closed', I.check, 2400);
+        }
+        refreshInbox(true);
+      });
+    });
+  }
+
+  function respondWallet(shareId, accept) {
+    if (!shareId) return;
+    ensureTag(function () {
+      rpc('ach_wallet_respond', {
+        p_device: deviceId(),
+        p_share: shareId,
+        p_accept: !!accept
+      }).then(function (res) {
+        if (!res || !res.ok) {
+          W.toast('Couldn’t update', errMsg(res && res.error), I.info, 3600);
+          return;
+        }
+        if (accept) {
+          W.toast('Wallet kept', (res.from_tag || 'Friend') + ' shared their wallet', I.trophy, 3600);
+          tray = 'shared';
+          viewingShare = null;
+        } else {
+          W.toast('Declined', 'Wallet invite closed', I.check, 2400);
         }
         refreshInbox(true);
       });
@@ -497,8 +806,51 @@
     });
   }
 
+  function onWalletSend() {
+    var err = W.$('#achv-wallet-err', hostEl);
+    var input = W.$('#achv-wallet-tag', hostEl);
+    if (err) err.textContent = '';
+    if (!haveIds().length) {
+      if (err) err.textContent = errMsg('invalid_wallet');
+      return;
+    }
+    if (!signedIn()) {
+      if (global.UI && global.UI.openAuth) global.UI.openAuth('signin');
+      if (err) err.textContent = errMsg('guest');
+      return;
+    }
+    var tag = ((input && input.value) || '').trim();
+    ensureTag(function () {
+      sendWallet(tag).then(function (res) {
+        if (!res || !res.ok) {
+          if (res && res.error === 'no_gamertag') {
+            ensureServerTag().then(function () { return sendWallet(tag); })
+              .then(function (retry) {
+                if (!retry || !retry.ok) {
+                  if (err) err.textContent = errMsg(retry && retry.error);
+                  return;
+                }
+                afterWalletSent(retry, tag, input, err);
+              });
+            return;
+          }
+          if (err) err.textContent = errMsg(res && res.error);
+          return;
+        }
+        afterWalletSent(res, tag, input, err);
+      });
+    });
+  }
+
   function afterSent(res, tag, input, err) {
     W.toast('Card sent', 'Waiting for ' + (res.to_tag || tag) + '…', I.check, 3600);
+    if (input) input.value = '';
+    if (err) err.textContent = '';
+    refreshInbox();
+  }
+
+  function afterWalletSent(res, tag, input, err) {
+    W.toast('Wallet shared', 'Waiting for ' + (res.to_tag || tag) + '…', I.check, 3600);
     if (input) input.value = '';
     if (err) err.textContent = '';
     refreshInbox();
@@ -509,23 +861,26 @@
     if (!cards.length) return;
     index = (index + dir + cards.length) % cards.length;
     flipped = false;
-    paint();
+    paint({ skipUnfold: true });
   }
 
   function refreshInbox(fullPaint) {
     return fetchInbox().then(function () {
-      if (fullPaint || !hostEl) { paint(); return; }
+      if (fullPaint || !hostEl) { paint({ skipUnfold: true }); return; }
       var box = W.$('[data-achv-inbox]', hostEl);
       if (box) {
         box.innerHTML = inboxHtml();
         wireInbox();
       }
-      /* refresh Received tab count without losing focus unnecessarily */
       var trayBtns = W.$$('[data-tray] button', hostEl);
       trayBtns.forEach(function (b) {
         if (b.dataset.v === 'gifts') {
           b.textContent = 'Received' +
             ((lastInbox.received || []).length ? ' · ' + lastInbox.received.length : '');
+        }
+        if (b.dataset.v === 'shared') {
+          var n = (lastInbox.walletShared || []).length;
+          b.textContent = 'Friends' + (n ? ' · ' + n : '');
         }
       });
     });
@@ -551,17 +906,29 @@
     index = 0;
     flipped = false;
     tray = 'mine';
-    paint();
-    fetchInbox().then(function () { paint(); startPolling(); });
+    viewingShare = null;
+    didUnfold = false;
+    if (unfoldTimer) { global.clearTimeout(unfoldTimer); unfoldTimer = null; }
+    if (settleTimer) { global.clearTimeout(settleTimer); settleTimer = null; }
+    /* Fast first paint without anim, then one unfold after inbox lands
+       so a second paint does not tear down the fan-out mid-flight. */
+    paint({ skipUnfold: true });
+    fetchInbox().then(function () {
+      didUnfold = false;
+      paint();
+      startPolling();
+    });
   }
 
   function stop() {
     stopPolling();
+    if (unfoldTimer) { global.clearTimeout(unfoldTimer); unfoldTimer = null; }
+    if (settleTimer) { global.clearTimeout(settleTimer); settleTimer = null; }
     hostEl = null;
   }
 
   function pendingCount() {
-    return (lastInbox.incoming || []).length;
+    return (lastInbox.incoming || []).length + (lastInbox.walletIncoming || []).length;
   }
 
   global.AchievementCards = {
