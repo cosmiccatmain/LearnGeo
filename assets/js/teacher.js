@@ -2,7 +2,7 @@
    LearnGeo — teacher workspace.
 
    Laid out like a classroom app: a banner with the class code, then
-   Stream, Classwork, People and Analytics.
+   Stream, Classwork, People, Wallet wall, Grades and more.
 
    The class lives on the server. Its code is issued when the class is
    created, assignments go out the moment they are saved, and scores come
@@ -501,6 +501,7 @@
           crTab('stream', I.layers, 'Stream', counts.stream) +
           crTab('classwork', I.clip, 'Classwork', counts.classwork) +
           crTab('people', I.users, 'People', counts.people) +
+          crTab('wallets', I.cards, 'Wallet wall') +
           crTab('analytics', I.chart, 'Grades', counts.analytics) +
           (featureOn('geolive') ? crTab('geolive', I.bolt, 'GeoLive') : '') +
           crTab('duels', I.eye || I.users, 'Duels') +
@@ -580,9 +581,16 @@
       '</div>';
   }
 
+  /* LEA-75: student achievement wallets / recent unlocks. Data RPC only —
+     never a live screen share. */
+  function walletsPanel() {
+    return '<div id="cr-wallets"></div>';
+  }
+
   function panel() {
     if (tab === 'classwork') return classworkPanel();
     if (tab === 'people') return peoplePanel();
+    if (tab === 'wallets') return walletsPanel();
     if (tab === 'analytics') {
       return global.Grades ? global.Grades.panel() : analyticsPanel();
     }
@@ -611,6 +619,9 @@
       duelSpectate = null;
     }
 
+    var CWW = global.ClassWalletWall;
+    if (tab !== 'wallets' && CWW && CWW.unmount) { try { CWW.unmount(); } catch (e) {} }
+
     var glHost = document.getElementById('cr-geolive');
     if (glHost && GT && GT.mount) {
       GT.mount(glHost, {
@@ -633,6 +644,11 @@
       duelSpectate = global.GeoDuel.mountClassLive(duelHost, {
         classId: cls().cloudId || ''
       });
+    }
+
+    var wwHost = document.getElementById('cr-wallets');
+    if (wwHost && CWW && CWW.mount) {
+      CWW.mount(wwHost, { classId: cls().cloudId || '' });
     }
 
     var fxHost = document.getElementById('cr-features');
