@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cooking loader Development preview (TEST harness)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600&family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/css/app.css">
+<link rel="stylesheet" href="../assets/css/brand.css">
+<link rel="stylesheet" href="../assets/css/administrator.css">
+<link rel="stylesheet" href="../assets/css/cooking-loader.css">
+<style>
+  body { margin: 0; background: #E8EEF2; font-family: Inter, system-ui, sans-serif; }
+  .harness {
+    max-width: 720px; margin: 40px auto; padding: 0 16px;
+  }
+  .harness h1 {
+    font-family: "Instrument Serif", Georgia, serif;
+    font-weight: 400; font-size: 28px; margin: 0 0 8px; color: #0B1520;
+  }
+  .harness .path {
+    font-size: 13px; color: #5B6B76; margin: 0 0 22px;
+  }
+  .harness .path code {
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 12px; background: #F7F9FC; border: 1px solid rgba(11,21,32,.08);
+    padding: 2px 6px; border-radius: 6px;
+  }
+  #shot-note {
+    position: fixed; top: 10px; right: 12px; z-index: 9999;
+    background: #102a56; color: #dce7ff; border: 1px solid #2a4a82;
+    border-radius: 8px; padding: 8px 12px; font: 12px/1.4 Inter, sans-serif;
+  }
+</style>
+</head>
+<body>
+<div id="shot-note">Administrator → Development → Preview cooking loader</div>
+<div class="harness">
+  <h1>Development</h1>
+  <p class="path">Path: Administrator → <code>Development</code> → <strong>Preview cooking loader</strong></p>
+  <section class="adminp__sec" style="background:#F7F9FC;border:1px solid rgba(11,21,32,.08);border-radius:14px;padding:18px 18px 8px">
+    <div class="adminp__who" style="align-items:flex-start;margin-bottom:14px;display:flex;gap:16px">
+      <div class="grow">
+        <div class="adminp__nm" style="display:flex;align-items:center;gap:8px;font-weight:600">
+          <span>Cooking loader preview</span>
+        </div>
+        <p class="t-sm t-muted" style="margin:6px 0 0;color:#5B6B76;font-size:13.5px">
+          Force the little pot “cooking” wait UI on screen for a few seconds.
+          Dismiss or press Escape anytime. Commands: <code>cooking</code> or <code>loader</code>.
+        </p>
+      </div>
+      <button type="button" class="btn btn--accent btn--sm" id="ap-cook-preview">Preview cooking loader</button>
+    </div>
+  </section>
+</div>
+<script src="../assets/js/core.js"></script>
+<script src="../assets/js/cooking-loader.js"></script>
+<script>
+(function () {
+  'use strict';
+  var btn = document.getElementById('ap-cook-preview');
+  function show() {
+    if (window.CookingLoader && CookingLoader.preview) {
+      CookingLoader.preview({ size: 'lg', ms: 120000 });
+    }
+  }
+  if (btn) btn.addEventListener('click', show);
+  /* Show immediately so headless --screenshot captures the overlay. */
+  show();
+})();
+</script>
+</body>
+</html>

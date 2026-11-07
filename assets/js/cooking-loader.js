@@ -3,6 +3,7 @@
 
    Shared “cooking” wait UI: a small charming pot loop + caption.
    Use CookingLoader.html() / .host() anywhere string-HTML loaders live.
+   Administrator → Development can call CookingLoader.preview() (LEA-69).
 -------------------------------------------------------------------*/
 (function (global) {
   'use strict';
@@ -120,10 +121,78 @@
     }) + '</div>';
   }
 
+  var previewEl = null;
+  var previewTimer = null;
+  var previewKeyHandler = null;
+
+  function hidePreview() {
+    if (previewTimer) {
+      clearTimeout(previewTimer);
+      previewTimer = null;
+    }
+    if (previewKeyHandler) {
+      document.removeEventListener('keydown', previewKeyHandler, true);
+      previewKeyHandler = null;
+    }
+    if (previewEl && previewEl.parentNode) previewEl.parentNode.removeChild(previewEl);
+    previewEl = null;
+  }
+
+  /* Full-screen TEST preview for Administrator → Development.
+     Auto-hides after `ms` (default 4s). Click Dismiss / press Escape to close. */
+  function preview(opts) {
+    opts = opts || {};
+    hidePreview();
+    var ms = opts.ms == null ? 4000 : Math.max(800, Number(opts.ms) || 4000);
+    var el = document.createElement('div');
+    el.className = 'cook-loader-preview';
+    el.setAttribute('role', 'dialog');
+    el.setAttribute('aria-modal', 'true');
+    el.setAttribute('aria-label', 'Cooking loader preview');
+    el.innerHTML =
+      '<div class="cook-loader-preview__card">' +
+        html({
+          size: opts.size || 'lg',
+          caption: opts.caption,
+          dots: opts.dots,
+          label: opts.label || 'Cooking loader preview'
+        }) +
+        '<p class="cook-loader-preview__hint">Admin preview · auto-hides in a few seconds</p>' +
+        '<button type="button" class="btn btn--sm cook-loader-preview__dismiss" data-cook-dismiss>' +
+          'Dismiss</button>' +
+      '</div>';
+    var dismissBtn = el.querySelector('[data-cook-dismiss]');
+    if (dismissBtn) {
+      dismissBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+        hidePreview();
+      });
+    }
+    el.addEventListener('click', function (e) {
+      if (e.target === el) hidePreview();
+    });
+    previewKeyHandler = function (e) {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        hidePreview();
+      }
+    };
+    document.addEventListener('keydown', previewKeyHandler, true);
+    document.body.appendChild(el);
+    previewEl = el;
+    previewTimer = setTimeout(hidePreview, ms);
+    if (dismissBtn && typeof dismissBtn.focus === 'function') {
+      try { dismissBtn.focus(); } catch (err) {}
+    }
+    return hidePreview;
+  }
+
   global.CookingLoader = {
     html: html,
     host: host,
     overlay: overlay,
+    preview: preview,
+    hidePreview: hidePreview,
     caption: DEFAULT_CAPTION
   };
 })(window);
