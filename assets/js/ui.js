@@ -1709,7 +1709,7 @@
     var si = document.getElementById('nav-signin');
     if (si) si.textContent = signedIn() ? (s.profile.displayName || 'My account') : 'Sign in';
     /* once there is an account the sign-up prompts have nothing to offer */
-    ['nav-signup', 'hero-signup'].forEach(function (id) {
+    ['nav-signup', 'hero-signup', 'cta-signup'].forEach(function (id) {
       var b = document.getElementById(id);
       if (b) b.classList.toggle('hidden', signedIn());
     });
