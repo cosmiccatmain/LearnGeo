@@ -21,7 +21,9 @@ const KNOWN_TRY = new Set([
   'crossing',
   'badges',
   'games',
-  'leaderboards'
+  'leaderboards',
+  'friend-inbox',
+  'duel-spectate'
 ]);
 
 test('updates.json entries each carry a known try action', () => {
@@ -36,6 +38,8 @@ test('updates.json entries each carry a known try action', () => {
   assert.equal(byId['2026-11-cooking-loader'], 'cooking');
   assert.equal(byId['2026-11-achievement-wallet'], 'achievements');
   assert.equal(byId['2026-11-geo-chess-pvp'], 'chess-pvp');
+  assert.equal(byId['2026-11-friend-inbox-menu'], 'friend-inbox');
+  assert.equal(byId['2026-11-duel-spectate'], 'duel-spectate');
 });
 
 test('updates.js seeds try fields and wires Try it UI + runTry', () => {

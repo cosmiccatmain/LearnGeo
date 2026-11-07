@@ -1,26 +1,29 @@
 {
-  "_comment": "Append newest entries at the top of `updates`. Each needs a unique `id`. Optional `image` is a path under /assets/. Optional `try` is a deep-link action id handled by LearnGeoUpdates.runTry (cooking, achievements, chess-pvp, chess, chess-boards, cosmetics-games, learn-filters, crossing, badges, games, leaderboards). Keep entries public-safe: no Pets/Brainrot, no admin-only or subscription marketing.",
+  "_comment": "Append newest entries at the top of `updates`. Each needs a unique `id`. Optional `image` is a path under /assets/. Optional `try` is a deep-link action id handled by LearnGeoUpdates.runTry (cooking, achievements, chess-pvp, chess, chess-boards, cosmetics-games, learn-filters, crossing, badges, games, leaderboards, friend-inbox, duel-spectate). Keep entries public-safe: no Pets/Brainrot, no admin-only or subscription marketing.",
   "updates": [
     {
       "id": "2026-11-friend-inbox-menu",
       "title": "Friend inbox in your menu",
       "body": "Open your profile menu (next to Customization) for Friend inbox — card gifts, wallet shares, and Geo Chess challenges in one place.",
       "image": "/assets/img/updates/achievement-cards.svg",
-      "date": "2026-11-07"
+      "date": "2026-11-07",
+      "try": "friend-inbox"
     },
     {
       "id": "2026-11-friend-inbox",
       "title": "Friend inbox",
       "body": "One Friend inbox for card gifts, wallet shares, and Geo Chess challenges — accept or decline without hunting through separate screens.",
       "image": "/assets/img/updates/achievement-cards.svg",
-      "date": "2026-11-07"
+      "date": "2026-11-07",
+      "try": "friend-inbox"
     },
     {
       "id": "2026-11-duel-spectate",
       "title": "Spectate Geo Duels",
       "body": "Teachers can open the new Duels tab in My class and watch a live student Geo Duel — scores and questions update as they play. Host view only; you stay out of the match.",
       "image": "/assets/img/updates/chess-duel.svg",
-      "date": "2026-11-07"
+      "date": "2026-11-07",
+      "try": "duel-spectate"
     },
     {
       "id": "2026-11-achievement-awards",

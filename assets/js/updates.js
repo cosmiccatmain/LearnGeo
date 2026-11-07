@@ -24,21 +24,24 @@
       title: 'Friend inbox in your menu',
       body: 'Open your profile menu (next to Customization) for Friend inbox — card gifts, wallet shares, and Geo Chess challenges in one place.',
       image: '/assets/img/updates/achievement-cards.svg',
-      date: '2026-11-07'
+      date: '2026-11-07',
+      try: 'friend-inbox'
     },
     {
       id: '2026-11-friend-inbox',
       title: 'Friend inbox',
       body: 'One Friend inbox for card gifts, wallet shares, and Geo Chess challenges — accept or decline without hunting through separate screens.',
       image: '/assets/img/updates/achievement-cards.svg',
-      date: '2026-11-07'
+      date: '2026-11-07',
+      try: 'friend-inbox'
     },
     {
       id: '2026-11-duel-spectate',
       title: 'Spectate Geo Duels',
       body: 'Teachers can open the new Duels tab in My class and watch a live student Geo Duel — scores and questions update as they play. Host view only; you stay out of the match.',
       image: '/assets/img/updates/chess-duel.svg',
-      date: '2026-11-07'
+      date: '2026-11-07',
+      try: 'duel-spectate'
     },
     {
       id: '2026-11-achievement-awards',
@@ -298,6 +301,16 @@
       case 'leaderboards':
         if (UI && UI.go) UI.go('games');
         if (global.GameBoards && global.GameBoards.open) global.GameBoards.open();
+        return;
+      case 'friend-inbox':
+        if (UI && UI.openFriendInbox) UI.openFriendInbox();
+        return;
+      case 'duel-spectate':
+        if (UI && UI.go) UI.go('teacher');
+        if (global.Teacher) {
+          global.Teacher.tab = 'duels';
+          if (global.Teacher.render) global.Teacher.render();
+        }
         return;
       default:
         return;
