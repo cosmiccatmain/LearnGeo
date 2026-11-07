@@ -179,13 +179,16 @@
 }
 .achv-card__brand {
   font-family: var(--serif);
-  font-size: 22px;
+  font-size: 34px;
   letter-spacing: -.02em;
+  line-height: 1.1;
 }
 .achv-card__brand-sub {
-  font-size: 12.5px;
-  opacity: .8;
-  max-width: 22ch;
+  font-size: 19px;
+  line-height: 1.35;
+  font-weight: 600;
+  opacity: .95;
+  max-width: 28ch;
 }
 
 /* depth offsets for the stack behind the front card */
