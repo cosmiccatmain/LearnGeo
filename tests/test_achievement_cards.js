@@ -1,4 +1,4 @@
-/* Node smoke checks for LEA-64 / LEA-67 / LEA-80 / LEA-84 Achievement wallet + Friend inbox (no browser). */
+/* Node smoke checks for LEA-64 / LEA-67 / LEA-74 / LEA-80 / LEA-84 Achievement wallet + Friend inbox (no browser). */
 var assert = require('assert');
 var fs = require('fs');
 var path = require('path');
@@ -14,8 +14,12 @@ var updates = fs.readFileSync(path.join(root, 'assets/data/updates.json'), 'utf8
 var updatesJs = fs.readFileSync(path.join(root, 'assets/js/updates.js'), 'utf8');
 var games = fs.readFileSync(path.join(root, 'assets/js/games.js'), 'utf8');
 var chessDuel = fs.readFileSync(path.join(root, 'assets/js/game-chess-duel.js'), 'utf8');
+var cosmetics = fs.readFileSync(path.join(root, 'assets/js/cosmetics.js'), 'utf8');
+var core = fs.readFileSync(path.join(root, 'assets/js/core.js'), 'utf8');
 var sql = fs.readFileSync(path.join(root, 'supabase/deployed/0023_achievement_cards.sql'), 'utf8');
 var sqlWallet = fs.readFileSync(path.join(root, 'supabase/deployed/0025_achievement_wallet_share.sql'), 'utf8');
+var sqlSeasonal = fs.readFileSync(
+  path.join(root, 'supabase/deployed/0028_seasonal_achievement_cards.sql'), 'utf8');
 var readme = fs.readFileSync(path.join(root, 'supabase/deployed/README.md'), 'utf8');
 
 assert(/view: 'achievements'/.test(ui) || /view:\s*'achievements'/.test(ui),
@@ -113,14 +117,22 @@ assert(/2026-11-achievement-wallet/.test(updates), 'updates.json wallet entry');
 assert(/2026-11-achievement-awards/.test(updates), 'updates.json award-back entry');
 assert(/2026-11-friend-inbox/.test(updates), 'updates.json Friend inbox entry');
 assert(/2026-11-friend-inbox-menu/.test(updates), 'updates.json Friend inbox menu entry');
+assert(/2026-11-seasonal-awards/.test(updates), 'updates.json seasonal awards entry');
 assert(/2026-11-achievement-cards/.test(updatesJs), 'updates.js seeded entry');
 assert(/2026-11-achievement-wallet/.test(updatesJs), 'updates.js wallet seeded entry');
 assert(/2026-11-achievement-awards/.test(updatesJs), 'updates.js award-back seeded entry');
 assert(/2026-11-friend-inbox/.test(updatesJs), 'updates.js Friend inbox seeded entry');
 assert(/2026-11-friend-inbox-menu/.test(updatesJs), 'updates.js Friend inbox menu seeded entry');
+assert(/2026-11-seasonal-awards/.test(updatesJs), 'updates.js seasonal awards seeded entry');
 assert(!/Pets|Brainrot|screen.?mirror/i.test(
   updates.match(/2026-11-friend-inbox-menu[\s\S]*?\},/)[0]),
   'What’s New Friend inbox menu entry stays public-safe');
+assert(!/Pets|Brainrot|screen.?mirror/i.test(
+  updates.match(/2026-11-achievement-awards[\s\S]*?\},/)[0]),
+  'What’s New award-back entry stays public-safe');
+assert(!/Pets|Brainrot|screen.?mirror/i.test(
+  updates.match(/2026-11-seasonal-awards[\s\S]*?\},/)[0]),
+  'What’s New seasonal entry stays public-safe');
 
 /* LEA-80 / LEA-84 — Friend inbox (cards + wallets + chess) in profile menu */
 assert(/openFriendInbox/.test(cards) && /openFriendInbox/.test(ui),
@@ -143,5 +155,29 @@ assert(!/Stripe|screen.?mirror|vercel --prod/i.test(cards + games + ui),
 
 assert(fs.existsSync(path.join(root, 'assets/img/updates/achievement-cards.svg')),
   'What’s New art exists');
+
+/* LEA-74 — seasonal / time-limited awards in the wallet */
+assert(/seasonal:\s*true/.test(cosmetics) && /geo-awareness/.test(cosmetics) &&
+  /earth-day/.test(cosmetics) && /winter-globe/.test(cosmetics),
+  'cosmetics.js lists seasonal challenge achievements');
+assert(/seasonInWindow/.test(cosmetics) && /seasonEditionYear/.test(cosmetics),
+  'cosmetics exports seasonal window helpers');
+assert(/noteSeasonalProgress/.test(core) && /state\.seasonal/.test(core) &&
+  /testSeasonal/.test(core),
+  'core.js tracks in-window seasonal progress + unlocks');
+assert(/walletCatalog|seasonActive|is-seasonal|Challenge · open|Seasonal award/.test(cards),
+  'wallet shows seasonal cards with challenge chrome');
+assert(/'geo-awareness'/.test(cards) && /'earth-day'/.test(cards) &&
+  /motif:\s*'leaf'/.test(cards) && /motif:\s*'snowflake'/.test(cards),
+  'seasonal award badge meta + motifs present');
+assert(/is-seasonal/.test(css) && /achv-chip--seasonal/.test(css),
+  'seasonal card front styles present');
+assert(!/Syne|Plus Jakarta/i.test(css), 'LEA-74 keeps original LearnGeo fonts');
+assert(/geo-awareness/.test(sqlSeasonal) && /winter-globe/.test(sqlSeasonal) &&
+  /ach_card_id_ok/.test(sqlSeasonal),
+  '0028 extends ach_card_id_ok for seasonal ids');
+assert(/0028_seasonal_achievement_cards/.test(readme),
+  'deployed README documents 0028');
+assert(/is-flipped|rotateY/.test(cards + css), 'flip cards retained with seasonal awards');
 
 console.log('test_achievement_cards.js: ok');

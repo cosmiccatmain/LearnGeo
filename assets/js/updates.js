@@ -20,6 +20,14 @@
      own What’s New id. `try` deep-links into the feature (LEA-79). */
   var UPDATES = [
     {
+      id: '2026-11-seasonal-awards',
+      title: 'Seasonal award cards',
+      body: 'Time-limited holiday and challenge awards drop into your achievement wallet while they’re open — enamel badges you can flip, keep forever, and share like the rest of your stack.',
+      image: '/assets/img/updates/achievement-cards.svg',
+      date: '2026-11-07',
+      try: 'achievements'
+    },
+    {
       id: '2026-11-friend-inbox-menu',
       title: 'Friend inbox in your menu',
       body: 'Open your profile menu (next to Customization) for Friend inbox — card gifts, wallet shares, and Geo Chess challenges in one place.',

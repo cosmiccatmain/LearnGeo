@@ -157,6 +157,9 @@
       deviceId: '',         /* random, made here; what a gamertag is tied to */
       boardSent: {},            /* last score sent to each game's board */
       achievements: [],
+      /* LEA-74: per-challenge progress while a seasonal window is open.
+         Keyed by achievement id → { year, answered, correct, streakBest, unlockedAt }. */
+      seasonal: {},
       secrets: {},
       role: 'student',            /* 'student' | 'teacher' */
       roleChosen: false,          /* asked once, on first entry */
@@ -396,8 +399,36 @@
       setTimeout(function () { celebrateGoal(b, ds); }, 520);
     }
 
+    /* Seasonal challenge counters only move while the window is open. */
+    noteSeasonalProgress(correct);
+
     save();
     return gains;
+  }
+
+  /* LEA-74 — bump in-window counters for active seasonal awards. */
+  function noteSeasonalProgress(correct) {
+    var Cos = global.Cosmetics;
+    if (!Cos || !Cos.achievements) return;
+    var now = new Date();
+    if (!state.seasonal) state.seasonal = {};
+    Cos.achievements.forEach(function (a) {
+      if (!a.seasonal || !a.season) return;
+      if (!Cos.seasonInWindow(a.season, now)) return;
+      var year = Cos.seasonEditionYear(a.season, now);
+      var slot = state.seasonal[a.id];
+      if (!slot || slot.year !== year) {
+        slot = { year: year, answered: 0, correct: 0, streakBest: 0, unlockedAt: '' };
+        state.seasonal[a.id] = slot;
+      }
+      slot.answered = (slot.answered || 0) + 1;
+      if (correct) {
+        slot.correct = (slot.correct || 0) + 1;
+        if (state.streak.current > (slot.streakBest || 0)) {
+          slot.streakBest = state.streak.current;
+        }
+      }
+    });
   }
 
   /* One unlock notice for the whole app.
@@ -418,8 +449,11 @@
     (list || []).forEach(function (a, i) {
       setTimeout(function () {
         Sound.gem();
-        toast('Achievement: ' + a.name,
-          a.desc + '  ·  +' + a.reward + ' 💎  ·  badge unlocked', Icons.trophy, 4200);
+        var kind = a.seasonal ? 'Seasonal award' : 'Achievement';
+        var tail = a.seasonal
+          ? ('  ·  +' + a.reward + ' 💎  ·  drops into your wallet')
+          : ('  ·  +' + a.reward + ' 💎  ·  badge unlocked');
+        toast(kind + ': ' + a.name, a.desc + tail, Icons.trophy, 4200);
       }, 600 + i * 500);
     });
     return list || [];
@@ -456,13 +490,22 @@
   }
 
   function checkAchievements() {
-    var C = global.Cosmetics.achievements;
+    var Cos = global.Cosmetics;
+    var C = Cos.achievements;
     var unlocked = [];
+    var now = new Date();
     C.forEach(function (a) {
       if (state.achievements.indexOf(a.id) !== -1) return;
-      if (test(a.id)) {
+      if (test(a)) {
         state.achievements.push(a.id);
         state.economy.diamonds += a.reward;
+        if (a.seasonal) {
+          if (!state.seasonal) state.seasonal = {};
+          var slot = state.seasonal[a.id] || {};
+          slot.year = Cos.seasonEditionYear(a.season, now);
+          slot.unlockedAt = now.toISOString();
+          state.seasonal[a.id] = slot;
+        }
         unlocked.push(a);
       }
     });
@@ -476,7 +519,9 @@
 
     return unlocked;
 
-    function test(id) {
+    function test(a) {
+      if (a.seasonal && a.season) return testSeasonal(a);
+      var id = a.id;
       var s = state.stats;
       switch (id) {
         case 'first-steps':   return s.answered >= 1;
@@ -491,6 +536,14 @@
         case 'region-master': return regionMastered();
         default: return false;
       }
+    }
+    function testSeasonal(a) {
+      if (!Cos.seasonInWindow(a.season, now)) return false;
+      var year = Cos.seasonEditionYear(a.season, now);
+      var slot = (state.seasonal && state.seasonal[a.id]) || null;
+      if (!slot || slot.year !== year) return false;
+      var have = Cos.seasonProgressValue(slot, a.season.metric);
+      return have >= (a.season.goal || 1);
     }
     function regionMastered() {
       var regions = global.GeoData.regions;
