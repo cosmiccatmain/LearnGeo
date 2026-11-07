@@ -254,7 +254,11 @@
     switch (action) {
       case 'cooking':
         if (global.CookingLoader && global.CookingLoader.preview) {
-          global.CookingLoader.preview({ size: 'lg', ms: 4000 });
+          global.CookingLoader.preview({
+            size: 'lg',
+            ms: 4000,
+            hint: 'Loading preview · auto-hides in a few seconds'
+          });
         }
         return;
       case 'achievements':

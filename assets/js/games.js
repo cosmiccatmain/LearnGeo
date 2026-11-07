@@ -844,7 +844,9 @@
   }
 
   /* Deep-link helper (What’s New Try it, toasts). Opens a game’s setup
-     screen. opts.opponent: 'bot' | 'pvp' for Geo Chess. */
+     screen. opts.opponent: 'bot' | 'pvp' for Geo Chess. Guests hit the
+     account gate first; opponent / _openPvp survive so Challenge mode
+     resumes after sign-in. */
   function open(gameId, opts) {
     opts = opts || {};
     if (gameId === 'chessduel') gameId = 'chess';
@@ -852,7 +854,13 @@
     if (!g) return;
     if (g.id === 'chess') {
       var r = record('chess');
-      r.opponent = opts.opponent === 'pvp' ? 'pvp' : 'bot';
+      if (opts.opponent === 'pvp') {
+        r.opponent = 'pvp';
+        r._openPvp = true;
+      } else {
+        r.opponent = 'bot';
+        delete r._openPvp;
+      }
       W.save();
     }
     current = g.id;
