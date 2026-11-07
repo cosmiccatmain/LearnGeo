@@ -5,6 +5,10 @@
    decline, then you both play the same five geography questions at once.
    Correct + faster wins the round. First to the better score wins the
    match. Server: supabase/deployed/0014_pvp_geo_duel.sql (+ 0017 join flow).
+
+   The live round is not rebuilt on the inbox/match poll. Speed is measured
+   from the server round clock (round_started_at, corrected when the server
+   sends server_now / round_remaining_ms). Out-of-order polls are dropped.
 -------------------------------------------------------------------*/
 (function (global) {
   'use strict';
@@ -78,6 +82,37 @@
     var theme = equippedDuelAccent();
     el.style.setProperty('--duel-accent', theme.accent || '#1B4DFF');
     el.style.setProperty('--duel-accent-soft', theme.soft || 'rgba(27,77,255,.08)');
+  }
+
+  /* Postgres / PostgREST sometimes emits offsets V8 will not parse
+     ("...123456+00"). A failed parse used to freeze the round clock. */
+  function parseTs(v) {
+    if (v == null || v === '') return 0;
+    if (typeof v === 'number' && isFinite(v)) return v;
+    var s = String(v).trim();
+    var t = Date.parse(s);
+    if (t) return t;
+    var fixed = s.replace(/([+-]\d{2})$/, '$1:00').replace(' ', 'T');
+    t = Date.parse(fixed);
+    return t || 0;
+  }
+
+  function inboxSignature(box) {
+    box = box || lastInbox;
+    function ids(list) {
+      return (list || []).map(function (inv) { return inv && inv.id ? String(inv.id) : ''; }).join(',');
+    }
+    var act = '';
+    if (box.active && box.active.id) {
+      act = [
+        box.active.id,
+        box.active.status || '',
+        box.active.current_round,
+        box.active.host_score,
+        box.active.guest_score
+      ].join(':');
+    }
+    return ids(box.incoming) + '|' + ids(box.outgoing) + '|' + act;
   }
 
   /* ========================= question pack ======================== */
@@ -169,7 +204,7 @@
   function inboxHtml(box) {
     box = box || lastInbox;
     var parts = [];
-    if (box.active) {
+    if (box.active && (box.active.status === 'seeding' || box.active.status === 'active' || !box.active.status)) {
       parts.push(
         '<div class="duel-note duel-note--live">' +
           '<div><b>Match in progress</b><span>vs ' +
@@ -207,12 +242,19 @@
     function refresh() {
       fetchInbox().then(function () {
         var host = W.$('[data-duel-inbox]', el);
-        if (host) host.innerHTML = inboxHtml(lastInbox);
+        if (!host) return;
+        var sig = inboxSignature(lastInbox);
+        if (host.getAttribute('data-inbox-sig') === sig) return;
+        host.setAttribute('data-inbox-sig', sig);
+        host.innerHTML = inboxHtml(lastInbox);
         wireInbox(el, onMatch);
       });
     }
     W.$$('[data-duel-accept]', el).forEach(function (b) {
       b.addEventListener('click', function () {
+        if (b.disabled || b.getAttribute('data-busy') === '1') return;
+        b.disabled = true;
+        b.setAttribute('data-busy', '1');
         ensureTag(function () {
           function acceptOnce() {
             return rpc('pvp_respond_invite', {
@@ -226,6 +268,8 @@
             return res;
           }).then(function (res) {
             if (!res || !res.ok) {
+              b.disabled = false;
+              b.removeAttribute('data-busy');
               W.toast('Could not accept', errMsg(res && res.error), I.info, 3600);
               return refresh();
             }
@@ -237,6 +281,8 @@
     });
     W.$$('[data-duel-decline]', el).forEach(function (b) {
       b.addEventListener('click', function () {
+        if (b.getAttribute('data-busy') === '1') return;
+        b.setAttribute('data-busy', '1');
         rpc('pvp_respond_invite', {
           p_device: deviceId(), p_invite: b.getAttribute('data-duel-decline'), p_accept: false
         }).then(function () { refresh(); });
@@ -244,6 +290,8 @@
     });
     W.$$('[data-duel-cancel]', el).forEach(function (b) {
       b.addEventListener('click', function () {
+        if (b.getAttribute('data-busy') === '1') return;
+        b.setAttribute('data-busy', '1');
         rpc('pvp_cancel_invite', {
           p_device: deviceId(), p_invite: b.getAttribute('data-duel-cancel')
         }).then(function () { refresh(); });
@@ -277,6 +325,10 @@
     if (myTag() && tag.toLowerCase() === myTag().toLowerCase()) {
       return Promise.resolve({ ok: false, error: 'self' });
     }
+    if (lastInbox.active && lastInbox.active.id &&
+        (lastInbox.active.status === 'seeding' || lastInbox.active.status === 'active' || !lastInbox.active.status)) {
+      return Promise.resolve({ ok: false, error: 'busy' });
+    }
     return rpc('pvp_lookup_tag', { p_tag: tag }).then(function (rows) {
       if (rows && rows.ok === false) return rows;
       var row = Array.isArray(rows) ? rows[0] : rows;
@@ -292,24 +344,161 @@
   /* ============================ mount ============================= */
   function mount(host, opts) {
     opts = opts || {};
+    var savedKind = W.state && W.state.games && W.state.games.duel && W.state.games.duel.kind;
     var matchId = opts.matchId || null;
-    var kind = opts.kind || 'mix';
+    var kind = opts.kind || savedKind || 'mix';
     var cfg = typeof opts.cfg === 'function' ? opts.cfg() : (opts.cfg || {});
     var destroyed = false;
     var poll = null;
+    var tickTimer = null;
     var state = null;
     var localAnswered = false;
-    var roundStartedLocal = 0;
+    var selectedChoice = null;
+    var submitInFlight = false;
     var scoredWin = false;
     var entering = false;
+    var paintedSig = '';
+    var inboxSigSeen = '';
+    var refreshGen = 0;
+    var remainAnchor = null;
+    var clockSkew = 0;
 
     host.innerHTML = '<div class="duel" tabindex="-1"><div class="duel__body" data-duel-body></div></div>';
     var body = W.$('[data-duel-body]', host);
 
+    function rememberKind(next) {
+      kind = next;
+      var games = (W.state.games || (W.state.games = {}));
+      var rec = games.duel || (games.duel = {});
+      if (rec.kind !== next) {
+        rec.kind = next;
+        if (W.save) W.save();
+      }
+    }
+
+    function noteServerClock(res) {
+      if (!res) return;
+      if (typeof res.round_remaining_ms === 'number' && isFinite(res.round_remaining_ms)) {
+        remainAnchor = { ms: res.round_remaining_ms, at: Date.now() };
+      } else {
+        remainAnchor = null;
+      }
+      var srv = parseTs(res.server_now);
+      clockSkew = srv ? (srv - Date.now()) : 0;
+    }
+
+    function serverNowMs() { return Date.now() + clockSkew; }
+
+    function remainingMs() {
+      if (!state || state.status !== 'active') return 0;
+      if (remainAnchor) return Math.max(0, remainAnchor.ms - (Date.now() - remainAnchor.at));
+      var start = parseTs(state.round_started_at);
+      var total = (state.round_seconds || 18) * 1000;
+      if (!start) return total;
+      return Math.max(0, total - (serverNowMs() - start));
+    }
+
+    function remainingSec() {
+      return Math.max(0, Math.ceil(remainingMs() / 1000));
+    }
+
+    function elapsedAnswerMs() {
+      var total = ((state && state.round_seconds) || 18) * 1000;
+      if (remainAnchor) {
+        var leftNow = Math.max(0, remainAnchor.ms - (Date.now() - remainAnchor.at));
+        return Math.max(0, Math.min(60000, Math.round(total - leftNow)));
+      }
+      var start = parseTs(state && state.round_started_at);
+      if (!start) return 0;
+      return Math.max(0, Math.min(60000, Math.round(serverNowMs() - start)));
+    }
+
+    function lastRoundNote() {
+      var results = (state && state.round_results) || [];
+      if (!state || !results.length) return '';
+      var rr = results[results.length - 1];
+      if (!rr || rr.round !== state.current_round - 1) return '';
+      var mine = state.role === 'host' ? rr.winner === 'host' : rr.winner === 'guest';
+      var opp = state.role === 'host' ? rr.winner === 'guest' : rr.winner === 'host';
+      if (rr.winner === 'draw') return 'Last round was a draw.';
+      if (rr.winner === 'none') return 'Last round: nobody scored.';
+      if (mine) return 'You took the last round.';
+      if (opp) return 'Opponent took the last round.';
+      return '';
+    }
+
+    function statusText() {
+      var locked = !!(state && state.answered_me) || localAnswered || remainingMs() <= 0;
+      var base = locked
+        ? (state && state.answered_them
+          ? 'Both answered — scoring…'
+          : (remainingMs() <= 0 && !(state && state.answered_me)
+            ? 'Time’s up.'
+            : 'Answer locked. Waiting for your opponent…'))
+        : 'Answer faster than your opponent. Wrong answers score nothing.';
+      var note = lastRoundNote();
+      return note ? note + ' ' + base : base;
+    }
+
+    function liveSig(s) {
+      var r = (s && s.round) || {};
+      return [
+        s.status,
+        s.current_round,
+        s.round_count,
+        s.host_score,
+        s.guest_score,
+        s.answered_me ? 1 : 0,
+        s.answered_them ? 1 : 0,
+        r.prompt || '',
+        (r.choices || []).length
+      ].join('\u001f');
+    }
+
+    function lockChoices(choice) {
+      W.$$('[data-choice]', body).forEach(function (b) {
+        b.classList.add('is-locked');
+        var idx = +b.getAttribute('data-choice');
+        b.classList.toggle('is-selected', choice != null && idx === choice);
+      });
+    }
+
+    function unlockChoices() {
+      W.$$('[data-choice]', body).forEach(function (b) {
+        b.classList.remove('is-locked', 'is-selected');
+      });
+    }
+
+    function updateRoundChrome() {
+      if (!state || state.status !== 'active') return;
+      var small = W.$('.duel-round small', body);
+      if (small) small.textContent = remainingSec() + 's';
+      var status = W.$('[data-duel-status]', body);
+      if (status) status.textContent = statusText();
+      if (localAnswered || state.answered_me || remainingMs() <= 0) lockChoices(selectedChoice);
+      else unlockChoices();
+    }
+
+    function renderInbox() {
+      var slot = body && W.$('[data-duel-inbox]', body);
+      if (!slot) return;
+      var sig = inboxSignature(lastInbox);
+      if (sig === inboxSigSeen && slot.getAttribute('data-inbox-sig') === sig) return;
+      inboxSigSeen = sig;
+      slot.setAttribute('data-inbox-sig', sig);
+      slot.innerHTML = inboxHtml(lastInbox);
+      wireInbox(body, function (id) { enterMatch(id); });
+    }
+
     function paint() {
       if (destroyed || !body) return;
-      if (!matchId) return paintLobby();
+      if (!matchId) {
+        paintedSig = '';
+        return paintLobby();
+      }
       if (!state) {
+        if (paintedSig === 'loading') return;
+        paintedSig = 'loading';
         body.innerHTML = global.CookingLoader
           ? global.CookingLoader.host({ tall: true, note: 'Loading match…' })
           : '<div class="duel-wait"><div class="duel-wait__pulse"></div><p>Loading match…</p></div>';
@@ -318,29 +507,37 @@
       }
       if (state.status === 'seeding') return paintSeeding();
       if (state.status === 'finished') return paintFinished();
-      return paintRound();
+      if (state.status !== 'active') return paintClosed();
+      var sig = liveSig(state);
+      if (sig === paintedSig && W.$('[data-choice]', body)) {
+        updateRoundChrome();
+        return;
+      }
+      paintedSig = sig;
+      paintRound();
     }
 
     /* Host was stuck in the lobby after the friend accepted: inbox polling
        updated lastInbox.active but nothing entered the match or re-dealt
-       the lobby UI. Listen while we are still in the lobby. */
+       the lobby UI. Listen while we are still in the lobby. The invite
+       list itself is left alone when nothing changed, so Accept is not
+       destroyed under the cursor every two seconds. */
     function onInboxEvent(ev) {
       if (destroyed || matchId || entering) return;
       var box = (ev && ev.detail) || lastInbox;
-      if (box && box.active && box.active.id) {
+      if (box && box.active && box.active.id &&
+          (box.active.status === 'seeding' || box.active.status === 'active' || !box.active.status)) {
         entering = true;
         W.toast('Challenge accepted', 'Entering Geo Duel…', I.check, 2800);
         enterMatch(box.active.id);
         return;
       }
-      var inboxEl = body && W.$('[data-duel-inbox]', body);
-      if (!inboxEl) return;
-      inboxEl.innerHTML = inboxHtml(box || lastInbox);
-      wireInbox(body, function (id) { enterMatch(id); });
+      renderInbox();
     }
     global.addEventListener('learngeo:pvp-inbox', onInboxEvent);
 
     function paintLobby() {
+      inboxSigSeen = inboxSignature(lastInbox);
       body.innerHTML =
         '<div class="duel-lobby">' +
           '<div class="duel-lobby__hero">' +
@@ -366,13 +563,13 @@
           '</div>' +
           '<div class="duel-inbox panel">' +
             '<div class="panel__head"><h3>Invites</h3></div>' +
-            '<div data-duel-inbox>' + inboxHtml(lastInbox) + '</div>' +
+            '<div data-duel-inbox data-inbox-sig="' + esc(inboxSigSeen) + '">' + inboxHtml(lastInbox) + '</div>' +
           '</div>' +
         '</div>';
 
       W.$$('[data-kind] button', body).forEach(function (b) {
         b.addEventListener('click', function () {
-          kind = b.dataset.v;
+          rememberKind(b.dataset.v);
           W.$$('[data-kind] button', body).forEach(function (x) {
             x.classList.toggle('is-active', x === b);
           });
@@ -396,13 +593,7 @@
                   }
                   W.toast('Invite sent', 'Waiting for ' + (retry.to_tag || tag) + '…', I.check, 3600);
                   input.value = '';
-                  fetchInbox().then(function () {
-                    var box = W.$('[data-duel-inbox]', body);
-                    if (box) {
-                      box.innerHTML = inboxHtml(lastInbox);
-                      wireInbox(body, function (id) { enterMatch(id); });
-                    }
-                  });
+                  fetchInbox().then(function () { renderInbox(); });
                 });
                 return;
               }
@@ -411,52 +602,49 @@
             }
             W.toast('Invite sent', 'Waiting for ' + (res.to_tag || tag) + '…', I.check, 3600);
             input.value = '';
-            fetchInbox().then(function () {
-              var box = W.$('[data-duel-inbox]', body);
-              if (box) {
-                box.innerHTML = inboxHtml(lastInbox);
-                wireInbox(body, function (id) { enterMatch(id); });
-              }
-            });
+            fetchInbox().then(function () { renderInbox(); });
           });
         });
       });
       wireInbox(body, function (id) { enterMatch(id); });
       fetchInbox().then(function () {
         if (destroyed || matchId) return;
-        if (lastInbox.active && lastInbox.active.id) {
+        if (lastInbox.active && lastInbox.active.id &&
+            (lastInbox.active.status === 'seeding' || lastInbox.active.status === 'active' || !lastInbox.active.status)) {
           entering = true;
           enterMatch(lastInbox.active.id);
           return;
         }
-        var box = W.$('[data-duel-inbox]', body);
-        if (box) { box.innerHTML = inboxHtml(lastInbox); wireInbox(body, function (id) { enterMatch(id); }); }
+        renderInbox();
       });
       applyDuelAccent(body.firstChild);
     }
 
     function paintSeeding() {
-      var iAmHost = state.role === 'host';
-      var seedNote = iAmHost ? 'Building your question set…' : 'Waiting for the host to deal the questions…';
-      body.innerHTML =
-        '<div class="duel-wait">' +
-          '<div class="duel-vs">' +
-            '<span>' + esc(state.host_tag || 'Host') + '</span>' +
-            '<b>VS</b>' +
-            '<span>' + esc(state.guest_tag || 'Guest') + '</span>' +
-          '</div>' +
-          (global.CookingLoader
-            ? global.CookingLoader.html({ size: 'md' }) +
-              '<p class="cook-loader-host__note">' + esc(seedNote) + '</p>'
-            : '<div class="duel-wait__pulse"></div><p>' + esc(seedNote) + '</p>') +
-          '<div class="duel-play__foot" style="margin-top:18px">' +
-            '<button class="btn btn--ghost btn--sm" type="button" data-duel-forfeit>Leave match</button>' +
-          '</div>' +
-        '</div>';
-      var leave = W.$('[data-duel-forfeit]', body);
-      if (leave) leave.addEventListener('click', forfeit);
-      applyDuelAccent(body.firstChild);
-      if (iAmHost) seedIfNeeded();
+      if (!W.$('[data-duel-seeding]', body)) {
+        paintedSig = 'seeding';
+        var iAmHost = state.role === 'host';
+        var seedNote = iAmHost ? 'Building your question set…' : 'Waiting for the host to deal the questions…';
+        body.innerHTML =
+          '<div class="duel-wait" data-duel-seeding>' +
+            '<div class="duel-vs">' +
+              '<span>' + esc(state.host_tag || 'Host') + '</span>' +
+              '<b>VS</b>' +
+              '<span>' + esc(state.guest_tag || 'Guest') + '</span>' +
+            '</div>' +
+            (global.CookingLoader
+              ? global.CookingLoader.html({ size: 'md' }) +
+                '<p class="cook-loader-host__note">' + esc(seedNote) + '</p>'
+              : '<div class="duel-wait__pulse"></div><p>' + esc(seedNote) + '</p>') +
+            '<div class="duel-play__foot" style="margin-top:18px">' +
+              '<button class="btn btn--ghost btn--sm" type="button" data-duel-forfeit>Leave match</button>' +
+            '</div>' +
+          '</div>';
+        var leave = W.$('[data-duel-forfeit]', body);
+        if (leave) leave.addEventListener('click', forfeit);
+        applyDuelAccent(body.firstChild);
+      }
+      if (state.role === 'host') seedIfNeeded();
     }
 
     function seedIfNeeded() {
@@ -484,18 +672,10 @@
       });
     }
 
-    function remainingSec() {
-      if (!state || !state.round_started_at) return state && state.round_seconds || 18;
-      var start = Date.parse(state.round_started_at);
-      if (!start) return state.round_seconds || 18;
-      var left = (state.round_seconds || 18) - ((Date.now() - start) / 1000);
-      return Math.max(0, Math.ceil(left));
-    }
-
     function paintRound() {
       var r = state.round || {};
       var keys = 'ABCD';
-      var locked = !!state.answered_me || localAnswered;
+      var locked = !!state.answered_me || localAnswered || remainingMs() <= 0;
       var left = remainingSec();
       body.innerHTML =
         '<div class="duel-play">' +
@@ -517,7 +697,10 @@
             '</div>' +
             '<div class="options' + (r.flag_choices ? ' options--flags' : '') + '">' +
               (r.choices || []).map(function (ch, idx) {
-                return '<button type="button" class="option' + (locked ? ' is-locked' : '') +
+                var chosen = selectedChoice != null && idx === selectedChoice;
+                return '<button type="button" class="option' +
+                  (locked ? ' is-locked' : '') +
+                  (chosen ? ' is-selected' : '') +
                   '" data-choice="' + idx + '">' +
                   '<span class="option__key">' + keys.charAt(idx) + '</span>' +
                   '<span class="option__text">' +
@@ -527,22 +710,15 @@
                   '</span></button>';
               }).join('') +
             '</div>' +
-            '<p class="duel-status t-sm t-muted">' +
-              (locked
-                ? (state.answered_them ? 'Both answered — scoring…' : 'Answer locked. Waiting for your opponent…')
-                : 'Answer faster than your opponent. Wrong answers score nothing.') +
-            '</p>' +
+            '<p class="duel-status t-sm t-muted" data-duel-status>' + esc(statusText()) + '</p>' +
           '</div>' +
           '<div class="duel-play__foot">' +
             '<button class="btn btn--ghost btn--sm" type="button" data-duel-forfeit>Forfeit</button>' +
           '</div>' +
         '</div>';
 
-      if (!roundStartedLocal) roundStartedLocal = Date.now();
-
       W.$$('[data-choice]', body).forEach(function (btn) {
         btn.addEventListener('click', function () {
-          if (locked || localAnswered) return;
           answer(+btn.getAttribute('data-choice'));
         });
       });
@@ -556,34 +732,62 @@
     function onKey(e) {
       if (destroyed || !state || state.status !== 'active') return;
       if (e.target && /input|textarea/i.test(e.target.tagName)) return;
-      var map = { a: 0, b: 1, c: 2, d: 3, Digita: 0, Digitb: 1, Digit1: 0, Digit2: 1, Digit3: 2, Digit4: 3 };
-      var idx = map[e.key];
-      if (idx === undefined && /^[1-4]$/.test(e.key)) idx = +e.key - 1;
-      if (idx === undefined && /^[a-d]$/i.test(e.key)) idx = e.key.toLowerCase().charCodeAt(0) - 97;
+      var idx;
+      if (/^[1-4]$/.test(e.key)) idx = +e.key - 1;
+      else if (/^[a-d]$/i.test(e.key)) idx = e.key.toLowerCase().charCodeAt(0) - 97;
       if (idx === undefined) return;
       e.preventDefault();
       answer(idx);
     }
 
     function answer(choice) {
-      if (!state || state.status !== 'active' || localAnswered || state.answered_me) return;
+      if (!state || state.status !== 'active' || submitInFlight) return;
+      if (localAnswered || state.answered_me) return;
       if (!state.round || !state.round.choices || choice < 0 || choice >= state.round.choices.length) return;
+      if (remainingMs() <= 0) {
+        lockChoices(selectedChoice);
+        updateRoundChrome();
+        refresh();
+        return;
+      }
+      var sentRound = state.current_round;
       localAnswered = true;
-      var ms = Math.max(0, Date.now() - (roundStartedLocal || Date.now()));
-      W.$$('[data-choice]', body).forEach(function (b) {
-        b.classList.add('is-locked');
-        if (+b.getAttribute('data-choice') === choice) b.classList.add('is-selected');
-      });
+      selectedChoice = choice;
+      submitInFlight = true;
+      lockChoices(choice);
+      var status = W.$('[data-duel-status]', body);
+      if (status) status.textContent = statusText();
+      var ms = elapsedAnswerMs();
       rpc('pvp_submit_answer', {
         p_device: deviceId(),
         p_match: matchId,
-        p_round: state.current_round,
+        p_round: sentRound,
         p_choice: choice,
         p_ms: ms
-      }).then(function () { refresh(); });
+      }).then(function (res) {
+        submitInFlight = false;
+        var failed = !res || !res.ok;
+        var terminal = !!(res && (res.error === 'already' || res.error === 'wrong_round' || res.error === 'not_active'));
+        refresh().then(function () {
+          if (!failed || terminal) return;
+          if (!state || state.status !== 'active') return;
+          if (state.current_round !== sentRound) return;
+          if (state.answered_me) return;
+          localAnswered = false;
+          selectedChoice = null;
+          unlockChoices();
+          updateRoundChrome();
+        });
+      });
     }
 
     function paintFinished() {
+      var finSig = 'fin:' + state.host_score + ':' + state.guest_score + ':' +
+        (state.i_won ? 1 : 0) + ':' + (state.draw ? 1 : 0) + ':' + (state.winner_tag || '');
+      if (paintedSig === finSig && W.$('[data-duel-finished]', body)) return;
+      paintedSig = finSig;
+      stopPoll();
+      if (lastInbox.active && lastInbox.active.id === matchId) lastInbox.active = null;
       var title = state.draw ? 'Draw' : (state.i_won ? 'You win!' : 'Defeat');
       var sub = state.draw
         ? 'Even score — rematch from the lobby.'
@@ -591,7 +795,7 @@
           ? 'Nice work. Invite them again, or challenge someone from another school.'
           : (state.winner_tag || 'Your opponent') + ' took it this time.');
       body.innerHTML =
-        '<div class="duel-end">' +
+        '<div class="duel-end" data-duel-finished>' +
           '<div class="duel-end__badge' + (state.i_won ? ' is-win' : state.draw ? '' : ' is-loss') + '">' +
             esc(title) + '</div>' +
           '<div class="duel-vs">' +
@@ -607,12 +811,27 @@
         '</div>';
       maybeRecordWin();
       applyDuelAccent(body.firstChild);
-      W.$('[data-duel-again]', body).addEventListener('click', function () {
-        matchId = null; state = null; entering = false; stopPoll(); paint();
-      });
+      W.$('[data-duel-again]', body).addEventListener('click', leaveToLobby);
       W.$('[data-duel-back]', body).addEventListener('click', function () {
         if (opts.onBack) opts.onBack();
       });
+    }
+
+    function paintClosed() {
+      if (paintedSig === 'closed' && W.$('[data-duel-closed]', body)) return;
+      paintedSig = 'closed';
+      stopPoll();
+      if (lastInbox.active && lastInbox.active.id === matchId) lastInbox.active = null;
+      body.innerHTML =
+        '<div class="duel-end" data-duel-closed>' +
+          '<div class="duel-end__badge">Match closed</div>' +
+          '<p>This duel ended before the questions finished. You can challenge them again from the lobby.</p>' +
+          '<div class="duel-end__actions">' +
+            '<button class="btn btn--accent" type="button" data-duel-again>Back to lobby</button>' +
+          '</div>' +
+        '</div>';
+      applyDuelAccent(body.firstChild);
+      W.$('[data-duel-again]', body).addEventListener('click', leaveToLobby);
     }
 
     function maybeRecordWin() {
@@ -639,32 +858,78 @@
     }
 
     function forfeit() {
-      var id = matchId;
-      rpc('pvp_forfeit_match', { p_device: deviceId(), p_match: id }).then(function () {
-        matchId = null;
-        state = null;
-        entering = false;
-        stopPoll();
-        fetchInbox().then(paint);
+      if (forfeit.busy) return;
+      if (typeof global.confirm === 'function' &&
+          !global.confirm('Forfeit this duel? Your opponent wins.')) return;
+      forfeit.busy = true;
+      rpc('pvp_forfeit_match', { p_device: deviceId(), p_match: matchId }).then(function () {
+        forfeit.busy = false;
+        refresh();
       });
+    }
+
+    function leaveToLobby() {
+      if (lastInbox.active && matchId && lastInbox.active.id === matchId) lastInbox.active = null;
+      matchId = null;
+      state = null;
+      entering = false;
+      localAnswered = false;
+      selectedChoice = null;
+      submitInFlight = false;
+      paintedSig = '';
+      inboxSigSeen = '';
+      remainAnchor = null;
+      clockSkew = 0;
+      stopPoll();
+      paint();
     }
 
     function enterMatch(id) {
       matchId = id;
       state = null;
       localAnswered = false;
-      roundStartedLocal = 0;
+      selectedChoice = null;
+      submitInFlight = false;
       scoredWin = false;
       entering = true;
+      paintedSig = '';
+      remainAnchor = null;
+      clockSkew = 0;
+      refreshGen = 0;
       seedIfNeeded.busy = false;
+      forfeit.busy = false;
       paint();
       refresh();
       startPoll();
     }
 
+    function applyIncoming(res) {
+      var prevRound = state ? state.current_round : null;
+      var prevStatus = state ? state.status : null;
+      noteServerClock(res);
+      state = res;
+      if (prevRound !== state.current_round || prevStatus !== state.status) {
+        submitInFlight = false;
+        localAnswered = !!state.answered_me;
+        if (!state.answered_me) selectedChoice = null;
+      } else if (state.answered_me) {
+        localAnswered = true;
+      } else if (!submitInFlight) {
+        localAnswered = false;
+      }
+      if ((state.status === 'finished' || state.status === 'cancelled') &&
+          lastInbox.active && lastInbox.active.id === matchId) {
+        lastInbox.active = null;
+      }
+      paint();
+    }
+
     function refresh() {
       if (destroyed || !matchId) return Promise.resolve();
-      return rpc('pvp_match_state', { p_device: deviceId(), p_match: matchId }).then(function (res) {
+      var gen = ++refreshGen;
+      var id = matchId;
+      return rpc('pvp_match_state', { p_device: deviceId(), p_match: id }).then(function (res) {
+        if (destroyed || gen !== refreshGen || matchId !== id) return;
         if (!res || !res.ok) {
           if (res && (res.error === 'not_found' || res.error === 'forbidden')) {
             matchId = null;
@@ -675,21 +940,23 @@
           }
           return;
         }
-        var prevRound = state && state.current_round;
-        var prevStatus = state && state.status;
-        state = res;
-        if (prevRound !== state.current_round || prevStatus !== state.status) {
-          localAnswered = !!state.answered_me;
-          roundStartedLocal = Date.now();
-        } else if (state.answered_me) {
-          localAnswered = true;
-        }
-        paint();
+        applyIncoming(res);
       });
     }
 
+    function startTick() {
+      if (tickTimer) return;
+      tickTimer = setInterval(function () {
+        if (destroyed) return;
+        updateRoundChrome();
+      }, 250);
+    }
+    function stopTick() {
+      if (tickTimer) { clearInterval(tickTimer); tickTimer = null; }
+    }
     function startPoll() {
       stopPoll();
+      startTick();
       poll = setInterval(function () {
         if (destroyed) return;
         refresh();
@@ -697,6 +964,7 @@
     }
     function stopPoll() {
       if (poll) { clearInterval(poll); poll = null; }
+      stopTick();
     }
 
     /* boot */
@@ -706,12 +974,13 @@
       paint();
       refresh();
       startPoll();
-    } else if (opts.autoResume && lastInbox.active) {
+    } else if (opts.autoResume && lastInbox.active && lastInbox.active.id) {
       enterMatch(lastInbox.active.id);
     } else {
       fetchInbox().then(function () {
         if (destroyed) return;
-        if (opts.autoResume && lastInbox.active && lastInbox.active.id) {
+        if (opts.autoResume && lastInbox.active && lastInbox.active.id &&
+            (lastInbox.active.status === 'seeding' || lastInbox.active.status === 'active' || !lastInbox.active.status)) {
           enterMatch(lastInbox.active.id);
         } else {
           paint();
