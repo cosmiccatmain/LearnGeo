@@ -9,7 +9,8 @@
     learn: '/learn',
     test: '/test',
     quiz: '/quiz',
-    games: '/games'
+    games: '/games',
+    achievements: '/achievements'
   };
   var restoring = false;
   /* The address the app last recorded. A cancelled Back/Forward puts this

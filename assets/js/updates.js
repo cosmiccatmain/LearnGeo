@@ -19,6 +19,13 @@
      their own What’s New id so PRs can merge in any order. */
   var UPDATES = [
     {
+      id: '2026-11-achievement-cards',
+      title: 'Achievement cards',
+      body: 'Flip through your achievements like a stack of cards, then send unlocked ones to classmates by gamertag — school-safe sharing, no real money.',
+      image: '/assets/img/updates/achievement-cards.svg',
+      date: '2026-11-07'
+    },
+    {
       id: '2026-11-geo-chess-openings-bots',
       title: 'Geo Chess: openings & tougher bots',
       body: 'After a few moves you’ll see the opening name. Pawn promotion and the usual chess rules are clearer, and you can challenge Grandmaster (~3200) or Engine Max.',
