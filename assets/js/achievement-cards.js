@@ -24,8 +24,11 @@
   var viewingShare = null; /* accepted wallet share row while tray=shared */
   var unfoldTimer = null;
   var settleTimer = null;
+  var flipTimer = null;
   var didUnfold = false;
   var reduceMotion = false;
+  var swipeStartX = null;
+  var swipeStartY = null;
 
   try {
     reduceMotion = !!(global.matchMedia &&
@@ -282,11 +285,15 @@
         ? 'Peeking at a friend’s achievement wallet.'
         : 'Tap to flip · send unlocked cards to friends by gamertag.';
     /* div[role=button]: native <button> flattens preserve-3d in Chromium */
+    var depthAttr = depth > 3 ? 'n' : String(depth);
     return '' +
-      '<div role="button" tabindex="0" class="achv-card' + (depth === 0 ? ' is-front' : '') + '"' +
-        ' data-depth="' + (depth > 3 ? 'n' : depth) + '"' +
+      '<div role="button" tabindex="' + (depth === 0 ? '0' : '-1') + '" class="achv-card' +
+        (depth === 0 ? ' is-front' : '') + '"' +
+        ' data-depth="' + depthAttr + '"' +
+        ' data-offset="' + depth + '"' +
         ' data-card="' + esc(card.id) + '"' +
-        ' aria-label="' + esc(a.name) + (unlocked ? '' : ' (locked)') + '">' +
+        ' aria-label="' + esc(a.name) + (unlocked ? '' : ' (locked)') +
+        (depth === 0 ? '' : ' · next in stack') + '">' +
         '<div class="achv-card__inner">' +
           '<div class="' + faceCls + '">' +
             '<div class="achv-card__chip" aria-hidden="true"></div>' +
@@ -310,16 +317,9 @@
       '</div>';
   }
 
-  function stackHtml() {
+  function stackLayersHtml() {
     var cards = deck();
-    if (!cards.length) {
-      var emptyMsg = tray === 'shared'
-        ? 'No shared wallets yet — accept a wallet invite from Inbox.'
-        : tray === 'gifts'
-          ? 'No received cards yet.'
-          : 'No cards here yet.';
-      return '<div class="empty">' + emptyMsg + '</div>';
-    }
+    if (!cards.length) return '';
     if (index >= cards.length) index = cards.length - 1;
     if (index < 0) index = 0;
     var layers = [];
@@ -328,7 +328,49 @@
       var ci = (index + d) % cards.length;
       layers.push(cardFaceHtml(cards[ci], d));
     }
-    return '<div class="achv-stack" data-stack>' + layers.join('') + '</div>';
+    return layers.join('');
+  }
+
+  function stackHtml() {
+    var cards = deck();
+    if (!cards.length) {
+      var emptyMsg = tray === 'shared'
+        ? 'No shared wallets yet — accept a wallet invite from Inbox.'
+        : tray === 'gifts'
+          ? 'No received cards yet.'
+          : 'No cards here yet.';
+      return '<div class="empty" data-stack-empty>' + emptyMsg + '</div>';
+    }
+    return '<div class="achv-stack" data-stack>' + stackLayersHtml() + '</div>';
+  }
+
+  function railHtml() {
+    var cards = deck();
+    if (cards.length < 2) return '';
+    var dots = cards.map(function (c, i) {
+      var cls = 'achv-rail__dot' +
+        (i === index ? ' is-active' : '') +
+        (c.unlocked ? ' is-unlocked' : '');
+      return '<button type="button" class="' + cls + '" data-rail="' + i + '"' +
+        ' aria-label="' + esc(c.ach.name) + '"' +
+        ' title="' + esc(c.ach.name) + '">' + (i + 1) + '</button>';
+    }).join('');
+    return '<div class="achv-rail" data-rail-wrap role="tablist" aria-label="Cards in wallet">' +
+      dots + '</div>';
+  }
+
+  function stageHtml() {
+    var cards = deck();
+    var canStep = cards.length > 1;
+    return '' +
+      '<div class="achv-stage" data-stage tabindex="0" aria-label="Achievement card deck">' +
+        '<button type="button" class="btn btn--ghost achv-stage__nav" data-prev' +
+          (canStep ? '' : ' disabled') + ' aria-label="Previous card">' + I.arrowL + '</button>' +
+        '<div class="achv-stage__deck" data-deck>' + stackHtml() + '</div>' +
+        '<button type="button" class="btn btn--ghost achv-stage__nav" data-next' +
+          (canStep ? '' : ' disabled') + ' aria-label="Next card">' + I.arrowR + '</button>' +
+      '</div>' +
+      railHtml();
   }
 
   function inboxHtml() {
@@ -461,17 +503,13 @@
               '</button>' +
             '</div>' +
             (tray === 'shared' ? sharedPickerHtml() : '') +
-            '<div class="achv-stage" data-stage>' + stackHtml() + '</div>' +
+            stageHtml() +
             '<div class="achv-nav">' +
-              '<button type="button" class="btn btn--ghost btn--sm" data-prev aria-label="Previous card">' +
-                I.arrowL + '</button>' +
-              '<span class="achv-nav__count">' +
+              '<span class="achv-nav__count" data-count>' +
                 (cards.length ? (index + 1) + ' / ' + cards.length : '0 / 0') +
               '</span>' +
-              '<button type="button" class="btn btn--ghost btn--sm" data-next aria-label="Next card">' +
-                I.arrowR + '</button>' +
             '</div>' +
-            '<p class="achv-hint">Tap the front card to flip · use arrows to cycle the stack</p>' +
+            '<p class="achv-hint">Tap front to flip · swipe or side arrows to switch · tap a number to jump</p>' +
             '<div class="achv-actions">' +
               '<button type="button" class="btn btn--ghost" data-flip>' +
                 I.refresh + ' Flip</button>' +
@@ -546,8 +584,20 @@
     front.classList.toggle('is-flipped', !!flipped);
   }
 
+  function markFlipping() {
+    var stack = hostEl && W.$('[data-stack]', hostEl);
+    if (!stack) return;
+    stack.classList.add('is-flipping');
+    if (flipTimer) global.clearTimeout(flipTimer);
+    flipTimer = global.setTimeout(function () {
+      if (stack.isConnected) stack.classList.remove('is-flipping');
+      flipTimer = null;
+    }, reduceMotion ? 0 : 700);
+  }
+
   function toggleFlip() {
     flipped = !flipped;
+    markFlipping();
     applyFlipClass();
   }
 
@@ -555,6 +605,64 @@
     if (!hostEl || reduceMotion) return;
     var stack = W.$('[data-stack]', hostEl);
     if (stack) stack.classList.add('is-floating');
+  }
+
+  /* Refresh only the deck + count + rail so side panels keep focus/state. */
+  function paintDeck() {
+    if (!hostEl) return;
+    var cards = deck();
+    if (cards.length && index >= cards.length) index = cards.length - 1;
+    if (index < 0) index = 0;
+
+    var deckWrap = W.$('[data-deck]', hostEl);
+    if (deckWrap) {
+      deckWrap.innerHTML = stackHtml();
+    }
+    var count = W.$('[data-count]', hostEl);
+    if (count) {
+      count.textContent = cards.length ? (index + 1) + ' / ' + cards.length : '0 / 0';
+    }
+    var rail = W.$('[data-rail-wrap]', hostEl);
+    var railNext = railHtml();
+    if (rail && railNext) {
+      rail.outerHTML = railNext;
+    } else if (rail && !railNext) {
+      rail.remove();
+    } else if (!rail && railNext) {
+      var stage = W.$('[data-stage]', hostEl);
+      if (stage && stage.insertAdjacentHTML) {
+        stage.insertAdjacentHTML('afterend', railNext);
+      }
+    }
+
+    var canStep = cards.length > 1;
+    W.$$('[data-prev], [data-next]', hostEl).forEach(function (b) {
+      b.disabled = !canStep;
+    });
+
+    flipped = false;
+    wireDeckCards();
+    applyFlipClass();
+    enableFloat();
+    updateActionButtons();
+  }
+
+  function updateActionButtons() {
+    if (!hostEl) return;
+    var cards = deck();
+    var front = cards[index];
+    var canSend = !!(front && front.kind === 'mine' && front.unlocked);
+    var actions = W.$('.achv-actions', hostEl);
+    if (!actions) return;
+    var focusSend = W.$('[data-focus-send]', hostEl);
+    if (canSend && !focusSend) {
+      /* full paint keeps send CTA in sync when unlocking mid-session is rare;
+         step() uses paintDeck — rebuild actions row cheaply */
+    }
+    var sendBtn = W.$('[data-achv-send]', hostEl);
+    var tagInput = W.$('#achv-tag', hostEl);
+    if (sendBtn) sendBtn.disabled = !canSend;
+    if (tagInput) tagInput.disabled = !canSend;
   }
 
   function runUnfold() {
@@ -587,6 +695,113 @@
     }, 980);
   }
 
+  /* Bind only nodes that paintDeck() recreates (cards + rail dots). */
+  function wireDeckCards() {
+    W.$$('.achv-card.is-front', hostEl).forEach(function (card) {
+      card.addEventListener('click', function (ev) {
+        ev.stopPropagation();
+        toggleFlip();
+      });
+      card.addEventListener('keydown', function (ev) {
+        if (ev.key === 'Enter' || ev.key === ' ') {
+          ev.preventDefault();
+          toggleFlip();
+        }
+      });
+    });
+
+    W.$$('.achv-card[data-offset]', hostEl).forEach(function (card) {
+      if (card.classList.contains('is-front')) return;
+      card.addEventListener('click', function (ev) {
+        ev.preventDefault();
+        ev.stopPropagation();
+        var off = parseInt(card.getAttribute('data-offset'), 10) || 0;
+        if (off > 0) step(off);
+      });
+    });
+
+    W.$$('[data-rail]', hostEl).forEach(function (dot) {
+      dot.addEventListener('click', function (ev) {
+        ev.preventDefault();
+        goTo(parseInt(dot.getAttribute('data-rail'), 10) || 0);
+      });
+    });
+  }
+
+  /* Side arrows + swipe/keyboard — bound once per full paint(). */
+  function wireDeckChrome() {
+    W.$$('[data-prev]', hostEl).forEach(function (btn) {
+      btn.addEventListener('click', function (ev) {
+        ev.preventDefault();
+        ev.stopPropagation();
+        step(-1);
+      });
+    });
+    W.$$('[data-next]', hostEl).forEach(function (btn) {
+      btn.addEventListener('click', function (ev) {
+        ev.preventDefault();
+        ev.stopPropagation();
+        step(1);
+      });
+    });
+
+    var stage = W.$('[data-stage]', hostEl);
+    if (stage) {
+      stage.addEventListener('keydown', function (ev) {
+        if (ev.key === 'ArrowLeft') { ev.preventDefault(); step(-1); }
+        else if (ev.key === 'ArrowRight') { ev.preventDefault(); step(1); }
+        else if (ev.key === 'f' || ev.key === 'F') { ev.preventDefault(); toggleFlip(); }
+      });
+      stage.addEventListener('touchstart', onSwipeStart, { passive: true });
+      stage.addEventListener('touchend', onSwipeEnd, { passive: true });
+      stage.addEventListener('pointerdown', onPointerDown);
+      stage.addEventListener('pointerup', onPointerUp);
+    }
+  }
+
+  function onSwipeStart(ev) {
+    var t = ev.changedTouches && ev.changedTouches[0];
+    if (!t) return;
+    swipeStartX = t.clientX;
+    swipeStartY = t.clientY;
+  }
+  function onSwipeEnd(ev) {
+    var t = ev.changedTouches && ev.changedTouches[0];
+    if (!t || swipeStartX == null) return;
+    var dx = t.clientX - swipeStartX;
+    var dy = t.clientY - swipeStartY;
+    swipeStartX = null;
+    swipeStartY = null;
+    if (Math.abs(dx) < 42 || Math.abs(dx) < Math.abs(dy) * 1.2) return;
+    step(dx < 0 ? 1 : -1);
+  }
+
+  var ptrStartX = null;
+  var ptrStartY = null;
+  function onPointerDown(ev) {
+    if (ev.pointerType === 'touch') return; /* touch handlers cover phones */
+    if (ev.button != null && ev.button !== 0) return;
+    /* ignore presses on the side nav buttons themselves */
+    if (ev.target && ev.target.closest && ev.target.closest('[data-prev], [data-next], [data-rail]')) {
+      return;
+    }
+    ptrStartX = ev.clientX;
+    ptrStartY = ev.clientY;
+  }
+  function onPointerUp(ev) {
+    if (ptrStartX == null) return;
+    var dx = ev.clientX - ptrStartX;
+    var dy = ev.clientY - ptrStartY;
+    ptrStartX = null;
+    ptrStartY = null;
+    if (Math.abs(dx) < 56 || Math.abs(dx) < Math.abs(dy) * 1.2) return;
+    /* Don't steal a simple click-to-flip on the front card */
+    if (ev.target && ev.target.closest && ev.target.closest('.achv-card.is-front')) {
+      if (Math.abs(dx) < 90) return;
+    }
+    step(dx < 0 ? 1 : -1);
+  }
+
   function wire() {
     W.$$('[data-tray] button', hostEl).forEach(function (b) {
       b.addEventListener('click', function () {
@@ -615,10 +830,8 @@
       });
     }
 
-    var prev = W.$('[data-prev]', hostEl);
-    var next = W.$('[data-next]', hostEl);
-    if (prev) prev.addEventListener('click', function () { step(-1); });
-    if (next) next.addEventListener('click', function () { step(1); });
+    wireDeckChrome();
+    wireDeckCards();
 
     var flipBtn = W.$('[data-flip]', hostEl);
     if (flipBtn) flipBtn.addEventListener('click', toggleFlip);
@@ -637,16 +850,6 @@
       var panel = W.$('#achv-wallet-panel', hostEl);
       if (panel && panel.scrollIntoView) panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       if (input) input.focus();
-    });
-
-    W.$$('.achv-card.is-front', hostEl).forEach(function (card) {
-      card.addEventListener('click', toggleFlip);
-      card.addEventListener('keydown', function (ev) {
-        if (ev.key === 'Enter' || ev.key === ' ') {
-          ev.preventDefault();
-          toggleFlip();
-        }
-      });
     });
 
     var sendBtn = W.$('[data-achv-send]', hostEl);
@@ -858,10 +1061,20 @@
 
   function step(dir) {
     var cards = deck();
-    if (!cards.length) return;
+    if (!cards.length || cards.length < 2) return;
     index = (index + dir + cards.length) % cards.length;
     flipped = false;
-    paint({ skipUnfold: true });
+    paintDeck();
+  }
+
+  function goTo(i) {
+    var cards = deck();
+    if (!cards.length) return;
+    var next = Math.max(0, Math.min(cards.length - 1, i | 0));
+    if (next === index) return;
+    index = next;
+    flipped = false;
+    paintDeck();
   }
 
   function refreshInbox(fullPaint) {
@@ -910,6 +1123,7 @@
     didUnfold = false;
     if (unfoldTimer) { global.clearTimeout(unfoldTimer); unfoldTimer = null; }
     if (settleTimer) { global.clearTimeout(settleTimer); settleTimer = null; }
+    if (flipTimer) { global.clearTimeout(flipTimer); flipTimer = null; }
     /* Fast first paint without anim, then one unfold after inbox lands
        so a second paint does not tear down the fan-out mid-flight. */
     paint({ skipUnfold: true });
@@ -924,6 +1138,7 @@
     stopPolling();
     if (unfoldTimer) { global.clearTimeout(unfoldTimer); unfoldTimer = null; }
     if (settleTimer) { global.clearTimeout(settleTimer); settleTimer = null; }
+    if (flipTimer) { global.clearTimeout(flipTimer); flipTimer = null; }
     hostEl = null;
   }
 

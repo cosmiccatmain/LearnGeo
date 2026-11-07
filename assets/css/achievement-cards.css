@@ -1,8 +1,7 @@
 /* ------------------------------------------------------------------
-   LEA-64 / LEA-67 — Achievement cards (credit-card stack / flip).
-   Light polish only: Inter / Instrument tokens, teal accent.
-   LEA-67: div-based 3D flip (button flattened Chromium transforms),
-   float + wallet unfold, share-wallet panel.
+   LEA-64 / LEA-67 / LEA-70 — Achievement wallet (stack / flip / share).
+   Light polish: Inter / Instrument, teal accent.
+   LEA-70: isolate active flip above peeks; reliable deck navigation.
 -------------------------------------------------------------------*/
 
 .achv {
@@ -47,25 +46,56 @@
   .achv__layout { grid-template-columns: 1fr; }
 }
 
-/* ---------- stack / flip ---------- */
+/* ---------- stage / deck ---------- */
 .achv-stage {
   position: relative;
   min-height: 360px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 28px 4px 36px;
+  overflow: visible;
+  /* peeks must not steal clicks from side arrows / rail */
+  isolation: isolate;
+}
+.achv-stage__deck {
+  position: relative;
+  justify-self: center;
+  width: min(100%, 340px);
+  /* perspective only on the active card’s 3D root — not the whole stack */
   perspective: 1400px;
   perspective-origin: 50% 45%;
-  display: grid;
-  place-items: center;
-  padding: 28px 8px 36px;
-  overflow: visible;
+  z-index: 2;
 }
+.achv-stage__nav {
+  position: relative;
+  z-index: 6;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+  box-shadow: var(--shadow, 0 8px 20px rgba(15, 40, 35, .08));
+}
+.achv-stage__nav:disabled {
+  opacity: .35;
+  pointer-events: none;
+}
+
 .achv-stack {
   position: relative;
-  width: min(100%, 340px);
+  width: 100%;
   height: 214px;
-  transform-style: preserve-3d;
+  /* FLAT stack: shared preserve-3d made rotateY sink behind peeks */
+  transform-style: flat;
+  z-index: 1;
 }
-/* Motion 1 — gentle float after unfold settles */
-.achv-stack.is-floating {
+/* Motion 1 — gentle float after unfold settles (active card only) */
+.achv-stack.is-floating > .achv-card.is-front {
   animation: achv-float 4.2s ease-in-out infinite;
 }
 @keyframes achv-float {
@@ -75,18 +105,17 @@
 
 /*
   Cards are div[role=button], not <button>: Chromium flattens 3D
-  transforms inside native buttons, so the back face painted on top
-  and rotateY never ran (always green LearnGeo back).
+  transforms inside native buttons.
 */
 .achv-card {
   position: absolute;
   inset: 0;
   border-radius: 18px;
-  transform-style: preserve-3d;
+  transform-style: flat;
   transition:
-    transform .7s var(--ease, cubic-bezier(.22,.7,.25,1)),
+    transform .55s var(--ease, cubic-bezier(.22,.7,.25,1)),
     box-shadow .35s ease,
-    opacity .45s ease;
+    opacity .35s ease;
   cursor: pointer;
   outline: none;
   border: none;
@@ -104,7 +133,24 @@
 .achv-card:focus-visible {
   box-shadow: 0 0 0 3px rgba(var(--accent-rgb), .35);
 }
-.achv-card.is-front { z-index: 5; }
+
+/* Active card owns its own 3D context above every peek */
+.achv-card.is-front {
+  z-index: 20;
+  transform-style: preserve-3d;
+  pointer-events: auto;
+}
+.achv-card.is-front.is-flipped,
+.achv-stack.is-flipping > .achv-card.is-front {
+  z-index: 40;
+}
+/* While flipping, tuck peeks away so mid-rotate never clips behind them */
+.achv-stack.is-flipping > .achv-card:not(.is-front) {
+  opacity: 0 !important;
+  pointer-events: none !important;
+  z-index: 0 !important;
+}
+
 .achv-card.is-flipped .achv-card__inner {
   transform: rotateY(180deg);
 }
@@ -136,7 +182,6 @@
     linear-gradient(145deg, #1a3d38 0%, #0f2a27 48%, #163f4a 100%);
   color: #f4faf8;
   transform: rotateY(0deg) translateZ(1px);
-  z-index: 2;
 }
 .achv-card__face--front.is-locked {
   background:
@@ -162,7 +207,6 @@
   justify-content: center;
   text-align: center;
   gap: 10px;
-  z-index: 1;
 }
 .achv-card__chip {
   width: 42px;
@@ -224,18 +268,20 @@
   max-width: 28ch;
 }
 
-/* depth offsets for the stack behind the front card */
+/* Decorative peeks — flat layers under the active card */
 .achv-card[data-depth="1"] {
   transform: translateY(10px) scale(.965);
   opacity: .88;
   z-index: 4;
-  pointer-events: none;
+  pointer-events: auto; /* tap peek → advance */
+  cursor: pointer;
 }
 .achv-card[data-depth="2"] {
   transform: translateY(20px) scale(.93);
   opacity: .7;
   z-index: 3;
-  pointer-events: none;
+  pointer-events: auto;
+  cursor: pointer;
 }
 .achv-card[data-depth="3"] {
   transform: translateY(28px) scale(.9);
@@ -250,12 +296,13 @@
   pointer-events: none;
 }
 
-/* Motion 2 — wallet unfold / fan-out on open, then settle into stack */
+/* Motion 2 — wallet unfold / fan-out on open */
 .achv-stage.is-unfolding .achv-card {
   pointer-events: none;
   opacity: 1;
 }
-.achv-stage.is-unfolding .achv-card[data-depth="0"] {
+.achv-stage.is-unfolding .achv-card[data-depth="0"],
+.achv-stage.is-unfolding .achv-card.is-front {
   transform: translateX(0) translateY(-8px) rotate(0deg) scale(1);
   z-index: 8;
 }
@@ -277,7 +324,7 @@
   z-index: 4;
   opacity: .85;
 }
-/* Motion 3 — soft settle bounce when fan collapses */
+/* Motion 3 — soft settle bounce */
 .achv-stage.is-settling .achv-card.is-front {
   animation: achv-settle .55s var(--ease, cubic-bezier(.22,.7,.25,1)) both;
 }
@@ -287,12 +334,49 @@
   100% { transform: translateY(0) scale(1); }
 }
 
+/* Dot / name rail — tap any card in the wallet */
+.achv-rail {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+  margin-top: 14px;
+  max-width: 420px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.achv-rail__dot {
+  min-width: 28px;
+  height: 28px;
+  padding: 0 8px;
+  border-radius: 999px;
+  border: 1px solid var(--line-soft, #e5e7eb);
+  background: var(--surface, #fff);
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 620;
+  cursor: pointer;
+  line-height: 1;
+}
+.achv-rail__dot.is-active {
+  background: var(--ink, #12352f);
+  border-color: var(--ink, #12352f);
+  color: #fff;
+}
+.achv-rail__dot.is-unlocked:not(.is-active) {
+  border-color: rgba(14, 159, 110, .45);
+  color: var(--accent, #0e9f6e);
+}
+
 .achv-nav {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
-  margin-top: 8px;
+  margin-top: 10px;
+  position: relative;
+  z-index: 5;
 }
 .achv-nav__count {
   font-family: var(--mono);
@@ -353,12 +437,22 @@
   font-weight: 620;
 }
 
+@media (max-width: 520px) {
+  .achv-stage {
+    grid-template-columns: 40px minmax(0, 1fr) 40px;
+    gap: 4px;
+    padding-left: 0;
+    padding-right: 0;
+  }
+  .achv-stage__nav { width: 40px; height: 40px; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .achv-card,
   .achv-card__inner {
     transition: none;
   }
-  .achv-stack.is-floating,
+  .achv-stack.is-floating > .achv-card.is-front,
   .achv-stage.is-settling .achv-card.is-front {
     animation: none;
   }
