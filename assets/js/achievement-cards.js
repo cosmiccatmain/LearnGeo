@@ -1,10 +1,11 @@
 /* ------------------------------------------------------------------
-   LearnGeo — Achievement cards (LEA-64 / LEA-67)
+   LearnGeo — Achievement cards (LEA-64 / LEA-67 / LEA-70 / LEA-71)
 
    Credit-card-style stack with flip. Unlocked Cosmetics.achievements
    can be sent to a classmate by gamertag (school-safe; no money).
    LEA-67: fix Chromium button 3D flatten, float + wallet unfold,
    share whole wallet by gamertag.
+   LEA-71: award-badge card backs with owner gamertag (wallet kept).
    Server: supabase/deployed/0023_achievement_cards.sql
            + 0025_achievement_wallet_share.sql
 -------------------------------------------------------------------*/
@@ -99,6 +100,7 @@
         id: 'gift:' + r.id,
         sendId: r.id,
         fromTag: r.from_tag || 'Friend',
+        createdAt: r.created_at || r.responded_at || null,
         unlocked: true,
         ach: a
       };
@@ -170,6 +172,345 @@
       locked: 'Unlock this achievement before you can send it.',
       guest: 'Sign in to share with classmates.'
     })[code] || 'Please try again.';
+  }
+
+  /* ====================== award badge (LEA-71) =====================
+     Each achievement gets its OWN enamel pin: unique outer shape,
+     metal, cloisonné segments, motif, and card-back atmosphere.
+     Apple Watch award spirit — original LearnGeo art, not Apple assets.
+  ------------------------------------------------------------------ */
+  var AWARD_META = {
+    'first-steps': {
+      shape: 'rounded', metal: 'silver', accent: '#94A3B8',
+      segments: [['sky', '#E2E8F0', '#94A3B8'], ['ground', '#64748B', '#334155']],
+      layout: 'horizon', motif: 'flag', mark: '1',
+      back: ['#1e293b', '#0f172a', '#334155']
+    },
+    'streak-10': {
+      shape: 'hex', metal: 'gold', accent: '#F97316',
+      segments: [['core', '#FB923C', '#EA580C'], ['ember', '#FDBA74', '#F97316']],
+      layout: 'wedge', motif: 'flame', mark: '10',
+      back: ['#7c2d12', '#431407', '#c2410c']
+    },
+    'streak-25': {
+      shape: 'diamond', metal: 'rose', accent: '#EF4444',
+      segments: [['hot', '#F87171', '#DC2626'], ['spark', '#FECACA', '#F97316']],
+      layout: 'cross', motif: 'bolt', mark: '25',
+      back: ['#7f1d1d', '#450a0a', '#b91c1c']
+    },
+    'perfect-test': {
+      shape: 'circle', metal: 'gold', accent: '#10B981',
+      segments: [['ring', '#6EE7B7', '#059669'], ['bull', '#34D399', '#047857']],
+      layout: 'rings', motif: 'target', mark: '100',
+      back: ['#064e3b', '#022c22', '#059669']
+    },
+    'test-5': {
+      shape: 'shield', metal: 'gold', accent: '#3B82F6',
+      segments: [['field', '#93C5FD', '#1D4ED8'], ['banner', '#60A5FA', '#1E40AF']],
+      layout: 'chevron', motif: 'clipboard', mark: '5',
+      back: ['#1e3a8a', '#172554', '#2563eb']
+    },
+    'cards-100': {
+      shape: 'scallop', metal: 'rose', accent: '#A855F7',
+      segments: [['play', '#E9D5FF', '#7C3AED'], ['pad', '#C084FC', '#6D28D9']],
+      layout: 'split', motif: 'joystick', mark: '150',
+      back: ['#4c1d95', '#2e1065', '#7c3aed']
+    },
+    'region-master': {
+      shape: 'banner', metal: 'copper', accent: '#06B6D4',
+      segments: [['sea', '#A5F3FC', '#0E7490'], ['land', '#67E8F9', '#155E75']],
+      layout: 'bands', motif: 'map', mark: 'RM',
+      back: ['#164e63', '#083344', '#0891b2']
+    },
+    'level-10': {
+      shape: 'star', metal: 'gold', accent: '#F59E0B',
+      segments: [['ray', '#FDE68A', '#D97706'], ['core', '#FBBF24', '#B45309']],
+      layout: 'rays', motif: 'chevrons', mark: 'Lv10',
+      back: ['#78350f', '#451a03', '#d97706']
+    },
+    'answers-500': {
+      shape: 'heart', metal: 'rose', accent: '#DB2777',
+      segments: [['blush', '#FBCFE8', '#BE185D'], ['ink', '#F472B6', '#9D174D']],
+      layout: 'split', motif: 'bars', mark: '500',
+      back: ['#831843', '#500724', '#db2777']
+    },
+    'globetrotter': {
+      shape: 'oval', metal: 'gold', accent: '#0EA5E9',
+      segments: [['ocean', '#7DD3FC', '#0284C7'], ['land', '#4ADE80', '#15803D']],
+      layout: 'globe', motif: 'globe', mark: '100',
+      back: ['#0c4a6e', '#082f49', '#0284c7']
+    }
+  };
+
+  function awardMeta(achId, unlocked) {
+    var base = AWARD_META[achId] || {
+      shape: 'circle', metal: 'gold', accent: '#0E9F6E',
+      segments: [['a', '#34D399', '#166534']],
+      layout: 'split', motif: 'globe', mark: '',
+      back: ['#12352f', '#0a221e', '#0e9f6e']
+    };
+    if (unlocked) {
+      return {
+        shape: base.shape, metal: base.metal, accent: base.accent,
+        segments: base.segments, layout: base.layout, motif: base.motif,
+        mark: base.mark, back: base.back, unlocked: true
+      };
+    }
+    return {
+      shape: base.shape, metal: 'silver', accent: '#94A3B8',
+      segments: base.segments.map(function (s, i) {
+        return [s[0], i ? '#64748B' : '#94A3B8', '#334155'];
+      }),
+      layout: base.layout, motif: base.motif, mark: base.mark,
+      back: ['#1e293b', '#0f172a', '#475569'], unlocked: false
+    };
+  }
+
+  function ownerTag(card) {
+    if (card.kind === 'shared') return card.fromTag || 'Friend';
+    return myTag() || 'Player';
+  }
+
+  function formatAwardDate(iso) {
+    if (!iso) return '';
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) return '';
+    var mm = String(d.getMonth() + 1);
+    var dd = String(d.getDate());
+    var yy = String(d.getFullYear()).slice(-2);
+    if (mm.length < 2) mm = '0' + mm;
+    if (dd.length < 2) dd = '0' + dd;
+    return mm + '/' + dd + '/' + yy;
+  }
+
+  function awardDateLabel(card) {
+    if (card.kind === 'gift' && card.createdAt) return formatAwardDate(card.createdAt);
+    if (card.kind === 'shared') return 'Shared';
+    if (card.unlocked) return 'Unlocked';
+    return 'Locked';
+  }
+
+  function metalStops(kind) {
+    if (kind === 'silver') {
+      return '<stop offset="0%" stop-color="#F8FAFC"/><stop offset="32%" stop-color="#CBD5E1"/>' +
+        '<stop offset="58%" stop-color="#94A3B8"/><stop offset="100%" stop-color="#E2E8F0"/>';
+    }
+    if (kind === 'rose') {
+      return '<stop offset="0%" stop-color="#FFF1F2"/><stop offset="30%" stop-color="#FDA4AF"/>' +
+        '<stop offset="58%" stop-color="#E11D48"/><stop offset="100%" stop-color="#FECDD3"/>';
+    }
+    if (kind === 'copper') {
+      return '<stop offset="0%" stop-color="#FFEDD5"/><stop offset="30%" stop-color="#FDBA74"/>' +
+        '<stop offset="58%" stop-color="#C2410C"/><stop offset="100%" stop-color="#FDE68A"/>';
+    }
+    return '<stop offset="0%" stop-color="#FFF6D1"/><stop offset="28%" stop-color="#F5C84B"/>' +
+      '<stop offset="55%" stop-color="#C9891A"/><stop offset="100%" stop-color="#F0D78A"/>';
+  }
+
+  function motifPaths(motif) {
+    var m = {
+      flag: '<path d="M8 4.5v15M8 5.2h9.2l-1.4 3.1 1.4 3.1H8"/>',
+      flame: '<path d="M12 3.2s3.6 3.8 3.6 7.2a3.6 3.6 0 1 1-7.2 0c0-.9.4-1.8.9-2.7C6.2 9.4 4.4 11.6 4.4 14.6a7.6 7.6 0 0 0 15.2 0c0-5.4-7.6-11.4-7.6-11.4z"/>',
+      bolt: '<path d="M13.2 2.8 5.6 13h5.6l-1.2 8.2 7.6-10.2h-5.6z"/>',
+      target: '<circle cx="12" cy="12" r="7.4" fill="none"/><circle cx="12" cy="12" r="4.2" fill="none"/><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/>',
+      clipboard: '<rect x="6.4" y="5.2" width="11.2" height="14.2" rx="1.4" fill="none"/><path d="M9 5.2V4.2h6v1"/><path d="M8.8 10h6.4M8.8 13h6.4M8.8 16h4.2"/>',
+      joystick: '<circle cx="12" cy="7" r="2.8"/><path d="M12 9.8v4.2"/><path d="M5.8 19.2a6.2 6.2 0 0 1 12.4 0z" fill="none"/>',
+      map: '<path d="m3.8 6.6 5.2-2.4 5.6 2.4 5.6-2.4v13l-5.6 2.4-5.6-2.4-5.2 2.4z" fill="none"/><path d="M9 4.2v13M14.6 6.6v13"/>',
+      chevrons: '<path d="m6 14 6-6 6 6M6 18.5l6-6 6 6"/>',
+      bars: '<path d="M5 17.6V11h2.8v6.6zm5.6 0V6.4h2.8v11.2zm5.6 0V9.2H19v8.4z" fill="currentColor" stroke="none"/>',
+      globe: '<circle cx="12" cy="12" r="7.4" fill="none"/><path d="M4.6 12h14.8M12 4.6a13 13 0 0 1 0 14.8 13 13 0 0 1 0-14.8"/>'
+    };
+    return m[motif] || m.globe;
+  }
+
+  function shapeShell(shape) {
+    var shells = {
+      circle: {
+        rim: 'M50 8 A42 42 0 1 1 49.9 8 Z',
+        plate: 'M50 16 A34 34 0 1 1 49.9 16 Z'
+      },
+      rounded: {
+        rim: 'M22 10 H78 A12 12 0 0 1 90 22 V78 A12 12 0 0 1 78 90 H22 A12 12 0 0 1 10 78 V22 A12 12 0 0 1 22 10 Z',
+        plate: 'M26 18 H74 A8 8 0 0 1 82 26 V74 A8 8 0 0 1 74 82 H26 A8 8 0 0 1 18 74 V26 A8 8 0 0 1 26 18 Z'
+      },
+      hex: {
+        rim: 'M50 6 L88 28 V72 L50 94 L12 72 V28 Z',
+        plate: 'M50 14 L80 32 V68 L50 86 L20 68 V32 Z'
+      },
+      shield: {
+        rim: 'M50 6 L90 20 V48 C90 72 70 88 50 96 C30 88 10 72 10 48 V20 Z',
+        plate: 'M50 14 L82 26 V48 C82 68 66 82 50 88 C34 82 18 68 18 48 V26 Z'
+      },
+      heart: {
+        rim: 'M50 90 C18 66 6 48 6 30 A22 22 0 0 1 50 22 A22 22 0 0 1 94 30 C94 48 82 66 50 90 Z',
+        plate: 'M50 82 C24 62 14 48 14 32 A16 16 0 0 1 50 28 A16 16 0 0 1 86 32 C86 48 76 62 50 82 Z'
+      },
+      diamond: {
+        rim: 'M50 4 L94 50 L50 96 L6 50 Z',
+        plate: 'M50 14 L84 50 L50 86 L16 50 Z'
+      },
+      scallop: {
+        rim: 'M50 8 C62 8 70 14 74 22 C84 20 92 28 90 40 C98 46 98 58 90 64 C92 76 84 84 74 82 C70 90 62 96 50 96 C38 96 30 90 26 82 C16 84 8 76 10 64 C2 58 2 46 10 40 C8 28 16 20 26 22 C30 14 38 8 50 8 Z',
+        plate: 'M50 16 C60 16 66 21 69 27 C77 26 83 32 82 41 C88 46 88 56 82 61 C83 70 77 76 69 75 C66 81 60 86 50 86 C40 86 34 81 31 75 C23 76 17 70 18 61 C12 56 12 46 18 41 C17 32 23 26 31 27 C34 21 40 16 50 16 Z'
+      },
+      banner: {
+        rim: 'M12 18 H88 V70 L70 82 L50 72 L30 82 L12 70 Z',
+        plate: 'M20 26 H80 V64 L68 74 L50 66 L32 74 L20 64 Z'
+      },
+      star: {
+        rim: 'M50 4 L61 36 L94 36 L68 56 L78 90 L50 70 L22 90 L32 56 L6 36 L39 36 Z',
+        plate: 'M50 14 L58 38 L82 38 L63 53 L70 78 L50 63 L30 78 L37 53 L18 38 L42 38 Z'
+      },
+      oval: {
+        rim: 'M50 8 C74 8 90 26 90 50 C90 74 74 92 50 92 C26 92 10 74 10 50 C10 26 26 8 50 8 Z',
+        plate: 'M50 16 C68 16 80 30 80 50 C80 70 68 84 50 84 C32 84 20 70 20 50 C20 30 32 16 50 16 Z'
+      }
+    };
+    return shells[shape] || shells.circle;
+  }
+
+  function segmentPaths(layout, plate) {
+    /* Cloisonné partitions clipped to the enamel plate. */
+    if (layout === 'horizon') {
+      return [
+        { d: 'M10 10 H90 V50 H10 Z' },
+        { d: 'M10 50 H90 V90 H10 Z' }
+      ];
+    }
+    if (layout === 'wedge') {
+      return [
+        { d: 'M50 10 L90 78 L10 78 Z' },
+        { d: 'M18 70 H82 L50 92 Z' }
+      ];
+    }
+    if (layout === 'cross') {
+      return [
+        { d: 'M20 20 H80 V80 H20 Z' },
+        { d: 'M42 12 H58 V88 H42 Z' }
+      ];
+    }
+    if (layout === 'rings') {
+      return [
+        { d: plate },
+        { d: 'M50 30 A20 20 0 1 1 49.9 30 Z' }
+      ];
+    }
+    if (layout === 'chevron') {
+      return [
+        { d: 'M15 18 H85 V55 L50 78 L15 55 Z' },
+        { d: 'M22 58 H78 L50 88 Z' }
+      ];
+    }
+    if (layout === 'bands') {
+      return [
+        { d: 'M12 22 H88 V48 H12 Z' },
+        { d: 'M12 48 H88 V78 H12 Z' }
+      ];
+    }
+    if (layout === 'rays') {
+      return [
+        { d: 'M50 12 L88 50 L50 88 L12 50 Z' },
+        { d: 'M50 28 L72 50 L50 72 L28 50 Z' }
+      ];
+    }
+    if (layout === 'globe') {
+      return [
+        { d: 'M12 20 H88 V55 H12 Z' },
+        { d: 'M18 55 H82 V82 H18 Z' }
+      ];
+    }
+    /* split default */
+    return [
+      { d: 'M10 10 H50 V90 H10 Z' },
+      { d: 'M50 10 H90 V90 H50 Z' }
+    ];
+  }
+
+  function awardBadgeSvg(ach, unlocked) {
+    var meta = awardMeta(ach.id, unlocked);
+    var shell = shapeShell(meta.shape);
+    var uid = 'ab-' + String(ach.id || 'x').replace(/[^a-z0-9_-]/gi, '') +
+      (unlocked ? '-u' : '-l');
+    var segs = meta.segments || [];
+    var parts = segmentPaths(meta.layout, shell.plate);
+    var i;
+    var enamelDefs = '';
+    var enamelPaths = '';
+    for (i = 0; i < segs.length; i++) {
+      var seg = segs[i];
+      var part = parts[i] || parts[parts.length - 1];
+      enamelDefs += '<linearGradient id="' + uid + '-e' + i + '" x1="25%" y1="10%" x2="75%" y2="90%">' +
+        '<stop offset="0%" stop-color="' + seg[1] + '"/>' +
+        '<stop offset="100%" stop-color="' + seg[2] + '"/>' +
+        '</linearGradient>';
+      enamelPaths += '<path d="' + part.d + '" fill="url(#' + uid + '-e' + i + ')"/>';
+    }
+    var motif = motifPaths(meta.motif);
+    var mark = meta.mark
+      ? ('<text class="achv-award__mark" x="50" y="78" text-anchor="middle" ' +
+        'fill="url(#' + uid + '-metal)" font-size="8" font-weight="700" ' +
+        'font-family="ui-monospace, Menlo, monospace">' +
+        esc(meta.mark) + '</text>')
+      : '';
+    /* Wireframe dividers sit on top of enamel (cloisonné look) */
+    var wires = '';
+    for (i = 0; i < parts.length; i++) {
+      wires += '<path d="' + parts[i].d + '" fill="none" stroke="url(#' + uid + '-metal)" ' +
+        'stroke-width="1.4" opacity=".85"/>';
+    }
+    return '' +
+      '<svg class="achv-award achv-award--' + meta.shape + '" viewBox="0 0 100 100" ' +
+        'aria-hidden="true" focusable="false">' +
+        '<defs>' +
+          '<linearGradient id="' + uid + '-metal" x1="18%" y1="8%" x2="82%" y2="92%">' +
+            metalStops(meta.metal) +
+          '</linearGradient>' +
+          enamelDefs +
+          '<clipPath id="' + uid + '-clip"><path d="' + shell.plate + '"/></clipPath>' +
+          '<radialGradient id="' + uid + '-shine" cx="32%" cy="28%" r="55%">' +
+            '<stop offset="0%" stop-color="#fff" stop-opacity=".5"/>' +
+            '<stop offset="55%" stop-color="#fff" stop-opacity="0"/>' +
+          '</radialGradient>' +
+          '<filter id="' + uid + '-shadow" x="-20%" y="-20%" width="140%" height="140%">' +
+            '<feDropShadow dx="0" dy="2.5" stdDeviation="2.2" flood-color="#061510" flood-opacity=".45"/>' +
+          '</filter>' +
+        '</defs>' +
+        '<g filter="url(#' + uid + '-shadow)">' +
+          '<path class="achv-award__rim" d="' + shell.rim + '" fill="url(#' + uid + '-metal)"/>' +
+          '<g clip-path="url(#' + uid + '-clip)">' +
+            enamelPaths +
+            wires +
+            '<path class="achv-award__shine" d="' + shell.plate + '" fill="url(#' + uid + '-shine)"/>' +
+          '</g>' +
+          '<path d="' + shell.plate + '" fill="none" stroke="url(#' + uid + '-metal)" stroke-width="2.2"/>' +
+          '<g class="achv-award__motif" transform="translate(26,22) scale(2)" fill="none" ' +
+            'stroke="url(#' + uid + '-metal)" stroke-width="1.55" stroke-linecap="round" ' +
+            'stroke-linejoin="round">' + motif + '</g>' +
+          mark +
+        '</g>' +
+      '</svg>';
+  }
+
+  function backFaceHtml(card) {
+    var a = card.ach;
+    var unlocked = !!card.unlocked;
+    var meta = awardMeta(a.id, unlocked);
+    var tag = ownerTag(card);
+    var title = a.name || 'Achievement';
+    var date = awardDateLabel(card);
+    var back = meta.back || ['#12352f', '#0a221e', '#0e9f6e'];
+    var style = '--achv-back-a:' + back[0] + ';--achv-back-b:' + back[1] +
+      ';--achv-back-c:' + back[2] + ';--achv-back-accent:' + (meta.accent || '#0e9f6e');
+    return '' +
+      '<div class="achv-card__face achv-card__face--back' +
+        (unlocked ? '' : ' is-locked') +
+        '" data-award="' + esc(a.id || '') + '" data-shape="' + esc(meta.shape) +
+        '" style="' + style + '">' +
+        '<div class="achv-award-wrap">' + awardBadgeSvg(a, unlocked) + '</div>' +
+        '<div class="achv-card__owner">' + esc(tag) + '</div>' +
+        '<div class="achv-card__award-title">' + esc(title) + '</div>' +
+        '<div class="achv-card__award-date">' + esc(date) + '</div>' +
+      '</div>';
   }
 
   /* ============================ RPC =============================== */
@@ -279,11 +620,6 @@
     var reward = unlocked
       ? ('+' + a.reward + ' 💎')
       : 'Locked';
-    var backCopy = gift
-      ? 'A classmate shared this achievement card with you.'
-      : shared
-        ? 'Peeking at a friend’s achievement wallet.'
-        : 'Tap to flip · send unlocked cards to friends by gamertag.';
     /* div[role=button]: native <button> flattens preserve-3d in Chromium */
     var depthAttr = depth > 3 ? 'n' : String(depth);
     return '' +
@@ -309,10 +645,7 @@
               '</span>' +
             '</div>' +
           '</div>' +
-          '<div class="achv-card__face achv-card__face--back">' +
-            '<div class="achv-card__brand">LearnGeo</div>' +
-            '<div class="achv-card__brand-sub">' + backCopy + '</div>' +
-          '</div>' +
+          backFaceHtml(card) +
         '</div>' +
       '</div>';
   }

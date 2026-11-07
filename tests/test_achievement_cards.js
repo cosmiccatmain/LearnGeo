@@ -61,6 +61,24 @@ assert(/achv-rail|data-rail|goTo|paintDeck/.test(cards + css),
   'rail jump + paintDeck navigation present');
 assert(/onSwipeEnd|touchend|ArrowLeft|ArrowRight/.test(cards),
   'swipe and keyboard deck switching present');
+/* LEA-71 — award-badge backs keep the wallet; username on the back */
+assert(/achv-card__owner|ownerTag|awardBadgeSvg|achv-award/.test(cards),
+  'card back shows owner gamertag + award badge SVG');
+assert(/achv-card__award-title|achv-card__award-date|achv-award-wrap/.test(cards + css),
+  'award title/date layout styles present');
+assert(/shape:\s*'rounded'/.test(cards) && /shape:\s*'circle'/.test(cards) &&
+  /shape:\s*'hex'/.test(cards) && /shape:\s*'shield'/.test(cards) &&
+  /shape:\s*'heart'/.test(cards) && /shape:\s*'diamond'/.test(cards) &&
+  /shape:\s*'scallop'/.test(cards) && /shape:\s*'banner'/.test(cards) &&
+  /shape:\s*'star'/.test(cards) && /shape:\s*'oval'/.test(cards),
+  'ten distinct award shapes (one per achievement)');
+assert(/data-award|AWARD_META/.test(cards) && /--achv-back-a/.test(cards + css),
+  'per-achievement back atmosphere + data-award uniqueness');
+assert(/'first-steps'/.test(cards) && /'globetrotter'/.test(cards) &&
+  /'streak-25'/.test(cards) && /'answers-500'/.test(cards),
+  'unique award meta keyed by achievement id');
+assert(/achv-card__face--back/.test(css) && /achv-stack|is-flipped/.test(css),
+  'flip wallet stack retained with restyled back');
 assert(!/Brainrot|Pets|screen.?mirror|Stripe\.checkout|vercel --prod/i.test(cards),
   'no Pets/Brainrot/mirroring/live Stripe in achievement-cards.js');
 assert(!/Syne|Plus Jakarta/i.test(css), 'keeps original LearnGeo fonts');
@@ -88,11 +106,13 @@ assert(/0023_achievement_cards/.test(readme), 'deployed README documents 0023');
 assert(/0025_achievement_wallet_share/.test(readme), 'deployed README documents 0025');
 assert(/2026-11-achievement-cards/.test(updates), 'updates.json What’s New entry');
 assert(/2026-11-achievement-wallet/.test(updates), 'updates.json wallet entry');
+assert(/2026-11-achievement-awards/.test(updates), 'updates.json award-back entry');
 assert(/2026-11-achievement-cards/.test(updatesJs), 'updates.js seeded entry');
 assert(/2026-11-achievement-wallet/.test(updatesJs), 'updates.js wallet seeded entry');
+assert(/2026-11-achievement-awards/.test(updatesJs), 'updates.js award-back seeded entry');
 assert(!/Pets|Brainrot|screen.?mirror/i.test(
-  updates.match(/2026-11-achievement-wallet[\s\S]*?\},/)[0]),
-  'What’s New wallet entry stays public-safe');
+  updates.match(/2026-11-achievement-awards[\s\S]*?\},/)[0]),
+  'What’s New award-back entry stays public-safe');
 
 assert(fs.existsSync(path.join(root, 'assets/img/updates/achievement-cards.svg')),
   'What’s New art exists');
