@@ -19,6 +19,13 @@
      (LEA-57/58) can ship a separate What’s New without sharing an id. */
   var UPDATES = [
     {
+      id: '2026-11-games-cosmetics-more',
+      title: 'More Games cosmetics',
+      body: 'Customise → Games now covers Geo Chess boards and pieces, Capital Snake coils, Flag Match tile backs, Capital Maze explorers, and Geo Duel accents — alongside Geo Dash trails and jumpers.',
+      image: '/assets/img/updates/games-cosmetics.svg',
+      date: '2026-11-06'
+    },
+    {
       id: '2026-11-chess-duel',
       title: 'Chess Duel: challenge a friend',
       body: 'Invite a classmate by gamertag to a live chess match — same invite inbox as Geo Duel, then take turns on a shared board. Host plays White.',

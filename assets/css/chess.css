@@ -25,16 +25,22 @@
 .chess-board {
   position: relative;
   display: grid; grid-template-columns: repeat(8, minmax(0, 1fr));
-  border: 5px solid #23443b; border-radius: 8px; overflow: hidden; aspect-ratio: 1;
+  border: 5px solid var(--chess-border, #23443b); border-radius: 8px; overflow: hidden; aspect-ratio: 1;
   box-shadow: var(--shadow-lg);
+  --chess-light: #e8ebd5;
+  --chess-dark: #72957d;
+  --chess-border: #23443b;
+  --chess-white: #fffdf2;
+  --chess-black: #172e2b;
+  --chess-outline: #243c35;
 }
 .chess-square {
   position: relative; display: grid; place-items: center; aspect-ratio: 1; width: 100%;
   padding: 0; border: 0; border-radius: 0; cursor: pointer; touch-action: manipulation;
   transition: background-color .18s ease, background-image .18s ease;
 }
-.chess-square--light { background: #e8ebd5; }
-.chess-square--dark { background: #72957d; }
+.chess-square--light { background: var(--chess-light, #e8ebd5); }
+.chess-square--dark { background: var(--chess-dark, #72957d); }
 .chess-square[aria-disabled="true"] { cursor: default; }
 .chess-square.is-last { background-image: linear-gradient(#f4d55355, #f4d55355); }
 .chess-square.is-selected { background: #f2cb68; }
@@ -67,10 +73,14 @@
   transition: transform .15s ease, opacity .12s ease;
 }
 .chess-piece.is-hidden { opacity: 0; }
-.chess-piece--w .chess-piece { color: #fffdf2; text-shadow: 1px 1px 1px #243c35, -1px -1px 1px #243c35, 1px -1px 1px #243c35, -1px 1px 1px #243c35; }
-.chess-piece--b .chess-piece { color: #172e2b; text-shadow: 0 1px 1px #ffffff65; }
-.chess-coordinate { position: absolute; bottom: 1px; left: 3px; font: 9px var(--mono); color: #173d36; pointer-events: none; }
-.chess-square--dark .chess-coordinate { color: #122c21; }
+.chess-piece--w .chess-piece {
+  color: var(--chess-white, #fffdf2);
+  text-shadow: 1px 1px 1px var(--chess-outline, #243c35), -1px -1px 1px var(--chess-outline, #243c35),
+    1px -1px 1px var(--chess-outline, #243c35), -1px 1px 1px var(--chess-outline, #243c35);
+}
+.chess-piece--b .chess-piece { color: var(--chess-black, #172e2b); text-shadow: 0 1px 1px #ffffff65; }
+.chess-coordinate { position: absolute; bottom: 1px; left: 3px; font: 9px var(--mono); color: var(--chess-outline, #173d36); pointer-events: none; }
+.chess-square--dark .chess-coordinate { color: var(--chess-black, #122c21); }
 .chess-flyer,
 .chess-capture-ghost {
   position: absolute; display: grid; place-items: center; margin: 0; padding: 0;
@@ -80,8 +90,12 @@
   transition: transform .22s cubic-bezier(.22, .8, .28, 1);
 }
 .chess-flyer .chess-piece { transition: none; }
-.chess-flyer--w .chess-piece { color: #fffdf2; text-shadow: 1px 1px 1px #243c35, -1px -1px 1px #243c35, 1px -1px 1px #243c35, -1px 1px 1px #243c35; }
-.chess-flyer--b .chess-piece { color: #172e2b; text-shadow: 0 1px 1px #ffffff65; }
+.chess-flyer--w .chess-piece {
+  color: var(--chess-white, #fffdf2);
+  text-shadow: 1px 1px 1px var(--chess-outline, #243c35), -1px -1px 1px var(--chess-outline, #243c35),
+    1px -1px 1px var(--chess-outline, #243c35), -1px 1px 1px var(--chess-outline, #243c35);
+}
+.chess-flyer--b .chess-piece { color: var(--chess-black, #172e2b); text-shadow: 0 1px 1px #ffffff65; }
 .chess-capture-ghost {
   z-index: 5;
   animation: chess-capture-out .28s ease-in forwards;

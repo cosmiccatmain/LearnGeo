@@ -109,6 +109,13 @@
         /* Geo Dash cosmetics (Customise → Games). LEA-54. */
         dashTrail: 'dust',
         dashJumper: 'classic',
+        /* More Games cosmetics (LEA-59). */
+        chessBoard: 'classic',
+        chessPieces: 'classic',
+        snakeBody: 'meadow',
+        matchBack: 'indigo',
+        mazeRunner: 'cyan',
+        duelAccent: 'brand',
         verified: false,       /* granted from the admin panel, never earned */
         badgeSlots: null       /* which badges show beside the name; null = auto */
       },
@@ -124,7 +131,13 @@
         banners: ['plain', 'meadow', 'chalkboard'],
         themes: ['default', 'sand'],
         trails: ['none', 'dust'],
-        jumpers: ['classic', 'cobalt']
+        jumpers: ['classic', 'cobalt'],
+        chessBoards: ['classic', 'parchment'],
+        chessPieces: ['classic', 'ivory'],
+        snakeBodies: ['meadow', 'cobalt'],
+        matchBacks: ['indigo', 'chalk'],
+        mazeRunners: ['cyan', 'cobalt'],
+        duelAccents: ['brand', 'emerald']
       },
       economy: { diamonds: 150, xp: 0, level: 1 },
       streak: { current: 0, best: 0 },

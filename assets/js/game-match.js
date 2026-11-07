@@ -16,6 +16,17 @@
 
   var FLIP_BACK = 0.85;         /* how long a wrong pair stays up */
 
+  function equippedMatchBack() {
+    var Cos = global.Cosmetics;
+    if (!Cos || !Cos.matchBacks) {
+      return { down: '#1B2A5E', up: '#16205a', mark: 'rgba(124,243,255,.22)' };
+    }
+    var id = (W.state && W.state.profile && W.state.profile.matchBack) || 'indigo';
+    var item = Cos.find(Cos.matchBacks, id);
+    if (!item || !item.down) return Cos.find(Cos.matchBacks, 'indigo');
+    return item;
+  }
+
   function mount(host, opts) {
     var run = null, E = null, cols = 4, rows = 3, tw = 0, th = 0, ox = 0, oy = 0;
 
@@ -156,9 +167,10 @@
         ctx.scale(Math.max(0.05, w / tw), 1);
         ctx.translate(-tw / 2, -th / 2);
 
+        var back = equippedMatchBack();
         if (t.done) ctx.fillStyle = 'rgba(14,159,110,.22)';
-        else if (t.up) ctx.fillStyle = '#16205a';
-        else ctx.fillStyle = '#1B2A5E';
+        else if (t.up) ctx.fillStyle = back.up || '#16205a';
+        else ctx.fillStyle = back.down || '#1B2A5E';
         K.roundRect(ctx, 0, 0, tw, th, 9);
         ctx.fill();
         ctx.strokeStyle = t.done ? 'rgba(140,245,194,.7)' : 'rgba(124,243,255,.3)';
@@ -168,7 +180,7 @@
 
         if (!t.up && !t.done) {
           /* the back of the card */
-          ctx.fillStyle = 'rgba(124,243,255,.22)';
+          ctx.fillStyle = back.mark || 'rgba(124,243,255,.22)';
           ctx.font = '700 ' + Math.round(th * 0.4) + 'px ' + K.FONT;
           ctx.textAlign = 'center';
           ctx.fillText('?', tw / 2, th / 2 + th * 0.14);

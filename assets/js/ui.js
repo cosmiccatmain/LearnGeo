@@ -516,16 +516,42 @@
     });
   }
 
-  /* Games tab: Geo Dash trails + jumper skins in one panel (LEA-54). */
+  /* Games tab: Dash + Chess + Snake + Match + Maze + Duel (LEA-54 / LEA-59). */
+  var GAMES_KINDS = [
+    'trails', 'jumpers', 'chessBoards', 'chessPieces',
+    'snakeBodies', 'matchBacks', 'mazeRunners', 'duelAccents'
+  ];
+  function isGamesKind(kind) {
+    return GAMES_KINDS.indexOf(kind) !== -1;
+  }
+
   function gamesPanel() {
     return '<div data-panel="games" class="hidden">' +
       '<div class="row row--between" style="margin-bottom:14px">' +
-        '<div><b style="font-size:15px">Geo Dash cosmetics</b>' +
-        '<div class="t-sm t-muted">Trails leave a wake behind the runner. Jumpers change the cube you play as. ' +
-          'Selections apply the next time you start a Geo Dash run.</div></div>' +
+        '<div><b style="font-size:15px">Games cosmetics</b>' +
+        '<div class="t-sm t-muted">Customise Geo Dash, Geo Chess, Capital Snake, Flag Match, Capital Maze, and Geo Duel. ' +
+          'Selections apply the next time you start that game. Geo Dash cosmetics stay here too.</div></div>' +
       '</div>' +
-      gamesSection('trails', 'Trails', 'Particle wake behind the cube. Chalk Dust is free.') +
-      gamesSection('jumpers', 'Jumper skins', 'Visual style of the dash cube. Classic and Cobalt are free.') +
+      '<div class="cz-games-group"><div class="cz-games-group__title">Geo Dash</div>' +
+        gamesSection('trails', 'Trails', 'Particle wake behind the cube. Chalk Dust is free.') +
+        gamesSection('jumpers', 'Jumper skins', 'Visual style of the dash cube. Classic and Cobalt are free.') +
+      '</div>' +
+      '<div class="cz-games-group"><div class="cz-games-group__title">Geo Chess</div>' +
+        gamesSection('chessBoards', 'Board themes', 'Light and dark squares. Classic Green and Parchment are free.') +
+        gamesSection('chessPieces', 'Piece sets', 'White and black piece colours. Classic and Ivory are free.') +
+      '</div>' +
+      '<div class="cz-games-group"><div class="cz-games-group__title">Capital Snake</div>' +
+        gamesSection('snakeBodies', 'Coil colours', 'Body bands before a flag skin lands. Meadow and Cobalt are free.') +
+      '</div>' +
+      '<div class="cz-games-group"><div class="cz-games-group__title">Flag Match</div>' +
+        gamesSection('matchBacks', 'Tile backs', 'Face-down card colour. Indigo and Chalk are free.') +
+      '</div>' +
+      '<div class="cz-games-group"><div class="cz-games-group__title">Capital Maze</div>' +
+        gamesSection('mazeRunners', 'Explorer colours', 'Your maze runner and life pips. Cyan and Cobalt are free.') +
+      '</div>' +
+      '<div class="cz-games-group"><div class="cz-games-group__title">Geo Duel</div>' +
+        gamesSection('duelAccents', 'Scoreboard accents', 'Highlight on your side of the duel board. Brand and Emerald are free.') +
+      '</div>' +
       '</div>';
   }
 
@@ -568,8 +594,19 @@
   var LISTS = {
     avatars: 'avatar', decorations: 'decoration', effects: 'effect',
     nameplates: 'nameplate', banners: 'banner', themes: 'theme',
-    trails: 'dashTrail', jumpers: 'dashJumper'
+    trails: 'dashTrail', jumpers: 'dashJumper',
+    chessBoards: 'chessBoard', chessPieces: 'chessPieces',
+    snakeBodies: 'snakeBody', matchBacks: 'matchBack',
+    mazeRunners: 'mazeRunner', duelAccents: 'duelAccent'
   };
+
+  var GAMES_PREVIEW_FOR = {
+    trails: 'dash', jumpers: 'dash',
+    chessBoards: 'chess', chessPieces: 'chess',
+    snakeBodies: 'snake', matchBacks: 'match',
+    mazeRunners: 'maze', duelAccents: 'duel'
+  };
+  var gamesPreviewMode = 'dash';
 
   function shopTile(kind, it, owned, equipped) {
     /* An earned badge is owned by having done the thing and by no
@@ -625,7 +662,10 @@
     function label(k) {
       return { avatars: 'Avatar', decorations: 'Avatar frame', effects: 'Profile effect',
                nameplates: 'Nameplate', banners: 'Profile banner', themes: 'Profile theme',
-               trails: 'Geo Dash trail', jumpers: 'Geo Dash jumper' }[k];
+               trails: 'Geo Dash trail', jumpers: 'Geo Dash jumper',
+               chessBoards: 'Chess board', chessPieces: 'Chess pieces',
+               snakeBodies: 'Snake coil', matchBacks: 'Match tile back',
+               mazeRunners: 'Maze explorer', duelAccents: 'Duel accent' }[k];
     }
     function hint(k) {
       if (k === 'effects') {
@@ -698,6 +738,38 @@
     if (kind === 'jumpers') {
       return '<span class="shop-item__vis shop-item__vis--jumper" style="background:var(--paper)">' +
         jumperPreviewHtml(it) + '</span>';
+    }
+    if (kind === 'chessBoards') {
+      return '<span class="shop-item__vis shop-item__vis--board" aria-hidden="true">' +
+        '<i style="background:' + (it.light || '#e8ebd5') + '"></i>' +
+        '<i style="background:' + (it.dark || '#72957d') + '"></i>' +
+        '<i style="background:' + (it.dark || '#72957d') + '"></i>' +
+        '<i style="background:' + (it.light || '#e8ebd5') + '"></i></span>';
+    }
+    if (kind === 'chessPieces') {
+      return '<span class="shop-item__vis shop-item__vis--pieces" style="background:var(--paper)">' +
+        '<span style="color:' + (it.white || '#fffdf2') + ';text-shadow:0 0 1px ' + (it.outline || '#243c35') + '">♕</span>' +
+        '<span style="color:' + (it.black || '#172e2b') + '">♛</span></span>';
+    }
+    if (kind === 'snakeBodies') {
+      var bands = it.bands || ['#1d5a24', '#8BD650', '#B5EE7A'];
+      return '<span class="shop-item__vis shop-item__vis--snake" style="background:var(--paper)">' +
+        bands.map(function (c) {
+          return '<i style="background:' + c + '"></i>';
+        }).join('') + '</span>';
+    }
+    if (kind === 'matchBacks') {
+      return '<span class="shop-item__vis shop-item__vis--match" style="background:' + (it.down || '#1B2A5E') +
+        ';color:' + (it.mark || 'rgba(124,243,255,.8)') + '">?</span>';
+    }
+    if (kind === 'mazeRunners') {
+      return '<span class="shop-item__vis shop-item__vis--maze" style="background:var(--paper)">' +
+        '<i style="background:' + (it.fill || '#7CF3FF') + ';box-shadow:0 0 10px ' + (it.glow || 'transparent') + '"></i></span>';
+    }
+    if (kind === 'duelAccents') {
+      return '<span class="shop-item__vis shop-item__vis--duel" style="background:var(--paper);border-color:' +
+        (it.accent || '#1B4DFF') + ';box-shadow:0 0 0 2px ' + (it.soft || 'transparent') + '">' +
+        '<b style="color:' + (it.accent || '#1B4DFF') + '">VS</b></span>';
     }
     return '<span class="shop-item__vis"></span>';
   }
@@ -827,8 +899,9 @@
     W.saveNow();
     W.Sound.flip();
     /* re-render just the affected panel, keeping the open tab.
-       Trails / jumpers live inside the Games panel, not their own tab. */
-    var panelId = (kind === 'trails' || kind === 'jumpers') ? 'games' : kind;
+       Game cosmetics live inside the Games panel, not their own tab. */
+    if (GAMES_PREVIEW_FOR[kind]) gamesPreviewMode = GAMES_PREVIEW_FOR[kind];
+    var panelId = isGamesKind(kind) ? 'games' : kind;
     var panel = W.$('[data-panel="' + panelId + '"]', root);
     if (panel) {
       var wasHidden = panel.classList.contains('hidden');
@@ -893,21 +966,15 @@
     var label = W.$('#cz-preview-label', root);
     var hint = W.$('#cz-preview-hint', root);
     if (gamesOn) {
-      if (label) label.textContent = 'Geo Dash preview';
-      if (hint) {
-        hint.textContent = 'Trail and jumper update as you equip. They show in the next Geo Dash run.';
-      }
-      stopDashPreview(host);
-      host.innerHTML = '<div class="cz-dash-preview" aria-hidden="true">' +
-        '<canvas class="cz-dash-preview__canvas" width="320" height="180"></canvas></div>';
-      startDashPreview(host);
+      stopGamesPreview(host);
+      renderGamesPreview(root, host, label, hint);
       return;
     }
     if (label) label.textContent = 'Live preview';
     if (hint) {
       hint.textContent = 'Pick a cosmetic — the card updates instantly. Diamonds come from answers, tests, and achievements.';
     }
-    stopDashPreview(host);
+    stopGamesPreview(host);
     var p = W.state.profile;
     var nameEl = W.$('#cz-name', root), pronEl = W.$('#cz-pronouns', root), aboutEl = W.$('#cz-about', root);
     var live = {
@@ -919,12 +986,168 @@
     runEffect(host);
   }
 
-  /* Tiny looping Geo Dash stage for the Games tab side preview. */
+  /* Tiny looping stages for the Games tab side preview. */
   var dashPreviewRaf = 0;
-  function stopDashPreview(host) {
+  function stopGamesPreview(host) {
     if (dashPreviewRaf) { cancelAnimationFrame(dashPreviewRaf); dashPreviewRaf = 0; }
     if (host) host._dashPreview = null;
   }
+  function stopDashPreview(host) { stopGamesPreview(host); }
+
+  function renderGamesPreview(root, host, label, hint) {
+    var mode = gamesPreviewMode || 'dash';
+    var titles = {
+      dash: 'Geo Dash preview', chess: 'Geo Chess preview', snake: 'Capital Snake preview',
+      match: 'Flag Match preview', maze: 'Capital Maze preview', duel: 'Geo Duel preview'
+    };
+    var hints = {
+      dash: 'Trail and jumper update as you equip. They show in the next Geo Dash run.',
+      chess: 'Board and piece colours update live. They show in the next Geo Chess game.',
+      snake: 'Coil colours update live. They show in the next Capital Snake run.',
+      match: 'Tile backs update live. They show in the next Flag Match board.',
+      maze: 'Explorer colour updates live. It shows in the next Capital Maze run.',
+      duel: 'Scoreboard accent updates live. It shows in your next Geo Duel.'
+    };
+    if (label) label.textContent = titles[mode] || 'Games preview';
+    if (hint) hint.textContent = hints[mode] || 'Equip a Games cosmetic to preview it.';
+    var modes = [
+      ['dash', 'Dash'], ['chess', 'Chess'], ['snake', 'Snake'],
+      ['match', 'Match'], ['maze', 'Maze'], ['duel', 'Duel']
+    ];
+    host.innerHTML =
+      '<div class="cz-games-preview">' +
+        '<div class="seg cz-games-preview__seg" role="tablist">' +
+          modes.map(function (m) {
+            return '<button type="button" data-gp="' + m[0] + '" class="' +
+              (m[0] === mode ? 'is-active' : '') + '">' + m[1] + '</button>';
+          }).join('') +
+        '</div>' +
+        '<div class="cz-games-preview__stage" data-gp-stage></div>' +
+      '</div>';
+    W.$$('[data-gp]', host).forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        gamesPreviewMode = btn.getAttribute('data-gp') || 'dash';
+        drawPreview(root);
+      });
+    });
+    var stage = W.$('[data-gp-stage]', host);
+    if (!stage) return;
+    if (mode === 'dash') {
+      stage.innerHTML = '<div class="cz-dash-preview" aria-hidden="true">' +
+        '<canvas class="cz-dash-preview__canvas" width="320" height="180"></canvas></div>';
+      startDashPreview(host);
+      return;
+    }
+    if (mode === 'chess') {
+      stage.innerHTML = chessPreviewHtml();
+      return;
+    }
+    if (mode === 'snake') {
+      stage.innerHTML = '<canvas class="cz-snake-preview__canvas" width="320" height="120"></canvas>';
+      startSnakePreview(host, stage.querySelector('canvas'));
+      return;
+    }
+    if (mode === 'match') {
+      stage.innerHTML = matchPreviewHtml();
+      return;
+    }
+    if (mode === 'maze') {
+      stage.innerHTML = mazePreviewHtml();
+      return;
+    }
+    stage.innerHTML = duelPreviewHtml();
+  }
+
+  function chessPreviewHtml() {
+    var board = Cos.find(Cos.chessBoards, (W.state.profile && W.state.profile.chessBoard) || 'classic');
+    var pieces = Cos.find(Cos.chessPieces, (W.state.profile && W.state.profile.chessPieces) || 'classic');
+    var cells = '';
+    for (var i = 0; i < 16; i++) {
+      var dark = Math.floor(i / 4) % 2 ? i % 2 === 0 : i % 2 === 1;
+      var glyph = '';
+      if (i === 1) glyph = '<span style="color:' + (pieces.black || '#172e2b') + '">♞</span>';
+      if (i === 12) glyph = '<span style="color:' + (pieces.white || '#fffdf2') +
+        ';text-shadow:0 0 1px ' + (pieces.outline || '#243c35') + '">♕</span>';
+      if (i === 13) glyph = '<span style="color:' + (pieces.white || '#fffdf2') +
+        ';text-shadow:0 0 1px ' + (pieces.outline || '#243c35') + '">♔</span>';
+      if (i === 4) glyph = '<span style="color:' + (pieces.black || '#172e2b') + '">♚</span>';
+      cells += '<i style="background:' + (dark ? (board.dark || '#72957d') : (board.light || '#e8ebd5')) +
+        '">' + glyph + '</i>';
+    }
+    return '<div class="cz-chess-preview" style="border-color:' + (board.border || '#23443b') + '">' +
+      cells + '</div>';
+  }
+
+  function matchPreviewHtml() {
+    var back = Cos.find(Cos.matchBacks, (W.state.profile && W.state.profile.matchBack) || 'indigo');
+    return '<div class="cz-match-preview">' +
+      [0, 1, 2, 3].map(function () {
+        return '<span style="background:' + (back.down || '#1B2A5E') + ';color:' +
+          (back.mark || 'rgba(124,243,255,.85)') + '">?</span>';
+      }).join('') + '</div>';
+  }
+
+  function mazePreviewHtml() {
+    var runner = Cos.find(Cos.mazeRunners, (W.state.profile && W.state.profile.mazeRunner) || 'cyan');
+    return '<div class="cz-maze-preview">' +
+      '<div class="cz-maze-preview__walls"></div>' +
+      '<i style="background:' + (runner.fill || '#7CF3FF') +
+        ';box-shadow:0 0 14px ' + (runner.glow || 'transparent') + '"></i></div>';
+  }
+
+  function duelPreviewHtml() {
+    var accent = Cos.find(Cos.duelAccents, (W.state.profile && W.state.profile.duelAccent) || 'brand');
+    return '<div class="cz-duel-preview">' +
+      '<div class="cz-duel-preview__score is-me" style="border-color:' + (accent.accent || '#1B4DFF') +
+        ';box-shadow:0 0 0 2px ' + (accent.soft || 'transparent') + '"><span>You</span><b>3</b></div>' +
+      '<div class="cz-duel-preview__mid">VS</div>' +
+      '<div class="cz-duel-preview__score"><span>Rival</span><b>2</b></div></div>';
+  }
+
+  function startSnakePreview(host, canvas) {
+    if (!canvas) return;
+    var ctx = canvas.getContext('2d');
+    host._dashPreview = true;
+    function frame(now) {
+      if (!host._dashPreview) return;
+      dashPreviewRaf = requestAnimationFrame(frame);
+      var body = Cos.find(Cos.snakeBodies, (W.state.profile && W.state.profile.snakeBody) || 'meadow');
+      var bands = (body && body.bands) || ['#1d5a24', '#8BD650', '#B5EE7A'];
+      var face = (body && body.face) || '#9BE15D';
+      var w = canvas.width, h = canvas.height;
+      var t = now / 1000;
+      ctx.fillStyle = '#174a3a';
+      ctx.fillRect(0, 0, w, h);
+      ctx.fillStyle = '#14533f';
+      for (var x = 0; x < w; x += 20) for (var y = 0; y < h; y += 20) {
+        if (((x / 20) + (y / 20)) % 2) ctx.fillRect(x, y, 20, 20);
+      }
+      var path = [];
+      for (var i = 0; i < 8; i++) {
+        path.push({ x: 40 + i * 28 + Math.sin(t * 3 + i * 0.4) * 4, y: h / 2 + Math.sin(t * 2 + i * 0.5) * 10 });
+      }
+      ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      [[10, bands[0]], [7, bands[1]], [3.5, bands[2]]].forEach(function (band) {
+        ctx.strokeStyle = band[1];
+        ctx.lineWidth = band[0];
+        ctx.beginPath();
+        path.forEach(function (p, idx) {
+          if (!idx) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y);
+        });
+        ctx.stroke();
+      });
+      var head = path[path.length - 1];
+      ctx.fillStyle = bands[0];
+      ctx.beginPath(); ctx.arc(head.x, head.y, 11, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = face;
+      ctx.beginPath(); ctx.arc(head.x + 2, head.y, 7, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.beginPath(); ctx.arc(head.x + 4, head.y - 3, 2.2, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(head.x + 4, head.y + 3, 2.2, 0, Math.PI * 2); ctx.fill();
+    }
+    dashPreviewRaf = requestAnimationFrame(frame);
+  }
+
   function startDashPreview(host) {
     var canvas = host.querySelector('.cz-dash-preview__canvas');
     if (!canvas) return;

@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 280" role="img" aria-label="Games cosmetics">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#eef2ff"/>
+      <stop offset="100%" stop-color="#e7f7f1"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="280" fill="url(#sky)"/>
+  <!-- chess board -->
+  <g transform="translate(56,48)">
+    <rect width="168" height="168" rx="12" fill="#23443b"/>
+    <g transform="translate(12,12)">
+      <rect width="36" height="36" fill="#e8ebd5"/><rect x="36" width="36" height="36" fill="#72957d"/>
+      <rect x="72" width="36" height="36" fill="#e8ebd5"/><rect x="108" width="36" height="36" fill="#72957d"/>
+      <rect y="36" width="36" height="36" fill="#72957d"/><rect x="36" y="36" width="36" height="36" fill="#e8ebd5"/>
+      <rect x="72" y="36" width="36" height="36" fill="#72957d"/><rect x="108" y="36" width="36" height="36" fill="#e8ebd5"/>
+      <rect y="72" width="36" height="36" fill="#e8ebd5"/><rect x="36" y="72" width="36" height="36" fill="#72957d"/>
+      <rect x="72" y="72" width="36" height="36" fill="#e8ebd5"/><rect x="108" y="72" width="36" height="36" fill="#72957d"/>
+      <rect y="108" width="36" height="36" fill="#72957d"/><rect x="36" y="108" width="36" height="36" fill="#e8ebd5"/>
+      <rect x="72" y="108" width="36" height="36" fill="#72957d"/><rect x="108" y="108" width="36" height="36" fill="#e8ebd5"/>
+      <text x="54" y="100" text-anchor="middle" font-size="28" fill="#fffdf2">U</text>
+      <text x="90" y="64" text-anchor="middle" font-size="28" fill="#172e2b">^</text>
+    </g>
+  </g>
+  <!-- snake coil -->
+  <g transform="translate(260,70)">
+    <rect width="160" height="140" rx="16" fill="#174a3a"/>
+    <path d="M24 90 C40 40, 70 40, 86 70 S130 120, 146 78" fill="none" stroke="#1d5a24" stroke-width="18" stroke-linecap="round"/>
+    <path d="M24 90 C40 40, 70 40, 86 70 S130 120, 146 78" fill="none" stroke="#8BD650" stroke-width="11" stroke-linecap="round"/>
+    <path d="M24 90 C40 40, 70 40, 86 70 S130 120, 146 78" fill="none" stroke="#B5EE7A" stroke-width="5" stroke-linecap="round"/>
+    <circle cx="146" cy="78" r="14" fill="#1d5a24"/>
+    <circle cx="150" cy="78" r="9" fill="#9BE15D"/>
+  </g>
+  <!-- match tiles + maze pip -->
+  <g transform="translate(456,64)">
+    <rect width="58" height="68" rx="10" fill="#1B2A5E"/>
+    <text x="29" y="46" text-anchor="middle" font-size="28" font-weight="700" fill="rgba(124,243,255,.85)">?</text>
+    <rect x="70" width="58" height="68" rx="10" fill="#1B4DFF"/>
+    <text x="99" y="46" text-anchor="middle" font-size="28" font-weight="700" fill="rgba(34,211,238,.9)">?</text>
+    <circle cx="64" cy="118" r="16" fill="#7CF3FF"/>
+  </g>
+</svg>

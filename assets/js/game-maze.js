@@ -35,6 +35,15 @@
   var RESULT_TIME = 2.2;
   var DIRS = [{ x: 1, y: 0 }, { x: -1, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 }];
 
+  function equippedMazeRunner() {
+    var Cos = global.Cosmetics;
+    if (!Cos || !Cos.mazeRunners) return { fill: '#7CF3FF' };
+    var id = (W.state && W.state.profile && W.state.profile.mazeRunner) || 'cyan';
+    var item = Cos.find(Cos.mazeRunners, id);
+    if (!item || !item.fill) return Cos.find(Cos.mazeRunners, 'cyan');
+    return item;
+  }
+
   function mount(host, opts) {
     var ask = K.asker({
       cfg: opts.cfg,
@@ -303,9 +312,10 @@
         ctx.textAlign = 'left';
       });
 
-      /* you */
+      /* you — colour from Customise → Games maze runner (LEA-59) */
+      var runner = equippedMazeRunner();
       var mxp = ox + (r.me.x + 0.5) * cell, myp = oy + (r.me.y + 0.5) * cell;
-      ctx.fillStyle = r.caught > 0 ? '#FF8A8E' : '#7CF3FF';
+      ctx.fillStyle = r.caught > 0 ? '#FF8A8E' : (runner.fill || '#7CF3FF');
       var mouth = Math.abs(Math.sin(clock * 9)) * 0.5;
       var face = Math.atan2(r.dir.y, r.dir.x);
       ctx.beginPath();
@@ -335,7 +345,7 @@
       E.fx.draw(ctx, cell, ox, oy);
 
       for (var l = 0; l < r.lives; l++) {
-        ctx.fillStyle = '#7CF3FF';
+        ctx.fillStyle = runner.fill || '#7CF3FF';
         ctx.beginPath();
         ctx.arc(view.w - 18 - l * 18, view.h - 14, 6, 0.4, K.TAU - 0.4);
         ctx.lineTo(view.w - 18 - l * 18, view.h - 14);
