@@ -37,6 +37,9 @@ revoke all on public.chess_ratings from anon, authenticated;
 alter table public.chess_duel_matches
   add column if not exists elo_applied boolean not null default false;
 
+/* Drop legacy win-count rows so the board is Elo-only going forward. */
+delete from public.game_scores where game_id = 'chess';
+
 /* ============================ helpers ============================= */
 create or replace function private.chess_elo_expected(p_me integer, p_opp integer)
 returns double precision
