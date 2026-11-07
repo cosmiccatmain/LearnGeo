@@ -219,11 +219,12 @@ to appear rather than being called by `ui.js`, so the two don't get in each othe
 
 ### The admin panel
 
-Adding `?admin` to the URL opens a number pad. The four-digit codes live in Supabase and are
-checked there (`assets/js/admin-pin.js`), so the page never holds one, and if it can't reach
-the server it refuses rather than falling back to anything. Unlocking it lets you hand out the
-two things the app won't award on its own: the verified seal and diamonds. It only changes
-this browser's save. Four digits is a speed bump to keep students out, not real security.
+Adding `?admin` / `?ultra` to the URL opens the admin unlock dialog. The shared passphrase is
+`adminisbetter` (bcrypt in Supabase `admin_pins`, checked by `assets/js/admin-pin.js`). After
+UltraAdmin is open you can set up a WebAuthn **admin passkey** on that device
+(`assets/js/admin-passkey.js`); next time the dialog offers “Use passkey”, with the code as
+fallback. Unlocking the gems panel lets you hand out the verified seal and diamonds on this
+browser's save. This is a speed bump to keep students out, not real security.
 
 ### Database
 
@@ -377,6 +378,7 @@ assets/js/portal.js             study center home screen, built around the map
 assets/js/codex.js              the Codex tab: the hexagon evaluation and the Guild lore
 assets/js/admin.js              ?admin panel: grants and removes the verified seal and diamonds
 assets/js/admin-pin.js          checks the admin code against Supabase
+assets/js/admin-passkey.js      WebAuthn passkey enroll/unlock for UltraAdmin
 assets/js/teacher.js            teacher view: stream, classwork, people, analytics
 assets/js/classroom.js          student Classroom tab
 assets/js/mode-learn.js         Learn

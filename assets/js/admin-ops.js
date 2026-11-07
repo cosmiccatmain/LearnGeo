@@ -223,6 +223,44 @@
     return opening;
   }
 
+  /* LEA-82: open UltraAdmin with a passkey-backed device secret. */
+  function openPasskey(deviceId, credentialId, unlockSecret) {
+    var client = sb();
+    if (!client || !signedIn()) {
+      return Promise.resolve(fault('notready', 'Sign in first.'));
+    }
+    opening = client.rpc('admin_open_session_passkey', {
+      p_device: String(deviceId || ''),
+      p_credential_id: String(credentialId || ''),
+      p_unlock_secret: String(unlockSecret || '')
+    }).then(function (res) {
+      if (res.error) {
+        if (missing(res.error, 'admin_open_session_passkey')) {
+          return fault('nomigration', 'Admin passkeys need 0026 on the database first.');
+        }
+        return fault('error', res.error.message || 'The server refused that.');
+      }
+      if (!res.data) return fault('wrong', 'Passkey unlock failed. Use the code.');
+      token = res.data; until = Date.now() + LIFE; scope = 'ultra';
+      return { ok: true };
+    })
+      .catch(function (e) { return fault('error', String((e && e.message) || e)); })
+      .then(function (r) { opening = null; return r; });
+    return opening;
+  }
+
+  function enrollPasskey(deviceId, credentialId, unlockSecret) {
+    return call('admin_passkey_enroll', {
+      p_device: String(deviceId || ''),
+      p_credential_id: String(credentialId || ''),
+      p_unlock_secret: String(unlockSecret || '')
+    });
+  }
+
+  function removePasskey(deviceId) {
+    return call('admin_passkey_remove', { p_device: String(deviceId || '') });
+  }
+
   function setPrivate(password) {
     var d = device(true);
     if (!d) return Promise.resolve(fault('error', 'This browser will not store a device id, so a Private Password cannot be tied to it.'));
@@ -328,6 +366,9 @@
     openPrivate: openPrivate,
     setPrivate: setPrivate,
     clearPrivate: clearPrivate,
+    openPasskey: openPasskey,
+    enrollPasskey: enrollPasskey,
+    removePasskey: removePasskey,
     allowList: function ()                { return call('ultra_allow_list', {}); },
     allow:    function (email, on)        { return call('ultra_allow_set', { p_email: email, p_on: !!on }); },
 

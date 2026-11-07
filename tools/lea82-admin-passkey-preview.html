@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LEA-82 admin unlock preview</title>
+  <link rel="stylesheet" href="../assets/css/app.css">
+  <style>
+    body { margin: 0; padding: 32px; background: var(--paper, #f6f3ea); font-family: var(--sans, Inter, sans-serif); }
+    .wrap { max-width: 520px; margin: 0 auto; display: grid; gap: 28px; }
+    .modalish {
+      background: #fff; border: 1px solid var(--line, #e5e0d4); border-radius: 14px;
+      padding: 22px 22px 18px; box-shadow: 0 10px 30px rgba(20,40,80,.08);
+    }
+    .modalish h2 { margin: 0 0 8px; font-size: 18px; display: flex; gap: 8px; align-items: center; }
+    .cr-card {
+      background: #fff; border: 1px solid var(--line, #e5e0d4); border-radius: 12px;
+      padding: 16px 16px 14px;
+    }
+    .cr-card__head h3 { margin: 0; font-size: 15px; }
+    .pad-err { color: var(--danger, #b42318); min-height: 1.2em; margin-top: 8px; font-size: 13px; }
+    .code-field { width: 100%; }
+    .btn--block { width: 100%; }
+    .label { font-size: 12px; letter-spacing: .04em; text-transform: uppercase; color: var(--muted, #6b7280); margin-bottom: 8px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div>
+      <div class="label">Unlock dialog</div>
+      <div class="modalish" id="lea82-unlock">
+        <h2>UltraAdmin</h2>
+        <p class="t-muted t-sm" style="margin:-4px 0 16px">Use your admin passkey, or enter the code / Private Password.</p>
+        <button type="button" class="btn btn--primary btn--block" id="pad-passkey" style="margin-bottom:12px">Use passkey</button>
+        <p class="t-sm t-muted" style="margin:0 0 12px;text-align:center">or type the code</p>
+        <div class="field">
+          <input class="input code-field" id="pad-code" type="password" placeholder="Private Password or code" value="">
+        </div>
+        <div id="pad-err" class="pad-err"></div>
+        <div style="margin-top:14px;text-align:right">
+          <button type="button" class="btn btn--ghost">Cancel</button>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="label">UltraAdmin · enroll</div>
+      <div class="cr-card" id="lea82-enroll">
+        <div class="cr-card__head"><h3>Admin unlock passkey</h3></div>
+        <p class="t-sm t-muted" style="margin:-4px 0 12px">
+          Set one up to unlock UltraAdmin on this device with face, fingerprint, or screen lock.
+          The shared code <code>adminisbetter</code> remains the fallback.
+        </p>
+        <div class="row" style="gap:8px;flex-wrap:wrap">
+          <button class="btn btn--accent btn--sm" id="ua-pk-setup">Set up passkey</button>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="label">UltraAdmin · enrolled</div>
+      <div class="cr-card" id="lea82-enrolled">
+        <div class="cr-card__head"><h3>Admin unlock passkey</h3></div>
+        <p class="t-sm t-muted" style="margin:-4px 0 12px">
+          A passkey is set up on this device. Next unlock can use face, fingerprint, or screen lock.
+          The shared code still works as a fallback.
+        </p>
+        <div class="row" style="gap:8px;flex-wrap:wrap">
+          <button class="btn btn--accent btn--sm">Replace passkey</button>
+          <button class="btn btn--ghost btn--sm" id="ua-pk-remove">Remove passkey</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
