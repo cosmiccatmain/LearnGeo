@@ -1689,7 +1689,9 @@
       return;
     }
     host.innerHTML = list.map(function (row) {
-      var how = row.method === 'private' ? 'Private Password' : 'Admin code';
+      var how = row.method === 'private' ? 'Private Password'
+        : row.method === 'passkey' ? 'Passkey'
+        : 'Admin code';
       var whenAbs = loginWhen(row.logged_at);
       return '<div class="adminp__logrow adminp__logrow--login">' +
         '<span class="t-muted" title="' + esc(ago(row.logged_at)) + '">' + esc(whenAbs) + '</span>' +

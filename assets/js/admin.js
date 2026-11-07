@@ -1,16 +1,16 @@
 /* ------------------------------------------------------------------
    LearnGeo — admin panel.
 
-   Opened with ?admin on the URL, unlocked with a four-digit code on a
-   number pad, and then able to hand out — or take back — the two things
-   the app will not award by itself: the verified seal and diamonds.
+   Opened with ?admin on the URL, unlocked with the shared passphrase
+   (adminisbetter), an enrolled WebAuthn passkey, or a Private Password,
+   and then able to hand out — or take back — the two things the app will
+   not award by itself: the verified seal and diamonds.
 
-   Read this before trusting it with anything: the codes live in Supabase
-   and are checked there (assets/js/admin-pin.js), so the page never holds
-   one, but four digits are still only four digits and everything the
-   panel changes is this browser's own save. It keeps the panel out of the
-   way of a student poking around. It is not a security boundary, and
-   nothing here should ever guard anything that matters.
+   Read this before trusting it with anything: the codes live hashed in
+   Supabase and are checked there (assets/js/admin-pin.js). Passkeys are
+   enrolled after unlock (admin-passkey.js). Everything the gems panel
+   changes is this browser's own save. It keeps the panel out of the way
+   of a student poking around. It is not a security boundary.
 -------------------------------------------------------------------*/
 (function (global) {
   'use strict';
@@ -140,13 +140,22 @@
     var typed = '';
     var keyHandler = null;       /* removed when the dialog closes, however it closes */
     var priv = !!(global.AdminOps && global.AdminOps.hasPrivate && global.AdminOps.hasPrivate());
+    var PK = global.AdminPasskey;
+    var canPasskey = !!(PK && PK.supported && PK.supported() && PK.hasLocal && PK.hasLocal());
+
+    var hint = canPasskey
+      ? 'Use your admin passkey, or enter the code' + (priv ? ' / Private Password' : '') + '.'
+      : (priv ? 'Enter your Private Password, or the code.'
+              : 'Enter the code' + (want === 'ultra' ? ' for UltraAdmin' : '') + '.');
 
     var m = global.UI.modal({
       title: want === 'ultra' ? 'UltraAdmin' : 'Admin', icon: I.lock,
       body:
-        '<p class="t-muted t-sm" style="margin:-4px 0 16px">' +
-          (priv ? 'Enter your Private Password, or the code.'
-                : 'Enter the code' + (want === 'ultra' ? ' for UltraAdmin' : '') + '.') + '</p>' +
+        '<p class="t-muted t-sm" style="margin:-4px 0 16px">' + hint + '</p>' +
+        (canPasskey
+          ? '<button type="button" class="btn btn--primary btn--block" id="pad-passkey" style="margin-bottom:12px">Use passkey</button>' +
+            '<p class="t-sm t-muted" style="margin:0 0 12px;text-align:center">or type the code</p>'
+          : '') +
         '<div class="field">' +
           '<input class="input code-field" id="pad-code" type="password" ' +
             'autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" ' +
@@ -157,13 +166,44 @@
       onMount: function (root, close) {
         var input = W.$('#pad-code', root);
         var errEl = W.$('#pad-err', root);
+        var pkBtn = W.$('#pad-passkey', root);
         var checkId = 0;
 
-        setTimeout(function () { input.focus(); }, 60);
-        input.addEventListener('keydown', function (e) {
-          if (e.key === 'Enter') { e.preventDefault(); submit(); }
-        });
-        input.addEventListener('input', function () { errEl.textContent = ''; });
+        setTimeout(function () { if (input) input.focus(); }, 60);
+        if (input) {
+          input.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') { e.preventDefault(); submit(); }
+          });
+          input.addEventListener('input', function () { errEl.textContent = ''; });
+        }
+        if (pkBtn) {
+          pkBtn.addEventListener('click', function () { usePasskey(); });
+        }
+
+        function usePasskey() {
+          if (!PK || !PK.unlock) return fail('Passkey unlock is not available.');
+          var wait = lockedUntil - Date.now();
+          if (wait > 0) {
+            return fail('Too many tries. Wait ' + Math.ceil(wait / 1000) + 's.');
+          }
+          checkId += 1;
+          var mine = checkId;
+          if (pkBtn) pkBtn.disabled = true;
+          errEl.textContent = 'Waiting for passkey…';
+          PK.unlock().then(function (r) {
+            if (mine !== checkId || !document.body.contains(root)) return;
+            if (pkBtn) pkBtn.disabled = false;
+            if (r && r.ok) {
+              tries = 0; lockedUntil = 0;
+              return pass(r.scope || 'ultra', true);
+            }
+            if (r && r.kind === 'cancelled') {
+              errEl.textContent = '';
+              return;
+            }
+            fail((r && r.message) || 'Passkey unlock failed. Use the code.');
+          });
+        }
 
         function submit() {
           var wait = lockedUntil - Date.now();
@@ -183,9 +223,8 @@
         }
 
         /* Supabase answers which panel the code opens, without the page
-           ever holding the codes (assets/js/admin-pin.js). If it cannot
-           answer, nothing opens: there is no code built into this file
-           to fall back on. */
+           inventing one (assets/js/admin-pin.js). Shared code is
+           adminisbetter on the live project (LEA-82). */
         function check(mine) {
           var asking = global.AdminPin && global.AdminPin.verify(typed);
           if (!asking) return fail(NO_CHECK);
@@ -228,7 +267,7 @@
           if (w) lockedUntil = Date.now() + w;
         }
 
-        function pass(got, viaPrivate) {
+        function pass(got, viaSession) {
           unlocked = true;
           scope = got || 'gems';
           /* The only place the passphrase is handed on, and it is handed
@@ -237,10 +276,13 @@
              server can check, and `unlocked` above is not that: it is a
              boolean in this tab's memory.
 
+             Passkey / Private Password paths already hold a live token
+             (viaSession). Shared-code ultra still exchanges here.
+
              Not awaited. The exchange takes a round trip and the panel
              should open now; AdminOps makes the first call that needs a
              token wait on the same promise. */
-          if (got === 'ultra' && !viaPrivate && global.AdminOps && global.AdminOps.connect) {
+          if (got === 'ultra' && !viaSession && global.AdminOps && global.AdminOps.connect) {
             try { global.AdminOps.connect(typed, got); } catch (e) { /* never block the unlock */ }
           }
           typed = '';
@@ -251,11 +293,13 @@
 
         function fail(why) {
           typed = '';
-          input.value = '';
-          input.classList.remove('is-wrong');
-          void input.offsetWidth;                  /* restart the shake */
-          input.classList.add('is-wrong');
-          input.focus();
+          if (input) {
+            input.value = '';
+            input.classList.remove('is-wrong');
+            void input.offsetWidth;                  /* restart the shake */
+            input.classList.add('is-wrong');
+            input.focus();
+          }
           errEl.textContent = why || (priv ? 'Wrong code or Private Password.' : 'Wrong code.');
           W.Sound.wrong();
         }
