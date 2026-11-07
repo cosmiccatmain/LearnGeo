@@ -15,14 +15,28 @@
   var I = W.Icons;
 
   /* Newest first. Bump `id` when shipping so returning users see it.
-     Geo Chess openings/bots, Chess Duel PvP, and Games cosmetics each keep
-     their own What’s New id so PRs can merge in any order. */
+     Cooking loader, Chess Elo, achievement cards, openings/bots, Chess Duel,
+     and Games cosmetics each keep their own What’s New id so PRs can merge in any order. */
   var UPDATES = [
     {
       id: '2026-11-cooking-loader',
       title: 'Cooking… while you wait',
       body: 'Loading screens across LearnGeo now simmer with a little pot animation and a “cooking” caption — games, maps, Learn, and more.',
       image: '/assets/img/updates/cooking-loader.svg',
+      date: '2026-11-07'
+    },
+    {
+      id: '2026-11-geo-chess-elo',
+      title: 'Geo Chess Elo & leaderboard',
+      body: 'Geo Chess and Chess Duel now share a Chess Elo rating (starts at 1000). Finished games update your rating, and the Games leaderboard ranks Elo instead of win counts.',
+      image: '/assets/img/updates/geo-chess-elo.svg',
+      date: '2026-11-07'
+    },
+    {
+      id: '2026-11-achievement-cards',
+      title: 'Achievement cards',
+      body: 'Flip through your achievements like a stack of cards, then send unlocked ones to classmates by gamertag — school-safe sharing, no real money.',
+      image: '/assets/img/updates/achievement-cards.svg',
       date: '2026-11-07'
     },
     {

@@ -37,7 +37,7 @@
   var NAMES = {
     portal: 'Home', classroom: 'Classroom', teacher: 'My class',
     learn: 'Learn', test: 'Practice test', quiz: 'Class quiz',
-    games: 'Games', codex: 'Codex', landing: 'Landing page'
+    games: 'Games', achievements: 'Achievements', codex: 'Codex', landing: 'Landing page'
   };
 
   function screenNow() {

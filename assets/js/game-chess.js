@@ -56,9 +56,18 @@ function mount(host, opts) {
   let animToken = 0;
   let opening = null;
 
+  const eloApi = window.ChessElo;
+  if (eloApi) eloApi.ensure(record);
+
   host.innerHTML = '<section class="chess-game" aria-label="Geo Chess">' +
     '<div class="chess-main"><div class="chess-heading"><div><span class="eyebrow">You play White</span>' +
-    '<h2>Geo Chess</h2></div><span class="chip">Level ' + level + ' · ' + levelLabel(level) + '</span></div>' +
+    '<h2>Geo Chess</h2></div>' +
+    '<div class="chess-heading__meta">' +
+      '<div class="chess-elo" data-elo title="Your chess Elo rating">' +
+        '<span class="chess-elo__label">Elo</span>' +
+        '<strong class="chess-elo__value">' + (eloApi ? eloApi.fmt(record.elo) : '1000') + '</strong>' +
+        '<span class="chess-elo__delta" data-elo-delta hidden></span></div>' +
+      '<span class="chip">Level ' + level + ' · ' + levelLabel(level) + '</span></div></div>' +
     '<p class="chess-status" role="status" aria-live="polite"></p>' +
     '<div class="chess-opening" hidden aria-live="polite"></div>' +
     '<div class="chess-board" role="group" aria-label="Chessboard, White at the bottom"></div>' +
@@ -408,6 +417,24 @@ function mount(host, opts) {
     return true;
   }
 
+  function paintElo(delta) {
+    const box = root.querySelector('[data-elo]');
+    const val = root.querySelector('.chess-elo__value');
+    const dEl = root.querySelector('[data-elo-delta]');
+    if (val) val.textContent = eloApi ? eloApi.fmt(record.elo) : String(record.elo || 1000);
+    if (dEl) {
+      if (delta) {
+        dEl.hidden = false;
+        dEl.textContent = eloApi ? eloApi.fmtDelta(delta) : ((delta > 0 ? '+' : '') + delta);
+        dEl.classList.toggle('is-up', delta > 0);
+        dEl.classList.toggle('is-down', delta < 0);
+      } else {
+        dEl.hidden = true;
+      }
+    }
+    if (box) box.setAttribute('title', 'Your chess Elo rating');
+  }
+
   function finish(message, outcome) {
     if (ended) return;
     ended = true; thinking = false; unlocked = false; result = message;
@@ -421,7 +448,19 @@ function mount(host, opts) {
       if (level > (record.bestWinLevel || 0)) record.bestWinLevel = level;
     }
     if (outcome === 'draw') record.draws = (record.draws || 0) + 1;
+    if (outcome === 'loss') record.losses = (record.losses || 0) + 1;
     W.saveNow();
+    if (eloApi && (outcome === 'win' || outcome === 'draw' || outcome === 'loss')) {
+      eloApi.afterBot(level, outcome).then(function (r) {
+        if (disposed) return;
+        paintElo(r && r.delta);
+        if (r && r.delta) {
+          const sign = r.delta > 0 ? '+' : '';
+          result = message + ' Elo ' + sign + r.delta + ' → ' + (r.elo || record.elo);
+          draw();
+        }
+      });
+    }
   }
 
   function fail() {
@@ -543,6 +582,9 @@ function mount(host, opts) {
     clearFx(); draw();
   };
   ask(); startEngine();
+  if (eloApi && eloApi.pull) {
+    eloApi.pull().then(function () { if (!disposed) paintElo(0); });
+  }
   return {
     get fen() { return chess.fen(); },
     get opening() { return opening; },

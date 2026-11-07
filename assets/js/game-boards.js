@@ -35,17 +35,27 @@
   /* Where each game keeps the number its board is ranked on, whether
      lower is better, how to print it, and a short line for the board
      header. Golf ranks the nine-hole best, in strokes against par.
-     Chess ranks wins against the engine. */
+     Geo Chess / Chess Duel share one Elo board (game_id chess). Elo
+     can go down, so replace:true always re-submits the current rating. */
   var SCORERS = {
-    chess:    { get: function (r) { return r.wins || 0; },
-                fmt: function (n) { return num(n) + (n === 1 ? ' win' : ' wins'); },
-                metric: 'Wins against the computer' },
+    chess:    { get: function (r) {
+                  if (global.ChessElo) global.ChessElo.ensure(r);
+                  /* Only publish after at least one rated game so everyone
+                     does not land on the board at the starting 1000. */
+                  if (!(r.eloGames > 0) || typeof r.elo !== 'number') return null;
+                  return r.elo;
+                },
+                fmt: function (n) { return num(n) + ' Elo'; },
+                metric: 'Chess Elo rating · vs bots and Chess Duel',
+                replace: true },
     duel:     { get: function (r) { return r.wins || 0; },
                 fmt: function (n) { return num(n) + (n === 1 ? ' win' : ' wins'); },
                 metric: 'Wins against friends' },
-    chessduel:{ get: function (r) { return r.wins || 0; },
-                fmt: function (n) { return num(n) + (n === 1 ? ' win' : ' wins'); },
-                metric: 'Chess duel wins' },
+    chessduel:{ /* Shared Elo with Geo Chess — board alias opens chess. */
+                get: function () { return null; },
+                fmt: function (n) { return num(n) + ' Elo'; },
+                metric: 'Chess Elo rating · same board as Geo Chess',
+                alias: 'chess' },
     dash:     { get: function (r) { return r.best || 0; },
                 fmt: function (n) { return num(n) + ' m'; },
                 metric: 'Best distance' },
@@ -195,13 +205,17 @@
     var out = [];
     Object.keys(SCORERS).forEach(function (id) {
       var sc = SCORERS[id], rec = (W.state.games || {})[id];
-      if (!rec) return;
+      if (!rec || sc.alias) return;
       var v = sc.get(rec);
       if (v === null || v === undefined) return;
-      if (!sc.asc && v <= 0) return;
+      if (!sc.replace && !sc.asc && v <= 0) return;
       var sent = (W.state.boardSent || {})[id];
-      if (sent !== undefined && (sc.asc ? v >= sent : v <= sent)) return;
-      out.push({ id: id, v: v, asc: !!sc.asc });
+      if (sc.replace) {
+        if (sent === v) return;
+      } else if (sent !== undefined && (sc.asc ? v >= sent : v <= sent)) {
+        return;
+      }
+      out.push({ id: id, v: v, asc: !!sc.asc, replace: !!sc.replace });
     });
     return out;
   }
@@ -215,10 +229,28 @@
     var reclaimed = false;
 
     function one(j) {
-      return c.rpc('submit_game_score', {
-        p_game: j.id, p_device: deviceId(), p_score: j.v, p_asc: j.asc
-      }).then(function (res) {
+      var req = (j.id === 'chess' && j.replace)
+        ? c.rpc('submit_chess_elo', { p_device: deviceId(), p_elo: j.v })
+        : c.rpc('submit_game_score', {
+            p_game: j.id, p_device: deviceId(), p_score: j.v, p_asc: j.asc
+          });
+      return req.then(function (res) {
         var e = res && res.error;
+        var data = res && res.data;
+        if (j.id === 'chess' && j.replace) {
+          if (data && data.ok) { remember(j); return; }
+          if (data && data.error === 'signin') return;
+          if (data && data.error === 'no_gamertag' && !reclaimed) {
+            reclaimed = true;
+            return claim(tag()).then(function (r) { if (r === 'ok') return one(j); });
+          }
+          if (data && data.error === 'blocked') { remember(j); return; }
+          if (e) {
+            var em = String(e.message || '');
+            if (/signin|not authenticated|JWT/i.test(em)) return;
+          }
+          return;
+        }
         if (!e) { remember(j); return; }
         var msg = String(e.message || '');
         if (/signin|not authenticated|JWT/i.test(msg)) return; /* LEA-55 — wait for account */
@@ -270,13 +302,19 @@
   /* open() with no id (or an unknown one) lands on the All overview so
      the hub button covers every game at once. A setup screen still
      passes its own id and opens that board. */
+  function boardIdFor(gameId) {
+    var sc = SCORERS[gameId];
+    return (sc && sc.alias) ? sc.alias : gameId;
+  }
+
   function open(gameId) {
-    ensureTag(function () { show(gameId); });
+    ensureTag(function () { show(boardIdFor(gameId)); });
   }
 
   function show(gameId) {
     var games = catalogue();
     if (!games.length) return;
+    gameId = boardIdFor(gameId);
     var startId = games.some(function (g) { return g.id === gameId; }) ? gameId : ALL;
 
     global.UI.modal({
@@ -327,15 +365,17 @@
             loadAll(mine);
             return;
           }
+          var bid = boardIdFor(id);
           var g = games.filter(function (x) { return x.id === id; })[0];
-          var sc = scorer(id);
-          metric.textContent = (g ? g.title + ' · ' : '') + (sc.metric || 'Best score');
+          var boardGame = games.filter(function (x) { return x.id === bid; })[0] || g;
+          var sc = scorer(bid);
+          metric.textContent = (boardGame ? boardGame.title + ' · ' : '') + (sc.metric || 'Best score');
           var c = sb();
-          if (!c) { body.innerHTML = notOn(id, sc); return; }
-          sync().then(function () { return fetchBoard(id, 25); }).then(function (res) {
+          if (!c) { body.innerHTML = notOn(bid, sc); return; }
+          sync().then(function () { return fetchBoard(bid, 25); }).then(function (res) {
             if (mine !== token) return;
-            if (res.offline) { body.innerHTML = notOn(id, sc); return; }
-            body.innerHTML = boardPanel(g, res.rows, sc, false);
+            if (res.offline) { body.innerHTML = notOn(bid, sc); return; }
+            body.innerHTML = boardPanel(boardGame, res.rows, sc, false);
           });
         }
 
@@ -347,7 +387,10 @@
             return;
           }
           sync().then(function () {
-            return Promise.all(games.map(function (g) {
+            /* Skip aliased boards (Chess Duel → Geo Chess Elo) so All
+               does not list the same Elo table twice. */
+            var listed = games.filter(function (g) { return boardIdFor(g.id) === g.id; });
+            return Promise.all(listed.map(function (g) {
               return fetchBoard(g.id, 3).then(function (res) {
                 return { game: g, res: res };
               });
@@ -423,8 +466,11 @@
 
   function emptyState(g, sc) {
     var rec = (W.state.games || {})[g.id], v = rec ? sc.get(rec) : null;
-    var local = (v !== null && v !== undefined && (sc.asc || v > 0))
-      ? '<div class="lb-mine mono">Your best on this device: ' + esc(sc.fmt(v)) + '</div>'
+    if ((v === null || v === undefined) && sc.replace && rec && typeof rec.elo === 'number') {
+      v = rec.elo; /* show provisional Elo even before first publish */
+    }
+    var local = (v !== null && v !== undefined && (sc.replace || sc.asc || v > 0))
+      ? '<div class="lb-mine mono">Your rating on this device: ' + esc(sc.fmt(v)) + '</div>'
       : '';
     return '<div class="lb-empty">' +
       '<div class="lb-empty__glyph" aria-hidden="true">' + I.trophy + '</div>' +

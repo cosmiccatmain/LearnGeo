@@ -258,14 +258,14 @@
 
     W.$$('[data-go]', menuEl).forEach(function (b) {
       b.addEventListener('click', function () {
-        var go = b.dataset.go;
+        var dest = b.dataset.go;
         closeMenu();
-        if (go === 'settings') openSettings();
-        else if (go === 'custom') openCustomization();
-        else if (go === 'achievements') openAchievements();
-        else if (go === 'badges') global.Badges.openCase();
-        else if (go === 'signin') openAuth('signin');
-        else if (go === 'signout') signOut();
+        if (dest === 'settings') openSettings();
+        else if (dest === 'custom') openCustomization();
+        else if (dest === 'achievements') go('achievements');
+        else if (dest === 'badges') global.Badges.openCase();
+        else if (dest === 'signin') openAuth('signin');
+        else if (dest === 'signout') signOut();
       });
     });
 
@@ -1443,22 +1443,10 @@
   }
 
   /* ========================== ACHIEVEMENTS ========================== */
+  /* LEA-64: Achievements live on their own tab (card stack). Keep this
+     name as a thin redirect so Home / older callers still work. */
   function openAchievements() {
-    var have = W.state.achievements;
-    var body = '<div class="row row--between" style="margin-bottom:8px">' +
-      '<span class="eyebrow">' + have.length + ' of ' + Cos.achievements.length + ' unlocked</span>' +
-      '<span class="chip chip--gem mono">' + W.gem(W.state.economy.diamonds.toLocaleString(), false) + '</span></div>' +
-      Cos.achievements.map(function (a) {
-        var done = have.indexOf(a.id) !== -1;
-        return '<div class="ach-row ' + (done ? 'is-done' : '') + '">' +
-          '<div class="ach-row__i">' + (done ? I.check : I.lock) + '</div>' +
-          '<div class="ach-row__t grow"><b>' + a.name + '</b><span>' + a.desc + '</span></div>' +
-          '<div class="ach-row__r"><span class="chip ' + (done ? 'chip--gem' : '') + ' mono" ' +
-            (done ? '' : 'style="background:var(--line-soft);color:var(--faint)"') + '>+' + a.reward + ' 💎</span></div>' +
-        '</div>';
-      }).join('');
-
-    modal({ title: 'Achievements', icon: I.trophy, body: body, actions: [{ label: 'Close', cls: 'btn--ghost', close: true }] });
+    go('achievements');
   }
 
   /* ============================= ACCOUNTS =========================== */
@@ -1734,7 +1722,7 @@
   }
 
   /* ============================ NAVIGATION ========================== */
-  var VIEWS = ['portal', 'codex', 'classroom', 'teacher', 'learn', 'test', 'quiz', 'games'];
+  var VIEWS = ['portal', 'codex', 'classroom', 'teacher', 'learn', 'test', 'quiz', 'games', 'achievements'];
 
   /* The switcher shows Classroom to students and Teacher to teachers, so
      teacher mode is a place you can leave and come back to rather than a
@@ -1750,7 +1738,8 @@
     { view: 'learn',     icon: 'book',   label: 'Learn',         role: null },
     { view: 'test',      icon: 'clip',   label: 'Practice test', role: null },
     { view: 'quiz',      icon: 'target', label: 'Class quiz',    role: null },
-    { view: 'games',     icon: 'gamepad', label: 'Games',        role: null }
+    { view: 'games',     icon: 'gamepad', label: 'Games',        role: null },
+    { view: 'achievements', icon: 'trophy', label: 'Achievements', role: null }
   ];
 
   function refreshTabs() {
@@ -1948,6 +1937,10 @@
 
     /* a game runs its own animation loop, which must not outlive its view */
     if (currentView === 'games' && view !== 'games' && global.Games) global.Games.stop();
+    if (currentView === 'achievements' && view !== 'achievements' &&
+        global.AchievementCards && global.AchievementCards.stop) {
+      global.AchievementCards.stop();
+    }
     /* Leaving Home drops a queued product update so it cannot land on
        Settings or another modal. Teachers keep updates on their class
        home; cancel only when leaving that view. */
@@ -1993,6 +1986,7 @@
     if (view === 'test') global.TestMode.start();
     if (view === 'quiz') global.QuizMode.start();
     if (view === 'games') global.Games.start();
+    if (view === 'achievements' && global.AchievementCards) global.AchievementCards.start();
     settleThumb();                     /* correct for any reflow the mode caused */
     global.GeoMap.invalidate();
     refreshHud();

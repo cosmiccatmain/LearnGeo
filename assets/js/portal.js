@@ -103,7 +103,7 @@
                   global.Cosmetics.achievements.length + '</span></div>' +
               achievementPreview() +
               '<button class="btn btn--ghost btn--block btn--sm" id="portal-ach" style="margin-top:12px">' +
-                'View all</button>' +
+                'Open achievement cards</button>' +
             '</div>' +
           '</div>' +
         '</div>' +
