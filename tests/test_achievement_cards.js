@@ -52,6 +52,15 @@ assert(/Share wallet|data-wallet-send|ach_wallet_share/.test(cards),
   'share wallet UI wired');
 assert(/achv-stack|achv-card/.test(css), 'card stack styles present');
 assert(/translateZ\(1px\)/.test(css), 'faces use translateZ for stacking');
+/* LEA-70 — flip stays above peeks; deck switching is reachable */
+assert(/is-flipping/.test(css) && /is-flipping/.test(cards),
+  'flip raises active card / hides peeks mid-animation');
+assert(/transform-style:\s*flat/.test(css), 'stack is flat so peeks do not share 3D space');
+assert(/achv-stage__nav|data-prev/.test(cards + css), 'side prev/next chrome present');
+assert(/achv-rail|data-rail|goTo|paintDeck/.test(cards + css),
+  'rail jump + paintDeck navigation present');
+assert(/onSwipeEnd|touchend|ArrowLeft|ArrowRight/.test(cards),
+  'swipe and keyboard deck switching present');
 assert(!/Brainrot|Pets|screen.?mirror|Stripe\.checkout|vercel --prod/i.test(cards),
   'no Pets/Brainrot/mirroring/live Stripe in achievement-cards.js');
 assert(!/Syne|Plus Jakarta/i.test(css), 'keeps original LearnGeo fonts');
