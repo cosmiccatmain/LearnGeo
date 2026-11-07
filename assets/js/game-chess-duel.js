@@ -619,7 +619,19 @@ import { Chess } from '../vendor/chess.js/chess.js';
       }
       if (state.draw) rec.draws = (rec.draws || 0) + 1;
       W.save();
-      if (global.GameBoards && global.GameBoards.touch) global.GameBoards.touch();
+      if (global.ChessElo && global.ChessElo.afterDuel) {
+        global.ChessElo.afterDuel(matchId).then(function (r) {
+          if (!r || typeof r.delta !== 'number' || !r.delta) {
+            if (global.GameBoards && global.GameBoards.touch) global.GameBoards.touch();
+            return;
+          }
+          var sign = r.delta > 0 ? '+' : '';
+          W.toast('Chess Elo ' + sign + r.delta, 'New rating: ' + r.elo, I.trophy || I.info, 4200);
+          if (global.GameBoards && global.GameBoards.touch) global.GameBoards.touch();
+        });
+      } else if (global.GameBoards && global.GameBoards.touch) {
+        global.GameBoards.touch();
+      }
     }
 
     function forfeit() {

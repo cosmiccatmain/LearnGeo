@@ -180,15 +180,15 @@
     },
     {
       id: 'chessduel', title: 'Chess Duel', art: 'chessduel',
-      blurb: 'Challenge a friend by gamertag to a live chess match — invite, accept, then take turns on a shared board. Host plays White.',
-      meta: 'PvP · invite by gamertag · chess.js rules',
+      blurb: 'Challenge a friend by gamertag to a live chess match — invite, accept, then take turns on a shared board. Host plays White. Rated on the shared Chess Elo board.',
+      meta: 'PvP · invite by gamertag · Chess Elo',
       playLabel: 'Open chess lobby',
-      best: function (r) {
-        if (r.wins) return r.wins + (r.wins === 1 ? ' win' : ' wins');
-        return r.runs ? r.runs + (r.runs === 1 ? ' match' : ' matches') : '';
+      best: function () {
+        var elo = global.ChessElo ? global.ChessElo.current() : ((global.WW.state.games.chess || {}).elo);
+        return elo ? elo + ' Elo' : '';
       },
       intro: 'Look up a friend’s gamertag and send an invite — same flow as Geo Duel. When they accept, you play a live turn-based chess match. ' +
-        'The challenger is White. Moves follow standard chess rules (castling, en passant, promotion). Rejoin if you disconnect. Resign or offer a draw anytime.',
+        'The challenger is White. Moves follow standard chess rules (castling, en passant, promotion). Finished games update your shared Chess Elo (same rating as Geo Chess). Rejoin if you disconnect. Resign or offer a draw anytime.',
       keys: [
         [['Gamertag'], 'look up a friend and send an invite'],
         [['Click / tap'], 'your piece, then a highlighted square'],
@@ -198,14 +198,15 @@
       side: function (r) {
         var box = global.ChessDuel && global.ChessDuel.inbox ? global.ChessDuel.inbox() : { incoming: [], outgoing: [] };
         var pending = (box.incoming || []).length;
+        var elo = global.ChessElo ? global.ChessElo.current() : ((global.WW.state.games.chess || {}).elo || 1000);
         return '<div class="panel">' +
             '<div class="panel__head"><h3>How invites work</h3></div>' +
-            '<p class="t-sm t-muted" style="margin:0">Your friend needs a gamertag (any Games leaderboard claim works). They see a pending invite in Chess Duel and can accept or decline. Legal moves use the chess.js rules engine.</p>' +
+            '<p class="t-sm t-muted" style="margin:0">Your friend needs a gamertag (any Games leaderboard claim works). They see a pending invite in Chess Duel and can accept or decline. Legal moves use the chess.js rules engine. Wins and losses change your Chess Elo.</p>' +
             (pending
               ? '<p class="t-sm" style="margin:10px 0 0"><b>' + pending + ' pending invite' + (pending === 1 ? '' : 's') + '</b> waiting in the lobby.</p>'
               : '') +
           '</div>' +
-          stats([[r.wins || 0, 'Wins'], [r.draws || 0, 'Draws'], [r.runs || 0, 'Matches']]);
+          stats([[elo, 'Chess Elo'], [r.wins || 0, 'Wins'], [r.draws || 0, 'Draws'], [r.runs || 0, 'Matches']]);
       },
       wire: function () {
         if (global.ChessDuel && global.ChessDuel.fetchInbox) global.ChessDuel.fetchInbox();
@@ -219,18 +220,20 @@
       playing: function () { return 'Live chess duel · challenge a friend'; }
     },
     {
+      /* LEA-61/62: Geo Chess stays free (not in premium_game_ids). */
       id: 'chess', title: 'Geo Chess', art: 'chess',
-      blurb: 'Build your chess skills, from a forgiving beginner opponent up to Grandmaster (~3200) and Engine Max. Answer a geography question to unlock each move.',
-      meta: 'Chess · seven difficulty levels',
+      blurb: 'Build your chess skills, from a forgiving beginner opponent up to Grandmaster (~3200) and Engine Max. Answer a geography question to unlock each move. Rated with Chess Elo.',
+      meta: 'Chess Elo · seven difficulty levels',
       best: function (r) {
-        if (r.best) return 'Best ' + r.best + ' pts';
-        return r.wins ? r.wins + (r.wins === 1 ? ' win' : ' wins') : '';
+        var elo = global.ChessElo ? global.ChessElo.ensure(r) : (typeof r.elo === 'number' ? r.elo : 0);
+        return elo ? elo + ' Elo' : '';
       },
-      intro: 'Play White against the computer. Answer a question from your study set before each move. A wrong answer shows you the answer and gives you another question. Choose a piece, then a highlighted square. Castling, en passant, promotion, check, checkmate, stalemate, threefold repetition and the fifty-move rule follow standard chess rules. After the first few moves, the opening name appears when it is known. Higher difficulty levels play stronger and faster, and wins there are worth more points. Want a human opponent? Open Chess Duel from the Games hub.',
+      intro: 'Play White against the computer. Answer a question from your study set before each move. A wrong answer shows you the answer and gives you another question. Choose a piece, then a highlighted square. Castling, en passant, promotion, check, checkmate, stalemate, threefold repetition and the fifty-move rule follow standard chess rules. After the first few moves, the opening name appears when it is known. Every finished game updates your Chess Elo (starts at 1000; stronger bots are worth more). Want a human opponent? Open Chess Duel — it uses the same Elo.',
       keys: [[['Click / tap'], 'a piece, then its destination'], [['Arrow keys'], 'explore the board; Enter or Space selects a square']],
       filters: { title: 'Chess question filters', heading: 'Move questions', typed: true },
       side: function (r) {
         var level = +pick(LEVELS, String(r.level), '1');
+        var elo = global.ChessElo ? global.ChessElo.ensure(r) : (typeof r.elo === 'number' ? r.elo : 1000);
         var slider = global.DifficultySlider
           ? global.DifficultySlider.html({
               name: 'level',
@@ -243,7 +246,7 @@
         return '<div class="panel">' + slider + '</div>' +
           '<div class="panel"><div class="panel__head"><h3>Questions</h3></div>' +
           segHtml('kind', KINDS, kind_(r)) + '</div>' +
-          stats([[r.best || 0, 'Best win pts'], [r.wins || 0, 'Wins'], [r.draws || 0, 'Draws'], [r.completed || 0, 'Finished games']]);
+          stats([[elo, 'Chess Elo'], [r.wins || 0, 'Wins'], [r.draws || 0, 'Draws'], [r.completed || 0, 'Finished games']]);
       },
       wire: function (el, r) {
         wireSlider(el, { name: 'level', levels: CHESS_DIFF }, '[data-level]', function (v) { r.level = +v; });
