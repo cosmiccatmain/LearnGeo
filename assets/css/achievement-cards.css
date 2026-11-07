@@ -1,8 +1,9 @@
 /* ------------------------------------------------------------------
-   LEA-64 / LEA-67 / LEA-70 / LEA-71 — Achievement wallet.
+   LEA-64 / LEA-67 / LEA-70 / LEA-71 / LEA-80 — Achievement wallet.
    Light polish: Inter / Instrument, teal accent.
    LEA-70: isolate active flip above peeks; reliable deck navigation.
    LEA-71: award-badge card backs + owner gamertag (deck/flip kept).
+   LEA-80: Friend inbox kinds include Chess.
 -------------------------------------------------------------------*/
 
 .achv {
@@ -482,6 +483,9 @@
   text-transform: uppercase;
   color: var(--accent, #0e9f6e);
   font-weight: 620;
+}
+.achv-inbox__kind--chess {
+  color: #3b6bb3;
 }
 
 @media (max-width: 520px) {
