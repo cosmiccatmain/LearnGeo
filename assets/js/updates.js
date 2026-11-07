@@ -15,9 +15,16 @@
   var I = W.Icons;
 
   /* Newest first. Bump `id` when shipping so returning users see it.
-     Chess Duel (LEA-56) is its own short entry so openings/rules/bots
-     (LEA-57/58) can ship a separate What’s New without sharing an id. */
+     Geo Chess openings/bots, Chess Duel PvP, and Games cosmetics each keep
+     their own What’s New id so PRs can merge in any order. */
   var UPDATES = [
+    {
+      id: '2026-11-geo-chess-openings-bots',
+      title: 'Geo Chess: openings & tougher bots',
+      body: 'After a few moves you’ll see the opening name. Pawn promotion and the usual chess rules are clearer, and you can challenge Grandmaster (~3200) or Engine Max.',
+      image: '/assets/img/updates/geo-chess-openings-bots.svg',
+      date: '2026-11-06'
+    },
     {
       id: '2026-11-games-cosmetics-more',
       title: 'More Games cosmetics',

@@ -2,6 +2,13 @@
   "_comment": "Append newest entries at the top of `updates`. Each needs a unique `id`. Optional `image` is a path under /assets/. Keep entries public-safe: no Pets/Brainrot, no admin-only or subscription marketing.",
   "updates": [
     {
+      "id": "2026-11-geo-chess-openings-bots",
+      "title": "Geo Chess: openings & tougher bots",
+      "body": "After a few moves you’ll see the opening name. Pawn promotion and the usual chess rules are clearer, and you can challenge Grandmaster (~3200) or Engine Max.",
+      "image": "/assets/img/updates/geo-chess-openings-bots.svg",
+      "date": "2026-11-06"
+    },
+    {
       "id": "2026-11-games-cosmetics-more",
       "title": "More Games cosmetics",
       "body": "Customise → Games now covers Geo Chess boards and pieces, Capital Snake coils, Flag Match tile backs, Capital Maze explorers, and Geo Duel accents — alongside Geo Dash trails and jumpers.",

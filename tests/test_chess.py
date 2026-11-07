@@ -1,6 +1,6 @@
 """Integration checks: run the documented local server, then python3 tests/test_chess.py.
 
-All five opponents are exercised, including real Stockfish at Levels 2–5. Scripted UCI replies then exercise
+Opponents through Level 7 are exercised, including real Stockfish at Levels 2–7. Scripted UCI replies then exercise
 specific rule/UI situations deterministically, without adding application test hooks.
 """
 import json
@@ -58,7 +58,12 @@ class ChessTests(unittest.TestCase):
     def setup_game(self, level=3, typed=False):
         self.page.goto(BASE + '/?role=student&view=games', wait_until='networkidle')
         self.page.locator('[data-game="chess"]').click()
-        self.page.locator('[data-level] [data-v="%s"]' % level).click()
+        # DifficultySlider has no data-v buttons; persist the level GeoChess.mount reads.
+        self.page.evaluate("""(level) => {
+          const r = WW.state.games.chess || (WW.state.games.chess = {});
+          r.level = level;
+          WW.save();
+        }""", level)
         self.page.locator('[data-kind] [data-v="capitals"]').click()
         # Exercise the actual shared custom-country picker and answer-style filters.
         self.page.locator('[data-filters]').click()
@@ -70,6 +75,7 @@ class ChessTests(unittest.TestCase):
             self.page.locator('#cfg-typed [data-v="typed"]').click()
         self.page.get_by_role('button', name='Apply', exact=True).click()
         self.assertEqual(self.page.evaluate('WW.state.games.chess.cfg.countries'), ['Japan'])
+        self.assertEqual(self.page.evaluate('WW.state.games.chess.level'), level)
         self.page.locator('[data-play]').click()
         self.page.wait_for_function("document.querySelector('.chess-status').textContent.includes('Answer a question')", timeout=35000)
 
@@ -92,16 +98,39 @@ class ChessTests(unittest.TestCase):
             self.page.locator('[data-promote="%s"]' % promote).click()
         self.page.wait_for_function("Games.current.fen.split(' ')[1] === 'w' || document.querySelector('.chess-question').textContent.includes('Game over')", timeout=20000)
 
-    def test_opponents_all_five_levels(self):
-        # Force Level 2's engine branch here; its random branch is checked separately.
+    def test_opponents_all_levels(self):
+        # Levels 2–5 exercise the real lite Stockfish worker. Levels 6–7 keep the
+        # same mount path but use a scripted UCI reply so depth/movetime ceilings
+        # do not blow the suite budget; their UCI option wiring is checked separately.
         self.page.add_init_script('Math.random = () => 0.99;')
-        for level in (1, 2, 3, 4, 5):
+        for level in (1, 2, 3, 4, 5, 6, 7):
             with self.subTest(level=level):
+                if level >= 6:
+                    self.context.close()
+                    self.setUp()
+                    self.scripted_engine(['e7e5'])
+                    self.page.add_init_script('Math.random = () => 0.99;')
                 self.setup_game(level)
                 self.move('e2', 'e4')
                 self.assertEqual(len(self.page.locator('[data-moves]').text_content().split()), 3)
                 self.assertIn('1. e4 ', self.page.locator('[data-moves]').text_content())
                 self.page.get_by_role('button', name='Home', exact=True).click()
+
+    def test_opening_banner_after_few_moves(self):
+        self.scripted_engine(['e7e5', 'b8c6', 'a7a6'])
+        self.setup_game()
+        self.move('e2', 'e4')
+        # Banner waits until a few plies are on the board (MIN_PLIES = 3).
+        self.assertTrue(self.page.evaluate("!!document.querySelector('.chess-opening[hidden]')"))
+        self.move('g1', 'f3')
+        self.page.wait_for_function(
+            "(() => { const el = document.querySelector('.chess-opening'); return el && !el.hidden && /C\\d+/.test(el.textContent); })()",
+            timeout=10000)
+        self.move('f1', 'b5')
+        # After Bb5 a6 the book refines to C70 Morphy-line Ruy Lopez.
+        banner = self.page.locator('.chess-opening').text_content()
+        self.assertIn('Ruy Lopez', banner)
+        self.assertRegex(banner, r'C7[08]')
 
     def test_level_one_needs_no_engine_and_plays_legal_moves(self):
         self.page.add_init_script("window.Worker = class { constructor() { throw new Error('No engine available'); } };")
@@ -166,9 +195,33 @@ class ChessTests(unittest.TestCase):
         self.setup_game()
         for a, b in [('a2', 'a4'), ('a4', 'a5'), ('a5', 'a6'), ('a6', 'b7')]:
             self.move(a, b)
-        self.move('b7', 'a8', promote='n')
+        self.answer()
+        self.page.locator('[data-square="b7"]').click()
+        self.page.locator('[data-square="a8"]').click()
+        self.assertEqual(self.page.locator('[data-promote]').count(), 4)
+        self.assertTrue(self.page.locator('.chess-promotion__panel').is_visible())
+        for piece in ('q', 'r', 'b', 'n'):
+            self.assertEqual(self.page.locator('[data-promote="%s"]' % piece).count(), 1)
+        self.page.locator('[data-promote="n"]').click()
+        self.page.wait_for_function("Games.current.fen.split(' ')[1] === 'w' || document.querySelector('.chess-question').textContent.includes('Game over')", timeout=20000)
         self.assertIn('White knight', self.page.locator('[data-square="a8"]').get_attribute('aria-label'))
         self.assertIn('Black queen', self.page.locator('[data-square="h1"]').get_attribute('aria-label'))
+
+    def test_grandmaster_uses_uci_elo(self):
+        self.scripted_engine(['e7e5'])
+        self.setup_game(6)
+        self.move('e2', 'e4')
+        commands = self.page.evaluate('window.chessCommands')
+        self.assertTrue(any('UCI_LimitStrength value true' in c for c in commands))
+        self.assertTrue(any('UCI_Elo value 3190' in c for c in commands))
+
+    def test_engine_max_disables_limit_strength(self):
+        self.scripted_engine(['e7e5'])
+        self.setup_game(7)
+        self.move('e2', 'e4')
+        commands = self.page.evaluate('window.chessCommands')
+        self.assertTrue(any('UCI_LimitStrength value false' in c for c in commands))
+        self.assertTrue(any('Skill Level value 20' in c for c in commands))
 
     def test_checkmate_records_once(self):
         self.scripted_engine(['e7e5', 'd8h4'])

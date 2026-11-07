@@ -3,15 +3,21 @@
 import { Chess } from '../vendor/chess.js/chess.js';
 
 /* Opponent strength. random = chance of a legal random move instead of the
-   engine; skill / depth / time drive Stockfish; replyMs is the short delay
-   before a random reply lands; hash is the engine hash size in MiB.
-   Win points scale with level so harder wins count for more on the hub. */
+   engine; skill / depth / time drive Stockfish; elo + limitStrength use the
+   UCI Elo path (1320–3190); replyMs is the short delay before a random reply
+   lands; hash is the engine hash size in MiB.
+   Levels 1–5 keep the LEA-35 hardened levers. Levels 6–7 add ~3200 and the
+   practical lite-engine ceiling. Win points scale with level. */
 const LEVELS = {
   1: { random: 1, replyMs: 320, points: 1 },
   2: { random: 0.4, skill: 3, depth: 3, time: 250, replyMs: 220, hash: 16, points: 2 },
   3: { random: 0, skill: 8, depth: 7, time: 700, hash: 24, points: 4 },
   4: { random: 0, skill: 15, depth: 13, time: 1800, hash: 32, points: 8 },
-  5: { random: 0, skill: 20, depth: 18, time: 3200, hash: 48, points: 15 }
+  5: { random: 0, skill: 20, depth: 18, time: 3200, hash: 48, points: 15 },
+  /* Grandmaster ≈ Stockfish UCI_Elo ceiling (3190). School-safe label. */
+  6: { random: 0, limit: 22, time: 5000, hash: 64, points: 25, limitStrength: true, elo: 3190 },
+  /* Engine Max: Skill Level 20 (full strength) with deeper search than L5. */
+  7: { random: 0, skill: 20, depth: 28, time: 9000, hash: 96, points: 40, limitStrength: false }
 };
 const GLYPHS = { k: '♚', q: '♛', r: '♜', b: '♝', n: '♞', p: '♟' };
 const NAMES = { k: 'king', q: 'queen', r: 'rook', b: 'bishop', n: 'knight', p: 'pawn' };
@@ -26,6 +32,16 @@ function reduceMotion() {
   return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
+function levelLabel(level) {
+  if (level >= 7) return 'Engine Max';
+  if (level === 6) return 'Grandmaster';
+  if (level === 5) return 'Expert';
+  if (level === 4) return 'Advanced';
+  if (level === 3) return 'Intermediate';
+  if (level === 2) return 'Easy';
+  return 'Beginner';
+}
+
 function mount(host, opts) {
   const W = window.WW, esc = W.escapeHtml;
   const level = LEVELS[opts.level] ? Number(opts.level) : 1;
@@ -38,11 +54,13 @@ function mount(host, opts) {
   let result = '', correctCount = 0, askedCount = 0;
   let hideSquares = Object.create(null);
   let animToken = 0;
+  let opening = null;
 
   host.innerHTML = '<section class="chess-game" aria-label="Geo Chess">' +
     '<div class="chess-main"><div class="chess-heading"><div><span class="eyebrow">You play White</span>' +
-    '<h2>Geo Chess</h2></div><span class="chip">Level ' + level + '</span></div>' +
+    '<h2>Geo Chess</h2></div><span class="chip">Level ' + level + ' · ' + levelLabel(level) + '</span></div>' +
     '<p class="chess-status" role="status" aria-live="polite"></p>' +
+    '<div class="chess-opening" hidden aria-live="polite"></div>' +
     '<div class="chess-board" role="group" aria-label="Chessboard, White at the bottom"></div>' +
     '<div class="chess-promotion"></div>' +
     '<div class="chess-actions"><button class="btn btn--ghost" data-new>New game</button>' +
@@ -51,15 +69,16 @@ function mount(host, opts) {
     '<aside class="chess-side"><div class="panel chess-question"></div>' +
     '<div class="panel chess-help"><h3>Plan your next move</h3>' +
     '<p>Answer a geography question, then select a white piece and a highlighted destination. Wrong answers give you another question without changing the board.</p>' +
-    '<p>Use the arrow keys to explore the board and Enter or Space to select. Choose a piece when a pawn promotes.</p>' +
-    '<p class="t-sm t-muted">' + (level === 1 ? 'Level 1 plays random legal moves for beginners. Higher levels use ' : level === 2 ? 'Level 2 mixes occasional random moves with ' : 'Opponent: ') +
+    '<p>Use the arrow keys to explore the board and Enter or Space to select. When a pawn reaches the last rank, choose Queen, Rook, Bishop, or Knight.</p>' +
+    '<p class="t-sm t-muted">' + (level === 1 ? 'Level 1 plays random legal moves for beginners. Higher levels use ' : level === 2 ? 'Level 2 mixes occasional random moves with ' : level >= 6 ? 'Opponent: ' : 'Opponent: ') +
     '<a href="https://stockfishchess.org/" target="_blank" rel="noopener noreferrer">Stockfish 17.1</a>' +
-    (level >= 3 ? ' at a tougher setting' : '') + '. ' +
-    'Rules: <a href="https://github.com/jhlywa/chess.js" target="_blank" rel="noopener noreferrer">chess.js</a>. Runs on your device.</p></div></aside></section>';
+    (level === 6 ? ' near its rated ceiling (~3200)' : level >= 7 ? ' at Engine Max on your device' : level >= 3 ? ' at a tougher setting' : '') + '. ' +
+    'Rules: <a href="https://github.com/jhlywa/chess.js" target="_blank" rel="noopener noreferrer">chess.js</a> (castling, en passant, promotion, check, checkmate, stalemate, threefold repetition, fifty-move). Runs on your device.</p></div></aside></section>';
   const root = host.querySelector('.chess-game');
   const board = root.querySelector('.chess-board');
   const panel = root.querySelector('.chess-question');
   const status = root.querySelector('.chess-status');
+  const openingEl = root.querySelector('.chess-opening');
 
   /* Apply Customise → Games board / piece themes (LEA-59). */
   (function applyChessCosmetics() {
@@ -81,6 +100,28 @@ function mount(host, opts) {
   })();
 
   function canMove() { return ready && !engineError && !thinking && !ended && unlocked && chess.turn() === 'w'; }
+
+  function refreshOpening() {
+    const api = window.ChessOpenings;
+    if (!api) { opening = null; drawOpening(); return; }
+    opening = api.lookup(chess.history());
+    drawOpening();
+  }
+
+  function drawOpening() {
+    if (!openingEl) return;
+    if (!opening) {
+      openingEl.hidden = true;
+      openingEl.textContent = '';
+      openingEl.removeAttribute('role');
+      return;
+    }
+    const text = window.ChessOpenings.label(opening);
+    openingEl.hidden = false;
+    openingEl.setAttribute('role', 'status');
+    openingEl.innerHTML = '<span class="chess-opening__eyebrow">Opening</span>' +
+      '<span class="chess-opening__name">' + esc(text) + '</span>';
+  }
 
   function clearFx() {
     animToken++;
@@ -153,6 +194,7 @@ function mount(host, opts) {
       return (i % 2 === 0 ? (Math.floor(i / 2) + 1) + '. ' : '') + move;
     }).join(' ') || 'No moves yet.';
     root.querySelector('[data-resign]').disabled = ended || !chess.history().length;
+    drawOpening();
     drawPromotion();
     drawQuestion();
   }
@@ -250,13 +292,23 @@ function mount(host, opts) {
 
   function drawPromotion() {
     const box = root.querySelector('.chess-promotion');
-    box.innerHTML = promotion ? '<div class="panel" role="group" aria-label="Pawn promotion"><h3>Promote your pawn</h3>' +
-      ['q', 'r', 'b', 'n'].map(p => '<button class="btn btn--ghost" data-promote="' + p + '">' + NAMES[p] + '</button>').join('') +
-      '<button class="btn btn--ghost" data-cancel-promotion>Cancel</button></div>' : '';
-    box.querySelectorAll('[data-promote]').forEach(b => b.addEventListener('click', function () {
-      const move = { from: promotion.from, to: promotion.to, promotion: b.dataset.promote };
-      promotion = null; playMove(move);
-    }));
+    box.innerHTML = promotion ? '<div class="panel chess-promotion__panel" role="group" aria-label="Pawn promotion">' +
+      '<h3>Promote your pawn</h3>' +
+      '<p class="chess-promotion__hint">Choose a piece for the pawn that reached the last rank.</p>' +
+      '<div class="chess-promotion__choices">' +
+      ['q', 'r', 'b', 'n'].map(function (p) {
+        return '<button type="button" class="chess-promotion__btn" data-promote="' + p + '" aria-label="' + NAMES[p] + '">' +
+          '<span class="chess-promotion__glyph" aria-hidden="true">' + GLYPHS[p] + '</span>' +
+          '<span class="chess-promotion__label">' + NAMES[p] + '</span></button>';
+      }).join('') +
+      '</div>' +
+      '<button type="button" class="btn btn--ghost" data-cancel-promotion>Cancel</button></div>' : '';
+    box.querySelectorAll('[data-promote]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        const move = { from: promotion.from, to: promotion.to, promotion: b.dataset.promote };
+        promotion = null; playMove(move);
+      });
+    });
     const cancel = box.querySelector('[data-cancel-promotion]');
     if (cancel) cancel.onclick = function () { promotion = null; draw(); };
   }
@@ -342,6 +394,7 @@ function mount(host, opts) {
   function playMove(move) {
     lastMove = chess.move(move);
     selected = null; unlocked = false;
+    refreshOpening();
     const over = checkEnd();
     if (!over) search();
     animateMove(lastMove);
@@ -396,7 +449,7 @@ function mount(host, opts) {
     const moves = chess.history({ verbose: true }).map(m => m.from + m.to + (m.promotion || '')).join(' ');
     worker.postMessage('position startpos moves ' + moves);
     worker.postMessage('go depth ' + strength.depth + ' movetime ' + strength.time);
-    timer = setTimeout(fail, 15000);
+    timer = setTimeout(fail, Math.max(15000, (strength.time || 0) + 12000));
   }
 
   function applyOpponentMove(move) {
@@ -404,9 +457,26 @@ function mount(host, opts) {
     clearTimeout(timer); thinking = false;
     try {
       lastMove = chess.move(move);
+      refreshOpening();
       if (!checkEnd()) ask();
       animateMove(lastMove);
     } catch (_) { fail(); }
+  }
+
+  function configureEngine(current) {
+    const strength = LEVELS[level];
+    current.postMessage('setoption name Hash value ' + (strength.hash || 16));
+    if (strength.limitStrength && strength.elo) {
+      current.postMessage('setoption name UCI_LimitStrength value true');
+      current.postMessage('setoption name UCI_Elo value ' + strength.elo);
+    } else {
+      current.postMessage('setoption name UCI_LimitStrength value false');
+      if (strength.skill != null) {
+        current.postMessage('setoption name Skill Level value ' + strength.skill);
+      }
+    }
+    current.postMessage('ucinewgame');
+    current.postMessage('isready');
   }
 
   function startEngine() {
@@ -422,9 +492,7 @@ function mount(host, opts) {
         String(event.data).split('\n').forEach(function (line) {
           line = line.trim();
           if (line === 'uciok') {
-            current.postMessage('setoption name Hash value ' + (LEVELS[level].hash || 16));
-            current.postMessage('setoption name Skill Level value ' + LEVELS[level].skill);
-            current.postMessage('ucinewgame'); current.postMessage('isready');
+            configureEngine(current);
           } else if (line === 'readyok' && !ready) {
             clearTimeout(timer); ready = true;
             if (chess.turn() === 'b' && !ended) search();
@@ -446,7 +514,7 @@ function mount(host, opts) {
     if (disposed) return;
     clearFx();
     chess = new Chess(); ended = false; result = ''; lastMove = null;
-    correctCount = 0; askedCount = 0; recent = [];
+    correctCount = 0; askedCount = 0; recent = []; opening = null;
     ask(); startEngine();
   }
 
@@ -477,6 +545,7 @@ function mount(host, opts) {
   ask(); startEngine();
   return {
     get fen() { return chess.fen(); },
+    get opening() { return opening; },
     destroy: function () {
       disposed = true; clearTimeout(timer); clearFx();
       if (worker) worker.terminate(); worker = null;
@@ -485,4 +554,4 @@ function mount(host, opts) {
   };
 }
 
-window.GeoChess = { mount: mount };
+window.GeoChess = { mount: mount, LEVELS: LEVELS };
