@@ -152,7 +152,6 @@
            this chain's own catch and report a good save as offline. */
         try { pushLevel(); } catch (e) { /* a level is never worth a red dot */ }
         try { pushSecrets(); } catch (e) { /* nor is a secret */ }
-        try { pushAchievements(); } catch (e) { /* nor is a wallet unlock */ }
       })
       .catch(function () { if (mine === gen) setStatus('offline'); })
       .then(function () {
@@ -1256,30 +1255,6 @@
       .catch(function () { return 0; });
   }
 
-  /* LEA-75: unlocked achievement ids → achievement_unlock_events so the
-     teacher Wallet wall can show a recent feed. The profile save already
-     carries the full list; this only stamps new unlocks. Soft-fails when
-     0027 is not applied yet. */
-  var achSent = null, achMissing = false;
-  function pushAchievements() {
-    if (!ready() || achMissing || W.state.role === 'teacher') {
-      return Promise.resolve(0);
-    }
-    var ids = Array.isArray(W.state.achievements) ? W.state.achievements.slice() : [];
-    var key = ids.slice().sort().join(',');
-    if (key === achSent) return Promise.resolve(0);
-    return sb.rpc('sync_achievements', { p_ids: ids })
-      .then(function (res) {
-        if (res && res.error) {
-          if (missingBit(res.error)) achMissing = true;
-          return 0;
-        }
-        achSent = key;
-        return (res && res.data) || 0;
-      })
-      .catch(function () { return 0; });
-  }
-
   /* The student's own view of who else is in their class. studentSync
      deliberately does not fetch this and I am not adding it there: that batch
      carries the assignments and the stream, which a student always needs,
@@ -1370,7 +1345,6 @@
     classMembers: classMembers,
     classResults: classResults,
     syncLevel: pushLevel,
-    syncAchievements: pushAchievements,
     emailRedirect: redirectUrl,
     get available() { return !!client(); },
     get sb() { return client(); },
