@@ -20,6 +20,13 @@
      own What’s New id. `try` deep-links into the feature (LEA-79). */
   var UPDATES = [
     {
+      id: '2026-11-class-wallet-wall',
+      title: 'Class wallet wall',
+      body: 'Teachers can open Wallet wall in My class to see each student’s unlocked achievement cards and a feed of recent unlocks — a shared class view, not a screen share.',
+      image: '/assets/img/updates/achievement-cards.svg',
+      date: '2026-11-07'
+    },
+    {
       id: '2026-11-friend-inbox-menu',
       title: 'Friend inbox in your menu',
       body: 'Open your profile menu (next to Customization) for Friend inbox — card gifts, wallet shares, and Geo Chess challenges in one place.',
