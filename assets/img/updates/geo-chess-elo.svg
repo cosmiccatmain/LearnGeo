@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 280" role="img" aria-label="Geo Chess Elo rating and leaderboard">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#eef6ef"/>
+      <stop offset="100%" stop-color="#f7f3e4"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="280" fill="url(#sky)"/>
+  <!-- board -->
+  <g transform="translate(48,48)">
+    <rect width="176" height="176" rx="10" fill="#23443b"/>
+    <g transform="translate(8,8)">
+      <rect width="40" height="40" fill="#e8ebd5"/><rect x="40" width="40" height="40" fill="#72957d"/>
+      <rect x="80" width="40" height="40" fill="#e8ebd5"/><rect x="120" width="40" height="40" fill="#72957d"/>
+      <rect y="40" width="40" height="40" fill="#72957d"/><rect x="40" y="40" width="40" height="40" fill="#e8ebd5"/>
+      <rect x="80" y="40" width="40" height="40" fill="#72957d"/><rect x="120" y="40" width="40" height="40" fill="#e8ebd5"/>
+      <rect y="80" width="40" height="40" fill="#e8ebd5"/><rect x="40" y="80" width="40" height="40" fill="#72957d"/>
+      <rect x="80" y="80" width="40" height="40" fill="#e8ebd5"/><rect x="120" y="80" width="40" height="40" fill="#72957d"/>
+      <rect y="120" width="40" height="40" fill="#72957d"/><rect x="40" y="120" width="40" height="40" fill="#e8ebd5"/>
+      <rect x="80" y="120" width="40" height="40" fill="#72957d"/><rect x="120" y="120" width="40" height="40" fill="#e8ebd5"/>
+      <text x="100" y="108" text-anchor="middle" font-size="36" fill="#fffdf2">^</text>
+    </g>
+  </g>
+  <!-- Elo badge -->
+  <g transform="translate(260,56)">
+    <rect width="320" height="72" rx="36" fill="#fff" stroke="#c5d6c4" stroke-width="2"/>
+    <text x="36" y="30" font-family="Georgia, serif" font-size="12" font-weight="700" fill="#3d5a45" letter-spacing="1.5">CHESS ELO</text>
+    <text x="36" y="56" font-family="Georgia, serif" font-size="28" font-weight="700" fill="#173d36">1000</text>
+    <text x="140" y="54" font-family="Georgia, serif" font-size="18" font-weight="700" fill="#1f6b3a">+16</text>
+  </g>
+  <!-- mini leaderboard -->
+  <g transform="translate(260,148)">
+    <rect width="320" height="88" rx="12" fill="#fff" stroke="#c5d6c4" stroke-width="2"/>
+    <text x="20" y="28" font-family="Georgia, serif" font-size="12" font-weight="700" fill="#3d5a45" letter-spacing="1">LEADERBOARD</text>
+    <text x="20" y="52" font-family="Georgia, serif" font-size="15" fill="#173d36">1. MapWizard · 1240 Elo</text>
+    <text x="20" y="74" font-family="Georgia, serif" font-size="15" fill="#173d36">2. You · 1000 Elo</text>
+  </g>
+</svg>

@@ -21,6 +21,22 @@
 .chess-side { display: grid; gap: 16px; }
 .chess-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .chess-heading h2 { margin: 4px 0 0; }
+.chess-heading__meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; justify-content: flex-end; }
+.chess-elo {
+  display: inline-flex; align-items: baseline; gap: 6px;
+  padding: 6px 12px; border-radius: 999px;
+  background: linear-gradient(135deg, #eef6ef 0%, #f7f3e4 100%);
+  border: 1px solid #c5d6c4; color: #173d36;
+  font-size: 13px; font-weight: 600;
+}
+.chess-elo__label {
+  font-size: 10px; letter-spacing: .08em; text-transform: uppercase;
+  color: #3d5a45; font-weight: 650;
+}
+.chess-elo__value { font-size: 16px; font-variant-numeric: tabular-nums; }
+.chess-elo__delta { font-size: 12px; font-weight: 650; font-variant-numeric: tabular-nums; }
+.chess-elo__delta.is-up { color: #1f6b3a; }
+.chess-elo__delta.is-down { color: #8a2f2f; }
 .chess-status { min-height: 2.8em; margin: 12px 0; font-size: 14px; font-weight: 550; }
 .chess-opening {
   display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 12px;
