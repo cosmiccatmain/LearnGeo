@@ -54,9 +54,10 @@
   letter-spacing: .1em; text-transform: uppercase;
   color: var(--faint); margin-bottom: 10px;
 }
+/* LEA-95: level sits in panel hierarchy — readable, not hero-sized */
 .rt-xpchart__level {
-  font-size: 40px; font-weight: 740; letter-spacing: -.03em;
-  line-height: 1; margin-bottom: 16px;
+  font-size: 22px; font-weight: 700; letter-spacing: -.02em;
+  line-height: 1.15; margin-bottom: 12px;
 }
 .rt-xpchart__bar {
   height: 12px; border-radius: 999px;
@@ -197,7 +198,7 @@
     width: 100%;
     max-width: 1060px;
   }
-  .rt-xpchart__level { font-size: 34px; }
+  .rt-xpchart__level { font-size: 20px; }
   .rt-award__name { font-size: 19px; }
   .rt-award__desc { font-size: 14px; }
 }
@@ -222,7 +223,7 @@
 
 @media (max-width: 520px) {
   .rt-awards__list { grid-template-columns: 1fr; }
-  .rt-xpchart__level { font-size: 28px; }
+  .rt-xpchart__level { font-size: 20px; }
 }
 
 /* ---------------------------- unit banner ------------------------- */
