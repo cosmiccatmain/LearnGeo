@@ -226,7 +226,7 @@
           return mode +
             '<div class="panel">' +
               '<div class="panel__head"><h3>How invites work</h3></div>' +
-              '<p class="t-sm t-muted" style="margin:0">Your friend needs a gamertag (any Games leaderboard claim works). They see a pending invite here in Geo Chess and can accept or decline. Wins and losses change your Chess Elo.</p>' +
+              '<p class="t-sm t-muted" style="margin:0">Your friend needs a gamertag (any Games leaderboard claim works). They see the invite in profile → Friend inbox and here in Geo Chess. Wins and losses change your Chess Elo.</p>' +
               (pending
                 ? '<p class="t-sm" style="margin:10px 0 0"><b>' + pending + ' pending invite' + (pending === 1 ? '' : 's') + '</b> waiting in the lobby.</p>'
                 : '') +
@@ -267,9 +267,12 @@
       },
       mount: function (stage, r) {
         if (chessOpponent(r) === 'pvp') {
+          var mid = r._matchId || null;
+          if (r._matchId) { delete r._matchId; W.save(); }
           return global.ChessDuel.mount(stage, {
             onBack: toSetup,
-            autoResume: true
+            autoResume: true,
+            matchId: mid || null
           });
         }
         return global.GeoChess.mount(stage, {
@@ -840,12 +843,46 @@
     return GAMES.filter(function (g) { return g.id === id; })[0] || GAMES[0];
   }
 
+  /* Deep-link helper (What’s New Try it, toasts). Opens a game’s setup
+     screen. opts.opponent: 'bot' | 'pvp' for Geo Chess. Guests hit the
+     account gate first; opponent / _openPvp survive so Challenge mode
+     resumes after sign-in. */
+  function open(gameId, opts) {
+    opts = opts || {};
+    if (gameId === 'chessduel') gameId = 'chess';
+    var g = byId(gameId);
+    if (!g) return;
+    if (g.id === 'chess') {
+      var r = record('chess');
+      if (opts.opponent === 'pvp') {
+        r.opponent = 'pvp';
+        r._openPvp = true;
+      } else {
+        r.opponent = 'bot';
+        delete r._openPvp;
+      }
+      W.save();
+    }
+    current = g.id;
+    toSetup();
+  }
+
   function openChessPvp() {
+    open('chess', { opponent: 'pvp' });
+  }
+
+  /* LEA-80: jump into Geo Chess PvP from Friend inbox (accept / rejoin). */
+  var pendingChessMatch = null;
+  function openChessMatch(matchId) {
     var r = record('chess');
     r.opponent = 'pvp';
+    if (matchId) r._matchId = matchId;
+    else delete r._matchId;
     W.save();
     current = 'chess';
-    toSetup();
+    pendingChessMatch = matchId || true;
+    if (global.UI && global.UI.go) global.UI.go('games');
+    else start();
   }
 
   function start() {
@@ -871,6 +908,22 @@
     if (needsAccount() && (screen === 'play' || screen === 'setup')) screen = 'hub';
     if (screen === 'play') screen = 'setup';
     stop();
+    if (pendingChessMatch) {
+      var mid = pendingChessMatch === true ? null : pendingChessMatch;
+      pendingChessMatch = null;
+      var cr = record('chess');
+      cr.opponent = 'pvp';
+      if (mid) cr._matchId = mid;
+      current = 'chess';
+      W.save();
+      if (needsAccount()) {
+        promptAccount(function () { openChessMatch(mid); });
+        renderHub();
+        return;
+      }
+      play();
+      return;
+    }
     if (screen === 'setup') renderSetup(); else renderHub();
   }
 
@@ -1421,7 +1474,8 @@
     start: start, stop: stop, catalogue: catalogue, art: art,
     playing: playing, abandon: abandon,
     needsAccount: needsAccount, promptAccount: promptAccount,
-    openChessPvp: openChessPvp,
+    open: open, openChessPvp: openChessPvp,
+    openChessMatch: openChessMatch,
     get current() { return game; },
     get game() { return current; },
     get screen() { return screen; }

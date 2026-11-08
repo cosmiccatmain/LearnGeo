@@ -735,8 +735,354 @@
     return (lastInbox.incoming || []).length;
   }
 
+  /* ===================== teacher / host spectate =================== */
+  /* Classroom host (teacher) watches a student duel as a read-only
+     spectator. State + scores only — never screen mirroring. */
+  function listClassDuels(classId) {
+    if (!classId) return Promise.resolve({ ok: false, error: 'invalid', matches: [] });
+    return rpc('pvp_list_class_duels', { p_class: classId }).then(function (data) {
+      if (!data || !data.ok) {
+        return { ok: false, error: (data && data.error) || 'offline', matches: [] };
+      }
+      return { ok: true, matches: data.matches || [] };
+    });
+  }
+
+  function spectateRemainingSec(state) {
+    if (!state || !state.round_started_at) return state && state.round_seconds || 18;
+    var start = Date.parse(state.round_started_at);
+    if (!start) return state.round_seconds || 18;
+    var left = (state.round_seconds || 18) - ((Date.now() - start) / 1000);
+    return Math.max(0, Math.ceil(left));
+  }
+
+  function mountSpectate(host, opts) {
+    opts = opts || {};
+    var matchId = opts.matchId || null;
+    var destroyed = false;
+    var poll = null;
+    var state = null;
+
+    host.innerHTML = '<div class="duel duel--spectate" tabindex="-1"><div class="duel__body" data-duel-body></div></div>';
+    var body = W.$('[data-duel-body]', host);
+
+    function paint() {
+      if (destroyed || !body) return;
+      if (!state) {
+        body.innerHTML = global.CookingLoader
+          ? global.CookingLoader.host({ tall: true, note: 'Loading duel…' })
+          : '<div class="duel-wait"><div class="duel-wait__pulse"></div><p>Loading duel…</p></div>';
+        applyDuelAccent(body.firstChild);
+        return;
+      }
+      if (state.status === 'seeding') return paintSeeding();
+      if (state.status === 'finished') return paintFinished();
+      if (state.status === 'cancelled') return paintClosed();
+      return paintRound();
+    }
+
+    function paintBanner() {
+      return '<div class="duel-spectate-banner" role="status">' +
+        (I.eye || '') +
+        '<div><b>Spectating</b><span>Host view · scores and rounds only — you are not playing</span></div>' +
+        '</div>';
+    }
+
+    function paintSeeding() {
+      body.innerHTML =
+        '<div class="duel-wait">' +
+          paintBanner() +
+          '<div class="duel-vs">' +
+            '<span>' + esc(state.host_tag || 'Host') + '</span>' +
+            '<b>VS</b>' +
+            '<span>' + esc(state.guest_tag || 'Guest') + '</span>' +
+          '</div>' +
+          '<p class="t-sm t-muted">Waiting for the host to deal the questions…</p>' +
+          '<div class="duel-play__foot" style="margin-top:18px">' +
+            '<button class="btn btn--ghost btn--sm" type="button" data-duel-spectate-back>Back to live duels</button>' +
+          '</div>' +
+        '</div>';
+      wireBack();
+      applyDuelAccent(body.firstChild);
+    }
+
+    function paintClosed() {
+      body.innerHTML =
+        '<div class="duel-end">' +
+          paintBanner() +
+          '<div class="duel-end__badge">Match closed</div>' +
+          '<p>This duel ended or was forfeited.</p>' +
+          '<div class="duel-end__actions">' +
+            '<button class="btn btn--accent" type="button" data-duel-spectate-back>Back to live duels</button>' +
+          '</div>' +
+        '</div>';
+      wireBack();
+      applyDuelAccent(body.firstChild);
+    }
+
+    function paintRound() {
+      var r = state.round || {};
+      var keys = 'ABCD';
+      var left = spectateRemainingSec(state);
+      var hostDone = !!state.answered_host;
+      var guestDone = !!state.answered_guest;
+      var statusLine = hostDone && guestDone
+        ? 'Both answered — scoring…'
+        : (hostDone
+          ? esc(state.host_tag || 'Host') + ' locked in. Waiting on ' + esc(state.guest_tag || 'guest') + '…'
+          : (guestDone
+            ? esc(state.guest_tag || 'Guest') + ' locked in. Waiting on ' + esc(state.host_tag || 'host') + '…'
+            : 'Watching both players answer.'));
+      body.innerHTML =
+        '<div class="duel-play duel-play--spectate">' +
+          paintBanner() +
+          '<div class="duel-scoreboard">' +
+            '<div class="duel-score">' +
+              '<span>' + esc(state.host_tag || 'Host') + '</span>' +
+              '<b class="mono">' + esc(String(state.host_score)) + '</b>' +
+              '<small class="duel-ans-flag">' + (hostDone ? 'Answered' : 'Thinking…') + '</small></div>' +
+            '<div class="duel-round mono">Round ' + (state.current_round + 1) + ' / ' + state.round_count +
+              '<small>' + left + 's</small></div>' +
+            '<div class="duel-score">' +
+              '<span>' + esc(state.guest_tag || 'Guest') + '</span>' +
+              '<b class="mono">' + esc(String(state.guest_score)) + '</b>' +
+              '<small class="duel-ans-flag">' + (guestDone ? 'Answered' : 'Thinking…') + '</small></div>' +
+          '</div>' +
+          '<div class="qcard duel-q">' +
+            '<div class="qcard__prompt">' + esc(r.prompt || 'Question') + '</div>' +
+            '<div class="qcard__subject">' +
+              (r.flag
+                ? '<span class="qflag">' + global.Quiz.flagImg(r.flag, 'qflag__img') + '</span>'
+                : esc(r.subject || '')) +
+              '<small>' + esc(r.sub || '') + '</small>' +
+            '</div>' +
+            '<div class="options' + (r.flag_choices ? ' options--flags' : '') + '">' +
+              (r.choices || []).map(function (ch, idx) {
+                return '<div class="option is-locked is-spectate" data-choice="' + idx + '">' +
+                  '<span class="option__key">' + keys.charAt(idx) + '</span>' +
+                  '<span class="option__text">' +
+                    (r.flag_choices && ch.flag
+                      ? global.Quiz.flagImg(ch.flag, 'option__flag')
+                      : esc(ch.text || '')) +
+                  '</span></div>';
+              }).join('') +
+            '</div>' +
+            '<p class="duel-status t-sm t-muted">' + statusLine + '</p>' +
+          '</div>' +
+          '<div class="duel-play__foot">' +
+            '<button class="btn btn--ghost btn--sm" type="button" data-duel-spectate-back>Back to live duels</button>' +
+          '</div>' +
+        '</div>';
+      wireBack();
+      applyDuelAccent(body.firstChild);
+    }
+
+    function paintFinished() {
+      var title = state.draw ? 'Draw' : ((state.winner_tag || 'Someone') + ' wins');
+      body.innerHTML =
+        '<div class="duel-end">' +
+          paintBanner() +
+          '<div class="duel-end__badge' + (state.draw ? '' : ' is-win') + '">' + esc(title) + '</div>' +
+          '<div class="duel-vs">' +
+            '<span>' + esc(state.host_tag) + ' · ' + esc(String(state.host_score)) + '</span>' +
+            '<b>VS</b>' +
+            '<span>' + esc(state.guest_tag) + ' · ' + esc(String(state.guest_score)) + '</span>' +
+          '</div>' +
+          '<p class="t-sm t-muted">Spectator view — this match is finished.</p>' +
+          '<div class="duel-end__actions">' +
+            '<button class="btn btn--accent" type="button" data-duel-spectate-back>Back to live duels</button>' +
+          '</div>' +
+        '</div>';
+      wireBack();
+      applyDuelAccent(body.firstChild);
+    }
+
+    function wireBack() {
+      var b = W.$('[data-duel-spectate-back]', body);
+      if (!b) return;
+      b.addEventListener('click', function () {
+        if (opts.onBack) opts.onBack();
+      });
+    }
+
+    function refresh() {
+      if (destroyed || !matchId) return Promise.resolve();
+      return rpc('pvp_spectate_state', { p_match: matchId }).then(function (res) {
+        if (!res || !res.ok) {
+          if (res && (res.error === 'not_found' || res.error === 'forbidden')) {
+            state = { status: 'cancelled', host_tag: '—', guest_tag: '—', host_score: 0, guest_score: 0 };
+            stopPoll();
+            paint();
+          }
+          return;
+        }
+        state = res;
+        paint();
+      });
+    }
+
+    function startPoll() {
+      stopPoll();
+      poll = setInterval(function () {
+        if (destroyed) return;
+        refresh();
+      }, 1400);
+    }
+    function stopPoll() {
+      if (poll) { clearInterval(poll); poll = null; }
+    }
+
+    paint();
+    refresh();
+    startPoll();
+
+    return {
+      destroy: function () {
+        destroyed = true;
+        stopPoll();
+        host.innerHTML = '';
+      }
+    };
+  }
+
+  function mountClassLive(host, opts) {
+    opts = opts || {};
+    var classId = opts.classId || '';
+    var destroyed = false;
+    var poll = null;
+    var active = null;
+    var matches = [];
+
+    function paintList() {
+      if (destroyed || !host) return;
+      if (active) return;
+      var live = matches.filter(function (m) {
+        return m && (m.status === 'seeding' || m.status === 'active');
+      });
+      var recent = matches.filter(function (m) {
+        return m && m.status === 'finished';
+      });
+      var parts = [];
+      parts.push(
+        '<div class="duel-class-live">' +
+          '<div class="duel-lobby__hero">' +
+            '<div class="eyebrow">Host view</div>' +
+            '<h2>Live Geo Duels</h2>' +
+            '<p>Watch class matches as a spectator — scores and questions update live. You do not join the game, and nothing is screen-mirrored.</p>' +
+          '</div>'
+      );
+      if (!live.length && !recent.length) {
+        parts.push(
+          '<div class="panel duel-inbox">' +
+            '<p class="duel-empty t-sm t-muted">No class duels right now. When two signed-in students duel, they show up here so you can spectate.</p>' +
+          '</div>'
+        );
+      } else {
+        if (live.length) {
+          parts.push('<div class="panel duel-inbox"><div class="panel__head"><h3>In progress</h3></div>');
+          live.forEach(function (m) {
+            parts.push(
+              '<div class="duel-note duel-note--live">' +
+                '<div><b>' + esc(m.host_tag || '?') + ' vs ' + esc(m.guest_tag || '?') + '</b>' +
+                  '<span>' + esc(String(m.host_score)) + '–' + esc(String(m.guest_score)) +
+                  ' · Round ' + (Number(m.current_round) + 1) + '/' + esc(String(m.round_count)) +
+                  (m.status === 'seeding' ? ' · seeding' : '') +
+                  '</span></div>' +
+                '<button class="btn btn--accent btn--sm" type="button" data-duel-spectate="' +
+                  esc(m.id) + '">' + (I.eye || '') + ' Spectate</button></div>'
+            );
+          });
+          parts.push('</div>');
+        }
+        if (recent.length) {
+          parts.push('<div class="panel duel-inbox"><div class="panel__head"><h3>Recently finished</h3></div>');
+          recent.slice(0, 6).forEach(function (m) {
+            parts.push(
+              '<div class="duel-note">' +
+                '<div><b>' + esc(m.host_tag || '?') + ' vs ' + esc(m.guest_tag || '?') + '</b>' +
+                  '<span>' + esc(String(m.host_score)) + '–' + esc(String(m.guest_score)) + '</span></div>' +
+                '<button class="btn btn--ghost btn--sm" type="button" data-duel-spectate="' +
+                  esc(m.id) + '">Replay board</button></div>'
+            );
+          });
+          parts.push('</div>');
+        }
+      }
+      parts.push('</div>');
+      host.innerHTML = parts.join('');
+      W.$$('[data-duel-spectate]', host).forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          openMatch(btn.getAttribute('data-duel-spectate'));
+        });
+      });
+    }
+
+    function openMatch(id) {
+      if (!id || destroyed) return;
+      stopPoll();
+      active = mountSpectate(host, {
+        matchId: id,
+        onBack: function () {
+          if (active && active.destroy) active.destroy();
+          active = null;
+          paintList();
+          startPoll();
+          refresh();
+        }
+      });
+    }
+
+    function refresh() {
+      if (destroyed || !classId || active) return Promise.resolve();
+      return listClassDuels(classId).then(function (res) {
+        if (destroyed || active) return;
+        matches = (res && res.matches) || [];
+        paintList();
+      });
+    }
+
+    function startPoll() {
+      stopPoll();
+      if (!classId) return;
+      poll = setInterval(function () {
+        if (destroyed || active) return;
+        refresh();
+      }, 2500);
+    }
+    function stopPoll() {
+      if (poll) { clearInterval(poll); poll = null; }
+    }
+
+    if (!classId) {
+      host.innerHTML =
+        '<div class="empty">Put your class online first, then you can spectate student Geo Duels. Use the class code button at the top.</div>';
+      return {
+        destroy: function () { destroyed = true; host.innerHTML = ''; }
+      };
+    }
+
+    host.innerHTML = global.CookingLoader
+      ? global.CookingLoader.host({ tall: false, note: 'Checking for live duels…' })
+      : '<p class="t-sm t-muted">Checking for live duels…</p>';
+    refresh();
+    startPoll();
+
+    return {
+      destroy: function () {
+        destroyed = true;
+        stopPoll();
+        if (active && active.destroy) active.destroy();
+        active = null;
+        host.innerHTML = '';
+      }
+    };
+  }
+
   global.GeoDuel = {
     mount: mount,
+    mountSpectate: mountSpectate,
+    mountClassLive: mountClassLive,
+    listClassDuels: listClassDuels,
     startWatching: startWatching,
     fetchInbox: fetchInbox,
     pendingCount: pendingCount,

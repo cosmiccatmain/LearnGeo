@@ -429,6 +429,11 @@
       blurb: 'Aurora cyan duel rim. Premium.' }
   ];
 
+  /* Permanent diamond achievements, then seasonal / time-limited challenge
+     awards (LEA-74). Seasonals only unlock while their calendar window is
+     open; once earned they stay in the wallet forever (Apple Watch style).
+     `season.start` / `season.end` are [month, day] (1-indexed). `metric`
+     is counted only during the active window via core.js seasonal progress. */
   var ACHIEVEMENTS = [
     { id: 'first-steps', name: 'First Steps', desc: 'Answer your first question', reward: 25 },
     { id: 'streak-10', name: 'On a Roll', desc: 'Hit a 10-answer streak', reward: 75 },
@@ -439,8 +444,66 @@
     { id: 'region-master', name: 'Region Master', desc: 'Master every country in one region', reward: 400 },
     { id: 'level-10', name: 'Seasoned', desc: 'Reach level 10', reward: 300 },
     { id: 'answers-500', name: 'Five Hundred', desc: 'Answer 500 questions', reward: 400 },
-    { id: 'globetrotter', name: 'Globetrotter', desc: 'Master 100 countries', reward: 600 }
+    { id: 'globetrotter', name: 'Globetrotter', desc: 'Master 100 countries', reward: 600 },
+
+    /* ---- seasonal challenges (holiday / limited-time award cards) ---- */
+    { id: 'new-year-atlas', name: 'New Year Atlas',
+      desc: 'Answer 20 questions during New Year week', reward: 120,
+      seasonal: true,
+      season: { label: 'New Year', start: [1, 1], end: [1, 7], metric: 'answered', goal: 20 } },
+    { id: 'heart-maps', name: 'Heart of the Map',
+      desc: 'Get 25 correct answers in early February', reward: 120,
+      seasonal: true,
+      season: { label: 'Heart Month', start: [2, 1], end: [2, 14], metric: 'correct', goal: 25 } },
+    { id: 'earth-day', name: 'Earth Day Challenge',
+      desc: 'Answer 30 questions during Earth Day week', reward: 150,
+      seasonal: true,
+      season: { label: 'Earth Day', start: [4, 18], end: [4, 25], metric: 'answered', goal: 30 } },
+    { id: 'summer-explorer', name: 'Summer Explorer',
+      desc: 'Hit a 10-answer streak during summer break', reward: 150,
+      seasonal: true,
+      season: { label: 'Summer', start: [6, 15], end: [7, 15], metric: 'streak', goal: 10 } },
+    { id: 'geo-awareness', name: 'Geography Awareness',
+      desc: 'Answer 40 questions during Geography Awareness Week', reward: 175,
+      seasonal: true,
+      season: { label: 'Geo Awareness', start: [11, 1], end: [11, 21], metric: 'answered', goal: 40 } },
+    { id: 'winter-globe', name: 'Winter Globe',
+      desc: 'Answer 35 questions over winter break', reward: 175,
+      seasonal: true,
+      season: { label: 'Winter Break', start: [12, 20], end: [1, 5], metric: 'answered', goal: 35 } }
   ];
+
+  /* Calendar helpers for seasonal windows (shared by core + wallet). */
+  function mdKey(month, day) { return month * 100 + day; }
+
+  function seasonInWindow(season, date) {
+    if (!season || !season.start || !season.end) return false;
+    var d = date || new Date();
+    var cur = mdKey(d.getMonth() + 1, d.getDate());
+    var s = mdKey(season.start[0], season.start[1]);
+    var e = mdKey(season.end[0], season.end[1]);
+    if (s <= e) return cur >= s && cur <= e;
+    /* wraps year (e.g. Dec 20 → Jan 5) */
+    return cur >= s || cur <= e;
+  }
+
+  /* Edition year stamped on the award: start year of the active window. */
+  function seasonEditionYear(season, date) {
+    var d = date || new Date();
+    var y = d.getFullYear();
+    var cur = mdKey(d.getMonth() + 1, d.getDate());
+    var s = mdKey(season.start[0], season.start[1]);
+    var e = mdKey(season.end[0], season.end[1]);
+    if (s > e && cur <= e) return y - 1;
+    return y;
+  }
+
+  function seasonProgressValue(slot, metric) {
+    if (!slot) return 0;
+    if (metric === 'correct') return slot.correct || 0;
+    if (metric === 'streak') return slot.streakBest || 0;
+    return slot.answered || 0;
+  }
 
   global.Cosmetics = {
     decorations: DECORATIONS,
@@ -460,6 +523,11 @@
     duelAccents: DUEL_ACCENTS,
     achievements: ACHIEVEMENTS,
     earned: EARNED,
+
+    /* LEA-74 — seasonal / time-limited challenge windows. */
+    seasonInWindow: seasonInWindow,
+    seasonEditionYear: seasonEditionYear,
+    seasonProgressValue: seasonProgressValue,
 
     /* Class tags. `tagGlyphs` is the list a picker should be built from,
        so nobody hardcodes four names that later disagree with this file. */

@@ -9,6 +9,7 @@
     learn: '/learn',
     test: '/test',
     quiz: '/quiz',
+    roadtrip: '/roadtrip',
     games: '/games',
     achievements: '/achievements'
   };

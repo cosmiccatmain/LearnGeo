@@ -1,12 +1,14 @@
 /* ------------------------------------------------------------------
-   0026: iPad classroom passcodes (LEA-81).
+   0029: iPad classroom passcodes (LEA-81).
 
    Teachers mint a short passcode (same alphabet as class / GeoLive
    codes, four characters). Students type passcode + name on an iPad
    to join Games / Geo Live without walking through email signup.
 
    Live schema only (teacher_id on classes). Safe to run twice.
-   Apply after 0025. MCP name: classroom_passcodes_0026.
+   File slot 0029 after 0026–0028 collisions on main. DDL already
+   applied on live as MCP `classroom_passcodes_0026` (idempotent —
+   do not re-apply casually). Apply after 0025 / 0028 if rebuilding.
 -------------------------------------------------------------------*/
 
 begin;

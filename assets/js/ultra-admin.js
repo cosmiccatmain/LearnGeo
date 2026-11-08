@@ -47,6 +47,7 @@
       body:
         adminPageCard() +
         privateCard() +
+        passkeyCard() +
         adminClassCard() +
         whoCard() +
         roleCard() +
@@ -152,6 +153,74 @@
         clr.disabled = false;
         if (!r.ok) return tell(why(r), true);
         W.toast('Private Password removed', 'Use the code on this device from now on.', I.key, 4200);
+        close(); open();
+      });
+    });
+  }
+
+  /* ------------------------ Admin unlock passkey -------------------
+     LEA-82. WebAuthn on this device after UltraAdmin is already open.
+     Shared code adminisbetter stays the fallback everywhere.
+  ------------------------------------------------------------------ */
+  function passkeyCard() {
+    var PK = global.AdminPasskey;
+    if (!PK) {
+      return card('Admin unlock passkey',
+        '<p class="t-sm t-muted">admin-passkey.js did not load.</p>');
+    }
+    var ok = !!(PK.supported && PK.supported());
+    var has = !!(PK.hasLocal && PK.hasLocal());
+    if (!ok) {
+      return card('Admin unlock passkey',
+        '<p class="t-sm t-muted" style="margin:-4px 0 0">This browser cannot make a WebAuthn passkey. ' +
+          'Use the shared code <code>adminisbetter</code>.</p>');
+    }
+    return card('Admin unlock passkey',
+      '<p class="t-sm t-muted" style="margin:-4px 0 12px">' +
+        (has
+          ? 'A passkey is set up on this device. Next unlock can use face, fingerprint, or screen lock. ' +
+            'The shared code still works as a fallback.'
+          : 'Set one up to unlock UltraAdmin on this device with face, fingerprint, or screen lock. ' +
+            'The shared code <code>adminisbetter</code> remains the fallback.') +
+      '</p>' +
+      '<div class="row" style="gap:8px;flex-wrap:wrap">' +
+        '<button class="btn btn--accent btn--sm" id="ua-pk-setup">' +
+          (has ? 'Replace passkey' : 'Set up passkey') + '</button>' +
+        (has ? '<button class="btn btn--ghost btn--sm" id="ua-pk-remove">Remove passkey</button>' : '') +
+      '</div>' +
+      '<div class="t-sm" id="ua-pk-msg" style="margin-top:8px"></div>');
+  }
+
+  function wirePasskey(root, close) {
+    var PK = global.AdminPasskey;
+    var msg = W.$('#ua-pk-msg', root);
+    function tell(t, bad) {
+      if (!msg) return;
+      msg.textContent = t || '';
+      msg.style.color = bad ? 'var(--danger)' : 'var(--muted)';
+    }
+    var setup = W.$('#ua-pk-setup', root);
+    if (setup) setup.addEventListener('click', function () {
+      if (!PK || !PK.enroll) return tell('admin-passkey.js did not load.', true);
+      setup.disabled = true;
+      tell('Follow the browser passkey prompt…');
+      PK.enroll().then(function (r) {
+        setup.disabled = false;
+        if (r && r.kind === 'cancelled') { tell(''); return; }
+        if (!r || !r.ok) return tell((r && r.message) || 'Could not set up the passkey.', true);
+        W.toast('Admin passkey ready', 'Use it next time you open UltraAdmin on this device.', I.key, 4200);
+        close(); open();
+      });
+    });
+    var rem = W.$('#ua-pk-remove', root);
+    if (rem) rem.addEventListener('click', function () {
+      if (!PK || !PK.remove) return;
+      rem.disabled = true;
+      tell('Removing…');
+      PK.remove().then(function (r) {
+        rem.disabled = false;
+        if (!r || !r.ok) return tell((r && r.message) || 'Could not remove the passkey.', true);
+        W.toast('Admin passkey removed', 'Use the shared code on this device.', I.key, 4200);
         close(); open();
       });
     });
@@ -280,7 +349,7 @@
         '<button class="btn btn--accent btn--sm" id="ua-allow-go">Add</button>' +
       '</div>' +
       '<div class="t-sm" id="ua-allow-msg" style="margin-top:8px"></div>',
-      'Only these accounts can open the admin panels, with the code or their own Private Password. ' +
+      'Only these accounts can open the admin panels, with the code, a passkey, or their own Private Password. ' +
       'Anyone else is told they do not have access.');
   }
 
@@ -375,6 +444,7 @@ why() + '</button>';
 
     wireBadges(root);
     wirePrivate(root, close);
+    wirePasskey(root, close);
     var acHost = W.$('#ua-adminclass', root);
     if (acHost && global.ClassExtras && global.ClassExtras.mountAdminClasses) {
       global.ClassExtras.mountAdminClasses(acHost);

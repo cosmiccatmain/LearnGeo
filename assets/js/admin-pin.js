@@ -26,9 +26,9 @@
    is wrong when the network is down sends them looking for the wrong
    problem.
 
-   A four-digit code is still only four digits, so treat this as a lock
-   on a drawer, not on a door. There is no code built into the page: if
-   the check cannot run, nothing opens.
+   The live shared passphrase is adminisbetter (LEA-82). Treat this as a
+   lock on a drawer, not on a door. The page still does not invent a
+   fallback if the check cannot run: nothing opens.
 
    On an older database verify_admin_pin returns a bare boolean. That
    still works and reads as 'gems', which is what the single code did

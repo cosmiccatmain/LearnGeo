@@ -34,6 +34,7 @@
 <link rel="stylesheet" href="assets/css/game-boards.css">
 <link rel="stylesheet" href="assets/css/arcade.css">
 <link rel="stylesheet" href="assets/css/codex.css">
+<link rel="stylesheet" href="assets/css/roadtrip.css">
 <link rel="stylesheet" href="assets/css/updates.css">
 <link rel="stylesheet" href="assets/css/cooking-loader.css">
 <link rel="stylesheet" href="assets/css/achievement-cards.css">
@@ -68,7 +69,7 @@
       <span class="brand__mark" aria-hidden="true"><img src="assets/img/brand/mark.svg" alt=""></span>
       <span class="brand__text">LearnGeo</span>
     </a>
-    <div class="nav__links">
+    <div class="nav__links" role="navigation" aria-label="Sections">
       <a href="#try">Try it</a>
       <a href="#modes">Modes</a>
       <a href="#coverage">What's in it</a>
@@ -76,11 +77,12 @@
       <a href="#rewards">Rewards</a>
       <a href="teachers.html">For teachers</a>
     </div>
-    <div class="nav__spacer"></div>
-    <button class="btn btn--ghost btn--sm hidden" id="nav-continue">Continue where you left off</button>
-    <button class="btn btn--ghost btn--sm" id="nav-signin">Sign in</button>
-    <button class="btn btn--accent btn--sm" id="nav-signup">Sign up free</button>
-    <button class="btn btn--primary btn--sm" data-launch="portal">Open the app</button>
+    <div class="nav__actions">
+      <button class="btn btn--ghost btn--sm hidden" id="nav-continue">Continue where you left off</button>
+      <button class="btn btn--quiet btn--sm" id="nav-signin">Sign in</button>
+      <button class="btn btn--accent btn--sm" id="nav-signup">Sign up free</button>
+      <button class="btn btn--primary btn--sm" data-launch="portal">Open the app</button>
+    </div>
     <!-- the same links again, for the widths where the row above does not fit -->
     <button class="nav__burger" id="nav-menu-btn" aria-expanded="false" aria-controls="nav-menu" aria-label="Sections">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
@@ -98,6 +100,7 @@
   <header class="hero hero--brand" id="top">
     <div class="hero__wash" aria-hidden="true"></div>
     <div class="hero__grid" aria-hidden="true"></div>
+    <div class="hero__orbit" aria-hidden="true"></div>
     <div class="hero__globe" aria-hidden="true"><canvas id="hero-globe"></canvas></div>
     <div class="hero__scrim" aria-hidden="true"></div>
     <div class="hero__copy">
@@ -107,21 +110,20 @@
         <span class="hero__for" aria-hidden="true"><span class="cycle" data-cycle><span class="is-on"><span class="hero__for-word">for</span> school.</span><span><span class="hero__for-word">for</span> my party trick.</span><span><span class="hero__for-word">for</span> a pub quiz.</span><span><span class="hero__for-word">for</span> road trips.</span><span><span class="hero__for-word">for</span> bragging rights.</span><span><span class="hero__for-word">for</span> homework.</span><span><span class="hero__for-word">for</span> settling bets.</span><span><span class="hero__for-word">for</span> trivia night.</span><span><span class="hero__for-word">for</span> a rainy Sunday.</span><span><span class="hero__for-word">for</span> showing off.</span></span></span>
       </h1>
       <p class="hero__sub">
-        Staring at a list of capitals doesn't really work. Here you answer a question and the map
-        shows you where the place is, so the name sticks to an actual spot.
+        Capitals stick when the map shows you the place. Learn every country for class, quizzes, and the next road trip.
       </p>
       <div class="hero__cta">
         <button class="btn btn--accent btn--lg" data-launch="learn">Start learning</button>
         <a class="btn btn--ghost btn--lg" href="#try">Try 3 questions first</a>
       </div>
-      <p class="hero__note">You can start as a guest without signing up. <button class="linkbtn" id="hero-signup" type="button">Make a free account</button> if you want your progress on every device.</p>
+      <p class="hero__note">Guest mode works instantly. <button class="linkbtn" id="hero-signup" type="button">Make a free account</button> if you want progress on every device.</p>
     </div>
   </header>
 
   <section class="stats" aria-label="Coverage">
     <div class="stat"><div class="stat__n" id="s-total">213</div><div class="stat__l">Countries and territories</div></div>
     <div class="stat"><div class="stat__n" id="s-members">193</div><div class="stat__l">UN member states</div></div>
-    <div class="stat"><div class="stat__n">3</div><div class="stat__l">Ways to study</div></div>
+    <div class="stat"><div class="stat__n">4</div><div class="stat__l">Ways to study</div></div>
     <div class="stat"><div class="stat__n">6</div><div class="stat__l">Kinds of questions</div></div>
   </section>
 
@@ -152,12 +154,13 @@
   <!-- modes -->
   <section class="section" id="modes">
     <div class="section__head">
-      <span class="eyebrow">Three ways to study</span>
+      <span class="eyebrow">Ways to study</span>
       <h2>Use whichever mode you feel like.</h2>
       <p>They all save to the same progress. So if you keep missing Burkina Faso on a practice
-         test, Learn mode knows about it too and will bring it up more often.</p>
+         test, Learn mode knows about it too and will bring it up more often. Road trips are a
+         zig-zag lesson path that starts in Africa.</p>
     </div>
-    <div class="modes modes--3">
+    <div class="modes modes--4">
       <div class="mode-card">
         <div class="mode-card__icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></div>
         <h3>Learn</h3>
@@ -192,6 +195,18 @@
           <li>No multiple choice</li>
           <li>Small spelling mistakes are OK</li>
           <li>You get a marked paper at the end</li>
+        </ul>
+      </div>
+      <div class="mode-card">
+        <div class="mode-card__icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13h14l-1.2-4.2A2 2 0 0 0 15.9 7H8.1a2 2 0 0 0-1.9 1.8z"/><path d="M5 13v4h2.2"/><path d="M16.8 17H19v-4"/><circle cx="7.5" cy="17" r="1.6"/><circle cx="16.5" cy="17" r="1.6"/><path d="M3 13h2M19 13h2"/></svg></div>
+        <h3>Road trips</h3>
+        <p>A zig-zag path of lessons, chests, stories and a unit trophy. Units start in Africa, and
+           what you already know lights up the path so progress is not reset.</p>
+        <ul>
+          <li>Africa-first units</li>
+          <li>START · locked · chest · story · trophy</li>
+          <li>Prior knowledge seeds the path</li>
+          <li>Still counts toward mastery</li>
         </ul>
       </div>
     </div>
@@ -452,6 +467,17 @@
     </div>
   </section>
 
+  <section class="land-cta" aria-label="Get started">
+    <div class="land-cta__inner">
+      <span class="eyebrow">Free to start</span>
+      <h2>Ready when you are.</h2>
+      <p>Jump in as a guest, or make a free account so your progress follows you across devices.</p>
+      <div class="land-cta__actions">
+        <button class="btn btn--accent btn--lg" data-launch="learn">Start learning</button>
+        <button class="btn btn--ghost btn--lg" id="cta-signup" type="button">Sign up free</button>
+      </div>
+    </div>
+  </section>
 
   <footer class="footer">
     <span class="brand" style="font-size:14px">
@@ -555,6 +581,9 @@
     <div id="quiz-report" class="hidden"></div>
   </div>
 
+  <!-- ROAD TRIPS (LEA-78 curated short packs) -->
+  <div id="view-roadtrip" class="portal hidden"></div>
+
   <!-- GAMES -->
   <div id="view-games" class="portal hidden"></div>
 
@@ -584,6 +613,7 @@
 <script src="assets/js/worldmap.js"></script>
 <script src="assets/js/globe.js"></script>
 <script src="assets/js/hero-cycle.js"></script>
+<script src="assets/js/landing.js"></script>
 <script src="assets/js/quiz.js"></script>
 <script src="assets/js/assignments.js"></script>
 <script src="assets/js/cloud.js"></script>
@@ -598,6 +628,7 @@
 <script src="assets/js/passkey.js"></script>
 <script src="assets/js/admin-pin.js"></script>
 <script src="assets/js/admin-ops.js"></script>
+<script src="assets/js/admin-passkey.js"></script>
 <script src="assets/js/admin-ledger.js"></script>
 <script src="assets/js/admin.js"></script>
 <script src="assets/js/enforcement.js"></script>
@@ -626,6 +657,7 @@
 <script src="assets/js/mode-learn.js"></script>
 <script src="assets/js/mode-test.js"></script>
 <script src="assets/js/mode-quiz.js"></script>
+<script src="assets/js/mode-roadtrip.js"></script>
 <script src="assets/js/difficulty-slider.js"></script>
 <script src="assets/js/game-kit.js"></script>
 <script src="assets/js/game-dash.js"></script>

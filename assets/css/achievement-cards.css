@@ -1,8 +1,10 @@
 /* ------------------------------------------------------------------
-   LEA-64 / LEA-67 / LEA-70 / LEA-71 — Achievement wallet.
+   LEA-64 / LEA-67 / LEA-70 / LEA-71 / LEA-74 / LEA-80 — Achievement wallet.
    Light polish: Inter / Instrument, teal accent.
    LEA-70: isolate active flip above peeks; reliable deck navigation.
    LEA-71: award-badge card backs + owner gamertag (deck/flip kept).
+   LEA-74: seasonal / time-limited challenge award cards in the wallet.
+   LEA-80: Friend inbox kinds include Chess.
 -------------------------------------------------------------------*/
 
 .achv {
@@ -198,6 +200,23 @@
   background:
     radial-gradient(120% 90% at 100% 0%, rgba(120, 200, 255, .22), transparent 50%),
     linear-gradient(145deg, #1a3d50 0%, #0f2a40 55%, #163f4a 100%);
+}
+/* LEA-74 — seasonal / holiday challenge fronts (still original fonts) */
+.achv-card__face--front.is-seasonal {
+  background:
+    radial-gradient(120% 90% at 0% 0%, rgba(251, 191, 36, .28), transparent 52%),
+    radial-gradient(90% 80% at 100% 100%, rgba(6, 182, 212, .22), transparent 48%),
+    linear-gradient(145deg, #1f3b34 0%, #12352f 48%, #1a3d4a 100%);
+}
+.achv-card__face--front.is-seasonal.is-locked {
+  background:
+    radial-gradient(120% 90% at 0% 0%, rgba(251, 191, 36, .12), transparent 52%),
+    linear-gradient(145deg, #2a3231 0%, #1b2221 55%, #243038 100%);
+}
+.achv-chip--seasonal {
+  border-color: rgba(251, 191, 36, .45);
+  color: #92400e;
+  background: rgba(251, 191, 36, .16);
 }
 .achv-card__face--back {
   /* Per-achievement atmosphere via --achv-back-* set inline in JS */
@@ -482,6 +501,9 @@
   text-transform: uppercase;
   color: var(--accent, #0e9f6e);
   font-weight: 620;
+}
+.achv-inbox__kind--chess {
+  color: #3b6bb3;
 }
 
 @media (max-width: 520px) {

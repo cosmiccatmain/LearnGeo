@@ -239,6 +239,7 @@
       acctBlock() +
       item('settings', I.gear, 'Settings') +
       item('custom', I.palette, 'Customization') +
+      item('friend-inbox', I.inbox, 'Friend inbox') +
       item('achievements', I.trophy, 'Achievements') +
       item('badges', I.shield, 'Badges') +
       '<div class="menu__sep"></div>' +
@@ -262,6 +263,7 @@
         closeMenu();
         if (dest === 'settings') openSettings();
         else if (dest === 'custom') openCustomization();
+        else if (dest === 'friend-inbox') openFriendInbox();
         else if (dest === 'achievements') go('achievements');
         else if (dest === 'badges') global.Badges.openCase();
         else if (dest === 'signin') openAuth('signin');
@@ -461,7 +463,10 @@
   }
 
   /* ========================== CUSTOMIZATION ========================= */
-  function openCustomization() {
+  /* opts.tab — optional Customization vtab id (e.g. 'games' for What’s New). */
+  function openCustomization(opts) {
+    opts = opts || {};
+    var startTab = opts.tab ? String(opts.tab) : 'profile';
     var body =
       '<div class="cz-layout">' +
         '<div id="cz-panels" class="cz-panels">' +
@@ -481,7 +486,7 @@
       '</div>';
 
     var tabs = '<div class="vtabs" id="cz-tabs">' +
-      vt('profile', I.user, 'Profile', true) + vt('avatars', I.globe, 'Avatar') +
+      vt('profile', I.user, 'Profile') + vt('avatars', I.globe, 'Avatar') +
       vt('decorations', I.sparkle, 'Frames') + vt('effects', I.bolt, 'Effects') +
       vt('nameplates', I.grid, 'Nameplates') + vt('banners', I.layers, 'Banner') +
       vt('themes', I.palette, 'Theme') +
@@ -494,13 +499,18 @@
         wireTabs(root, '#cz-tabs');
         wireShop(root);
         wireProfileFields(root);
+        if (startTab && startTab !== 'profile') {
+          var tabBtn = W.$('.vtab[data-t="' + startTab + '"]', root);
+          if (tabBtn) tabBtn.click();
+        }
         drawPreview(root);
         wireGamesTabPreview(root);
       }
     });
 
-    function vt(id, icon, label, active) {
-      return '<button class="vtab' + (active ? ' is-active' : '') + '" data-t="' + id + '">' + icon + ' ' + label + '</button>';
+    function vt(id, icon, label) {
+      return '<button class="vtab' + (id === startTab ? ' is-active' : '') +
+        '" data-t="' + id + '">' + icon + ' ' + label + '</button>';
     }
   }
 
@@ -1449,6 +1459,16 @@
     go('achievements');
   }
 
+  /* LEA-84: Friend inbox lives in the profile menu (beside Customization),
+     not under the Achievements tab. */
+  function openFriendInbox() {
+    if (global.AchievementCards && global.AchievementCards.openFriendInbox) {
+      global.AchievementCards.openFriendInbox();
+      return;
+    }
+    W.toast('Friend inbox', 'Reload the page to open Friend inbox.', I.inbox, 3200);
+  }
+
   /* ============================= ACCOUNTS =========================== */
   function signedIn() { return !!(global.Cloud && global.Cloud.signedIn); }
   function appOpen() { return document.getElementById('app').classList.contains('is-open'); }
@@ -1697,7 +1717,7 @@
     var si = document.getElementById('nav-signin');
     if (si) si.textContent = signedIn() ? (s.profile.displayName || 'My account') : 'Sign in';
     /* once there is an account the sign-up prompts have nothing to offer */
-    ['nav-signup', 'hero-signup'].forEach(function (id) {
+    ['nav-signup', 'hero-signup', 'cta-signup'].forEach(function (id) {
       var b = document.getElementById(id);
       if (b) b.classList.toggle('hidden', signedIn());
     });
@@ -1722,7 +1742,7 @@
   }
 
   /* ============================ NAVIGATION ========================== */
-  var VIEWS = ['portal', 'codex', 'classroom', 'teacher', 'learn', 'test', 'quiz', 'games', 'achievements'];
+  var VIEWS = ['portal', 'codex', 'classroom', 'teacher', 'learn', 'test', 'quiz', 'roadtrip', 'games', 'achievements'];
 
   /* The switcher shows Classroom to students and Teacher to teachers, so
      teacher mode is a place you can leave and come back to rather than a
@@ -1738,6 +1758,7 @@
     { view: 'learn',     icon: 'book',   label: 'Learn',         role: null },
     { view: 'test',      icon: 'clip',   label: 'Practice test', role: null },
     { view: 'quiz',      icon: 'target', label: 'Class quiz',    role: null },
+    { view: 'roadtrip',  icon: 'car',    label: 'Road trips',    role: null },
     { view: 'games',     icon: 'gamepad', label: 'Games',        role: null },
     { view: 'achievements', icon: 'trophy', label: 'Achievements', role: null }
   ];
@@ -1866,6 +1887,7 @@
   function runKind() {
     if (currentView === 'test' && global.TestMode && global.TestMode.active && global.TestMode.active()) return 'practice test';
     if (currentView === 'quiz' && global.QuizMode && global.QuizMode.active && global.QuizMode.active()) return 'quiz';
+    if (currentView === 'roadtrip' && global.RoadTripMode && global.RoadTripMode.active && global.RoadTripMode.active()) return 'road-trip pack';
     if (currentView === 'games' && global.Games && global.Games.playing && global.Games.playing()) return 'game';
     return '';
   }
@@ -1873,6 +1895,7 @@
   function abandonRun() {
     if (currentView === 'test' && global.TestMode && global.TestMode.abandon) global.TestMode.abandon();
     if (currentView === 'quiz' && global.QuizMode && global.QuizMode.abandon) global.QuizMode.abandon();
+    if (currentView === 'roadtrip' && global.RoadTripMode && global.RoadTripMode.abandon) global.RoadTripMode.abandon();
     if (currentView === 'games' && global.Games && global.Games.abandon) global.Games.abandon();
   }
 
@@ -1918,7 +1941,7 @@
     /* A teacher may look round Learn, Practice test and Class quiz. It
        opens as a browse — a preview with an "Assign to class" button — so
        nothing they do there is handed in. */
-    if (isTeacher && !previewing && ['learn', 'test', 'quiz'].indexOf(view) !== -1) {
+    if (isTeacher && !previewing && ['learn', 'test', 'quiz', 'roadtrip'].indexOf(view) !== -1) {
       startPreview('Browsing as a teacher', { assign: true });
     }
     /* heading back to the class by any route ends a preview */
@@ -1985,6 +2008,7 @@
     if (view === 'learn') global.LearnMode.start();
     if (view === 'test') global.TestMode.start();
     if (view === 'quiz') global.QuizMode.start();
+    if (view === 'roadtrip' && global.RoadTripMode) global.RoadTripMode.start();
     if (view === 'games') global.Games.start();
     if (view === 'achievements' && global.AchievementCards) global.AchievementCards.start();
     settleThumb();                     /* correct for any reflow the mode caused */
@@ -2098,7 +2122,8 @@
   global.UI = {
     modal: modal, closeModals: closeModals, wireSeg: wireSeg, wireCheck: wireCheck, wireTabs: wireTabs,
     refreshHud: refreshHud, toggleMenu: toggleMenu, closeMenu: closeMenu,
-    openSettings: openSettings, openCustomization: openCustomization, openAchievements: openAchievements,
+    openSettings: openSettings, openCustomization: openCustomization,
+    openFriendInbox: openFriendInbox, openAchievements: openAchievements,
     /* the Codex's World / Skills switch, reached by the seg's data-onchange */
     codexLens: function (v) { if (global.Codex) global.Codex.setLens(v); },
     profileCard: profileCard, runEffect: runEffect,

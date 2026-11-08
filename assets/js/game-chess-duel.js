@@ -102,7 +102,7 @@ import { Chess } from '../vendor/chess.js/chess.js';
       seenInvite[inv.id] = true;
       W.toast(
         'Geo Chess invite',
-        (inv.from_tag || 'Someone') + ' challenged you. Open Geo Chess → Challenge a friend to accept.',
+        (inv.from_tag || 'Someone') + ' challenged you. Accept from your profile menu → Friend inbox, or Geo Chess → Challenge a friend.',
         I.gamepad,
         6500
       );
