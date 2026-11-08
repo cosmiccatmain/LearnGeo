@@ -21,8 +21,8 @@
   var UPDATES = [
     {
       id: '2026-11-roadtrip-share-motion',
-      title: 'Road Trips that slide + share',
-      body: 'Switch units with a crisp sideways slide, polish every path/XP pop, and share your road with friends via link or gamertag — school-safe, no screen mirroring.',
+      title: 'Journey that slides + shares',
+      body: 'Switch units with a crisp sideways slide, polish every path/XP pop, and share your journey with friends via link or gamertag — school-safe, no screen mirroring.',
       date: '2026-11-08',
       try: 'roadtrip'
     },

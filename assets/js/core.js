@@ -192,15 +192,15 @@
       enrolments: [],
       enrolled: null,             /* { code, className, name, classId?, background? } */
       customSets: [],             /* saved lists of hand-picked countries */
-      /* Road Trips path (LEA-85). done/claimed/read are open maps keyed by
-         unitId.nodeId. Mastery still seeds lesson completion on open — this
-         only stores explicit path progress (and never wipes mastery). */
+      /* Journey path (LEA-85; state key stays roadtrip). done/claimed/read
+         are open maps keyed by unitId.nodeId. Mastery still seeds lesson
+         completion on open — this only stores explicit path progress. */
       roadtrip: {
         unitId: 'africa-north',
         done: {},
         claimed: {},
         read: {},
-        /* LEA-90 — totals from Road Trips awards (maps onto economy gains). */
+        /* LEA-90 — totals from Journey awards (maps onto economy gains). */
         xpEarned: 0,
         gemsEarned: 0
       },

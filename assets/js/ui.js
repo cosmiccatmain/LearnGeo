@@ -1758,7 +1758,7 @@
     { view: 'learn',     icon: 'book',   label: 'Learn',         role: null },
     { view: 'test',      icon: 'clip',   label: 'Practice test', role: null },
     { view: 'quiz',      icon: 'target', label: 'Class quiz',    role: null },
-    { view: 'roadtrip',  icon: 'car',    label: 'Road trips',    role: null },
+    { view: 'roadtrip',  icon: 'car',    label: 'Journey',       role: null },
     { view: 'games',     icon: 'gamepad', label: 'Games',        role: null },
     { view: 'achievements', icon: 'trophy', label: 'Achievements', role: null }
   ];
@@ -1887,7 +1887,7 @@
   function runKind() {
     if (currentView === 'test' && global.TestMode && global.TestMode.active && global.TestMode.active()) return 'practice test';
     if (currentView === 'quiz' && global.QuizMode && global.QuizMode.active && global.QuizMode.active()) return 'quiz';
-    if (currentView === 'roadtrip' && global.RoadTripMode && global.RoadTripMode.active && global.RoadTripMode.active()) return 'road-trip pack';
+    if (currentView === 'roadtrip' && global.RoadTripMode && global.RoadTripMode.active && global.RoadTripMode.active()) return 'journey pack';
     if (currentView === 'games' && global.Games && global.Games.playing && global.Games.playing()) return 'game';
     return '';
   }
