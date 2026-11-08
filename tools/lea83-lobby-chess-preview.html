@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LEA-83 Lobby circles preview</title>
+  <link rel="stylesheet" href="../assets/css/arcade.css">
+  <style>
+    body { margin: 0; font-family: Georgia, "Times New Roman", serif; background: #eef2f8; color: #12204a; }
+    .wrap { max-width: 760px; margin: 24px auto; padding: 0 16px 40px; }
+    .panel { background: #fff; border: 1px solid #d8e0ef; border-radius: 16px; padding: 16px; }
+    .panel__head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    h1 { font-family: Georgia, "Times New Roman", serif; font-size: 24px; letter-spacing: -.03em; margin: 0 0 8px; }
+    p { color: #5b6b86; margin: 0 0 16px; font-family: system-ui, sans-serif; }
+    .btn { display: inline-flex; align-items: center; gap: 6px; border-radius: 10px; border: 1px solid #d8e0ef;
+      background: #fff; padding: 8px 12px; font: inherit; cursor: pointer; font-family: system-ui, sans-serif; }
+    .btn--accent { background: #0E9F6E; border-color: #1B4DFF; color: #fff; }
+    .btn--ghost { background: #fff; }
+    .btn--sm { padding: 6px 10px; font-size: 13px; }
+    .t-sm { font-size: 13px; font-family: system-ui, sans-serif; } .t-muted { color: #5b6b86; }
+    .hidden { display: none !important; }
+    .eyebrow { font-family: system-ui, sans-serif; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: #5b6b86; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="eyebrow">PvP · Geo Chess</div>
+    <h1>Challenge a friend · Chess</h1>
+    <p>You float as a circle in the lobby. Tap another player to challenge or chat.</p>
+    <div class="panel duel-lobby__orbit-panel" id="card">
+      <div class="panel__head"><strong style="font-family:system-ui">Lobby</strong></div>
+      <div class="lobby-orbit">
+        <div class="lobby-orbit__sky" id="sky" aria-label="Players in this lobby"></div>
+        <div class="lobby-orbit__hint t-sm t-muted" id="hint">4 other players here · tap a circle to challenge or chat</div>
+        <div class="lobby-orbit__pop" id="pop" role="dialog"></div>
+      </div>
+    </div>
+  </div>
+  <script>
+    (function () {
+      var people = [
+        { tag: 'YouCircle', accent: '#0E9F6E', initial: 'Y', mine: true, x: 50, y: 44, delay: '0s', dur: '5.1s' },
+        { tag: 'MapWizard', accent: '#0E9F6E', initial: 'M', mine: false, x: 18, y: 36, delay: '0.4s', dur: '4.9s' },
+        { tag: 'FlagFox', accent: '#D7262B', initial: 'F', mine: false, x: 78, y: 30, delay: '0.9s', dur: '5.4s' },
+        { tag: 'CapitalKid', accent: '#8B5CF6', initial: 'C', mine: false, x: 28, y: 70, delay: '1.2s', dur: '5.0s' },
+        { tag: 'GeoNova', accent: '#F5B301', initial: 'G', mine: false, x: 70, y: 68, delay: '0.2s', dur: '5.6s' }
+      ];
+      var sky = document.getElementById('sky');
+      var pop = document.getElementById('pop');
+      sky.innerHTML = people.map(function (p) {
+        return '<button type="button" class="lobby-circle is-float' + (p.mine ? ' is-me' : '') + '" data-tag="' + p.tag + '"' +
+          (p.mine ? ' data-mine="1"' : '') +
+          ' style="--lc-accent:' + p.accent + ';--lc-x:' + p.x + '%;--lc-y:' + p.y +
+          '%;--lc-delay:' + p.delay + ';--lc-dur:' + p.dur + '">' +
+          '<span class="lobby-circle__face">' + p.initial + '</span>' +
+          '<span class="lobby-circle__tag">' + (p.mine ? 'You' : p.tag) + '</span></button>';
+      }).join('');
+      function openPop(tag, left, top) {
+        pop.classList.remove('hidden');
+        pop.style.left = left + 'px';
+        pop.style.top = top + 'px';
+        pop.innerHTML =
+          '<div class="lobby-pop">' +
+            '<div class="lobby-pop__head"><b>' + tag + '</b></div>' +
+            '<div class="lobby-pop__actions">' +
+              '<button type="button" class="btn btn--accent btn--sm">Challenge</button>' +
+              '<button type="button" class="btn btn--ghost btn--sm">Chat</button>' +
+              '<button type="button" class="btn btn--ghost btn--sm">Copy tag</button>' +
+            '</div>' +
+          '</div>';
+      }
+      Array.prototype.forEach.call(sky.querySelectorAll('.lobby-circle'), function (btn) {
+        btn.addEventListener('click', function () {
+          if (btn.getAttribute('data-mine') === '1') return;
+          openPop(btn.getAttribute('data-tag'), 150, 64);
+        });
+      });
+      openPop('MapWizard', 150, 64);
+    })();
+  </script>
+</body>
+</html>

@@ -334,6 +334,14 @@ import { Chess } from '../vendor/chess.js/chess.js';
       return paintBoard();
     }
 
+
+    var lobbyCircles = null;
+
+    function stopLobbyCircles() {
+      if (lobbyCircles && lobbyCircles.destroy) lobbyCircles.destroy();
+      lobbyCircles = null;
+    }
+
     function doSendInvite(tag, errEl, inputEl) {
       ensureTag(function () {
         sendInvite(tag).then(function (res) {
@@ -415,6 +423,7 @@ import { Chess } from '../vendor/chess.js/chess.js';
     }
 
     function paintLobby() {
+      stopLobbyCircles();
       var localRematch = global.ChessElo && global.ChessElo.lastOpponentLocal
         ? global.ChessElo.lastOpponentLocal()
         : null;
@@ -423,7 +432,11 @@ import { Chess } from '../vendor/chess.js/chess.js';
           '<div class="duel-lobby__hero">' +
             '<div class="eyebrow">PvP · Geo Chess</div>' +
             '<h2>Challenge a friend</h2>' +
-            '<p>Look up their gamertag. They get an invite, accept, and you play a live chess match. You are White when you send the invite. Climb this week’s Elo ladder, or rematch your last opponent.</p>' +
+            '<p>You float as a circle in the lobby. Tap another player to challenge or chat — or invite by gamertag. You are White when you send the invite. Climb this week’s Elo ladder, or rematch your last opponent.</p>' +
+          '</div>' +
+          '<div class="panel duel-lobby__orbit-panel">' +
+            '<div class="panel__head"><h3>Lobby</h3></div>' +
+            '<div data-lobby-circles></div>' +
           '</div>' +
           '<div class="duel-invite panel">' +
             '<div class="panel__head"><h3>Invite by gamertag</h3></div>' +
@@ -463,6 +476,25 @@ import { Chess } from '../vendor/chess.js/chess.js';
         var box = W.$('[data-cduel-inbox]', body);
         if (box) { box.innerHTML = inboxHtml(lastInbox); wireInbox(body, function (id) { enterMatch(id); }); }
       });
+
+      var orbitHost = W.$('[data-lobby-circles]', body);
+      if (orbitHost && global.LobbyCircles) {
+        lobbyCircles = global.LobbyCircles.mount({
+          lobby: 'chess',
+          hostEl: orbitHost,
+          onChallenge: function (tag) {
+            var input = W.$('#cduel-tag', body);
+            var err = W.$('#cduel-err', body);
+            if (input) input.value = tag;
+            if (err) err.textContent = '';
+            doSendInvite(tag, err, input);
+          },
+          onCopyTag: function (tag) {
+            var input = W.$('#cduel-tag', body);
+            if (input) input.value = tag;
+          }
+        });
+      }
     }
 
     function syncChess() {
@@ -791,6 +823,7 @@ import { Chess } from '../vendor/chess.js/chess.js';
     }
 
     function enterMatch(id) {
+      stopLobbyCircles();
       matchId = id;
       state = null;
       entering = true;
@@ -846,6 +879,7 @@ import { Chess } from '../vendor/chess.js/chess.js';
     return {
       destroy: function () {
         destroyed = true;
+        stopLobbyCircles();
         stopPoll();
         global.removeEventListener('learngeo:chess-duel-inbox', onInboxEvent);
         host.innerHTML = '';
