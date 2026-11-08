@@ -1,5 +1,5 @@
 /* ------------------------------------------------------------------
-   LearnGeo — Journey path (LEA-85 / LEA-96 / LEA-99 / LEA-102).
+   LearnGeo — Journey path (LEA-85 / LEA-96 / LEA-99 / LEA-102 / LEA-105).
 
    Duolingo-style vertical zig-zag of lessons, chests, stories and a
    unit trophy. Units start in Africa; the learner can switch units.
@@ -14,6 +14,9 @@
    LEA-102 — interactive world map on the path: pan/zoom (CSS
    transform), current unit countries highlighted. Not a loupe; not
    screen mirroring. Respects prefers-reduced-motion.
+   LEA-105 — Brawl Stars–style Journey chest open: big chest overlay,
+   tap to open with rarity upgrade chance, juicy multi-reward loot
+   (gems / XP / journey boosts / cosmetics). Reduced-motion safe.
 -------------------------------------------------------------------*/
 (function (global) {
   'use strict';
@@ -36,6 +39,17 @@
   var pendingPulse = null; /* node id just completed */
   var pendingUnlock = null; /* node id that became playable */
   var viewingShare = null; /* decoded friend road snapshot */
+  var chestBusy = false; /* LEA-105 — block double-open while overlay runs */
+
+  /* LEA-105 — Journey chest rarities (visual + loot tier). Cascade upgrade
+     chances are independent rolls after each step, Brawl Stars style. */
+  var CHEST_RARITIES = [
+    { id: 'common', label: 'Common', hue: '#94A3B8', glow: 'rgba(148,163,184,.45)' },
+    { id: 'rare', label: 'Rare', hue: '#1B4DFF', glow: 'rgba(27,77,255,.5)' },
+    { id: 'epic', label: 'Epic', hue: '#7C3AED', glow: 'rgba(124,58,237,.55)' },
+    { id: 'legendary', label: 'Legendary', hue: '#F59E0B', glow: 'rgba(245,158,11,.6)' }
+  ];
+  var CHEST_UPGRADE_CHANCE = { common: 0.42, rare: 0.32, epic: 0.22 };
 
   /* Interactive Journey globe (LEA-102). One live controller at a time. */
   var globeCtl = null;
@@ -327,7 +341,7 @@
       });
       /* Chest after the second lesson; story after the third. */
       if (i === 1) {
-        nodes.push({ kind: 'chest', id: 'chest', title: 'Route chest', zig: ZIG[nodes.length % ZIG.length] });
+        nodes.push({ kind: 'chest', id: 'chest', title: 'Journey chest', zig: ZIG[nodes.length % ZIG.length] });
       }
       if (i === 2) {
         nodes.push({
@@ -1296,24 +1310,415 @@
     });
   }
 
+  /* ======================== LEA-105 chest open ====================== */
+  function rarityById(id) {
+    for (var i = 0; i < CHEST_RARITIES.length; i++) {
+      if (CHEST_RARITIES[i].id === id) return CHEST_RARITIES[i];
+    }
+    return CHEST_RARITIES[0];
+  }
+
+  function rand01(rng) {
+    if (typeof rng === 'function') return rng();
+    return Math.random();
+  }
+
+  function randInt(min, max, rng) {
+    var a = Math.floor(min);
+    var b = Math.floor(max);
+    if (b < a) { var t = a; a = b; b = t; }
+    return a + Math.floor(rand01(rng) * (b - a + 1));
+  }
+
+  /* Independent cascade: common → rare → epic → legendary. */
+  function rollChestRarity(rng) {
+    var path = ['common'];
+    var cur = 'common';
+    while (CHEST_UPGRADE_CHANCE[cur] != null) {
+      if (rand01(rng) >= CHEST_UPGRADE_CHANCE[cur]) break;
+      if (cur === 'common') cur = 'rare';
+      else if (cur === 'rare') cur = 'epic';
+      else if (cur === 'epic') cur = 'legendary';
+      else break;
+      path.push(cur);
+    }
+    return { rarity: cur, path: path };
+  }
+
+  function ownedList(kind) {
+    if (!W.state.owned) W.state.owned = {};
+    if (!W.state.owned[kind]) W.state.owned[kind] = [];
+    return W.state.owned[kind];
+  }
+
+  function grantOwnedCosmetic(kind, id) {
+    var have = ownedList(kind);
+    if (have.indexOf(id) !== -1) return false;
+    have.push(id);
+    return true;
+  }
+
+  /* Shop cosmetics eligible for route-chest drops: buyable, non-premium,
+     non-secret, non-staff — never grants earn-locked badges. */
+  function chestCosmeticPool(kind, maxPrice) {
+    var Cos = global.Cosmetics;
+    if (!Cos || !Cos[kind]) return [];
+    var have = ownedList(kind);
+    return Cos[kind].filter(function (it) {
+      if (!it || !it.id || it.id === 'none' || it.id === 'plain') return false;
+      if (it.earn || it.premium || it.staff || it.secret) return false;
+      if (typeof it.price !== 'number' || it.price <= 0) return false;
+      if (maxPrice != null && it.price > maxPrice) return false;
+      return have.indexOf(it.id) === -1;
+    });
+  }
+
+  function pickCosmeticLoot(rarity, rng) {
+    var kind = 'nameplates';
+    var maxPrice = 450;
+    if (rarity === 'epic') { kind = rand01(rng) < 0.5 ? 'decorations' : 'banners'; maxPrice = 900; }
+    if (rarity === 'legendary') {
+      kind = rand01(rng) < 0.55 ? 'effects' : (rand01(rng) < 0.5 ? 'decorations' : 'banners');
+      maxPrice = 1600;
+    }
+    if (rarity === 'rare') { kind = rand01(rng) < 0.55 ? 'nameplates' : 'banners'; maxPrice = 700; }
+    var pool = chestCosmeticPool(kind, maxPrice);
+    if (!pool.length && kind !== 'nameplates') pool = chestCosmeticPool('nameplates', maxPrice);
+    if (!pool.length) return null;
+    var item = pool[Math.floor(rand01(rng) * pool.length)];
+    return { kind: kind, id: item.id, name: item.name, price: item.price };
+  }
+
+  function grantEconomyXp(amount) {
+    var n = Math.max(0, Math.floor(amount || 0));
+    if (!n) return { xp: 0, level: false };
+    W.state.economy.xp += n;
+    var leveled = false;
+    while (W.state.economy.xp >= W.xpToNext(W.state.economy.level)) {
+      W.state.economy.xp -= W.xpToNext(W.state.economy.level);
+      W.state.economy.level += 1;
+      leveled = W.state.economy.level;
+    }
+    return { xp: n, level: leveled };
+  }
+
+  /* Journey progress boost: nudge mastery boxes on this unit's countries. */
+  function applyJourneyBoost(unit, bumps, rng) {
+    bumps = bumps || 2;
+    var names = W.shuffle(unitCountries(unit).slice());
+    if (!names.length) return { bumps: 0, countries: [] };
+    var hit = [];
+    var i;
+    for (i = 0; i < names.length && hit.length < bumps; i++) {
+      var name = names[i];
+      var m = W.state.mastery[name] || { c: 0, w: 0, box: 0 };
+      if (m.box >= 5) continue;
+      m.box = Math.min(5, (m.box || 0) + 1);
+      m.c = (m.c || 0) + 1;
+      W.state.mastery[name] = m;
+      hit.push(name);
+    }
+    return { bumps: hit.length, countries: hit };
+  }
+
+  /* Build loot lines for a final rarity. Always includes gems + XP;
+     higher tiers add boost and/or cosmetic. */
+  function buildChestLoot(rarity, unit, rng) {
+    var gems = 40;
+    var xp = 30;
+    var boost = 0;
+    var cosmeticChance = 0;
+    if (rarity === 'common') {
+      gems = randInt(35, 50, rng);
+      xp = randInt(20, 40, rng);
+      cosmeticChance = 0.08;
+    } else if (rarity === 'rare') {
+      gems = randInt(55, 85, rng);
+      xp = randInt(45, 75, rng);
+      boost = 2;
+      cosmeticChance = 0.35;
+    } else if (rarity === 'epic') {
+      gems = randInt(95, 140, rng);
+      xp = randInt(85, 130, rng);
+      boost = 3;
+      cosmeticChance = 0.72;
+    } else {
+      gems = randInt(160, 240, rng);
+      xp = randInt(140, 220, rng);
+      boost = 4;
+      cosmeticChance = 0.92;
+    }
+
+    var rewards = [
+      { type: 'gems', amount: gems, label: '+' + gems + ' diamonds', icon: 'gem' },
+      { type: 'xp', amount: xp, label: '+' + xp + ' XP', icon: 'star' }
+    ];
+
+    if (boost > 0) {
+      rewards.push({
+        type: 'boost',
+        amount: boost,
+        label: 'Journey boost ×' + boost,
+        detail: 'Mastery nudge on this route',
+        icon: 'globe'
+      });
+    }
+
+    if (rand01(rng) < cosmeticChance) {
+      var cos = pickCosmeticLoot(rarity, rng);
+      if (cos) {
+        rewards.push({
+          type: 'cosmetic',
+          kind: cos.kind,
+          id: cos.id,
+          name: cos.name,
+          label: cos.name,
+          detail: 'Profile ' + cos.kind.replace(/s$/, ''),
+          icon: 'sparkle'
+        });
+      } else {
+        /* Pool empty — juice the gem pile instead. */
+        var bonus = rarity === 'legendary' ? 40 : (rarity === 'epic' ? 25 : 12);
+        rewards[0].amount += bonus;
+        rewards[0].label = '+' + rewards[0].amount + ' diamonds';
+      }
+    }
+
+    return { rarity: rarity, rewards: rewards };
+  }
+
+  function applyChestLoot(loot, unit, rng) {
+    var out = { gems: 0, xp: 0, level: false, boost: null, cosmetics: [], rewards: [] };
+    (loot.rewards || []).forEach(function (r) {
+      if (r.type === 'gems') {
+        W.state.economy.diamonds += r.amount;
+        rtState().gemsEarned = (rtState().gemsEarned || 0) + r.amount;
+        out.gems += r.amount;
+        out.rewards.push(r);
+      } else if (r.type === 'xp') {
+        var g = grantEconomyXp(r.amount);
+        rtState().xpEarned = (rtState().xpEarned || 0) + g.xp;
+        out.xp += g.xp;
+        if (g.level) out.level = g.level;
+        out.rewards.push(r);
+      } else if (r.type === 'boost') {
+        out.boost = applyJourneyBoost(unit, r.amount, rng);
+        out.rewards.push(r);
+      } else if (r.type === 'cosmetic') {
+        if (grantOwnedCosmetic(r.kind, r.id)) {
+          out.cosmetics.push(r);
+          out.rewards.push(r);
+        } else {
+          var fallback = rarityById(loot.rarity).id === 'legendary' ? 35 : 18;
+          W.state.economy.diamonds += fallback;
+          rtState().gemsEarned = (rtState().gemsEarned || 0) + fallback;
+          out.gems += fallback;
+          out.rewards.push({
+            type: 'gems', amount: fallback,
+            label: '+' + fallback + ' diamonds', icon: 'gem'
+          });
+        }
+      }
+    });
+    return out;
+  }
+
+  function closeChestOverlay() {
+    var ov = document.querySelector('.rt-chest-overlay');
+    if (ov && ov.parentNode) ov.parentNode.removeChild(ov);
+    document.body.classList.remove('no-scroll');
+    chestBusy = false;
+  }
+
+  function rewardIcon(key) {
+    if (key === 'gem') return I.gem || '💎';
+    if (key === 'star') return I.star || '★';
+    if (key === 'globe') return I.globe || '◎';
+    if (key === 'sparkle') return I.sparkle || I.star || '✦';
+    return I.chest || I.gem || '';
+  }
+
   function openChest(unit) {
     var key = nodeKey(unit.id, 'chest');
     if (rtState().claimed[key]) {
-      W.toast('Already claimed', 'This route chest is empty.', I.chest || I.gem, 2600);
+      W.toast('Already claimed', 'This Journey chest is empty.', I.chest || I.gem, 2600);
       return;
     }
-    rtState().claimed[key] = true;
-    W.state.economy.diamonds += 40;
-    rtState().gemsEarned = (rtState().gemsEarned || 0) + 40;
-    W.save();
-    if (global.UI && global.UI.refreshHud) global.UI.refreshHud();
-    W.toast('Route chest', '+40 diamonds for the journey', I.gem, 3200);
-    pendingPulse = 'chest';
-    /* Next openable node gets an unlock pop. */
-    var path = buildPath(unit);
-    var nxt = path.find(function (n) { return n.state === 'current' && n.id !== 'chest'; });
-    if (nxt) pendingUnlock = nxt.id;
-    renderPath();
+    if (chestBusy) return;
+    showChestOverlay(unit);
+  }
+
+  function showChestOverlay(unit) {
+    closeChestOverlay();
+    chestBusy = true;
+    document.body.classList.add('no-scroll');
+
+    var still = reduceMotion();
+    var ov = W.el('div', 'rt-chest-overlay' + (still ? ' is-reduced' : ''));
+    ov.setAttribute('role', 'dialog');
+    ov.setAttribute('aria-modal', 'true');
+    ov.setAttribute('aria-label', 'Journey chest');
+    ov.innerHTML =
+      '<div class="rt-chest" data-chest-stage="idle" data-rarity="common">' +
+        '<div class="rt-chest__glow" aria-hidden="true"></div>' +
+        '<div class="rt-chest__particles" aria-hidden="true"></div>' +
+        '<button type="button" class="rt-chest__box" aria-label="Open Journey chest">' +
+          '<span class="rt-chest__lid"></span>' +
+          '<span class="rt-chest__body"></span>' +
+          '<span class="rt-chest__band"></span>' +
+          '<span class="rt-chest__lock"></span>' +
+          '<span class="rt-chest__burst"></span>' +
+        '</button>' +
+        '<p class="rt-chest__rarity" hidden></p>' +
+        '<p class="rt-chest__status">Tap the chest to open</p>' +
+        '<div class="rt-chest__rewards" hidden></div>' +
+        '<div class="rt-chest__actions" hidden>' +
+          '<button type="button" class="btn btn--accent" data-rt-chest-collect>Collect</button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(ov);
+
+    var stageEl = ov.querySelector('[data-chest-stage]');
+    var statusEl = ov.querySelector('.rt-chest__status');
+    var rarityEl = ov.querySelector('.rt-chest__rarity');
+    var rewardsEl = ov.querySelector('.rt-chest__rewards');
+    var actionsEl = ov.querySelector('.rt-chest__actions');
+    var boxBtn = ov.querySelector('.rt-chest__box');
+    var opened = false;
+    var timers = [];
+
+    function later(fn, ms) {
+      if (still) { fn(); return null; }
+      var id = setTimeout(fn, ms);
+      timers.push(id);
+      return id;
+    }
+
+    function clearTimers() {
+      timers.forEach(function (id) { clearTimeout(id); });
+      timers = [];
+    }
+
+    function setStage(name, status) {
+      stageEl.setAttribute('data-chest-stage', name);
+      if (status) statusEl.textContent = status;
+    }
+
+    function setRarityVisual(id) {
+      var meta = rarityById(id);
+      stageEl.setAttribute('data-rarity', meta.id);
+      rarityEl.hidden = false;
+      rarityEl.textContent = meta.label;
+      rarityEl.style.color = meta.hue;
+      stageEl.style.setProperty('--rt-chest-glow', meta.glow);
+      stageEl.style.setProperty('--rt-chest-hue', meta.hue);
+    }
+
+    function finishAndClose() {
+      clearTimers();
+      closeChestOverlay();
+      pendingPulse = 'chest';
+      var path = buildPath(unit);
+      var nxt = path.find(function (n) { return n.state === 'current' && n.id !== 'chest'; });
+      if (nxt) pendingUnlock = nxt.id;
+      renderPath();
+    }
+
+    function revealRewards(loot, applied) {
+      setStage('open', loot.rarity === 'legendary'
+        ? 'Legendary haul!'
+        : (loot.rarity === 'epic' ? 'Epic pull!' : 'Chest opened!'));
+      rewardsEl.hidden = false;
+      rewardsEl.innerHTML = (applied.rewards || []).map(function (r, i) {
+        return '<div class="rt-chest__prize" style="--rt-ri:' + i + '">' +
+          '<span class="rt-chest__prize-ic" aria-hidden="true">' + rewardIcon(r.icon) + '</span>' +
+          '<span class="rt-chest__prize-label">' + esc(r.label) + '</span>' +
+          (r.detail ? '<span class="rt-chest__prize-detail">' + esc(r.detail) + '</span>' : '') +
+        '</div>';
+      }).join('');
+      actionsEl.hidden = false;
+
+      if (W.state.settings && W.state.settings.effects !== false && !still) {
+        if (W.confetti) {
+          W.confetti({
+            count: loot.rarity === 'legendary' ? 90 : (loot.rarity === 'epic' ? 64 : 42),
+            power: loot.rarity === 'legendary' ? 280 : 200,
+            y: window.innerHeight * 0.42
+          });
+        }
+      }
+      if (applied.level && W.Sound && W.Sound.levelUp) W.Sound.levelUp();
+      else if (W.Sound && W.Sound.gem) W.Sound.gem();
+
+      var collect = ov.querySelector('[data-rt-chest-collect]');
+      if (collect) collect.addEventListener('click', finishAndClose);
+    }
+
+    function runOpenSequence() {
+      if (opened) return;
+      opened = true;
+      boxBtn.disabled = true;
+
+      var key = nodeKey(unit.id, 'chest');
+      if (rtState().claimed[key]) {
+        closeChestOverlay();
+        W.toast('Already claimed', 'This Journey chest is empty.', I.chest || I.gem, 2600);
+        return;
+      }
+
+      var roll = rollChestRarity();
+      var loot = buildChestLoot(roll.rarity, unit);
+      /* Claim + grant before reveal so a mid-animation refresh cannot
+         double-pay. Overlay stays up until Collect. */
+      rtState().claimed[key] = true;
+      var applied = applyChestLoot(loot, unit);
+      W.save();
+      if (global.UI && global.UI.refreshHud) global.UI.refreshHud();
+
+      if (still) {
+        setRarityVisual(roll.rarity);
+        revealRewards(loot, applied);
+        return;
+      }
+
+      setStage('shake', 'Something\'s rattling…');
+      if (W.Sound && W.Sound.flip) W.Sound.flip();
+
+      var upgradeIdx = 0;
+      function playUpgradeStep() {
+        if (upgradeIdx >= roll.path.length) {
+          later(function () {
+            setStage('crack', 'Almost!');
+            if (W.Sound && W.Sound.gem) W.Sound.gem();
+          }, 280);
+          later(function () { revealRewards(loot, applied); }, 720);
+          return;
+        }
+        var id = roll.path[upgradeIdx];
+        setRarityVisual(id);
+        if (upgradeIdx > 0) {
+          setStage('upgrade', rarityById(id).label + '!');
+          stageEl.classList.remove('is-upgrade-flash');
+          /* reflow so the flash can replay */
+          void stageEl.offsetWidth;
+          stageEl.classList.add('is-upgrade-flash');
+          if (W.Sound && W.Sound.levelUp) W.Sound.levelUp();
+          else if (W.Sound && W.Sound.gem) W.Sound.gem();
+        } else {
+          setStage('shake', rarityById(id).label);
+        }
+        upgradeIdx += 1;
+        later(playUpgradeStep, upgradeIdx === 1 ? 520 : 640);
+      }
+      later(playUpgradeStep, 360);
+    }
+
+    boxBtn.addEventListener('click', runOpenSequence);
+    ov.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && stageEl.getAttribute('data-chest-stage') === 'open') {
+        finishAndClose();
+      }
+    });
   }
 
   function openStory(unit) {
@@ -1644,6 +2049,13 @@
     unitMapBounds: unitMapBounds,
     SEED_BOX: SEED_BOX,
     SEED_RATIO: SEED_RATIO,
-    SLIDE_MS: SLIDE_MS
+    SLIDE_MS: SLIDE_MS,
+    /* LEA-105 — exported for unit tests / demo harness. */
+    CHEST_RARITIES: CHEST_RARITIES,
+    CHEST_UPGRADE_CHANCE: CHEST_UPGRADE_CHANCE,
+    rollChestRarity: rollChestRarity,
+    buildChestLoot: buildChestLoot,
+    applyChestLoot: applyChestLoot,
+    openChest: openChest
   };
 })(window);
