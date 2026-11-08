@@ -1185,7 +1185,7 @@
     '</button>';
   }
 
-  /* Framer-designed hub thumbs (LEA-87). Files live under assets/img/games/. */
+  /* Exact crops from AJ cover sheet (LEA-91). Files live under assets/img/games/. */
   var THUMB_ART = {
     duel: 1, chess: 1, dash: 1, orbit: 1, snake: 1, golf: 1, invaders: 1,
     breakout: 1, maze: 1, typer: 1, crossing: 1, whack: 1, match: 1, sort: 1,
