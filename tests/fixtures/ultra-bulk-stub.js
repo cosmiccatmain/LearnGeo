@@ -77,8 +77,8 @@
         return String(a.display_name || '').toLowerCase().indexOf(q) !== -1 ||
           String(a.email || '').toLowerCase().indexOf(q) !== -1;
       });
-      /* The live function stops at 60. Mirror that so the cap note is real. */
-      return { data: matched.slice(0, 60).map(copy), error: null };
+      /* Live function stops at 2000 (LEA-103). Mirror so the cap note is real. */
+      return { data: matched.slice(0, 2000).map(copy), error: null };
     }
     if (fn === 'ultra_banned') return { data: [], error: null };
     if (fn === 'ultra_recent_actions') return { data: [], error: null };
