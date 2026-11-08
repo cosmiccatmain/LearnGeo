@@ -20,6 +20,13 @@
      own What’s New id. `try` deep-links into the feature (LEA-79). */
   var UPDATES = [
     {
+      id: '2026-11-classroom-passcodes',
+      title: 'Classroom passcodes',
+      body: 'Teachers mint a short iPad passcode. Students type it plus their name to jump into Games and Geo Live — no email signup wall.',
+      date: '2026-11-07',
+      try: 'games'
+    },
+    {
       id: '2026-11-seasonal-awards',
       title: 'Seasonal award cards',
       body: 'Time-limited holiday and challenge awards drop into your achievement wallet while they’re open — enamel badges you can flip, keep forever, and share like the rest of your stack.',

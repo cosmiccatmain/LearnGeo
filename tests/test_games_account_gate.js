@@ -21,6 +21,10 @@ assert(/openAuth/.test(games) && /'signup'/.test(games) && /'signin'/.test(games
   'gate sends guests to existing auth flow');
 assert(/data-games-signup/.test(games) && /data-games-signin/.test(games),
   'hub banner has Create account and Sign in');
+assert(/data-games-pass|Classroom passcode/.test(games),
+  'hub banner offers classroom passcode (LEA-81)');
+assert(/ClassroomPass\.unlocked|classroom passcode/i.test(games),
+  'needsAccount yields for redeemed classroom pass');
 
 assert(/Games stays|role === 'games'|data-role="games"/.test(ui),
   'role picker still offers Games path');
