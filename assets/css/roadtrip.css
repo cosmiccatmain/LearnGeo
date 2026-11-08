@@ -1,11 +1,11 @@
 /* ------------------------------------------------------------------
-   LearnGeo — Road Trips / Journey Duo-style path
-   (LEA-85 / LEA-90 / LEA-92 / LEA-96 / LEA-102).
+   LearnGeo — Journey Duo-style path
+   (LEA-85 / LEA-90 / LEA-92 / LEA-96 / LEA-99 / LEA-102).
 
-   Vertical zig-zag path center; LEA-92 makes left XP/gems and right
-   upcoming award cards large and readable on desktop/iPad (not tiny
-   floating postage stamps). LEA-96: unit/lesson slides, share-road,
-   path/node/XP/award motion polish. Level numeral stays modest.
+   Vertical zig-zag path center; LEA-99 drops the Coming-up awards rail,
+   enlarges the green unit banner, and tightens the left XP/gems panel
+   plus path nodes. LEA-96: unit/lesson slides, share-journey, path/node
+   motion polish. Level numeral stays modest.
    LEA-102: interactive world map (pan/zoom, unit highlight).
    Original LearnGeo fonts. Respects prefers-reduced-motion.
 -------------------------------------------------------------------*/
@@ -22,13 +22,13 @@
   padding: 18px 16px 96px;
 }
 
-/* Shell: left XP | center path | right awards */
+/* Shell: left XP | center path (LEA-99 — no right awards rail) */
 .rtpath--shell {
   width: max-content;
-  max-width: min(1180px, 100%);
+  max-width: min(1120px, 100%);
   display: grid;
-  grid-template-columns: 280px 480px 300px;
-  gap: 28px;
+  grid-template-columns: 176px minmax(640px, 860px);
+  gap: 20px;
   justify-content: center;
   align-items: start;
   padding: 22px 24px 96px;
@@ -47,23 +47,23 @@
   position: sticky; top: calc(var(--topbar-h, 56px) + 14px);
   background: var(--white);
   border: 1px solid var(--line);
-  border-radius: 18px;
-  padding: 24px 22px 20px;
+  border-radius: 14px;
+  padding: 14px 12px 12px;
   box-shadow: 0 2px 8px rgba(15, 23, 42, .05);
 }
 .rt-xpchart__kicker {
-  font-family: var(--mono); font-size: 12px; font-weight: 700;
+  font-family: var(--mono); font-size: 10px; font-weight: 700;
   letter-spacing: .1em; text-transform: uppercase;
-  color: var(--faint); margin-bottom: 10px;
+  color: var(--faint); margin-bottom: 6px;
 }
-/* LEA-95: level sits in panel hierarchy — readable, not hero-sized */
+/* LEA-95 / LEA-99: level sits in compact panel hierarchy */
 .rt-xpchart__level {
-  font-size: 22px; font-weight: 700; letter-spacing: -.02em;
-  line-height: 1.15; margin-bottom: 12px;
+  font-size: 18px; font-weight: 700; letter-spacing: -.02em;
+  line-height: 1.15; margin-bottom: 8px;
 }
 .rt-xpchart__bar {
-  height: 12px; border-radius: 999px;
-  background: var(--line-soft); overflow: hidden; margin-bottom: 8px;
+  height: 8px; border-radius: 999px;
+  background: var(--line-soft); overflow: hidden; margin-bottom: 6px;
 }
 .rt-xpchart__bar i {
   display: block; height: 100%; width: 0;
@@ -71,7 +71,7 @@
   transition: width var(--rt-slide) var(--rt-slide-ease);
 }
 .rt-xpchart__meta {
-  font-size: 14px; color: var(--ink-2); margin-bottom: 18px;
+  font-size: 12px; color: var(--ink-2); margin-bottom: 12px;
   font-weight: 560;
 }
 /* LEA-96 — soft enter for the XP panel (not a huge level numeral). */
@@ -80,33 +80,33 @@
 }
 
 .rt-xpchart__gems {
-  display: flex; align-items: center; gap: 12px;
-  padding: 14px 0 0;
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 0 0;
   border-top: 1px solid var(--line-soft);
 }
 .rt-xpchart__gemic {
-  width: 40px; height: 40px; border-radius: 12px;
+  width: 28px; height: 28px; border-radius: 8px;
   display: grid; place-items: center;
   background: var(--accent-soft); color: var(--accent); flex: none;
 }
-.rt-xpchart__gemic svg { width: 22px; height: 22px; }
+.rt-xpchart__gemic svg { width: 15px; height: 15px; }
 .rt-xpchart__gemtxt { min-width: 0; }
 .rt-xpchart__gemtxt b {
-  display: block; font-size: 26px; font-weight: 720; letter-spacing: -.02em;
+  display: block; font-size: 16px; font-weight: 720; letter-spacing: -.02em;
   line-height: 1.1;
 }
 .rt-xpchart__gemtxt span {
-  display: block; font-size: 14px; color: var(--faint); margin-top: 2px;
+  display: block; font-size: 11px; color: var(--faint); margin-top: 1px;
 }
 .rt-xpchart__trip {
-  margin-top: 16px;
-  font-size: 14px; color: var(--ink-2); line-height: 1.35;
+  margin-top: 10px;
+  font-size: 11px; color: var(--ink-2); line-height: 1.35;
   font-weight: 600;
   white-space: nowrap;
   overflow: hidden; text-overflow: ellipsis;
 }
 
-/* -------------------- right upcoming awards ----------------------- */
+/* -------------------- right upcoming awards (unused LEA-99) ------- */
 .rt-awards {
   width: 100%;
   box-sizing: border-box;
@@ -189,18 +189,18 @@
 
 .rtpath__road {
   position: relative;
-  max-width: 420px;
+  max-width: 480px;
   margin: 0 auto;
 }
 
 @media (max-width: 1120px) {
   .rtpath--shell {
-    grid-template-columns: 250px minmax(0, 440px) 270px;
-    gap: 20px;
+    grid-template-columns: 160px minmax(0, 640px);
+    gap: 16px;
     width: 100%;
-    max-width: 1060px;
+    max-width: 920px;
   }
-  .rt-xpchart__level { font-size: 20px; }
+  .rt-xpchart__level { font-size: 17px; }
   .rt-award__name { font-size: 19px; }
   .rt-award__desc { font-size: 14px; }
 }
@@ -213,7 +213,7 @@
   }
   .rt-xpchart, .rt-awards { position: static; }
   .rt-xpchart {
-    padding: 18px 16px 14px;
+    padding: 14px 14px 12px;
   }
   .rt-xpchart__trip { white-space: nowrap; }
   .rt-awards__list {
@@ -225,50 +225,54 @@
 
 @media (max-width: 520px) {
   .rt-awards__list { grid-template-columns: 1fr; }
-  .rt-xpchart__level { font-size: 20px; }
+  .rt-xpchart__level { font-size: 17px; }
 }
 
 /* ---------------------------- unit banner ------------------------- */
+/* LEA-99 — dominant green hero band (wider/taller than side chrome). */
 .rtpath__banner {
-  display: flex; gap: 14px; align-items: stretch; justify-content: space-between;
+  display: flex; gap: 18px; align-items: stretch; justify-content: space-between;
   background: var(--rt-accent, var(--accent));
   color: #fff;
-  border-radius: 16px;
-  padding: 16px 16px 14px;
-  margin-bottom: 28px;
-  box-shadow: 0 4px 0 rgba(0,0,0,.18);
+  border-radius: 20px;
+  padding: 24px 22px 20px;
+  margin-bottom: 32px;
+  box-shadow: 0 5px 0 rgba(0,0,0,.18);
+  min-height: 132px;
 }
-.rtpath__banner-main { min-width: 0; flex: 1; }
+.rtpath__banner-main { min-width: 0; flex: 1; display: flex; flex-direction: column; justify-content: center; }
 .rtpath__banner-kicker {
-  font-family: var(--mono); font-size: 11px; font-weight: 650;
+  font-family: var(--mono); font-size: 12px; font-weight: 650;
   letter-spacing: .08em; text-transform: uppercase;
-  opacity: .85; margin-bottom: 4px;
+  opacity: .85; margin-bottom: 6px;
 }
 .rtpath__banner h1 {
   margin: 0;
   font-family: var(--serif);
-  font-size: clamp(22px, 4vw, 28px);
-  font-weight: 500; letter-spacing: -.01em; line-height: 1.15;
+  font-size: clamp(28px, 4.6vw, 38px);
+  font-weight: 500; letter-spacing: -.01em; line-height: 1.12;
 }
 .rtpath__banner p {
-  margin: 6px 0 0;
-  font-size: 13.5px; line-height: 1.4; opacity: .92;
+  margin: 8px 0 0;
+  font-size: 15px; line-height: 1.45; opacity: .92;
+  max-width: 42ch;
 }
 .rtpath__banner-acts {
-  display: flex; flex-direction: column; gap: 8px; align-items: flex-end; flex: none;
+  display: flex; flex-direction: column; gap: 10px; align-items: flex-end; flex: none;
+  justify-content: center;
 }
 .rtpath__guide {
-  display: inline-flex; align-items: center; gap: 7px;
-  border: 0; cursor: pointer; font: inherit; font-size: 12.5px; font-weight: 650;
-  padding: 9px 12px; border-radius: 12px;
+  display: inline-flex; align-items: center; gap: 8px;
+  border: 0; cursor: pointer; font: inherit; font-size: 13.5px; font-weight: 650;
+  padding: 11px 14px; border-radius: 14px;
   background: rgba(255,255,255,.16); color: #fff;
   box-shadow: 0 3px 0 rgba(0,0,0,.18);
 }
 .rtpath__guide:hover { background: rgba(255,255,255,.22); }
-.rtpath__guide svg { width: 15px; height: 15px; }
-.rtpath__switch { display: flex; gap: 4px; }
+.rtpath__guide svg { width: 16px; height: 16px; }
+.rtpath__switch { display: flex; gap: 5px; }
 .rtpath__navbtn {
-  width: 34px; height: 34px; border: 0; border-radius: 10px; cursor: pointer;
+  width: 36px; height: 36px; border: 0; border-radius: 11px; cursor: pointer;
   display: grid; place-items: center;
   background: rgba(255,255,255,.16); color: #fff;
   box-shadow: 0 3px 0 rgba(0,0,0,.16);
@@ -441,7 +445,7 @@
   position: relative;
   z-index: 2;
   display: flex; flex-direction: column;
-  gap: 22px;
+  gap: 18px;
   padding: 8px 0 24px;
   min-height: 420px;
 }
@@ -450,29 +454,29 @@
   display: flex;
   justify-content: center;
   /* zig: -1 left, 0 center, 1 right */
-  transform: translateX(calc(var(--zig, 0) * 72px));
+  transform: translateX(calc(var(--zig, 0) * 64px));
   animation: rt-node-in 460ms var(--rt-slide-ease) both;
   animation-delay: calc(var(--rt-i, 0) * 48ms);
 }
 @media (max-width: 420px) {
-  .rtnode__row { transform: translateX(calc(var(--zig, 0) * 48px)); }
+  .rtnode__row { transform: translateX(calc(var(--zig, 0) * 42px)); }
 }
 
 .rtnode {
   position: relative;
   display: flex; flex-direction: column; align-items: center;
-  width: 120px;
+  width: 96px;
 }
 .rtnode__tip {
   position: absolute;
-  top: -28px;
-  font-family: var(--mono); font-size: 11px; font-weight: 750;
+  top: -26px;
+  font-family: var(--mono); font-size: 10px; font-weight: 750;
   letter-spacing: .1em;
   color: var(--accent);
   background: #fff;
   border: 2px solid var(--accent);
-  border-radius: 10px;
-  padding: 5px 10px;
+  border-radius: 9px;
+  padding: 4px 8px;
   box-shadow: 0 3px 0 rgba(27,77,255,.25);
   z-index: 2;
 }
@@ -485,18 +489,36 @@
 }
 
 .rtnode__btn {
-  width: 70px; height: 70px; border-radius: 50%;
+  width: 54px; height: 54px; border-radius: 50%;
   border: 0; cursor: pointer;
   display: grid; place-items: center;
+  padding: 0;
   background: #E5E7EB; color: #9CA3AF;
-  box-shadow: 0 6px 0 #C4C9D1;
+  box-shadow: 0 5px 0 #C4C9D1;
   transition: transform .16s var(--rt-slide-ease), box-shadow .16s ease, filter .12s ease;
 }
-.rtnode__btn:hover:not(:disabled) { transform: translateY(1px); box-shadow: 0 5px 0 #C4C9D1; }
-.rtnode__btn:active:not(:disabled) { transform: translateY(4px); box-shadow: 0 2px 0 #C4C9D1; }
+.rtnode__btn:hover:not(:disabled) { transform: translateY(1px); box-shadow: 0 4px 0 #C4C9D1; }
+.rtnode__btn:active:not(:disabled) { transform: translateY(3px); box-shadow: 0 2px 0 #C4C9D1; }
 .rtnode__btn:disabled { cursor: default; }
-.rtnode__ic { display: grid; place-items: center; }
-.rtnode__ic svg { width: 28px; height: 28px; stroke-width: 2.2; }
+.rtnode__ic {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  line-height: 0;
+}
+.rtnode__ic svg {
+  display: block;
+  width: 22px;
+  height: 22px;
+  stroke-width: 2.2;
+  /* optical center — stroke icons sit a hair high in the circle */
+  transform: translateY(0.5px);
+}
+/* LEA-99 / LEA-101: check path is asymmetric in the 24 viewBox — nudge in. */
+.rtnode.is-done .rtnode__ic svg {
+  transform: translate(0.5px, 1px);
+}
 
 /* Complete + unlock pops — rewarding without jank. */
 .rtnode.is-pulse .rtnode__btn {
@@ -510,46 +532,46 @@
 }
 
 .rtnode__label {
-  margin-top: 10px;
+  margin-top: 8px;
   text-align: center;
-  font-size: 12px; font-weight: 560; color: var(--ink-2); line-height: 1.25;
-  max-width: 130px;
+  font-size: 11px; font-weight: 560; color: var(--ink-2); line-height: 1.25;
+  max-width: 110px;
 }
 
 /* states */
 .rtnode.is-done .rtnode__btn {
   background: #F5B942; color: #7A4E00;
-  box-shadow: 0 6px 0 #C48A1A;
+  box-shadow: 0 5px 0 #C48A1A;
 }
-.rtnode.is-done .rtnode__btn:hover:not(:disabled) { box-shadow: 0 5px 0 #C48A1A; }
+.rtnode.is-done .rtnode__btn:hover:not(:disabled) { box-shadow: 0 4px 0 #C48A1A; }
 
 .rtnode.is-current .rtnode__btn {
   background: var(--accent); color: #fff;
-  box-shadow: 0 6px 0 var(--accent-ink);
-  outline: 6px solid #fff;
-  box-shadow: 0 6px 0 var(--accent-ink), 0 0 0 8px rgba(27,77,255,.18);
+  box-shadow: 0 5px 0 var(--accent-ink);
+  outline: 5px solid #fff;
+  box-shadow: 0 5px 0 var(--accent-ink), 0 0 0 7px rgba(27,77,255,.18);
 }
 .rtnode.is-current .rtnode__btn:hover:not(:disabled) {
-  box-shadow: 0 5px 0 var(--accent-ink), 0 0 0 8px rgba(27,77,255,.18);
+  box-shadow: 0 4px 0 var(--accent-ink), 0 0 0 7px rgba(27,77,255,.18);
 }
 
 .rtnode.is-open .rtnode__btn {
   background: #EEF2FF; color: var(--accent);
-  box-shadow: 0 6px 0 #C7D2FE;
+  box-shadow: 0 5px 0 #C7D2FE;
 }
 
 .rtnode--chest .rtnode__btn,
 .rtnode--story .rtnode__btn,
 .rtnode--trophy .rtnode__btn {
-  border-radius: 18px;
+  border-radius: 14px;
 }
 .rtnode--chest.is-current .rtnode__btn {
   background: #F59E0B; color: #fff;
-  box-shadow: 0 6px 0 #B45309, 0 0 0 8px rgba(245,158,11,.2);
+  box-shadow: 0 5px 0 #B45309, 0 0 0 7px rgba(245,158,11,.2);
 }
 .rtnode--trophy.is-current .rtnode__btn {
   background: #7C3AED; color: #fff;
-  box-shadow: 0 6px 0 #5B21B6, 0 0 0 8px rgba(124,58,237,.2);
+  box-shadow: 0 5px 0 #5B21B6, 0 0 0 7px rgba(124,58,237,.2);
 }
 
 .rtpath__foot {
@@ -715,14 +737,18 @@
 
 @media (max-width: 560px) {
   .rtpath { padding: 14px 12px 100px; }
-  .rtpath__banner { flex-direction: column; }
+  .rtpath__banner {
+    flex-direction: column;
+    min-height: 0;
+    padding: 18px 16px 16px;
+  }
   .rtpath__banner-acts {
     flex-direction: row; flex-wrap: wrap; justify-content: flex-end;
     width: 100%; align-items: center; gap: 8px;
   }
 }
 
-/* ----------------------- share your road (LEA-96) ----------------- */
+/* ----------------------- share your journey (LEA-96) -------------- */
 .rtshare__blurb {
   margin: 0 0 12px;
   font-size: 14px; color: var(--ink-2); line-height: 1.45;
@@ -819,8 +845,8 @@
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
 @keyframes rt-node-in {
-  from { opacity: 0; transform: translateX(calc(var(--zig, 0) * 72px)) translateY(16px) scale(.92); }
-  to { opacity: 1; transform: translateX(calc(var(--zig, 0) * 72px)) translateY(0) scale(1); }
+  from { opacity: 0; transform: translateX(calc(var(--zig, 0) * 64px)) translateY(16px) scale(.92); }
+  to { opacity: 1; transform: translateX(calc(var(--zig, 0) * 64px)) translateY(0) scale(1); }
 }
 @keyframes rt-pulse {
   0% { transform: scale(1); }
@@ -848,8 +874,8 @@
 
 @media (max-width: 420px) {
   @keyframes rt-node-in {
-    from { opacity: 0; transform: translateX(calc(var(--zig, 0) * 48px)) translateY(16px) scale(.92); }
-    to { opacity: 1; transform: translateX(calc(var(--zig, 0) * 48px)) translateY(0) scale(1); }
+    from { opacity: 0; transform: translateX(calc(var(--zig, 0) * 42px)) translateY(16px) scale(.92); }
+    to { opacity: 1; transform: translateX(calc(var(--zig, 0) * 42px)) translateY(0) scale(1); }
   }
 }
 
@@ -891,4 +917,3 @@
     animation: none !important;
   }
 }
-

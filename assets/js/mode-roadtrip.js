@@ -1,5 +1,5 @@
 /* ------------------------------------------------------------------
-   LearnGeo — Road Trips / Journey path (LEA-85 / LEA-96 / LEA-102).
+   LearnGeo — Journey path (LEA-85 / LEA-96 / LEA-99 / LEA-102).
 
    Duolingo-style vertical zig-zag of lessons, chests, stories and a
    unit trophy. Units start in Africa; the learner can switch units.
@@ -7,10 +7,10 @@
    reset progress. LearnGeo fonts/brand only — no Duo owl. Games stays
    in the nav. No Stripe, no screen mirroring, no classroom wallet wall.
 
-   LEA-96 — addictive unit/lesson slide transitions (~400ms), share-
-   your-road (link + friend gamertag, wallet-style), motion polish on
-   path/nodes/XP/awards. Level numeral stays modest (LEA-95 separate).
-
+   LEA-96 — unit/lesson slide transitions (~400ms), share-journey
+   (link + friend gamertag, wallet-style), motion polish on path/nodes/XP.
+   LEA-99 — Journey rename, drop Coming-up rail, bigger unit banner,
+   tighter XP panel + path nodes. Level numeral stays modest (LEA-95).
    LEA-102 — interactive world map on the path: pan/zoom (CSS
    transform), current unit countries highlighted. Not a loupe; not
    screen mirroring. Respects prefers-reduced-motion.
@@ -479,7 +479,7 @@
     }
   }
 
-  /* ======================== share your road (LEA-96) ================= */
+  /* ======================== share your journey (LEA-96) =============== */
   /* Compact snapshot for a share link. School-safe — progress only, no
      classroom wallet wall, no screen mirroring. Friend share looks up a
      gamertag the same way wallet/chess invites do, then hands them a link. */
@@ -594,7 +594,7 @@
   }
 
   function friendShareMessage(tag, url) {
-    return 'Hey ' + tag + ' — check my LearnGeo Road Trip! ' + url;
+    return 'Hey ' + tag + ' — check my LearnGeo Journey! ' + url;
   }
 
   function lookupTag(tag) {
@@ -624,15 +624,15 @@
     var unit = currentUnit();
     var doneN = (snap.s[UNITS.indexOf(unit)] || 0);
     global.UI.modal({
-      title: 'Share your road',
+      title: 'Share your journey',
       icon: I.users || I.car,
       body:
         '<div class="rtshare">' +
-          '<p class="rtshare__blurb">Send a snapshot of your Road Trip progress to a friend — school-safe link, no screen mirroring.</p>' +
+          '<p class="rtshare__blurb">Send a snapshot of your Journey progress to a friend — school-safe link, no screen mirroring.</p>' +
           '<div class="rtshare__stats">' +
             '<span class="chip mono">' + esc(unit.title) + ' · ' + doneN + '/' +
               unit.lessons.length + ' lessons</span>' +
-            '<span class="chip mono">Trip +' + (snap.x || 0) + ' XP</span>' +
+            '<span class="chip mono">Journey +' + (snap.x || 0) + ' XP</span>' +
             '<span class="chip chip--gem mono">+' + (snap.g || 0) + ' gems</span>' +
           '</div>' +
           '<div class="field" style="margin-top:14px">' +
@@ -644,7 +644,7 @@
           '</div>' +
           '<div class="panel" style="margin-top:16px;padding:14px 14px 12px">' +
             '<div class="panel__head" style="margin-bottom:8px"><h3 style="margin:0;font-size:15px">Friend share</h3></div>' +
-            '<p class="t-sm t-muted" style="margin:0 0 10px">Same pattern as wallet shares — they need a Games gamertag. We look them up, then hand you a copy-ready note with your road link.</p>' +
+            '<p class="t-sm t-muted" style="margin:0 0 10px">Same pattern as wallet shares — they need a Games gamertag. We look them up, then hand you a copy-ready note with your journey link.</p>' +
             '<div class="rtshare__friend">' +
               '<div class="field" style="flex:1;margin:0">' +
                 '<label class="field__label" for="rt-share-tag">Friend’s gamertag</label>' +
@@ -695,11 +695,11 @@
             };
             if (navigator.share) {
               navigator.share({
-                title: 'My LearnGeo Road Trip',
+                title: 'My LearnGeo Journey',
                 text: note,
                 url: url
               }).then(function () {
-                W.toast('Shared', 'Road sent toward ' + res.tag, I.check, 2800);
+                W.toast('Shared', 'Journey sent toward ' + res.tag, I.check, 2800);
               }, function () {
                 copyText(note).then(finish);
               });
@@ -731,10 +731,10 @@
       '<div class="rtshare-view__card">' +
         '<button type="button" class="rtshare-view__close" id="rt-share-dismiss" aria-label="Close">' +
           (I.x || '×') + '</button>' +
-        '<div class="eyebrow">Friend’s road</div>' +
+        '<div class="eyebrow">Friend’s journey</div>' +
         '<h2>' + esc(snap.t) + '</h2>' +
         '<p>Focus unit <b>' + esc(unit.title) + '</b> · ' + done + '/' +
-          unit.lessons.length + ' lessons · Trip +' + (snap.x || 0) + ' XP</p>' +
+          unit.lessons.length + ' lessons · Journey +' + (snap.x || 0) + ' XP</p>' +
         '<div class="rtshare-view__list">' + rows + '</div>' +
         '<p class="t-sm t-muted" style="margin:12px 0 0">Read-only snapshot — it doesn’t change your path.</p>' +
       '</div>' +
@@ -834,22 +834,14 @@
     '</article>';
   }
 
+  /* LEA-99: Coming-up / wallet rail removed from Journey UI. Helpers kept
+     for progress APIs / tests; not mounted in renderPath. */
   function awardsColumnHtml() {
-    var upcoming = upcomingAwards(4);
-    var body = upcoming.length
-      ? upcoming.map(awardCardHtml).join('')
-      : '<p class="rt-awards__empty">All wallet awards unlocked.</p>';
-    return '<aside class="rt-awards" aria-label="Upcoming wallet awards">' +
-      '<div class="rt-awards__head">' +
-        '<b>Coming up</b>' +
-        '<span>Wallet cards you’re close to</span>' +
-      '</div>' +
-      '<div class="rt-awards__list">' + body + '</div>' +
-    '</aside>';
+    return '';
   }
 
-  /* Left column: large XP + gems panel. XP bar = economy.xp / xpToNext
-     (same as HUD). Gems = economy.diamonds. Trip line = roadtrip earned. */
+  /* Left column: compact XP + gems panel. XP bar = economy.xp / xpToNext
+     (same as HUD). Gems = economy.diamonds. Journey line = roadtrip earned. */
   function xpGemsChartHtml() {
     var eco = W.state.economy || { xp: 0, level: 1, diamonds: 0 };
     var prog = W.levelProgress ? W.levelProgress() : { have: eco.xp || 0, need: 80 };
@@ -859,7 +851,7 @@
     var r = rtState();
     var gems = Number(eco.diamonds) || 0;
     return '<aside class="rt-xpchart" aria-label="XP and gems">' +
-      '<div class="rt-xpchart__kicker">On the road</div>' +
+      '<div class="rt-xpchart__kicker">Journey</div>' +
       '<div class="rt-xpchart__level mono">Lv ' + (eco.level || 1) + '</div>' +
       '<div class="rt-xpchart__bar" title="XP toward next level">' +
         '<i style="width:' + pct + '%"></i>' +
@@ -873,8 +865,8 @@
           '<span>gems</span>' +
         '</div>' +
       '</div>' +
-      '<div class="rt-xpchart__trip mono" title="Awarded from Road Trips lessons">' +
-        'Trip +' + (r.xpEarned || 0) + ' XP · +' + (r.gemsEarned || 0) + ' gems' +
+      '<div class="rt-xpchart__trip mono" title="Awarded from Journey lessons">' +
+        '+' + (r.xpEarned || 0) + ' XP · +' + (r.gemsEarned || 0) + ' gems' +
       '</div>' +
     '</aside>';
   }
@@ -899,8 +891,8 @@
       slideCls = slide.dir > 0 ? ' is-enter-right' : ' is-enter-left';
     }
 
-    /* LEA-92: three columns — big XP left, path center, big awards right.
-       LEA-96: stage wrapper for horizontal unit slides. */
+    /* LEA-99: two columns — compact XP left, dominant path/banner center.
+       Coming-up / wallet rail removed. LEA-96 stage for unit slides. */
     el.innerHTML =
       '<div class="rtpath rtpath--shell' + slideCls + '" id="rt-shell">' +
         xpGemsChartHtml() +
@@ -920,9 +912,8 @@
             '</div>' +
           '</div>' +
           '<p class="rtpath__foot">Past study seeds this path — lessons you already know light up gold. ' +
-            'Share your road with friends. Games stays in the nav.</p>' +
+            'Share your journey with friends. Games stays in the nav.</p>' +
         '</div>' +
-        awardsColumnHtml() +
       '</div>' +
       (shareSnap ? sharePreviewHtml(shareSnap) : '');
 
@@ -977,8 +968,8 @@
         '<p>' + esc(unit.blurb) + '</p>' +
       '</div>' +
       '<div class="rtpath__banner-acts">' +
-        '<button type="button" class="rtpath__guide" id="rt-share" title="Share your road">' +
-          (I.users || I.inbox || '') + ' Share road</button>' +
+        '<button type="button" class="rtpath__guide" id="rt-share" title="Share your journey">' +
+          (I.users || I.inbox || '') + ' Share journey</button>' +
         '<button type="button" class="rtpath__guide" id="rt-guide">' +
           (I.book || '') + ' Guidebook</button>' +
         '<div class="rtpath__switch">' +
@@ -1316,7 +1307,7 @@
     rtState().gemsEarned = (rtState().gemsEarned || 0) + 40;
     W.save();
     if (global.UI && global.UI.refreshHud) global.UI.refreshHud();
-    W.toast('Route chest', '+40 diamonds for the road', I.gem, 3200);
+    W.toast('Route chest', '+40 diamonds for the journey', I.gem, 3200);
     pendingPulse = 'chest';
     /* Next openable node gets an unlock pop. */
     var path = buildPath(unit);
@@ -1469,7 +1460,7 @@
           '<div class="rt-q' + slideCls + '" id="rt-qcard">' +
             '<div class="qmeta">' +
               '<span class="eyebrow">' + esc((global.Quiz.types[q.type] || {}).label || q.type) + '</span>' +
-              '<span class="eyebrow">Road trip</span>' +
+              '<span class="eyebrow">Journey</span>' +
             '</div>' +
             '<div class="qprompt">' + esc(q.prompt) + '</div>' +
             '<div class="qsubject">' + global.Quiz.subjectHtml(q) + '</div>' +
@@ -1614,7 +1605,7 @@
           '<div class="rt-done__acts">' +
             '<button type="button" class="btn btn--accent" id="rt-path">Back to path</button>' +
             (!cleared ? '<button type="button" class="btn btn--ghost" id="rt-retry">Try again</button>' : '') +
-            (cleared ? '<button type="button" class="btn btn--ghost" id="rt-share-done">Share road</button>' : '') +
+            (cleared ? '<button type="button" class="btn btn--ghost" id="rt-share-done">Share journey</button>' : '') +
           '</div>' +
         '</div>' +
       '</div>';

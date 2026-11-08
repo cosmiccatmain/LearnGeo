@@ -148,9 +148,10 @@ test('prior mastery seeds lessons without wiping other progress', () => {
   assert.ok(current.kind === 'chest' || current.kind === 'lesson');
 });
 
-test('Games tab still sits after Road trips in ui TAB_DEFS', () => {
+test('Games tab still sits after Journey in ui TAB_DEFS', () => {
   const ui = fs.readFileSync(path.join(root, 'assets/js/ui.js'), 'utf8');
   assert.match(ui, /view:\s*'roadtrip'/);
+  assert.match(ui, /label:\s*'Journey'/);
   assert.match(ui, /label:\s*'Games'/);
   const road = ui.indexOf("view: 'roadtrip'");
   const games = ui.indexOf("view: 'games'");
@@ -162,7 +163,7 @@ test('no Stripe checkout or screen-share hooks in roadtrip mode', () => {
   assert.doesNotMatch(src, /ScreenShare|share screen|stripe\.com|Checkout Session|class.?wallet.?wall/i);
   assert.match(src, /LearnGeo/);
   assert.match(src, /no Duo owl/);
-  assert.match(src, /Share road|shareUrlFor|progressSnapshot/);
+  assert.match(src, /Share journey|shareUrlFor|progressSnapshot/);
   assert.match(src, /prefers-reduced-motion|reduceMotion/);
   assert.match(src, /SLIDE_MS|slideToUnit|is-enter-right/);
 });
@@ -197,8 +198,8 @@ test('LEA-96 CSS has unit slides, share UI, and reduced-motion guards', () => {
   assert.match(css, /\.rtshare\b|rtshare-view/);
   assert.match(css, /prefers-reduced-motion:\s*reduce/);
   assert.match(css, /rt-pulse|rt-unlock|rt-node-in/);
-  /* LEA-95: level numeral is panel-scale (22px), not hero-sized. */
-  assert.match(css, /\.rt-xpchart__level\s*\{[^}]*font-size:\s*22px/s);
+  /* LEA-95 / LEA-99: level numeral stays compact panel-scale, not hero-sized. */
+  assert.match(css, /\.rt-xpchart__level\s*\{[^}]*font-size:\s*1[78]px/s);
   assert.doesNotMatch(css, /\.rt-xpchart__level\s*\{[^}]*font-size:\s*(6\d|7\d|[8-9]\d|[1-9]\d{2,})px/s);
 });
 
@@ -229,17 +230,21 @@ test('XP/gems chart maps onto economy + roadtrip earned counters', () => {
   assert.match(core, /gemsEarned:\s*0/);
 });
 
-test('LEA-92 layout uses large side columns, not postage-stamp floats', () => {
+test('LEA-99 Journey layout: compact XP + dominant banner, no Coming-up rail', () => {
   const css = fs.readFileSync(path.join(root, 'assets/css/roadtrip.css'), 'utf8');
   const js = fs.readFileSync(path.join(root, 'assets/js/mode-roadtrip.js'), 'utf8');
-  assert.match(css, /grid-template-columns:\s*280px\s+480px\s+300px/);
-  assert.match(css, /\.rt-xpchart__level\s*\{[^}]*font-size:\s*22px/s);
-  assert.match(css, /\.rt-award__name\s*\{[^}]*font-size:\s*22px/s);
+  assert.match(css, /grid-template-columns:\s*176px\s+minmax\(640px,\s*860px\)/);
+  assert.match(css, /\.rt-xpchart__level\s*\{[^}]*font-size:\s*18px/s);
+  assert.match(css, /\.rtpath__banner\s*\{[^}]*min-height:\s*132px/s);
+  assert.match(css, /\.rtnode__btn\s*\{[^}]*width:\s*54px/s);
   assert.match(css, /\.rt-xpchart\s*\{[^}]*width:\s*100%/s);
-  assert.match(css, /white-space:\s*nowrap/); /* trip line stays one line */
+  assert.match(css, /white-space:\s*nowrap/); /* journey line stays one line */
   assert.doesNotMatch(css, /\.rt-side-card\b/);
-  assert.match(js, /awardsColumnHtml|rt-awards/);
-  assert.match(js, /Coming up/);
+  /* Path render must not mount the Coming-up rail. */
+  assert.doesNotMatch(js, /Coming up/);
+  assert.match(js, /Share journey/);
+  assert.match(js, /xpGemsChartHtml\(\)\s*\+/);
+  assert.doesNotMatch(js, /awardsColumnHtml\(\)\s*\+/);
 });
 
 test('Road Trip lessons include identify and mount a map host for it', () => {

@@ -37,7 +37,7 @@
   var NAMES = {
     portal: 'Home', classroom: 'Classroom', teacher: 'My class',
     learn: 'Learn', test: 'Practice test', quiz: 'Class quiz',
-    roadtrip: 'Road trips', games: 'Games', achievements: 'Achievements',
+    roadtrip: 'Journey', games: 'Games', achievements: 'Achievements',
     codex: 'Codex', landing: 'Landing page'
   };
 
