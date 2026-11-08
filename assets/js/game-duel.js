@@ -340,13 +340,65 @@
     }
     global.addEventListener('learngeo:pvp-inbox', onInboxEvent);
 
+    var lobbyCircles = null;
+
+    function stopLobbyCircles() {
+      if (lobbyCircles && lobbyCircles.destroy) lobbyCircles.destroy();
+      lobbyCircles = null;
+    }
+
+    function doSendInvite(tag, errEl, inputEl) {
+      ensureTag(function () {
+        sendInvite(tag, kind).then(function (res) {
+          if (!res || !res.ok) {
+            if (res && res.error === 'no_gamertag') {
+              ensureServerTag().then(function () {
+                return sendInvite(tag, kind);
+              }).then(function (retry) {
+                if (!retry || !retry.ok) {
+                  if (errEl) errEl.textContent = errMsg(retry && retry.error);
+                  return;
+                }
+                W.toast('Invite sent', 'Waiting for ' + (retry.to_tag || tag) + '…', I.check, 3600);
+                if (inputEl) inputEl.value = '';
+                fetchInbox().then(function () {
+                  var box = W.$('[data-duel-inbox]', body);
+                  if (box) {
+                    box.innerHTML = inboxHtml(lastInbox);
+                    wireInbox(body, function (id) { enterMatch(id); });
+                  }
+                });
+              });
+              return;
+            }
+            if (errEl) errEl.textContent = errMsg(res && res.error);
+            return;
+          }
+          W.toast('Invite sent', 'Waiting for ' + (res.to_tag || tag) + '…', I.check, 3600);
+          if (inputEl) inputEl.value = '';
+          fetchInbox().then(function () {
+            var box = W.$('[data-duel-inbox]', body);
+            if (box) {
+              box.innerHTML = inboxHtml(lastInbox);
+              wireInbox(body, function (id) { enterMatch(id); });
+            }
+          });
+        });
+      });
+    }
+
     function paintLobby() {
+      stopLobbyCircles();
       body.innerHTML =
         '<div class="duel-lobby">' +
           '<div class="duel-lobby__hero">' +
             '<div class="eyebrow">PvP</div>' +
             '<h2>Challenge a friend</h2>' +
-            '<p>Look up their gamertag. They get an invite, accept, and you both race the same five questions.</p>' +
+            '<p>You float as a circle in the lobby. Tap another player to challenge or chat — or invite by gamertag below.</p>' +
+          '</div>' +
+          '<div class="panel duel-lobby__orbit-panel">' +
+            '<div class="panel__head"><h3>Lobby</h3></div>' +
+            '<div data-lobby-circles></div>' +
           '</div>' +
           '<div class="duel-invite panel">' +
             '<div class="panel__head"><h3>Invite by gamertag</h3></div>' +
@@ -383,43 +435,7 @@
         var err = W.$('#duel-err', body);
         var tag = (input.value || '').trim();
         err.textContent = '';
-        ensureTag(function () {
-          sendInvite(tag, kind).then(function (res) {
-            if (!res || !res.ok) {
-              if (res && res.error === 'no_gamertag') {
-                ensureServerTag().then(function () {
-                  return sendInvite(tag, kind);
-                }).then(function (retry) {
-                  if (!retry || !retry.ok) {
-                    err.textContent = errMsg(retry && retry.error);
-                    return;
-                  }
-                  W.toast('Invite sent', 'Waiting for ' + (retry.to_tag || tag) + '…', I.check, 3600);
-                  input.value = '';
-                  fetchInbox().then(function () {
-                    var box = W.$('[data-duel-inbox]', body);
-                    if (box) {
-                      box.innerHTML = inboxHtml(lastInbox);
-                      wireInbox(body, function (id) { enterMatch(id); });
-                    }
-                  });
-                });
-                return;
-              }
-              err.textContent = errMsg(res && res.error);
-              return;
-            }
-            W.toast('Invite sent', 'Waiting for ' + (res.to_tag || tag) + '…', I.check, 3600);
-            input.value = '';
-            fetchInbox().then(function () {
-              var box = W.$('[data-duel-inbox]', body);
-              if (box) {
-                box.innerHTML = inboxHtml(lastInbox);
-                wireInbox(body, function (id) { enterMatch(id); });
-              }
-            });
-          });
-        });
+        doSendInvite(tag, err, input);
       });
       wireInbox(body, function (id) { enterMatch(id); });
       fetchInbox().then(function () {
@@ -433,6 +449,25 @@
         if (box) { box.innerHTML = inboxHtml(lastInbox); wireInbox(body, function (id) { enterMatch(id); }); }
       });
       applyDuelAccent(body.firstChild);
+
+      var orbitHost = W.$('[data-lobby-circles]', body);
+      if (orbitHost && global.LobbyCircles) {
+        lobbyCircles = global.LobbyCircles.mount({
+          lobby: 'duel',
+          hostEl: orbitHost,
+          onChallenge: function (tag) {
+            var input = W.$('#duel-tag', body);
+            var err = W.$('#duel-err', body);
+            if (input) input.value = tag;
+            if (err) err.textContent = '';
+            doSendInvite(tag, err, input);
+          },
+          onCopyTag: function (tag) {
+            var input = W.$('#duel-tag', body);
+            if (input) input.value = tag;
+          }
+        });
+      }
     }
 
     function paintSeeding() {
@@ -650,6 +685,7 @@
     }
 
     function enterMatch(id) {
+      stopLobbyCircles();
       matchId = id;
       state = null;
       localAnswered = false;
@@ -722,6 +758,7 @@
     return {
       destroy: function () {
         destroyed = true;
+        stopLobbyCircles();
         stopPoll();
         global.removeEventListener('learngeo:pvp-inbox', onInboxEvent);
         global.removeEventListener('keydown', onKey);

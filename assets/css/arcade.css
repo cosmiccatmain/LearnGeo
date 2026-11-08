@@ -249,6 +249,135 @@
   margin: 4px 0 6px; font-size: clamp(22px, 3vw, 28px); letter-spacing: -.03em;
 }
 .duel-lobby__hero p { color: var(--muted); margin: 0; max-width: 52ch; }
+.duel-lobby__orbit-panel { overflow: visible; }
+
+/* ====================== Lobby floating circles ==================== */
+.lobby-orbit { position: relative; }
+.lobby-orbit__sky {
+  position: relative;
+  min-height: 220px;
+  border-radius: 14px;
+  background:
+    radial-gradient(circle at 30% 20%, rgba(27, 77, 255, .08), transparent 42%),
+    radial-gradient(circle at 70% 80%, rgba(14, 159, 110, .08), transparent 46%),
+    linear-gradient(180deg, #f4f7ff 0%, #e8eef8 100%);
+  border: 1px dashed rgba(18, 32, 74, .14);
+  overflow: hidden;
+}
+.lobby-orbit__hint { margin-top: 10px; }
+.lobby-orbit__alone { position: absolute; inset: 0; }
+.lobby-circle {
+  position: absolute;
+  left: var(--lc-x, 50%);
+  top: var(--lc-y, 50%);
+  transform: translate(-50%, -50%);
+  width: 72px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  z-index: 1;
+  -webkit-tap-highlight-color: transparent;
+}
+.lobby-circle__face {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  margin: 0 auto;
+  border-radius: 50%;
+  background: var(--lc-accent, #1B4DFF);
+  color: #fff;
+  font-weight: 800;
+  font-size: 20px;
+  letter-spacing: -.02em;
+  box-shadow:
+    0 8px 20px rgba(18, 32, 74, .18),
+    0 0 0 3px rgba(255, 255, 255, .85);
+}
+.lobby-circle.is-me .lobby-circle__face {
+  box-shadow:
+    0 8px 20px rgba(18, 32, 74, .18),
+    0 0 0 3px #fff,
+    0 0 0 5px var(--lc-accent, #1B4DFF);
+}
+.lobby-circle__tag {
+  display: block;
+  margin-top: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink, #12204a);
+  text-align: center;
+  max-width: 72px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.lobby-circle.is-float {
+  animation: lobbyFloat var(--lc-dur, 5s) ease-in-out var(--lc-delay, 0s) infinite;
+}
+.lobby-circle:focus-visible .lobby-circle__face,
+.lobby-circle:hover .lobby-circle__face {
+  transform: scale(1.06);
+}
+@keyframes lobbyFloat {
+  0%, 100% { transform: translate(-50%, -50%); }
+  50% { transform: translate(-50%, calc(-50% - 10px)); }
+}
+.lobby-orbit__pop {
+  position: absolute;
+  z-index: 5;
+  width: 220px;
+}
+.lobby-pop {
+  background: #fff;
+  border: 1px solid var(--line, #d8e0ef);
+  border-radius: 14px;
+  padding: 10px 12px;
+  box-shadow: 0 12px 28px rgba(18, 32, 74, .14);
+}
+.lobby-pop__head {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  margin-bottom: 8px;
+}
+.lobby-pop__actions { display: grid; gap: 6px; }
+.lobby-pop__actions .btn { width: 100%; justify-content: center; }
+.lobby-orbit__chat {
+  margin-top: 12px;
+}
+.lobby-chat__thread {
+  max-height: 140px;
+  overflow: auto;
+  display: grid;
+  gap: 6px;
+  margin: 8px 0 10px;
+}
+.lobby-chat__bubble {
+  justify-self: start;
+  max-width: 85%;
+  padding: 7px 10px;
+  border-radius: 12px 12px 12px 4px;
+  background: rgba(18, 32, 74, .06);
+  font-size: 13px;
+}
+.lobby-chat__bubble.is-mine {
+  justify-self: end;
+  border-radius: 12px 12px 4px 12px;
+  background: rgba(27, 77, 255, .12);
+}
+.lobby-chat__compose {
+  display: flex; gap: 8px; align-items: center;
+}
+.lobby-chat__compose .input { flex: 1; min-width: 0; }
+
+@media (max-width: 760px) {
+  .lobby-orbit__sky { min-height: 200px; }
+  .lobby-circle { width: 64px; }
+  .lobby-circle__face { width: 50px; height: 50px; font-size: 18px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lobby-circle.is-float { animation: none; }
+}
 .duel-invite__row {
   display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 12px;
 }
