@@ -20,6 +20,14 @@
      own What’s New id. `try` deep-links into the feature (LEA-79). */
   var UPDATES = [
     {
+      id: '2026-11-geo-chess-ladder',
+      title: 'Geo Chess weekly ladder',
+      body: 'Inside Geo Chess → Challenge a friend: climb this week’s Elo ladder (resets Monday UTC) and rematch your last opponent from the lobby or end screen — still no separate Chess Duel.',
+      image: '/assets/img/updates/geo-chess-ladder.svg',
+      date: '2026-11-07',
+      try: 'chess-pvp'
+    },
+    {
       id: '2026-11-classroom-passcodes',
       title: 'Classroom passcodes',
       body: 'Teachers mint a short iPad passcode. Students type it plus their name to jump into Games and Geo Live — no email signup wall.',

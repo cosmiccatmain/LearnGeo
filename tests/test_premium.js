@@ -19,6 +19,9 @@ assert(!/id: 'duel'[\s\S]{0,120}premium:\s*true/.test(games), 'Geo Duel stays fr
 /* LEA-68: Chess Duel hub entry removed; PvP lives in free Geo Chess. */
 assert(!/id: 'chessduel'[\s\S]{0,40}title:/.test(games), 'Chess Duel is not a separate Games hub entry');
 assert(/Challenge a friend/.test(games), 'Geo Chess offers Challenge a friend');
+/* LEA-76: weekly ladder + rematch stay inside Geo Chess (no Chess Duel). */
+assert(/weekly ladder|Rematch last opponent|this week/i.test(games),
+  'Geo Chess mentions weekly ladder / rematch');
 assert(/id: 'snake'/.test(games) && !/id: 'snake'[\s\S]{0,80}premium:\s*true/.test(games),
   'Capital Snake stays free');
 assert(/id: 'match'/.test(games) && !/id: 'match'[\s\S]{0,80}premium:\s*true/.test(games),

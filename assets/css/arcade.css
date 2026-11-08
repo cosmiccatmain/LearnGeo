@@ -360,6 +360,36 @@
 .cduel .chess-status { text-align: center; margin: 4px 0 2px; }
 .cduel .chess-history { margin-top: 4px; }
 
+/* LEA-76: weekly Elo ladder + rematch (inside Geo Chess PvP) */
+.duel-note--rematch {
+  background: rgba(14, 159, 110, .07); border: 1px solid rgba(14, 159, 110, .22);
+  border-radius: 12px; padding: 12px 14px; margin: 0 0 12px;
+}
+.chess-ladder .panel__head {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 10px;
+}
+.chess-ladder__week { font-size: 12px; color: var(--muted); letter-spacing: .02em; }
+.chess-ladder__hint { margin: 0 0 10px; }
+.chess-ladder__list {
+  list-style: none; margin: 0; padding: 0; display: grid; gap: 4px;
+}
+.chess-ladder__row {
+  display: grid; grid-template-columns: 28px 1fr auto auto; gap: 10px; align-items: center;
+  padding: 8px 10px; border-radius: 10px; background: rgba(255,255,255,.55);
+  border: 1px solid transparent;
+}
+.chess-ladder__row.is-me {
+  border-color: rgba(27, 77, 255, .28);
+  background: rgba(27, 77, 255, .07);
+}
+.chess-ladder__rank { font-weight: 750; font-variant-numeric: tabular-nums; color: var(--muted); }
+.chess-ladder__tag { font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chess-ladder__delta { font-weight: 700; font-variant-numeric: tabular-nums; min-width: 3.2ch; text-align: right; }
+.chess-ladder__delta.is-up { color: #1f6b3a; }
+.chess-ladder__delta.is-down { color: #8a2f2f; }
+.chess-ladder__elo { font-size: 12.5px; color: var(--muted); min-width: 4.5ch; text-align: right; }
+.chess-ladder__me { margin: 10px 0 0; }
+
 @media (max-width: 640px) {
   .duel-scoreboard { grid-template-columns: 1fr 1fr; }
   .duel-round { grid-column: 1 / -1; order: -1; }

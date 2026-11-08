@@ -6,6 +6,8 @@
    accept → live turn-based match. Host is White. Moves validated with
    chess.js; server stores FEN + enforces turns.
    Server: supabase/deployed/0018_chess_duel.sql (RPC names unchanged).
+   LEA-76: weekly Elo ladder panel + Rematch last opponent in lobby /
+   end screen (no separate Chess Duel hub entry).
 -------------------------------------------------------------------*/
 import { Chess } from '../vendor/chess.js/chess.js';
 
@@ -228,6 +230,63 @@ import { Chess } from '../vendor/chess.js/chess.js';
     });
   }
 
+  function fmtWeekDelta(n) {
+    if (global.ChessElo && global.ChessElo.fmtWeekDelta) return global.ChessElo.fmtWeekDelta(n);
+    n = Math.round(Number(n) || 0);
+    if (!n) return '±0';
+    return (n > 0 ? '+' : '') + n;
+  }
+
+  function ladderHtml(data) {
+    var week = (data && data.week_key) || (global.ChessElo && global.ChessElo.weekKey ? global.ChessElo.weekKey() : '');
+    var rows = (data && data.rows) || [];
+    var me = data && data.me;
+    var parts = [];
+    parts.push(
+      '<div class="panel__head"><h3>This week’s Elo ladder</h3>' +
+        (week ? '<span class="chess-ladder__week mono">' + esc(week) + '</span>' : '') +
+      '</div>' +
+      '<p class="t-sm t-muted chess-ladder__hint">Ranked by Elo gained this UTC week (bots + friend matches). Resets Monday.</p>'
+    );
+    if (!rows.length) {
+      parts.push('<p class="duel-empty t-sm t-muted">No rated games yet this week. Finish a bot or friend match to climb.</p>');
+    } else {
+      parts.push('<ol class="chess-ladder__list">');
+      rows.forEach(function (r) {
+        var delta = fmtWeekDelta(r.week_delta);
+        var deltaCls = (r.week_delta || 0) > 0 ? ' is-up' : (r.week_delta || 0) < 0 ? ' is-down' : '';
+        parts.push(
+          '<li class="chess-ladder__row' + (r.is_me ? ' is-me' : '') + '">' +
+            '<span class="chess-ladder__rank">' + esc(String(r.rank || '')) + '</span>' +
+            '<span class="chess-ladder__tag">' + esc(r.gamertag || '?') + '</span>' +
+            '<span class="chess-ladder__delta' + deltaCls + '">' + esc(delta) + '</span>' +
+            '<span class="chess-ladder__elo mono">' + esc(String(r.elo || '')) + '</span>' +
+          '</li>'
+        );
+      });
+      parts.push('</ol>');
+    }
+    if (me && me.week_games > 0 && me.rank && !rows.some(function (r) { return r.is_me; })) {
+      parts.push(
+        '<p class="chess-ladder__me t-sm">You · #' + esc(String(me.rank)) +
+          ' · ' + esc(fmtWeekDelta(me.week_delta)) + ' this week</p>'
+      );
+    } else if (me && !(me.week_games > 0)) {
+      parts.push('<p class="chess-ladder__me t-sm t-muted">Play a rated game to join this week’s ladder.</p>');
+    }
+    return parts.join('');
+  }
+
+  function rematchCardHtml(tag) {
+    if (!tag) return '';
+    return (
+      '<div class="duel-note duel-note--rematch">' +
+        '<div><b>Rematch ' + esc(tag) + '</b><span>Challenge your last opponent again</span></div>' +
+        '<button class="btn btn--accent btn--sm" type="button" data-cduel-rematch="' +
+          esc(tag) + '">Rematch</button></div>'
+    );
+  }
+
   /* ============================ mount ============================= */
   function mount(host, opts) {
     opts = opts || {};
@@ -275,16 +334,100 @@ import { Chess } from '../vendor/chess.js/chess.js';
       return paintBoard();
     }
 
+    function doSendInvite(tag, errEl, inputEl) {
+      ensureTag(function () {
+        sendInvite(tag).then(function (res) {
+          if (!res || !res.ok) {
+            if (res && res.error === 'no_gamertag') {
+              ensureServerTag().then(function () { return sendInvite(tag); }).then(function (retry) {
+                if (!retry || !retry.ok) {
+                  if (errEl) errEl.textContent = errMsg(retry && retry.error);
+                  return;
+                }
+                W.toast('Invite sent', 'Waiting for ' + (retry.to_tag || tag) + '…', I.check, 3600);
+                if (inputEl) inputEl.value = '';
+                refreshLobbyInbox();
+              });
+              return;
+            }
+            if (errEl) errEl.textContent = errMsg(res && res.error);
+            else W.toast('Could not invite', errMsg(res && res.error), I.info, 3600);
+            return;
+          }
+          W.toast('Invite sent', 'Waiting for ' + (res.to_tag || tag) + '…', I.check, 3600);
+          if (inputEl) inputEl.value = '';
+          refreshLobbyInbox();
+        });
+      });
+    }
+
+    function refreshLobbyInbox() {
+      fetchInbox().then(function () {
+        var box = W.$('[data-cduel-inbox]', body);
+        if (box) {
+          box.innerHTML = inboxHtml(lastInbox);
+          wireInbox(body, function (id) { enterMatch(id); });
+        }
+      });
+    }
+
+    function wireRematchButtons() {
+      W.$$('[data-cduel-rematch]', body).forEach(function (b) {
+        b.addEventListener('click', function () {
+          var tag = b.getAttribute('data-cduel-rematch');
+          var err = W.$('#cduel-err', body);
+          if (err) err.textContent = '';
+          doSendInvite(tag, err, null);
+        });
+      });
+    }
+
+    function loadLadderAndRematch() {
+      var ladderHost = W.$('[data-cduel-ladder]', body);
+      var rematchHost = W.$('[data-cduel-rematch-slot]', body);
+      var localTag = global.ChessElo && global.ChessElo.lastOpponentLocal
+        ? global.ChessElo.lastOpponentLocal()
+        : null;
+      if (rematchHost) {
+        rematchHost.innerHTML = rematchCardHtml(localTag);
+        wireRematchButtons();
+      }
+      if (ladderHost) ladderHost.innerHTML = ladderHtml(null);
+
+      var ladderP = global.ChessElo && global.ChessElo.weeklyLadder
+        ? global.ChessElo.weeklyLadder(10)
+        : Promise.resolve(null);
+      var oppP = global.ChessElo && global.ChessElo.lastOpponent
+        ? global.ChessElo.lastOpponent()
+        : Promise.resolve(localTag ? { ok: true, found: true, tag: localTag } : { found: false });
+
+      Promise.all([ladderP, oppP]).then(function (pair) {
+        if (destroyed || matchId) return;
+        var ladder = pair[0];
+        var opp = pair[1];
+        if (ladderHost) ladderHost.innerHTML = ladderHtml(ladder);
+        var tag = (opp && opp.found && opp.tag) || localTag;
+        if (rematchHost) {
+          rematchHost.innerHTML = rematchCardHtml(tag);
+          wireRematchButtons();
+        }
+      });
+    }
+
     function paintLobby() {
+      var localRematch = global.ChessElo && global.ChessElo.lastOpponentLocal
+        ? global.ChessElo.lastOpponentLocal()
+        : null;
       body.innerHTML =
         '<div class="duel-lobby">' +
           '<div class="duel-lobby__hero">' +
             '<div class="eyebrow">PvP · Geo Chess</div>' +
             '<h2>Challenge a friend</h2>' +
-            '<p>Look up their gamertag. They get an invite, accept, and you play a live chess match. You are White when you send the invite.</p>' +
+            '<p>Look up their gamertag. They get an invite, accept, and you play a live chess match. You are White when you send the invite. Climb this week’s Elo ladder, or rematch your last opponent.</p>' +
           '</div>' +
           '<div class="duel-invite panel">' +
             '<div class="panel__head"><h3>Invite by gamertag</h3></div>' +
+            '<div data-cduel-rematch-slot>' + rematchCardHtml(localRematch) + '</div>' +
             '<div class="field"><label class="field__label" for="cduel-tag">Friend’s gamertag</label>' +
               '<input class="input" id="cduel-tag" maxlength="16" autocomplete="off" autocapitalize="off" ' +
                 'spellcheck="false" placeholder="e.g. MapWizard"></div>' +
@@ -297,50 +440,19 @@ import { Chess } from '../vendor/chess.js/chess.js';
             '<div class="panel__head"><h3>Invites</h3></div>' +
             '<div data-cduel-inbox>' + inboxHtml(lastInbox) + '</div>' +
           '</div>' +
+          '<div class="chess-ladder panel" data-cduel-ladder>' + ladderHtml(null) + '</div>' +
         '</div>';
 
       W.$('[data-cduel-send]', body).addEventListener('click', function () {
         var input = W.$('#cduel-tag', body);
         var err = W.$('#cduel-err', body);
         var tag = (input.value || '').trim();
-        err.textContent = '';
-        ensureTag(function () {
-          sendInvite(tag).then(function (res) {
-            if (!res || !res.ok) {
-              if (res && res.error === 'no_gamertag') {
-                ensureServerTag().then(function () { return sendInvite(tag); }).then(function (retry) {
-                  if (!retry || !retry.ok) {
-                    err.textContent = errMsg(retry && retry.error);
-                    return;
-                  }
-                  W.toast('Invite sent', 'Waiting for ' + (retry.to_tag || tag) + '…', I.check, 3600);
-                  input.value = '';
-                  fetchInbox().then(function () {
-                    var box = W.$('[data-cduel-inbox]', body);
-                    if (box) {
-                      box.innerHTML = inboxHtml(lastInbox);
-                      wireInbox(body, function (id) { enterMatch(id); });
-                    }
-                  });
-                });
-                return;
-              }
-              err.textContent = errMsg(res && res.error);
-              return;
-            }
-            W.toast('Invite sent', 'Waiting for ' + (res.to_tag || tag) + '…', I.check, 3600);
-            input.value = '';
-            fetchInbox().then(function () {
-              var box = W.$('[data-cduel-inbox]', body);
-              if (box) {
-                box.innerHTML = inboxHtml(lastInbox);
-                wireInbox(body, function (id) { enterMatch(id); });
-              }
-            });
-          });
-        });
+        if (err) err.textContent = '';
+        doSendInvite(tag, err, input);
       });
+      wireRematchButtons();
       wireInbox(body, function (id) { enterMatch(id); });
+      loadLadderAndRematch();
       fetchInbox().then(function () {
         if (destroyed || matchId) return;
         if (lastInbox.active && lastInbox.active.id) {
@@ -579,11 +691,15 @@ import { Chess } from '../vendor/chess.js/chess.js';
         fifty: 'Fifty-move rule',
         abandoned: 'Abandoned'
       })[state.end_reason] || 'Game over';
+      var oppTag = state.my_color === 'w' ? state.black_tag : state.white_tag;
+      if (oppTag && global.ChessElo && global.ChessElo.rememberLastOpponent) {
+        global.ChessElo.rememberLastOpponent(oppTag);
+      }
       var sub = state.draw
-        ? reason + '. Rematch from the lobby anytime.'
+        ? reason + '. Rematch them below, or return to the lobby.'
         : (state.i_won
-          ? reason + '. Invite them again, or challenge someone new.'
-          : reason + '. ' + (state.winner_tag || 'Your opponent') + ' took this one.');
+          ? reason + '. Rematch, or challenge someone new from the lobby.'
+          : reason + '. ' + (state.winner_tag || 'Your opponent') + ' took this one — rematch anytime.');
       body.innerHTML =
         '<div class="duel-end">' +
           '<div class="duel-end__badge' + (state.i_won ? ' is-win' : state.draw ? '' : ' is-loss') + '">' +
@@ -595,11 +711,32 @@ import { Chess } from '../vendor/chess.js/chess.js';
           '</div>' +
           '<p>' + esc(sub) + '</p>' +
           '<div class="duel-end__actions">' +
-            '<button class="btn btn--accent" type="button" data-cduel-again>Back to lobby</button>' +
+            (oppTag
+              ? '<button class="btn btn--accent" type="button" data-cduel-rematch="' +
+                  esc(oppTag) + '">Rematch ' + esc(oppTag) + '</button>'
+              : '') +
+            '<button class="btn btn--ghost" type="button" data-cduel-again>Back to lobby</button>' +
             '<button class="btn btn--ghost" type="button" data-cduel-back>Game setup</button>' +
           '</div>' +
         '</div>';
       maybeRecord();
+      W.$$('[data-cduel-rematch]', body).forEach(function (b) {
+        b.addEventListener('click', function () {
+          var tag = b.getAttribute('data-cduel-rematch');
+          b.disabled = true;
+          ensureTag(function () {
+            sendInvite(tag).then(function (res) {
+              b.disabled = false;
+              if (!res || !res.ok) {
+                W.toast('Could not rematch', errMsg(res && res.error), I.info, 3600);
+                return;
+              }
+              W.toast('Rematch sent', 'Waiting for ' + (res.to_tag || tag) + '…', I.check, 3600);
+              matchId = null; state = null; entering = false; stopPoll(); paint();
+            });
+          });
+        });
+      });
       W.$('[data-cduel-again]', body).addEventListener('click', function () {
         matchId = null; state = null; entering = false; stopPoll(); paint();
       });

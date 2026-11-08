@@ -43,4 +43,9 @@ assert(Elo.seedEloFromCounts(0, 0, 1) === 984, 'one loss → −16');
 assert(Elo.seedEloFromCounts(0, 1, 0) === 1008, 'one draw → +8');
 assert(Elo.seedEloFromCounts(100, 0, 0) === 2000, 'seed capped at 2000');
 
+/* LEA-76 week helpers */
+assert(typeof Elo.weekKey === 'function', 'weekKey');
+assert(typeof Elo.fmtWeekDelta === 'function', 'fmtWeekDelta');
+assert(Elo.fmtWeekDelta(0) === '±0', 'zero week delta');
+
 console.log('test_chess_elo.js: ok');
