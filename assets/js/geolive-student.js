@@ -904,10 +904,14 @@
     function signinHtml() {
       return brandHtml() +
         '<div class="gl-join">' +
-          '<h2 class="gl__title">Sign in to play</h2>' +
-          '<p class="gl-verdict__note">A live game needs your account, so your' +
-            ' points go on the class board under your name. Sign in and come back to' +
-            ' the code.</p>' +
+          '<h2 class="gl__title">Join to play</h2>' +
+          '<p class="gl-verdict__note">A live game needs you on the class board.' +
+            ' On an iPad, type your teacher’s classroom passcode and your name —' +
+            ' no email signup. Or sign in with an account you already have.</p>' +
+          '<button type="button" class="btn btn--accent btn--lg btn--block" data-gl-pass>' +
+            'Classroom passcode</button>' +
+          '<button type="button" class="btn btn--ghost btn--block" data-gl-signin style="margin-top:8px">' +
+            'Sign in</button>' +
         '</div>';
     }
 
@@ -1248,7 +1252,32 @@
          every class this file emits and nothing else */
       var go = t.closest('[data-gl-go]');
       if (go && !go.disabled) { join(); return; }
-      if (t.closest('[data-gl-code]')) { stopSeek(); S.phase = 'join'; S.note = ''; render(); }
+      if (t.closest('[data-gl-code]')) { stopSeek(); S.phase = 'join'; S.note = ''; render(); return; }
+      if (t.closest('[data-gl-pass]')) {
+        if (global.ClassroomPass && global.ClassroomPass.openJoinModal) {
+          global.ClassroomPass.openJoinModal({
+            title: 'Join Geo Live with passcode',
+            then: function (row) {
+              if (S.dead) return;
+              if (row && row.name) S.name = row.name;
+              S.phase = signedIn() ? 'finding' : 'signin';
+              render();
+              if (signedIn()) seek();
+            }
+          });
+        }
+        return;
+      }
+      if (t.closest('[data-gl-signin]')) {
+        if (global.UI && global.UI.openAuth) {
+          global.UI.openAuth('signin', function () {
+            if (S.dead) return;
+            S.phase = 'finding';
+            render();
+            seek();
+          });
+        }
+      }
     }
 
     function onKey(ev) {

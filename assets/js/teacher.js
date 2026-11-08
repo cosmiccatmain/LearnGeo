@@ -245,6 +245,25 @@
     return !!(X && X.isAdmin && X.isAdmin(cls().cloudId));
   }
 
+  /* LEA-81: short iPad passcode chip beside the class code. */
+  function fillPassBanner() {
+    var slot = document.getElementById('tm-pass-banner');
+    if (!slot || adminClass()) return;
+    var CP = global.ClassroomPass;
+    var id = cls().cloudId || '';
+    if (!CP || !id) { slot.innerHTML = ''; return; }
+    CP.teacherPass(id).then(function (row) {
+      var pass = row && row.pass;
+      slot.innerHTML = pass ? CP.bannerHtml(pass) : '';
+      var btn = document.getElementById('tm-passcode');
+      if (btn && pass) {
+        btn.addEventListener('click', function () {
+          copy(pass, 'Classroom passcode copied');
+        });
+      }
+    }, function () { slot.innerHTML = ''; });
+  }
+
   function joinLink() {
     var c = classCode();
     if (!c) return '';
@@ -483,6 +502,7 @@
             switcher() +
             syncLine() +
           '</div>' +
+          '<div class="cr-banner__codes">' +
           (adminClass()
             ? '<div class="cr-banner__code cr-banner__code--admin" title="Students on the admin list join with the UltraAdmin code">' +
                 '<span>Admin classroom</span><b>' + I.shield + '</b></div>'
@@ -494,6 +514,8 @@
                 'title="Set your class up online">' +
                 '<span>Class code</span><b>Get one</b>' +
               '</button>') +
+          '<span id="tm-pass-banner"></span>' +
+          '</div>' +
         '</div>' +
 
         '<div class="cr-tabs">' +
@@ -519,6 +541,7 @@
     });
     var getBtn = document.getElementById('tm-getcode');
     if (getBtn) getBtn.addEventListener('click', shareInvite);
+    fillPassBanner();
     /* Bound here rather than in wirePanel, which only reaches inside
        #cr-body. The banner sits outside it, which is why the other two
        banner buttons are bound here too. */
@@ -620,6 +643,10 @@
     var tagHost = document.getElementById('cr-classtag');
     if (tagHost && global.ClassTag && global.ClassTag.mount) {
       global.ClassTag.mount(tagHost, { classId: cls().cloudId || '' });
+    }
+    var passHost = document.getElementById('cr-classroom-pass');
+    if (passHost && global.ClassroomPass && global.ClassroomPass.mountTeacher) {
+      global.ClassroomPass.mountTeacher(passHost, { classId: cls().cloudId || '' });
     }
 
     var lbHost = document.getElementById('cr-leaderboard');
@@ -1184,6 +1211,7 @@
                 'was created and it never changes.</div>'
             : '<div class="field__hint">You do not have one yet. Sign in and your class gets a ' +
               'code that students can actually use.</div>') + '</div>' +
+        '<div id="cr-classroom-pass"></div>' +
       '</div>' +
       '<div class="cr-card">' +
         '<div class="cr-card__head"><h3>Data</h3></div>' +

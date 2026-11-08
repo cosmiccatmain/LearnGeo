@@ -2177,6 +2177,25 @@ textarea.input:focus { outline: none; border-color: var(--accent); box-shadow: 0
 .cr-banner__code--none b {
   font-family: var(--sans); font-size: 15px; letter-spacing: -.01em; font-weight: 600;
 }
+.cr-banner__codes {
+  display: flex; flex-wrap: wrap; gap: 8px; align-items: stretch; flex: none;
+}
+.cr-banner__code--pass {
+  border-color: rgba(52, 211, 153, .45);
+  background: rgba(16, 185, 129, .18);
+}
+.cr-banner__code--pass span { color: #A7F3D0; }
+.code-chip--pass {
+  background: linear-gradient(135deg, #0F766E, #059669);
+  letter-spacing: .2em;
+}
+.cp-teacher__actions {
+  display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px;
+}
+.signin-hint--ok {
+  border-color: rgba(16, 185, 129, .35);
+  background: rgba(16, 185, 129, .08);
+}
 
 /* ---- section tabs ---- */
 .cr-tabs {

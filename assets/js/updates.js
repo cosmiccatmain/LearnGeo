@@ -20,6 +20,12 @@
      own What’s New id. */
   var UPDATES = [
     {
+      id: '2026-11-classroom-passcodes',
+      title: 'Classroom passcodes',
+      body: 'Teachers mint a short iPad passcode. Students type it plus their name to jump into Games and Geo Live — no email signup wall.',
+      date: '2026-11-07'
+    },
+    {
       id: '2026-11-achievement-awards',
       title: 'Award-style card backs',
       body: 'Flip an achievement card to see your gamertag under a colorful enamel award badge — title and status sit underneath, still in the same flip wallet.',

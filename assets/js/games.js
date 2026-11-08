@@ -931,11 +931,20 @@
         '</div>' +
         (guest
           ? '<div class="signin-hint" data-games-auth>' + I.user +
-              '<span>To play Games, make a free LearnGeo account (or sign in). Scores, gamertags, and matches stay with you.</span>' +
-              '<button class="btn btn--accent btn--sm" type="button" data-games-signup>Create account</button>' +
+              '<span>To play Games, use a classroom passcode from your teacher (fastest on iPads), or make a free LearnGeo account.</span>' +
+              '<button class="btn btn--accent btn--sm" type="button" data-games-pass>Classroom passcode</button>' +
+              '<button class="btn btn--ghost btn--sm" type="button" data-games-signup>Create account</button>' +
               '<button class="btn btn--ghost btn--sm" type="button" data-games-signin>Sign in</button>' +
             '</div>'
-          : '') +
+          : (global.ClassroomPass && global.ClassroomPass.session && global.ClassroomPass.session()
+              ? '<div class="signin-hint signin-hint--ok" data-games-pass-ok>' + I.check +
+                  '<span>Joined via classroom passcode' +
+                    (global.ClassroomPass.session().className
+                      ? ' · ' + esc(global.ClassroomPass.session().className) : '') +
+                    (global.ClassroomPass.session().name
+                      ? ' as ' + esc(global.ClassroomPass.session().name) : '') +
+                  '.</span></div>'
+              : '')) +
         '<div class="games__toolbar">' +
           '<span class="games__toolbar-label">Choose a game</span>' +
           '<button class="btn btn--ghost btn--sm" data-boards type="button">' + I.trophy + ' Leaderboards</button>' +
@@ -951,6 +960,15 @@
     W.$('[data-boards]', el).addEventListener('click', function () {
       /* Hub opens the All overview so every game is one tap away. */
       if (global.GameBoards) global.GameBoards.open();
+    });
+    var passBtn = W.$('[data-games-pass]', el);
+    if (passBtn) passBtn.addEventListener('click', function () {
+      if (global.ClassroomPass && global.ClassroomPass.openJoinModal) {
+        global.ClassroomPass.openJoinModal({
+          title: 'Join with classroom passcode',
+          then: function () { renderHub(); }
+        });
+      }
     });
     var signupBtn = W.$('[data-games-signup]', el);
     if (signupBtn) signupBtn.addEventListener('click', function () {
@@ -990,7 +1008,13 @@
   }
 
   function signedIn() { return !!(global.Cloud && global.Cloud.signedIn); }
-  function needsAccount() { return !signedIn(); }
+  /* LEA-81: a redeemed classroom passcode counts as enough to play on
+     shared iPads — same gate Games hub uses for cards and setup. */
+  function needsAccount() {
+    if (signedIn()) return false;
+    if (global.ClassroomPass && global.ClassroomPass.unlocked()) return false;
+    return true;
+  }
 
   /* Friendly gate → existing auth modal. `mode` is signup|signin; after a
      successful account the optional `then` resumes the play path. */
@@ -1012,15 +1036,23 @@
     if (mode === 'signup' || mode === 'signin') { open(mode); return; }
     if (global.UI && global.UI.modal) {
       global.UI.modal({
-        title: 'Make an account to play',
+        title: 'Join to play',
         icon: I.user,
-        body: '<p class="t-muted" style="margin:0">Games keep your scores, gamertag, and matches on your LearnGeo account. ' +
-          'Create a free account or sign in — then come back and play.</p>',
+        body: '<p class="t-muted" style="margin:0">On a class iPad, use your teacher’s classroom passcode (no email). ' +
+          'Or create a free LearnGeo account so scores and gamertags stay with you.</p>',
         actions: [
           { label: 'Not now', cls: 'btn--ghost', close: true },
+          { label: 'Classroom passcode', cls: 'btn--accent', close: true,
+            onClick: function () {
+              if (global.ClassroomPass && global.ClassroomPass.openJoinModal) {
+                global.ClassroomPass.openJoinModal({
+                  then: function () { resume(); }
+                });
+              }
+            } },
           { label: 'Sign in', cls: 'btn--ghost', close: true,
             onClick: function () { open('signin'); } },
-          { label: 'Create account', cls: 'btn--accent', close: true,
+          { label: 'Create account', cls: 'btn--ghost', close: true,
             onClick: function () { open('signup'); } }
         ]
       });
