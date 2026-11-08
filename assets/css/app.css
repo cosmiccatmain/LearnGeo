@@ -576,7 +576,7 @@ a { color: inherit; text-decoration: none; }
 }
 .map-pane { flex: 1; }
 /* every Leaflet host must fill its pane, or the map initialises at zero height */
-#map, #map-test, #map-quiz, #cards-map { position: absolute; inset: 0; }
+#map, #map-test, #map-quiz, #map-roadtrip, #cards-map { position: absolute; inset: 0; }
 .leaflet-container { background: #F4F6F8; font-family: var(--sans); }
 .leaflet-container:focus-visible {
   outline: none;

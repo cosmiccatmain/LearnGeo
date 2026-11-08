@@ -720,9 +720,11 @@
       nodeId = les.id;
     }
     if (!global.Quiz) return;
+    /* identify is intentional: shaded-country MC needs the map host below.
+       flag/flagpick can also fall back to identify via Quiz.fitType. */
     var qs = global.Quiz.generate({
       countries: countries,
-      types: ['capital', 'country', 'flag', 'flagpick'],
+      types: ['capital', 'country', 'identify', 'flag', 'flagpick'],
       count: count,
       typed: false,
       weakFirst: true
@@ -731,6 +733,7 @@
       W.toast('Empty lesson', 'No questions for that stop.', I.info, 2800);
       return;
     }
+    if (global.GeoMap && global.GeoMap.loadShapes) global.GeoMap.loadShapes();
     run = {
       phase: 'running',
       unitId: unit.id,
@@ -744,11 +747,57 @@
     renderQuestion();
   }
 
+  /* Map panel is required when the prompt refers to a shaded / clickable
+     country. Other types stay text+MC only so the card does not grow empty. */
+  function needsMap(q) {
+    return !!(q && (q.type === 'identify' || q.type === 'locate' || q.revealOnMap));
+  }
+
+  function paintMap(q, reveal) {
+    var mapHost = document.getElementById('map-roadtrip');
+    if (!mapHost || !global.GeoMap || !q) return;
+    var paint = function () {
+      if (!mapHost.isConnected) return;
+      if (!global.GeoMap.ensure(mapHost)) return;
+      global.GeoMap.clear();
+      if (q.type === 'locate' && q.mapChoices && q.mapChoices.length) {
+        q.mapChoices.forEach(function (c) {
+          var state = 'choice';
+          if (reveal) {
+            if (c.name === q.country.name) state = 'right';
+            else state = 'dim';
+          }
+          global.GeoMap.drawCountry(c, state, null, reveal ? c.name : null);
+        });
+        global.GeoMap.fitAll(q.mapChoices, 80);
+      } else {
+        global.GeoMap.drawCountry(
+          q.country,
+          reveal ? 'right' : 'target',
+          null,
+          reveal ? q.country.name : null
+        );
+        global.GeoMap.frame(q.country, 90);
+      }
+      global.GeoMap.setGuard(!reveal);
+    };
+    if (global.GeoMap.loadShapes) {
+      global.GeoMap.loadShapes().then(paint);
+    } else {
+      paint();
+    }
+  }
+
   function renderQuestion() {
     var el = host();
     if (!el || !run) return;
     var q = run.qs[run.i];
     var pct = Math.round((run.i / run.qs.length) * 100);
+    var mapHtml = needsMap(q)
+      ? '<div class="rt-map" aria-label="Map showing the shaded country">' +
+          '<div id="map-roadtrip" class="rt-map__host" role="img" ' +
+            'aria-label="Shaded country on the map"></div></div>'
+      : '';
     el.innerHTML =
       '<div class="rtpath rtpath--run">' +
         '<div class="rt-runbar">' +
@@ -767,6 +816,7 @@
           '</div>' +
           '<div class="qprompt">' + esc(q.prompt) + '</div>' +
           '<div class="qsubject">' + global.Quiz.subjectHtml(q) + '</div>' +
+          mapHtml +
           '<div class="' + global.Quiz.optionsClass(q) + '" id="rt-opts"></div>' +
           '<div id="rt-fb"></div>' +
         '</div>' +
@@ -785,6 +835,7 @@
         opts.appendChild(b);
       });
     }
+    if (needsMap(q)) paintMap(q, false);
     W.$('#rt-leave', el).addEventListener('click', function () {
       if (active() && !global.confirm('Leave this lesson? This run will be lost.')) return;
       abandon();
@@ -817,6 +868,7 @@
       if (c && c.text === q.answerText) n.classList.add('is-right');
       if (i === idx && !correct) n.classList.add('is-wrong');
     });
+    if (needsMap(q)) paintMap(q, true);
     var fb = W.$('#rt-fb', el);
     if (fb) {
       var detail = correct
