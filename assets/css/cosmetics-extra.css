@@ -181,7 +181,8 @@
 .shop-item__vis--fx-live .fx-preview {
   position: absolute !important;
   margin: 0 !important;
-  left: calc(12% + var(--fx-i, 0) * 18%);
+  /* Four particles: 26/42/58/74 — cluster centered in the tile. */
+  left: calc(26% + var(--fx-i, 0) * 16%);
   top: 18%;
   animation-duration: 2.4s;
   animation-delay: calc(var(--fx-i, 0) * .28s);
@@ -191,11 +192,11 @@
 .shop-item__vis--fx-live .fx-preview.fx-motion-rise,
 .shop-item__vis--fx-live .fx-preview.fx-motion-embers,
 .shop-item__vis--fx-live .fx-preview.fx-motion-flutter {
-  top: 62%;
+  top: 58%;
 }
 .shop-item__vis--fx-live .fx-preview.fx-motion-twinkle {
   top: 36%;
-  left: calc(18% + var(--fx-i, 0) * 16%);
+  left: calc(26% + var(--fx-i, 0) * 16%);
 }
 .shop-item.is-equipped .shop-item__vis--fx-live {
   box-shadow: inset 0 0 0 1.5px var(--accent);

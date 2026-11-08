@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>LEA-101 centering preview</title>
+  <link rel="stylesheet" href="/assets/css/app.css">
+  <link rel="stylesheet" href="/assets/css/cosmetics-extra.css">
+  <link rel="stylesheet" href="/assets/css/game-boards.css">
+  <link rel="stylesheet" href="/assets/css/roadtrip.css">
+  <style>
+    body { margin: 0; padding: 28px; background: #F4F6F8; font-family: var(--sans, system-ui); }
+    h1 { font-size: 18px; margin: 0 0 18px; }
+    .row { display: flex; flex-wrap: wrap; gap: 28px; align-items: flex-start; }
+    .panel {
+      background: #fff; border: 1px solid #E5E7EB; border-radius: 16px;
+      padding: 18px; box-shadow: 0 8px 24px rgba(15,23,42,.06);
+    }
+    .panel h2 { margin: 0 0 14px; font-size: 13px; letter-spacing: .06em; text-transform: uppercase; color: #6B7280; }
+  </style>
+</head>
+<body>
+  <h1>LEA-101 centering polish</h1>
+  <div class="row">
+    <div class="panel" id="prem-panel">
+      <h2>Premium shop tile</h2>
+      <div class="shop-grid" style="grid-template-columns: 1fr; width: 160px">
+        <button class="shop-item is-locked shop-item--premium" type="button">
+          <span class="shop-item__vis shop-item__vis--fx shop-item__vis--fx-live" data-fx-motion="rise" style="background:var(--paper)">
+            <i class="fx-ring fx-motion-rise fx-preview" style="border-color:#0EA5E9;--fx-i:0;--fx-scale:0.75"></i>
+            <i class="fx-ring fx-motion-rise fx-preview" style="border-color:#22D3EE;--fx-i:1;--fx-scale:0.87"></i>
+            <i class="fx-ring fx-motion-rise fx-preview" style="border-color:#67E8F9;--fx-i:2;--fx-scale:0.99"></i>
+            <i class="fx-ring fx-motion-rise fx-preview" style="border-color:#0EA5E9;--fx-i:3;--fx-scale:1.11"></i>
+          </span>
+          <span class="shop-item__name">Deep Current<span class="shop-item__prem" title="Premium">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17 4.5 8l4.2 3.2L12 5l3.3 6.2L19.5 8 21 17z"/><path d="M4 20h16"/></svg><span>Premium</span></span></span>
+          <span class="shop-item__owned">Upgrade</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="panel" id="trophy-panel">
+      <h2>Leaderboard trophies</h2>
+      <ol class="lb-list" style="min-width:280px">
+        <li class="lb-row">
+          <span class="lb-rank lb-rank--1"><span class="lb-trophy" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M6 2h12v7a6 6 0 0 1-12 0z"/><path d="M9 21h6M12 15v6"/></svg><b>1</b>
+          </span></span>
+          <span class="lb-name">oliver_m</span>
+          <span class="lb-score mono">1 win</span>
+        </li>
+        <li class="lb-row">
+          <span class="lb-rank lb-rank--2">2</span>
+          <span class="lb-name">Itsalbie</span>
+          <span class="lb-score mono">1187 Elo</span>
+        </li>
+        <li class="lb-row">
+          <span class="lb-rank lb-rank--3">3</span>
+          <span class="lb-name">Anderdingus</span>
+          <span class="lb-score mono">1106 Elo</span>
+        </li>
+      </ol>
+    </div>
+
+    <div class="panel" id="node-panel">
+      <h2>Journey nodes</h2>
+      <div class="rtpath__trail" style="min-height:0;padding:8px 24px">
+        <div class="rtnode__row" style="transform:none">
+          <div class="rtnode is-done">
+            <button type="button" class="rtnode__btn">
+              <span class="rtnode__ic">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m20 6-11 11-5-5"/></svg>
+              </span>
+            </button>
+            <div class="rtnode__label">Maghreb coast</div>
+          </div>
+        </div>
+        <div class="rtnode__row" style="transform:none;margin-top:18px">
+          <div class="rtnode is-done rtnode--chest">
+            <button type="button" class="rtnode__btn">
+              <span class="rtnode__ic">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m20 6-11 11-5-5"/></svg>
+              </span>
+            </button>
+            <div class="rtnode__label">Route chest</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

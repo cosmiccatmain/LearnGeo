@@ -486,7 +486,10 @@
       var gap = prev && r.rank > prev + 1 ? '<li class="lb-gap" aria-hidden="true">…</li>' : '';
       prev = r.rank;
       var medal = r.rank <= 3 ? ' lb-rank--' + r.rank : '';
-      var rankHtml = r.rank === 1 ? I.trophy : String(r.rank);
+      /* Rank 1 keeps the trophy, with the digit centered in the cup. */
+      var rankHtml = r.rank === 1
+        ? '<span class="lb-trophy" aria-hidden="true">' + I.trophy + '<b>1</b></span>'
+        : String(r.rank);
       return gap + '<li class="lb-row' + (r.mine ? ' is-mine' : '') + '">' +
         '<span class="lb-rank' + medal + '">' + rankHtml + '</span>' +
         '<span class="lb-name">' + esc(r.gamertag) + (r.mine ? ' <i>you</i>' : '') + '</span>' +
