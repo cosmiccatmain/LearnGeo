@@ -10,6 +10,9 @@
     { "source": "/quiz", "destination": "/index.html" },
     { "source": "/roadtrip", "destination": "/index.html" },
     { "source": "/games", "destination": "/index.html" },
-    { "source": "/achievements", "destination": "/index.html" }
+    { "source": "/achievements", "destination": "/index.html" },
+    { "source": "/countries", "destination": "/countries/index.html" },
+    { "source": "/countries/:slug", "destination": "/countries/:slug/index.html" },
+    { "source": "/continents/:slug", "destination": "/continents/:slug/index.html" }
   ]
 }

@@ -25,6 +25,12 @@ class AppHandler(SimpleHTTPRequestHandler):
     def rewrite_route(self):
         url = urlsplit(self.path)
         route = ROUTES.get(url.path.rstrip('/'))
+        if not route:
+            # /countries/france and the like are folders with an index.html,
+            # served without the trailing slash just as Vercel does.
+            folder = ROOT / url.path.strip('/')
+            if url.path.strip('/') and (folder / 'index.html').is_file():
+                route = '/' + url.path.strip('/') + '/index.html'
         if route:
             self.path = route + ('?' + url.query if url.query else '')
 

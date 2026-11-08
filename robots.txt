@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /tools/
+Disallow: /tests/
+Disallow: /scripts/
+Disallow: /supabase/
+Disallow: /agents/
+
+Sitemap: https://www.learngeo.app/sitemap.xml
