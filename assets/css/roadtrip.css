@@ -624,6 +624,14 @@
   background: #F59E0B; color: #fff;
   box-shadow: 0 5px 0 #B45309, 0 0 0 7px rgba(245,158,11,.2);
 }
+/* LEA-111 — admin gift chests: teal gift badge, still OPEN/GIFT tip. */
+.rtnode--chest.is-gift.is-current .rtnode__btn {
+  background: #0F766E; color: #fff;
+  box-shadow: 0 5px 0 #115E59, 0 0 0 7px rgba(15,118,110,.22);
+}
+.rtnode--chest.is-gift .rtnode__tip {
+  background: #0F766E;
+}
 .rtnode--trophy.is-current .rtnode__btn {
   background: #7C3AED; color: #fff;
   box-shadow: 0 5px 0 #5B21B6, 0 0 0 7px rgba(124,58,237,.2);
