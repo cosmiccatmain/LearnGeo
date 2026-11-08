@@ -46,14 +46,32 @@ function load(mastery) {
     gem(n) { return '+' + n; },
     award() { return { xp: 10, gems: 4, mult: 1 }; },
     save() {},
-    shuffle(a) { return a.slice(); },
+    shuffle(a) {
+      const out = a.slice();
+      for (let i = out.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        const t = out[i]; out[i] = out[j]; out[j] = t;
+      }
+      return out;
+    },
     sample(a, n) { return a.slice(0, n); },
     pick(a) { return a[0]; },
     tight(s) { return String(s || '').toLowerCase().replace(/[^a-z0-9]/g, ''); },
     matches(a, b) { return WW.tight(a) === WW.tight(b); },
-    el() { return { className: '', dataset: {}, innerHTML: '', addEventListener() {} }; },
+    el(tag, cls) {
+      return {
+        className: cls || '', dataset: {}, innerHTML: '',
+        style: { setProperty() {} },
+        setAttribute() {}, getAttribute() { return null; },
+        querySelector() { return null; },
+        addEventListener() {}, appendChild() {}
+      };
+    },
     $() { return null; },
     $$() { return []; },
+    xpToNext(level) { return 80 + 40 * level; },
+    Sound: { gem() {}, flip() {}, levelUp() {}, correct() {}, wrong() {} },
+    confetti() {},
     state: {
       mastery: mastery || {},
       streak: { current: 0, best: 4 },
@@ -62,6 +80,14 @@ function load(mastery) {
       skills: {},
       daily: {},
       achievements: [],
+      settings: { sound: true, effects: true },
+      profile: {},
+      owned: {
+        decorations: ['none', 'ring-slate'],
+        effects: ['none', 'spark'],
+        nameplates: ['none', 'parchment'],
+        banners: ['plain', 'meadow']
+      },
       roadtrip: {
         unitId: 'africa-north', done: {}, claimed: {}, read: {},
         xpEarned: 0, gemsEarned: 0
@@ -166,6 +192,62 @@ test('no Stripe checkout or screen-share hooks in roadtrip mode', () => {
   assert.match(src, /Share journey|shareUrlFor|progressSnapshot/);
   assert.match(src, /prefers-reduced-motion|reduceMotion/);
   assert.match(src, /SLIDE_MS|slideToUnit|is-enter-right/);
+});
+
+test('LEA-105 route chest uses overlay open + rarity loot (not silent +40)', () => {
+  const src = fs.readFileSync(path.join(root, 'assets/js/mode-roadtrip.js'), 'utf8');
+  assert.match(src, /function showChestOverlay|rt-chest-overlay/);
+  assert.match(src, /rollChestRarity|buildChestLoot|applyChestLoot/);
+  assert.match(src, /CHEST_RARITIES|legendary|is-upgrade-flash/);
+  assert.match(src, /Journey boost|type:\s*'boost'|type:\s*'cosmetic'/);
+  assert.match(src, /W\.Sound\.(gem|levelUp|flip)/);
+  assert.match(src, /prefers-reduced-motion|reduceMotion|is-reduced/);
+  assert.doesNotMatch(src, /W\.state\.economy\.diamonds\s*\+=\s*40/);
+  assert.doesNotMatch(src, /\+40 diamonds for the (road|journey)/);
+  assert.match(src, /Journey chest|aria-label',\s*'Journey chest/);
+  assert.doesNotMatch(src, /Road Trips route chest|Open a Road Trips/);
+
+  const { RoadTripMode, WW } = load();
+  assert.ok(RoadTripMode.CHEST_RARITIES.length === 4);
+  assert.equal(RoadTripMode.CHEST_RARITIES[0].id, 'common');
+  assert.equal(RoadTripMode.CHEST_RARITIES[3].id, 'legendary');
+
+  /* Forced no-upgrade → common loot always has gems + XP. */
+  const never = () => 0.99;
+  const commonRoll = RoadTripMode.rollChestRarity(never);
+  assert.equal(commonRoll.rarity, 'common');
+  assert.equal([].concat(commonRoll.path).join(','), 'common');
+  const commonLoot = RoadTripMode.buildChestLoot('common', RoadTripMode.units[0], never);
+  assert.equal(commonLoot.rarity, 'common');
+  assert.ok(commonLoot.rewards.some(r => r.type === 'gems' && r.amount >= 35 && r.amount <= 50));
+  assert.ok(commonLoot.rewards.some(r => r.type === 'xp' && r.amount >= 20 && r.amount <= 40));
+
+  /* Forced full upgrade cascade. */
+  const always = () => 0;
+  const legend = RoadTripMode.rollChestRarity(always);
+  assert.equal(legend.rarity, 'legendary');
+  assert.equal([].concat(legend.path).join(','), 'common,rare,epic,legendary');
+  const legendLoot = RoadTripMode.buildChestLoot('legendary', RoadTripMode.units[0], always);
+  assert.ok(legendLoot.rewards.some(r => r.type === 'gems' && r.amount >= 160));
+  assert.ok(legendLoot.rewards.some(r => r.type === 'boost'));
+  assert.ok(legendLoot.rewards.some(r => r.type === 'cosmetic' || r.type === 'gems'));
+
+  const beforeGems = WW.state.economy.diamonds;
+  const applied = RoadTripMode.applyChestLoot(commonLoot, RoadTripMode.units[0], never);
+  assert.ok(applied.gems > 0);
+  assert.ok(applied.xp > 0);
+  assert.equal(WW.state.economy.diamonds, beforeGems + applied.gems);
+  assert.equal(WW.state.roadtrip.gemsEarned, applied.gems);
+  assert.equal(WW.state.roadtrip.xpEarned, applied.xp);
+});
+
+test('LEA-105 chest CSS covers overlay stages and reduced-motion', () => {
+  const css = fs.readFileSync(path.join(root, 'assets/css/roadtrip.css'), 'utf8');
+  assert.match(css, /\.rt-chest-overlay\b/);
+  assert.match(css, /data-chest-stage|rt-chest-shake|rt-chest-burst/);
+  assert.match(css, /data-rarity|is-upgrade-flash/);
+  assert.match(css, /rt-chest__prize/);
+  assert.match(css, /prefers-reduced-motion:\s*reduce[\s\S]*rt-chest/);
 });
 
 test('LEA-96 share payload round-trips and builds a /roadtrip?road= link', () => {
