@@ -55,8 +55,13 @@ token and verify class ownership before touching anything.
 
 Under Authentication:
 
-- **Site URL** — the Vercel production URL.
-- **Redirect URLs** — add `http://localhost:8765` and `http://localhost:8765/**` so password recovery works against the dev server.
+- **Site URL** — `https://www.learngeo.app` (Vercel production).
+- **Redirect URLs** — allow the site root (and wildcards) the client passes as `redirectTo`:
+  - `https://www.learngeo.app/`
+  - `https://www.learngeo.app/**`
+  - `https://learngeo.app/` and `https://learngeo.app/**` if the apex hosts the app
+  - `http://localhost:8765/` and `http://localhost:8765/**` for local recovery / OAuth return
+- **Google provider (LEA-113)** — enable Google, paste the Web client ID and secret from Google Cloud. In Google Cloud → Credentials → OAuth client (Web), set Authorized redirect URI to exactly `https://envecwhnnktltfoypekk.supabase.co/auth/v1/callback` (also add Authorized JavaScript origins for `https://www.learngeo.app` and `http://localhost:8765`). Supabase automatic identity linking already matches Google to an existing email/password user when the email is the same and verified.
 - **Email confirmations — off.** A confirmation wall makes a forty-minute lesson impossible, and the real gate is the class code plus teacher approval. The cost is that addresses are unverified and self-serve password reset only works for a real inbox, which is why the teacher can reset a student's password.
 
 Then send back the project URL and the publishable key

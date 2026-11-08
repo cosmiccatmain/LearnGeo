@@ -15,12 +15,20 @@
 .pw-eye:hover { color: var(--ink); background: var(--line-soft); }
 .pw-eye.is-on { color: var(--accent); }
 
-/* ---- sign in with a passkey ---- */
+/* ---- sign in with a passkey / Google (LEA-113) ---- */
 .passkey-row { margin-bottom: 18px; }
 .passkey-btn { gap: 9px; }
+.oauth-row {
+  display: grid; gap: 8px; margin: 0 0 4px;
+}
+.oauth-google {
+  gap: 10px; font-weight: 560;
+}
+.oauth-google__mark { flex: none; }
+.oauth-google.is-busy { opacity: .7; pointer-events: none; }
 .auth-or {
   display: flex; align-items: center; gap: 12px;
-  margin: 14px 0 0; color: var(--faint); font-size: 12.5px;
+  margin: 14px 0 16px; color: var(--faint); font-size: 12.5px;
 }
 .auth-or::before, .auth-or::after {
   content: ''; flex: 1; height: 1px; background: var(--line);

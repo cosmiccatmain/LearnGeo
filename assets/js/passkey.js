@@ -294,18 +294,30 @@
     /* the sign-in dialog, which has an email box but no name box */
     if (!modal.querySelector('#au-email') || modal.querySelector('#au-name')) return;
     var body = modal.querySelector('.modal__body');
-    if (!body || body.querySelector('.passkey-row')) return;
+    if (!body || body.querySelector('.passkey-btn')) return;
 
-    var row = document.createElement('div');
-    row.className = 'passkey-row';
-    row.innerHTML =
-      '<button type="button" class="btn btn--ghost btn--block passkey-btn">' +
-        PASSKEY_ICON + ' Sign in with a passkey</button>' +
-      '<div class="auth-or"><span>or use your password</span></div>';
-    body.insertBefore(row, body.firstChild);
-    row.querySelector('.passkey-btn').addEventListener('click', function (e) {
+    /* LEA-113: sit beside Continue with Google when that row is present,
+       otherwise keep the older top-of-dialog passkey + divider layout. */
+    var oauth = body.querySelector('.oauth-row');
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'btn btn--ghost btn--block passkey-btn';
+    btn.innerHTML = PASSKEY_ICON + ' Sign in with a passkey';
+    btn.addEventListener('click', function (e) {
       signIn(e.currentTarget, modal);
     });
+    if (oauth) {
+      oauth.appendChild(btn);
+      return;
+    }
+    var row = document.createElement('div');
+    row.className = 'passkey-row';
+    row.appendChild(btn);
+    var divider = document.createElement('div');
+    divider.className = 'auth-or';
+    divider.innerHTML = '<span>or use your password</span>';
+    row.appendChild(divider);
+    body.insertBefore(row, body.firstChild);
   }
 
   /* Settings has an account row with a Sign out button. Passkeys belong
