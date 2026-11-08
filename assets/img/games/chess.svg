@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 644 296" width="644" height="296" role="img" aria-label="Geo Chess">
+  <!-- LEA-104 brand-new LearnGeo hub cover — vector, not a sheet crop -->
+  
+      <defs>
+        <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#1A2438"/><stop offset="100%" stop-color="#0B1520"/>
+        </linearGradient>
+        <linearGradient id="knight" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#F8FAFC"/><stop offset="100%" stop-color="#CBD5E1"/>
+        </linearGradient>
+      </defs>
+      <rect width="644" height="296" fill="url(#bg)"/>
+      <g opacity=".9">
+        <rect x="40" y="110" width="68" height="34" fill="#5C4033" opacity=".85"/><rect x="110" y="110" width="68" height="34" fill="#D2B48C" opacity=".85"/><rect x="180" y="110" width="68" height="34" fill="#5C4033" opacity=".85"/><rect x="250" y="110" width="68" height="34" fill="#D2B48C" opacity=".85"/><rect x="320" y="110" width="68" height="34" fill="#5C4033" opacity=".85"/><rect x="390" y="110" width="68" height="34" fill="#D2B48C" opacity=".85"/><rect x="460" y="110" width="68" height="34" fill="#5C4033" opacity=".85"/><rect x="530" y="110" width="68" height="34" fill="#D2B48C" opacity=".85"/><rect x="48" y="146" width="62.96296296296296" height="34" fill="#D2B48C" opacity=".85"/><rect x="112.81481481481481" y="146" width="62.96296296296296" height="34" fill="#5C4033" opacity=".85"/><rect x="177.62962962962962" y="146" width="62.96296296296296" height="34" fill="#D2B48C" opacity=".85"/><rect x="242.44444444444443" y="146" width="62.96296296296296" height="34" fill="#5C4033" opacity=".85"/><rect x="307.25925925925924" y="146" width="62.96296296296296" height="34" fill="#D2B48C" opacity=".85"/><rect x="372.074074074074" y="146" width="62.96296296296296" height="34" fill="#5C4033" opacity=".85"/><rect x="436.88888888888886" y="146" width="62.96296296296296" height="34" fill="#D2B48C" opacity=".85"/><rect x="501.7037037037037" y="146" width="62.96296296296296" height="34" fill="#5C4033" opacity=".85"/><rect x="56" y="182" width="58.62068965517242" height="34" fill="#5C4033" opacity=".85"/><rect x="116.3448275862069" y="182" width="58.62068965517242" height="34" fill="#D2B48C" opacity=".85"/><rect x="176.6896551724138" y="182" width="58.62068965517242" height="34" fill="#5C4033" opacity=".85"/><rect x="237.0344827586207" y="182" width="58.62068965517242" height="34" fill="#D2B48C" opacity=".85"/><rect x="297.3793103448276" y="182" width="58.62068965517242" height="34" fill="#5C4033" opacity=".85"/><rect x="357.72413793103453" y="182" width="58.62068965517242" height="34" fill="#D2B48C" opacity=".85"/><rect x="418.0689655172414" y="182" width="58.62068965517242" height="34" fill="#5C4033" opacity=".85"/><rect x="478.4137931034483" y="182" width="58.62068965517242" height="34" fill="#D2B48C" opacity=".85"/><rect x="64" y="218" width="54.83870967741935" height="34" fill="#D2B48C" opacity=".85"/><rect x="120.45161290322581" y="218" width="54.83870967741935" height="34" fill="#5C4033" opacity=".85"/><rect x="176.90322580645162" y="218" width="54.83870967741935" height="34" fill="#D2B48C" opacity=".85"/><rect x="233.35483870967744" y="218" width="54.83870967741935" height="34" fill="#5C4033" opacity=".85"/><rect x="289.80645161290323" y="218" width="54.83870967741935" height="34" fill="#D2B48C" opacity=".85"/><rect x="346.258064516129" y="218" width="54.83870967741935" height="34" fill="#5C4033" opacity=".85"/><rect x="402.7096774193549" y="218" width="54.83870967741935" height="34" fill="#D2B48C" opacity=".85"/><rect x="459.16129032258067" y="218" width="54.83870967741935" height="34" fill="#5C4033" opacity=".85"/><rect x="72" y="254" width="51.515151515151516" height="34" fill="#5C4033" opacity=".85"/><rect x="125.03030303030303" y="254" width="51.515151515151516" height="34" fill="#D2B48C" opacity=".85"/><rect x="178.06060606060606" y="254" width="51.515151515151516" height="34" fill="#5C4033" opacity=".85"/><rect x="231.0909090909091" y="254" width="51.515151515151516" height="34" fill="#D2B48C" opacity=".85"/><rect x="284.1212121212121" y="254" width="51.515151515151516" height="34" fill="#5C4033" opacity=".85"/><rect x="337.1515151515151" y="254" width="51.515151515151516" height="34" fill="#D2B48C" opacity=".85"/><rect x="390.1818181818182" y="254" width="51.515151515151516" height="34" fill="#5C4033" opacity=".85"/><rect x="443.21212121212125" y="254" width="51.515151515151516" height="34" fill="#D2B48C" opacity=".85"/>
+      </g>
+      <ellipse cx="470" cy="210" rx="70" ry="16" fill="#0B1520" opacity=".35"/>
+      <text x="470" y="205" text-anchor="middle"
+        font-family="Georgia,'Times New Roman',serif" font-size="150" fill="url(#knight)"
+        stroke="#0B1520" stroke-width="4" paint-order="stroke fill">♞</text>
+      <circle cx="180" cy="70" r="8" fill="#FFD23F" opacity=".85"/>
+      <circle cx="210" cy="54" r="5" fill="#7CF3FF" opacity=".7"/>
+    
+  <defs>
+    <linearGradient id="titleFade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0B1520" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#0B1520" stop-opacity="0.72"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="208" width="644" height="88" fill="url(#titleFade)"/>
+  <text x="28" y="268" font-family="system-ui,-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif"
+    font-size="34" font-weight="800" fill="#FFFFFF" letter-spacing="-0.5">Geo Chess</text>
+</svg>

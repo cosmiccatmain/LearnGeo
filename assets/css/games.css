@@ -1,8 +1,8 @@
 /* ------------------------------------------------------------------
-   LEA-98 — Games hub card chrome
-   Cover art stays the exact LEA-91 sheet crops (assets/img/games/*.png).
-   This file only frames those crops: grid rhythm, borders/shadows,
-   typography strip, hover/press. Original LearnGeo fonts.
+   Games hub card chrome (LEA-98 frame + LEA-104 vector covers)
+   Cover art: brand-new SVGs in assets/img/games/*.svg (not sheet crops).
+   This file frames covers: grid rhythm, borders/shadows, typography
+   strip, hover/press. Original LearnGeo fonts in UI chrome.
 -------------------------------------------------------------------*/
 
 .games .games__grid {
@@ -69,7 +69,7 @@ button.game-card.game-card--cover.is-picked {
 .game-card--cover .game-card__art {
   position: relative;
   height: auto;
-  aspect-ratio: 161 / 74;
+  aspect-ratio: 644 / 296;
   border-radius: 10px;
   overflow: hidden;
   background: #0B1520;
@@ -92,9 +92,8 @@ button.game-card.game-card--cover.is-picked {
   height: 100%;
   object-fit: cover;
   object-position: center;
-  /* Exact sheet pixels — no soft upscale blur */
-  image-rendering: -webkit-optimize-contrast;
-  image-rendering: crisp-edges;
+  /* Vector SVG covers — smooth scaling, not pixel-art crops */
+  image-rendering: auto;
   pointer-events: none;
   user-select: none;
   transform: translateZ(0);
@@ -108,7 +107,7 @@ button.game-card.game-card--cover.is-picked {
   min-height: 0;
 }
 
-/* Title is already painted on the LEA-91 cover — keep for a11y only */
+/* Title is painted on the SVG cover — keep DOM title for a11y only */
 .game-card--cover .game-card__title {
   position: absolute !important;
   width: 1px;

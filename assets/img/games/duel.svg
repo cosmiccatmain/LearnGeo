@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 644 296" width="644" height="296" role="img" aria-label="Geo Duel">
+  <!-- LEA-104 brand-new LearnGeo hub cover — vector, not a sheet crop -->
+  
+      <defs>
+        <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#152038"/>
+          <stop offset="50%" stop-color="#0B1520"/>
+          <stop offset="100%" stop-color="#1A1020"/>
+        </linearGradient>
+        <linearGradient id="lflag" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#F8FAFC"/><stop offset="50%" stop-color="#F8FAFC"/>
+          <stop offset="50%" stop-color="#DC2626"/><stop offset="100%" stop-color="#DC2626"/>
+        </linearGradient>
+        <linearGradient id="rflag" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#009246"/><stop offset="33%" stop-color="#009246"/>
+          <stop offset="33%" stop-color="#F8FAFC"/><stop offset="66%" stop-color="#F8FAFC"/>
+          <stop offset="66%" stop-color="#CE2B37"/><stop offset="100%" stop-color="#CE2B37"/>
+        </linearGradient>
+      </defs>
+      <rect width="644" height="296" fill="url(#bg)"/>
+      <path d="M0 0 L354.20000000000005 0 L270.48 296 L0 296 Z" fill="#1B3A6B" opacity=".55"/>
+      <path d="M289.8 0 L644 0 L644 296 L244.72 296 Z" fill="#6B1B2A" opacity=".5"/>
+      <g transform="translate(150,78)">
+        <rect x="-46" y="-34" width="92" height="68" rx="12" fill="#0B1520" stroke="#7CF3FF" stroke-width="3"/>
+        <rect x="-38" y="-26" width="76" height="52" rx="6" fill="url(#lflag)"/>
+      </g>
+      <g transform="translate(494,78)">
+        <rect x="-46" y="-34" width="92" height="68" rx="12" fill="#0B1520" stroke="#FF8A7A" stroke-width="3"/>
+        <rect x="-38" y="-26" width="76" height="52" rx="6" fill="url(#rflag)"/>
+      </g>
+      <circle cx="322" cy="90" r="36" fill="#FFD23F" stroke="#0B1520" stroke-width="4"/>
+      <text x="322" y="100" text-anchor="middle" font-family="system-ui,-apple-system,Segoe UI,sans-serif"
+        font-size="26" font-weight="800" fill="#0B1520" letter-spacing="1">VS</text>
+    
+  <defs>
+    <linearGradient id="titleFade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0B1520" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#0B1520" stop-opacity="0.72"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="208" width="644" height="88" fill="url(#titleFade)"/>
+  <text x="28" y="268" font-family="system-ui,-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif"
+    font-size="34" font-weight="800" fill="#FFFFFF" letter-spacing="-0.5">Geo Duel</text>
+</svg>

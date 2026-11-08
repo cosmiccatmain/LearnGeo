@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 644 296" width="644" height="296" role="img" aria-label="Flag Breakout">
+  <!-- LEA-104 brand-new LearnGeo hub cover — vector, not a sheet crop -->
+  
+      <defs>
+        <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#1A2248"/><stop offset="100%" stop-color="#070A18"/>
+        </linearGradient>
+      </defs>
+      <rect width="644" height="296" fill="url(#bg)"/>
+      <rect x="48" y="36" width="60" height="28" rx="4" fill="#D7262B"
+        stroke="#0B1520" stroke-width="1.5"/><rect x="116" y="36" width="60" height="28" rx="4" fill="#1B4DFF"
+        stroke="#0B1520" stroke-width="1.5"/><rect x="184" y="36" width="60" height="28" rx="4" fill="#0E9F6E"
+        stroke="#0B1520" stroke-width="1.5"/><rect x="252" y="36" width="60" height="28" rx="4" fill="#F5B301"
+        stroke="#0B1520" stroke-width="1.5"/><rect x="320" y="36" width="60" height="28" rx="4" fill="#8B5CF6"
+        stroke="#0B1520" stroke-width="1.5"/><rect x="388" y="36" width="60" height="28" rx="4" fill="#22D3EE"
+        stroke="#0B1520" stroke-width="1.5"/><rect x="456" y="36" width="60" height="28" rx="4" fill="#F97316"
+        stroke="#0B1520" stroke-width="1.5"/><rect x="524" y="36" width="60" height="28" rx="4" fill="#EC4899"
+        stroke="#0B1520" stroke-width="1.5"/><rect x="48" y="72" width="60" height="28" rx="4" fill="#D7262B"
+        stroke="#0B1520" stroke-width="1.5"/><rect x="116" y="72" width="60" height="28" rx="4" fill="#1B4DFF"
+        stroke="#0B1520" stroke-width="1.5"/><rect x="184" y="72" width="60" height="28" rx="4" fill="#0E9F6E"
+        stroke="#0B1520" stroke-width="1.5"/><rect x="252" y="72" width="60" height="28" rx="4" fill="#F5B301"
+        stroke="#0B1520" stroke-width="1.5"/><rect x="320" y="72" width="60" height="28" rx="4" fill="#8B5CF6"
+        stroke="#FFD23F" stroke-width="3.5"/><rect x="388" y="72" width="60" height="28" rx="4" fill="#22D3EE"
+        stroke="#0B1520" stroke-width="1.5"/><rect x="456" y="72" width="60" height="28" rx="4" fill="#F97316"
+        stroke="#0B1520" stroke-width="1.5"/><rect x="524" y="72" width="60" height="28" rx="4" fill="#EC4899"
+        stroke="#0B1520" stroke-width="1.5"/><rect x="48" y="108" width="60" height="28" rx="4" fill="#D7262B"
+        stroke="#0B1520" stroke-width="1.5"/><rect x="116" y="108" width="60" height="28" rx="4" fill="#1B4DFF"
+        stroke="#0B1520" stroke-width="1.5"/><rect x="184" y="108" width="60" height="28" rx="4" fill="#0E9F6E"
+        stroke="#0B1520" stroke-width="1.5"/><rect x="252" y="108" width="60" height="28" rx="4" fill="#F5B301"
+        stroke="#0B1520" stroke-width="1.5"/><rect x="320" y="108" width="60" height="28" rx="4" fill="#8B5CF6"
+        stroke="#0B1520" stroke-width="1.5"/><rect x="388" y="108" width="60" height="28" rx="4" fill="#22D3EE"
+        stroke="#0B1520" stroke-width="1.5"/><rect x="456" y="108" width="60" height="28" rx="4" fill="#F97316"
+        stroke="#0B1520" stroke-width="1.5"/><rect x="524" y="108" width="60" height="28" rx="4" fill="#EC4899"
+        stroke="#0B1520" stroke-width="1.5"/>
+      <circle cx="360" cy="170" r="11" fill="#F8FAFC" stroke="#7CF3FF" stroke-width="3"/>
+      <rect x="270" y="240" width="100" height="14" rx="7" fill="#7CF3FF" stroke="#0B1520" stroke-width="2"/>
+    
+  <defs>
+    <linearGradient id="titleFade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0B1520" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#0B1520" stop-opacity="0.72"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="208" width="644" height="88" fill="url(#titleFade)"/>
+  <text x="28" y="268" font-family="system-ui,-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif"
+    font-size="34" font-weight="800" fill="#FFFFFF" letter-spacing="-0.5">Flag Breakout</text>
+</svg>

@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 644 296" width="644" height="296" role="img" aria-label="Flag Echo">
+  <!-- LEA-104 brand-new LearnGeo hub cover — vector, not a sheet crop -->
+  
+      <defs>
+        <radialGradient id="bg" cx="50%" cy="50%" r="70%">
+          <stop offset="0%" stop-color="#1A1640"/><stop offset="100%" stop-color="#080C22"/>
+        </radialGradient>
+      </defs>
+      <rect width="644" height="296" fill="url(#bg)"/>
+      <g transform="translate(150,70)">
+    <rect width="90" height="70" rx="14" fill="#EF4444" opacity="1"
+      stroke="#F8FAFC" stroke-width="4"/>
+    <circle cx="45" cy="35" r="10" fill="#F8FAFC" opacity=".9"/>
+  </g> <g transform="translate(280,70)">
+    <rect width="90" height="70" rx="14" fill="#3B82F6" opacity="0.45"
+      stroke="rgba(255,255,255,.25)" stroke-width="2"/>
+    
+  </g> <g transform="translate(410,70)">
+    <rect width="90" height="70" rx="14" fill="#22C55E" opacity="0.45"
+      stroke="rgba(255,255,255,.25)" stroke-width="2"/>
+    
+  </g>
+      <g transform="translate(150,160)">
+    <rect width="90" height="70" rx="14" fill="#F59E0B" opacity="0.45"
+      stroke="rgba(255,255,255,.25)" stroke-width="2"/>
+    
+  </g> <g transform="translate(280,160)">
+    <rect width="90" height="70" rx="14" fill="#A855F7" opacity="1"
+      stroke="#F8FAFC" stroke-width="4"/>
+    <circle cx="45" cy="35" r="10" fill="#F8FAFC" opacity=".9"/>
+  </g> <g transform="translate(410,160)">
+    <rect width="90" height="70" rx="14" fill="#06B6D4" opacity="0.45"
+      stroke="rgba(255,255,255,.25)" stroke-width="2"/>
+    
+  </g>
+      <text x="322" y="270" text-anchor="middle" font-family="system-ui,-apple-system,Segoe UI,sans-serif"
+        font-size="13" font-weight="600" fill="#C084FC" opacity=".9">Listen · repeat</text>
+    
+  <defs>
+    <linearGradient id="titleFade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0B1520" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#0B1520" stop-opacity="0.72"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="208" width="644" height="88" fill="url(#titleFade)"/>
+  <text x="28" y="268" font-family="system-ui,-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif"
+    font-size="34" font-weight="800" fill="#FFFFFF" letter-spacing="-0.5">Flag Echo</text>
+</svg>
