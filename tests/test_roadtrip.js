@@ -222,7 +222,7 @@ test('LEA-105 route chest uses overlay open + rarity loot (not silent +40)', () 
   assert.ok(commonLoot.rewards.some(r => r.type === 'gems' && r.amount >= 35 && r.amount <= 50));
   assert.ok(commonLoot.rewards.some(r => r.type === 'xp' && r.amount >= 20 && r.amount <= 40));
 
-  /* Forced full upgrade cascade. */
+  /* Forced full upgrade cascade across rarity taps. */
   const always = () => 0;
   const legend = RoadTripMode.rollChestRarity(always);
   assert.equal(legend.rarity, 'legendary');
@@ -241,12 +241,43 @@ test('LEA-105 route chest uses overlay open + rarity loot (not silent +40)', () 
   assert.equal(WW.state.roadtrip.xpEarned, applied.xp);
 });
 
-test('LEA-105 chest CSS covers overlay stages and reduced-motion', () => {
+test('LEA-110 multi-tap rarity never downgrades; rewards are one-per-tap', () => {
+  const src = fs.readFileSync(path.join(root, 'assets/js/mode-roadtrip.js'), 'utf8');
+  assert.match(src, /tapChestRarity|CHEST_RARITY_TAPS/);
+  assert.match(src, /Tap to push rarity higher|Tap for next reward|Tap to return to Journey/);
+  assert.match(src, /data-chest-phase|showRewardAt|onRarityTap/);
+  assert.doesNotMatch(src, /data-rt-chest-collect/);
+
+  const { RoadTripMode } = load();
+  assert.equal(RoadTripMode.CHEST_RARITY_TAPS, 3);
+  const never = () => 0.99;
+  const stay = RoadTripMode.tapChestRarity('rare', never);
+  assert.equal(stay.rarity, 'rare');
+  assert.equal(stay.upgraded, false);
+  const up = RoadTripMode.tapChestRarity('rare', () => 0);
+  assert.equal(up.rarity, 'epic');
+  assert.equal(up.upgraded, true);
+  const ceil = RoadTripMode.tapChestRarity('legendary', () => 0);
+  assert.equal(ceil.rarity, 'legendary');
+  assert.equal(ceil.upgraded, false);
+  /* Three forced upgrades reach legendary; never drops. */
+  let cur = 'common';
+  for (let i = 0; i < RoadTripMode.CHEST_RARITY_TAPS; i++) {
+    const step = RoadTripMode.tapChestRarity(cur, () => 0);
+    const order = ['common', 'rare', 'epic', 'legendary'];
+    assert.ok(order.indexOf(step.rarity) >= order.indexOf(cur));
+    cur = step.rarity;
+  }
+  assert.equal(cur, 'legendary');
+});
+
+test('LEA-105/110 chest CSS covers big chest, solo prize, reduced-motion', () => {
   const css = fs.readFileSync(path.join(root, 'assets/css/roadtrip.css'), 'utf8');
   assert.match(css, /\.rt-chest-overlay\b/);
   assert.match(css, /data-chest-stage|rt-chest-shake|rt-chest-burst/);
   assert.match(css, /data-rarity|is-upgrade-flash/);
-  assert.match(css, /rt-chest__prize/);
+  assert.match(css, /rt-chest__prize|rt-chest__prize--solo|rt-chest__progress/);
+  assert.match(css, /width:\s*min\(252px/);
   assert.match(css, /prefers-reduced-motion:\s*reduce[\s\S]*rt-chest/);
 });
 

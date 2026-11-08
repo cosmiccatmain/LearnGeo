@@ -2,6 +2,13 @@
   "_comment": "Append newest entries at the top of `updates`. Each needs a unique `id`. Optional `image` is a path under /assets/. Optional `try` is a deep-link action id handled by LearnGeoUpdates.runTry (cooking, achievements, chess-pvp, chess, chess-boards, cosmetics-games, learn-filters, crossing, badges, games, leaderboards, friend-inbox, duel-spectate, roadtrip). Keep entries public-safe: no Pets/Brainrot, no admin-only or subscription marketing.",
   "updates": [
     {
+      "id": "2026-11-journey-chest-multitap",
+      "title": "Tap-tap Journey chests",
+      "body": "Journey chests are bigger now — tap repeatedly to push rarity higher (never down), then tap through each reward one by one before you’re back on the path.",
+      "date": "2026-11-08",
+      "try": "roadtrip"
+    },
+    {
       "id": "2026-11-route-chest-open",
       "title": "Journey chests that pop",
       "body": "Open a Journey chest for a big tap-to-open moment — rarity can upgrade with glow and particles, then diamonds, XP, journey boosts, or profile cosmetics spill out.",
