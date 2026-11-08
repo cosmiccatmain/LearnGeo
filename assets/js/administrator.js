@@ -44,11 +44,12 @@
 
   /* Ticked rows, separate from the one account open in the detail
      panel (`picked`). Page size is a client slice of whatever
-     ultra_find_accounts returned (that function caps the list at 60). */
+     ultra_find_accounts returned (deployed 0032 caps the list at 2000,
+     enough for the full ~500-account roster; PAGE stays 20–50). */
   var ticked = {};
   var page = 0;
-  var PAGE = 12;
-  var FIND_CAP = 60;
+  var PAGE = 25;
+  var FIND_CAP = 2000;
   var BULK_LARGE = 10;
   var loadedQuery = '';
   var querySeen = false;
