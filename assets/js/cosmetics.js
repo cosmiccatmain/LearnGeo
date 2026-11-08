@@ -148,6 +148,68 @@
       colors: ['#FFFFFF', '#FEF3C7', '#F1F5F9'], motion: 'tumble', count: 14, premium: true,
       blurb: 'Dice tumbling over your profile. Premium.' },
 
+    /* ------------------------- Luxe collection ------------------------
+       Very expensive on purpose, and never Premium-locked: anyone with
+       the diamonds can buy them. Each one stacks animated `layers`
+       (ui.js runEffect → .fxl-<name> in cosmetics-luxe.css) under one or
+       more particle groups (`also` adds extra groups). Prices sit far
+       above the route-chest cap in mode-roadtrip.js, so chests never
+       hand one out. */
+    { id: 'lx-aurora', name: 'Aurora Veil', price: 100000, tier: 'luxe', shape: 'spark',
+      colors: ['#34D399', '#22D3EE', '#A78BFA', '#F0FDFA'], motion: 'glimmer', count: 20,
+      layers: ['ribbons', 'sheen'], glow: ['#34D399', '#22D3EE', '#A78BFA'],
+      blurb: 'Northern lights ripple across your card.' },
+    { id: 'lx-nebula', name: 'Nebula', price: 100000, tier: 'luxe', shape: 'flare',
+      colors: ['#FFFFFF', '#F9A8D4', '#C4B5FD', '#93C5FD'], motion: 'glimmer', count: 22,
+      layers: ['nebula'], glow: ['#DB2777', '#7C3AED', '#2563EB'],
+      blurb: 'Slow cosmic clouds and twinkling newborn stars.' },
+    { id: 'lx-biolum', name: 'Bioluminescence', price: 100000, tier: 'luxe', shape: 'orb',
+      colors: ['#22D3EE', '#5EEAD4', '#67E8F9', '#A5F3FC'], motion: 'rise', count: 22,
+      layers: ['aura', 'tide'], glow: ['#06B6D4', '#14B8A6', '#0EA5E9'],
+      blurb: 'Glowing plankton drifting up from a midnight sea.' },
+    { id: 'lx-solar', name: 'Solar Flare', price: 100000, tier: 'luxe', shape: 'ember',
+      colors: ['#FDE047', '#F59E0B', '#F97316', '#FFFFFF'], motion: 'embers', count: 24,
+      layers: ['rays', 'aura'], glow: ['#F59E0B', '#F97316', '#FDE047'],
+      blurb: 'A blazing corona with solar sparks.' },
+    { id: 'lx-hanami', name: 'Hanami Storm', price: 100000, tier: 'luxe', shape: 'petal',
+      colors: ['#FBCFE8', '#F9A8D4', '#F472B6', '#FFF1F2'], motion: 'sway', count: 30,
+      layers: ['sheen', 'aura'], glow: ['#F472B6', '#FBCFE8', '#F9A8D4'],
+      also: [{ shape: 'flare', colors: ['#FFFFFF', '#FBCFE8'], motion: 'glimmer', count: 10 }],
+      blurb: 'A whirl of cherry blossoms in soft spring light.' },
+
+    { id: 'lx-diamond', name: 'Diamond Rain', price: 1000000, tier: 'luxe', shape: 'diamond',
+      colors: ['#E0F2FE', '#BAE6FD', '#FFFFFF', '#C7D2FE'], motion: 'tumble', count: 22,
+      layers: ['sheen', 'aura'], glow: ['#7DD3FC', '#E0F2FE', '#A5B4FC'],
+      also: [{ shape: 'flare', colors: ['#FFFFFF', '#BAE6FD'], motion: 'glimmer', count: 14 }],
+      blurb: 'Faceted diamonds raining through flashes of light.' },
+    { id: 'lx-galaxy', name: 'Spiral Galaxy', price: 1000000, tier: 'luxe', shape: 'flare',
+      colors: ['#FFFFFF', '#E9D5FF', '#BFDBFE', '#FDE68A'], motion: 'glimmer', count: 26,
+      layers: ['galaxy', 'nebula'], glow: ['#7C3AED', '#2563EB', '#DB2777'],
+      blurb: 'A whole galaxy turning slowly behind your name.' },
+    { id: 'lx-storm', name: 'Thunderhead', price: 1000000, tier: 'luxe', shape: 'drop',
+      colors: ['#BFDBFE', '#93C5FD', '#E0E7FF'], motion: 'rain', count: 34,
+      layers: ['nebula', 'lightning'], glow: ['#334155', '#475569', '#6366F1'],
+      blurb: 'Storm clouds, driving rain and real lightning strikes.' },
+    { id: 'lx-phoenix', name: 'Phoenix', price: 1000000, tier: 'luxe', shape: 'flare',
+      colors: ['#FDE047', '#F97316', '#EF4444', '#FFFFFF'], motion: 'rise', count: 16,
+      layers: ['rays', 'aura', 'sheen'], glow: ['#EF4444', '#F97316', '#FDE047'],
+      also: [{ shape: 'ember', colors: ['#F97316', '#DC2626', '#FDE047'], motion: 'embers', count: 22 }],
+      blurb: 'Rising fire and a burning crown of light.' },
+
+    { id: 'lx-supernova', name: 'Supernova', price: 100000000, tier: 'luxe', shape: 'flare',
+      colors: ['#FFFFFF', '#A5F3FC', '#C4B5FD', '#F0ABFC'], motion: 'burst', count: 26,
+      layers: ['border', 'shock', 'rays', 'aura'], glow: ['#22D3EE', '#8B5CF6', '#F0ABFC'],
+      also: [{ shape: 'spark', colors: ['#FFFFFF', '#67E8F9', '#E879F9'], motion: 'glimmer', count: 16 }],
+      blurb: 'A dying star: shockwaves, beams and a living border.' },
+    { id: 'lx-midas', name: 'Midas', price: 1000000000, tier: 'luxe', shape: 'coin',
+      colors: ['#FDE047', '#F5B301', '#EAB308', '#FBBF24'], motion: 'tumble', count: 18,
+      layers: ['border', 'rays', 'sheen', 'aura'], glow: ['#F5B301', '#FDE68A', '#B45309'],
+      also: [
+        { shape: 'diamond', colors: ['#FFFFFF', '#E0F2FE', '#FEF3C7'], motion: 'tumble', count: 8 },
+        { shape: 'flare', colors: ['#FFFFFF', '#FDE68A'], motion: 'glimmer', count: 18 }
+      ],
+      blurb: 'One billion diamonds. Gold rain, a gold frame and a golden glow.' },
+
     /* ---------------------- the one with no price -------------------
        Not for sale, and not earnable either. It carries `earn` so the
        shop routes it through ownsEarned and refuses to sell it — the
