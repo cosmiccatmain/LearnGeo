@@ -442,6 +442,22 @@
   color: var(--faint); margin-top: 4px; letter-spacing: 0;
 }
 
+/* Inline map for identify / locate questions. Leaflet needs a real
+   height — without this the shaded country never appears. */
+.rt-map {
+  position: relative;
+  width: 100%;
+  height: min(42vw, 280px);
+  min-height: 200px;
+  margin: 0 0 16px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  overflow: hidden;
+  background: #F4F6F8;
+}
+.rt-map__host { position: absolute; inset: 0; }
+.rt-map .leaflet-control-zoom { margin-top: 10px; margin-right: 10px; }
+
 .rt-done {
   text-align: center;
   background: var(--white);

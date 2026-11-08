@@ -170,3 +170,42 @@ test('LEA-92 layout uses large side columns, not postage-stamp floats', () => {
   assert.match(js, /awardsColumnHtml|rt-awards/);
   assert.match(js, /Coming up/);
 });
+
+test('Road Trip lessons include identify and mount a map host for it', () => {
+  const src = fs.readFileSync(path.join(root, 'assets/js/mode-roadtrip.js'), 'utf8');
+  assert.match(src, /types:\s*\[[^\]]*identify/);
+  assert.match(src, /map-roadtrip/);
+  assert.match(src, /function needsMap/);
+  assert.match(src, /function paintMap/);
+  assert.match(src, /GeoMap\.drawCountry/);
+  assert.match(src, /GeoMap\.frame/);
+  const css = fs.readFileSync(path.join(root, 'assets/css/roadtrip.css'), 'utf8');
+  assert.match(css, /\.rt-map\b/);
+  assert.match(css, /min-height:\s*200px/);
+  const { Quiz, GeoData } = load();
+  const africa = GeoData.countries.filter(c => c.region === 'Africa').slice(0, 8);
+  const qs = Quiz.generate({
+    countries: africa.map(c => c.name),
+    types: ['identify'],
+    count: 4,
+    typed: false
+  });
+  assert.ok(qs.length >= 1);
+  assert.ok(qs.every(q => q.type === 'identify'));
+  assert.ok(qs.every(q => q.revealOnMap === true));
+  assert.ok(qs.every(q => q.choices && q.choices.length === 4));
+});
+
+test('non-map Road Trip question types still generate without a map requirement', () => {
+  const { Quiz, GeoData } = load();
+  const names = ['Morocco', 'Algeria', 'Tunisia', 'Libya'];
+  const qs = Quiz.generate({
+    countries: names,
+    types: ['capital', 'country', 'flag', 'flagpick'],
+    count: 4,
+    typed: false
+  });
+  assert.equal(qs.length, 4);
+  assert.ok(qs.every(q => q.choices && q.choices.length === 4));
+  assert.ok(qs.every(q => q.type !== 'locate'));
+});
