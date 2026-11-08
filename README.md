@@ -300,6 +300,17 @@ Direct links and refreshes work through `vercel.json` rewrites and the local ser
 stays at `/teachers.html`. Existing `?role=`, `?view=` and `?join=` links still work
 and are converted to the corresponding route when opened.
 
+### Search pages and sitemap
+
+`/countries`, `/countries/<name>` (213 pages) and `/continents/<name>` (6 pages) are
+plain static pages for search engines, listed in `sitemap.xml` with a `robots.txt`.
+They are generated from `assets/js/data.js`; after changing the data, rebuild and commit:
+
+```bash
+python3 tools/build_seo.py
+python3 tests/test_seo.py
+```
+
 A teacher opening any of those routes, or an old `?view=` link, lands on `/myclass`.
 Students are unchanged: `/myclass` still becomes `/myclassroom`, and a student still
 cannot open the teacher screen. Once a teacher is inside the app, the study tabs
