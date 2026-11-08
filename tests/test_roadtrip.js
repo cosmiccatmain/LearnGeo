@@ -13,7 +13,24 @@ function load(mastery) {
       getItem(k) { return Object.prototype.hasOwnProperty.call(this._d, k) ? this._d[k] : null; },
       setItem(k, v) { this._d[k] = String(v); }
     },
-    confirm: () => true
+    confirm: () => true,
+    btoa: (s) => Buffer.from(String(s), 'binary').toString('base64'),
+    atob: (s) => Buffer.from(String(s), 'base64').toString('binary'),
+    encodeURIComponent,
+    decodeURIComponent,
+    escape,
+    unescape,
+    location: { origin: 'https://www.learngeo.app', search: '', pathname: '/roadtrip', hash: '' },
+    matchMedia: () => ({ matches: false })
+  };
+  /* Free vars in mode-roadtrip resolve against the sandbox root. */
+  const sandbox = {
+    window,
+    encodeURIComponent,
+    decodeURIComponent,
+    escape,
+    unescape,
+    Buffer
   };
   const WW = {
     Icons: {
@@ -60,10 +77,10 @@ function load(mastery) {
     announceAchievements() {}
   };
   window.WW = WW;
-  vm.runInNewContext(fs.readFileSync(path.join(root, 'assets/js/data.js'), 'utf8'), { window });
-  vm.runInNewContext(fs.readFileSync(path.join(root, 'assets/js/cosmetics.js'), 'utf8'), { window });
-  vm.runInNewContext(fs.readFileSync(path.join(root, 'assets/js/quiz.js'), 'utf8'), { window });
-  vm.runInNewContext(fs.readFileSync(path.join(root, 'assets/js/mode-roadtrip.js'), 'utf8'), { window });
+  vm.runInNewContext(fs.readFileSync(path.join(root, 'assets/js/data.js'), 'utf8'), sandbox);
+  vm.runInNewContext(fs.readFileSync(path.join(root, 'assets/js/cosmetics.js'), 'utf8'), sandbox);
+  vm.runInNewContext(fs.readFileSync(path.join(root, 'assets/js/quiz.js'), 'utf8'), sandbox);
+  vm.runInNewContext(fs.readFileSync(path.join(root, 'assets/js/mode-roadtrip.js'), 'utf8'), sandbox);
   return window;
 }
 
@@ -126,9 +143,47 @@ test('Games tab still sits after Road trips in ui TAB_DEFS', () => {
 
 test('no Stripe checkout or screen-share hooks in roadtrip mode', () => {
   const src = fs.readFileSync(path.join(root, 'assets/js/mode-roadtrip.js'), 'utf8');
-  assert.doesNotMatch(src, /ScreenShare|share screen|stripe\.com|Checkout Session/i);
+  assert.doesNotMatch(src, /ScreenShare|share screen|stripe\.com|Checkout Session|class.?wallet.?wall/i);
   assert.match(src, /LearnGeo/);
   assert.match(src, /no Duo owl/);
+  assert.match(src, /Share road|shareUrlFor|progressSnapshot/);
+  assert.match(src, /prefers-reduced-motion|reduceMotion/);
+  assert.match(src, /SLIDE_MS|slideToUnit|is-enter-right/);
+});
+
+test('LEA-96 share payload round-trips and builds a /roadtrip?road= link', () => {
+  const { RoadTripMode, WW } = load();
+  WW.state.gamertag = 'MapKid';
+  WW.state.roadtrip.done['africa-north.l1'] = 'played';
+  WW.state.roadtrip.xpEarned = 40;
+  WW.state.roadtrip.gemsEarned = 12;
+  const snap = RoadTripMode.progressSnapshot();
+  assert.equal(snap.v, 1);
+  assert.equal(snap.t, 'MapKid');
+  assert.equal(snap.u, 'africa-north');
+  assert.ok(snap.n.includes('l1'));
+  assert.equal(snap.s[0], 1);
+  const enc = RoadTripMode.encodeSharePayload(snap);
+  assert.ok(enc && !/[+/=]/.test(enc));
+  const back = RoadTripMode.decodeSharePayload(enc);
+  assert.deepEqual(back.n, snap.n);
+  assert.equal(back.x, 40);
+  const url = RoadTripMode.shareUrlFor(snap);
+  assert.match(url, /\/roadtrip\?road=/);
+  assert.equal(RoadTripMode.decodeSharePayload('%%%'), null);
+  assert.equal(RoadTripMode.SLIDE_MS >= 350 && RoadTripMode.SLIDE_MS <= 500, true);
+});
+
+test('LEA-96 CSS has unit slides, share UI, and reduced-motion guards', () => {
+  const css = fs.readFileSync(path.join(root, 'assets/css/roadtrip.css'), 'utf8');
+  assert.match(css, /is-enter-right|is-exit-left/);
+  assert.match(css, /is-q-enter-right|rt-q-stage/);
+  assert.match(css, /\.rtshare\b|rtshare-view/);
+  assert.match(css, /prefers-reduced-motion:\s*reduce/);
+  assert.match(css, /rt-pulse|rt-unlock|rt-node-in/);
+  /* Level numeral stays modest — do not balloon past LEA-92's 40px. */
+  assert.match(css, /\.rt-xpchart__level\s*\{[^}]*font-size:\s*40px/s);
+  assert.doesNotMatch(css, /\.rt-xpchart__level\s*\{[^}]*font-size:\s*(6\d|7\d|[8-9]\d|[1-9]\d{2,})px/s);
 });
 
 test('upcoming awards prefer partial progress toward Cosmetics.achievements', () => {

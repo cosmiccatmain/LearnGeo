@@ -1,10 +1,18 @@
 /* ------------------------------------------------------------------
-   LearnGeo — Road Trips Duo-style path (LEA-85 / LEA-90 / LEA-92).
+   LearnGeo — Road Trips Duo-style path (LEA-85 / LEA-90 / LEA-92 / LEA-96).
 
    Vertical zig-zag path center; LEA-92 makes left XP/gems and right
    upcoming award cards large and readable on desktop/iPad (not tiny
-   floating postage stamps). Original LearnGeo fonts.
+   floating postage stamps). LEA-96: unit/lesson slides, share-road,
+   path/node/XP/award motion polish. Level numeral stays modest.
+   Original LearnGeo fonts. Respects prefers-reduced-motion.
 -------------------------------------------------------------------*/
+
+:root {
+  --rt-slide: 420ms;
+  --rt-slide-ease: cubic-bezier(.22, .8, .28, 1);
+  --rt-pop-ease: cubic-bezier(.34, 1.4, .48, 1);
+}
 
 .rtpath {
   max-width: 520px;
@@ -57,11 +65,17 @@
 .rt-xpchart__bar i {
   display: block; height: 100%; width: 0;
   background: var(--accent); border-radius: inherit;
+  transition: width var(--rt-slide) var(--rt-slide-ease);
 }
 .rt-xpchart__meta {
   font-size: 14px; color: var(--ink-2); margin-bottom: 18px;
   font-weight: 560;
 }
+/* LEA-96 — soft enter for the XP panel (not a huge level numeral). */
+.rtpath--shell .rt-xpchart {
+  animation: rt-panel-in 480ms var(--rt-slide-ease) both;
+}
+
 .rt-xpchart__gems {
   display: flex; align-items: center; gap: 12px;
   padding: 14px 0 0;
@@ -120,7 +134,13 @@
   border-radius: 16px;
   padding: 20px 18px 16px;
   box-shadow: 0 5px 0 rgba(11, 58, 130, .4), 0 12px 24px rgba(15, 23, 42, .1);
+  animation: rt-award-in 520ms var(--rt-slide-ease) both;
 }
+.rt-awards__list .rt-award:nth-child(1) { animation-delay: 40ms; }
+.rt-awards__list .rt-award:nth-child(2) { animation-delay: 100ms; }
+.rt-awards__list .rt-award:nth-child(3) { animation-delay: 160ms; }
+.rt-awards__list .rt-award:nth-child(4) { animation-delay: 220ms; }
+
 .rt-award.is-seasonal {
   background: linear-gradient(155deg, #0F766E 0%, #115E59 100%);
   box-shadow: 0 5px 0 rgba(17, 94, 89, .4), 0 12px 24px rgba(15, 23, 42, .1);
@@ -152,6 +172,7 @@
 .rt-award__bar i {
   display: block; height: 100%; width: 0;
   background: #F5B942; border-radius: inherit;
+  transition: width var(--rt-slide) var(--rt-slide-ease);
 }
 .rt-award__foot {
   display: flex; justify-content: space-between; align-items: center;
@@ -248,10 +269,46 @@
   display: grid; place-items: center;
   background: rgba(255,255,255,.16); color: #fff;
   box-shadow: 0 3px 0 rgba(0,0,0,.16);
+  transition: transform .14s var(--rt-slide-ease), background .14s ease;
 }
 .rtpath__navbtn:hover:not(:disabled) { background: rgba(255,255,255,.24); }
+.rtpath__navbtn:active:not(:disabled) { transform: scale(.92); }
 .rtpath__navbtn:disabled { opacity: .35; cursor: default; box-shadow: none; }
 .rtpath__navbtn svg { width: 16px; height: 16px; }
+
+/* ------------------------ unit slide stage ------------------------ */
+.rtpath__stage {
+  position: relative;
+  overflow: hidden;
+  margin: 0 -8px;
+  padding: 0 8px;
+}
+.rtpath--shell {
+  transition: transform var(--rt-slide) var(--rt-slide-ease),
+              opacity calc(var(--rt-slide) * .85) var(--rt-slide-ease);
+  will-change: transform, opacity;
+}
+.rtpath--shell.is-exit-left {
+  transform: translateX(-28%);
+  opacity: 0;
+}
+.rtpath--shell.is-exit-right {
+  transform: translateX(28%);
+  opacity: 0;
+}
+.rtpath--shell.is-enter-right {
+  transform: translateX(32%);
+  opacity: 0;
+}
+.rtpath--shell.is-enter-left {
+  transform: translateX(-32%);
+  opacity: 0;
+}
+.rtpath--shell.is-enter-right.is-settle,
+.rtpath--shell.is-enter-left.is-settle {
+  transform: translateX(0);
+  opacity: 1;
+}
 
 /* ------------------------------ trail ----------------------------- */
 .rtpath__trail {
@@ -268,6 +325,8 @@
   justify-content: center;
   /* zig: -1 left, 0 center, 1 right */
   transform: translateX(calc(var(--zig, 0) * 72px));
+  animation: rt-node-in 460ms var(--rt-slide-ease) both;
+  animation-delay: calc(var(--rt-i, 0) * 48ms);
 }
 @media (max-width: 420px) {
   .rtnode__row { transform: translateX(calc(var(--zig, 0) * 48px)); }
@@ -305,13 +364,24 @@
   display: grid; place-items: center;
   background: #E5E7EB; color: #9CA3AF;
   box-shadow: 0 6px 0 #C4C9D1;
-  transition: transform .12s var(--ease), filter .12s var(--ease);
+  transition: transform .16s var(--rt-slide-ease), box-shadow .16s ease, filter .12s ease;
 }
 .rtnode__btn:hover:not(:disabled) { transform: translateY(1px); box-shadow: 0 5px 0 #C4C9D1; }
 .rtnode__btn:active:not(:disabled) { transform: translateY(4px); box-shadow: 0 2px 0 #C4C9D1; }
 .rtnode__btn:disabled { cursor: default; }
 .rtnode__ic { display: grid; place-items: center; }
 .rtnode__ic svg { width: 28px; height: 28px; stroke-width: 2.2; }
+
+/* Complete + unlock pops — rewarding without jank. */
+.rtnode.is-pulse .rtnode__btn {
+  animation: rt-pulse 720ms var(--rt-pop-ease) 1;
+}
+.rtnode.is-unlock .rtnode__btn {
+  animation: rt-unlock 680ms var(--rt-pop-ease) 1;
+}
+.rtnode.is-current .rtnode__tip {
+  animation: rt-tip-bob 1.8s ease-in-out infinite;
+}
 
 .rtnode__label {
   margin-top: 10px;
@@ -421,15 +491,40 @@
 .rt-progress__fill {
   height: 100%; width: 0;
   background: var(--accent);
-  transition: width .2s var(--ease);
+  transition: width var(--rt-slide) var(--rt-slide-ease);
 }
 
+.rt-q-stage {
+  position: relative;
+  overflow: hidden;
+}
 .rt-q {
   background: var(--white);
   border: 1px solid var(--line);
   border-radius: 16px;
   padding: 20px 18px 18px;
+  transition: transform var(--rt-slide) var(--rt-slide-ease),
+              opacity calc(var(--rt-slide) * .85) var(--rt-slide-ease);
+  will-change: transform, opacity;
 }
+.rt-q.is-q-exit-left {
+  transform: translateX(-24%);
+  opacity: 0;
+}
+.rt-q.is-q-enter-right {
+  transform: translateX(28%);
+  opacity: 0;
+}
+.rt-q.is-q-enter-left {
+  transform: translateX(-28%);
+  opacity: 0;
+}
+.rt-q.is-q-enter-right.is-q-settle,
+.rt-q.is-q-enter-left.is-q-settle {
+  transform: translateX(0);
+  opacity: 1;
+}
+
 .rt-q .qmeta { margin-bottom: 8px; }
 .rt-q .qprompt { font-size: 15px; color: var(--ink-2); margin-bottom: 4px; }
 .rt-q .qsubject {
@@ -465,6 +560,9 @@
   border-radius: 18px;
   padding: 36px 22px 28px;
 }
+.rt-done.is-pop {
+  animation: rt-done-pop 480ms var(--rt-pop-ease) both;
+}
 .rt-done__badge {
   display: inline-flex; align-items: baseline; gap: 2px;
   font-size: 48px; font-weight: 700; letter-spacing: -.03em;
@@ -492,5 +590,170 @@
 @media (max-width: 560px) {
   .rtpath { padding: 14px 12px 100px; }
   .rtpath__banner { flex-direction: column; }
-  .rtpath__banner-acts { flex-direction: row; justify-content: space-between; width: 100%; align-items: center; }
+  .rtpath__banner-acts {
+    flex-direction: row; flex-wrap: wrap; justify-content: flex-end;
+    width: 100%; align-items: center; gap: 8px;
+  }
 }
+
+/* ----------------------- share your road (LEA-96) ----------------- */
+.rtshare__blurb {
+  margin: 0 0 12px;
+  font-size: 14px; color: var(--ink-2); line-height: 1.45;
+}
+.rtshare__stats {
+  display: flex; flex-wrap: wrap; gap: 8px;
+}
+.rtshare__linkrow {
+  display: flex; gap: 8px; align-items: stretch;
+}
+.rtshare__linkrow .input { flex: 1; min-width: 0; }
+.rtshare__friend {
+  display: flex; gap: 10px; align-items: flex-end;
+}
+@media (max-width: 480px) {
+  .rtshare__friend { flex-direction: column; align-items: stretch; }
+  .rtshare__friend .btn { width: 100%; }
+}
+
+.rtshare-view {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(15, 23, 42, .42);
+  animation: rt-panel-in 320ms var(--rt-slide-ease) both;
+}
+.rtshare-view__card {
+  position: relative;
+  width: min(440px, 100%);
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 22px 20px 18px;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, .18);
+}
+.rtshare-view__close {
+  position: absolute; top: 12px; right: 12px;
+  width: 34px; height: 34px; border: 0; border-radius: 10px;
+  background: var(--paper); color: var(--ink); cursor: pointer;
+  display: grid; place-items: center;
+}
+.rtshare-view__close svg { width: 16px; height: 16px; }
+.rtshare-view h2 {
+  margin: 4px 0 8px;
+  font-family: var(--serif);
+  font-size: 26px; font-weight: 500;
+}
+.rtshare-view p {
+  margin: 0 0 14px;
+  font-size: 14px; color: var(--ink-2); line-height: 1.4;
+}
+.rtshare-view__list {
+  display: flex; flex-direction: column; gap: 8px;
+  max-height: 280px; overflow: auto;
+}
+.rtshare-view__row {
+  display: grid;
+  grid-template-columns: 36px 1fr minmax(48px, 72px) auto;
+  gap: 8px; align-items: center;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--paper);
+  border: 1px solid var(--line-soft);
+  font-size: 13px;
+}
+.rtshare-view__row.is-focus {
+  border-color: #A5B4FC;
+  background: var(--accent-soft);
+}
+.rtshare-view__n {
+  width: 32px; height: 32px; border-radius: 8px;
+  display: grid; place-items: center;
+  background: var(--ink); color: #fff; font-size: 10px; font-weight: 700;
+}
+.rtshare-view__t { font-weight: 600; min-width: 0; }
+.rtshare-view__bar {
+  height: 6px; border-radius: 999px; background: var(--line-soft); overflow: hidden;
+}
+.rtshare-view__bar i {
+  display: block; height: 100%;
+  background: var(--accent); border-radius: inherit;
+}
+
+/* ------------------------------ keyframes ------------------------- */
+@keyframes rt-panel-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes rt-award-in {
+  from { opacity: 0; transform: translateY(14px) scale(.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes rt-node-in {
+  from { opacity: 0; transform: translateX(calc(var(--zig, 0) * 72px)) translateY(16px) scale(.92); }
+  to { opacity: 1; transform: translateX(calc(var(--zig, 0) * 72px)) translateY(0) scale(1); }
+}
+@keyframes rt-pulse {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.12); }
+  70% { transform: scale(.96); }
+  100% { transform: scale(1); }
+}
+@keyframes rt-unlock {
+  0% { transform: scale(.7); filter: brightness(.9); }
+  55% { transform: scale(1.14); filter: brightness(1.08); }
+  100% { transform: scale(1); filter: brightness(1); }
+}
+@keyframes rt-tip-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+@keyframes rt-done-pop {
+  from { opacity: 0; transform: translateY(16px) scale(.94); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (max-width: 420px) {
+  @keyframes rt-node-in {
+    from { opacity: 0; transform: translateX(calc(var(--zig, 0) * 48px)) translateY(16px) scale(.92); }
+    to { opacity: 1; transform: translateX(calc(var(--zig, 0) * 48px)) translateY(0) scale(1); }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rtpath--shell,
+  .rt-q,
+  .rt-xpchart__bar i,
+  .rt-award__bar i,
+  .rt-progress__fill,
+  .rtpath__navbtn,
+  .rtnode__btn {
+    transition: none !important;
+  }
+  .rtpath--shell.is-exit-left,
+  .rtpath--shell.is-exit-right,
+  .rtpath--shell.is-enter-left,
+  .rtpath--shell.is-enter-right,
+  .rtpath--shell.is-settle,
+  .rt-q.is-q-exit-left,
+  .rt-q.is-q-enter-right,
+  .rt-q.is-q-enter-left,
+  .rt-q.is-q-settle {
+    transform: none !important;
+    opacity: 1 !important;
+  }
+  .rtpath--shell .rt-xpchart,
+  .rt-award,
+  .rtnode__row,
+  .rtnode.is-pulse .rtnode__btn,
+  .rtnode.is-unlock .rtnode__btn,
+  .rtnode.is-current .rtnode__tip,
+  .rt-done.is-pop,
+  .rtshare-view {
+    animation: none !important;
+  }
+}
+

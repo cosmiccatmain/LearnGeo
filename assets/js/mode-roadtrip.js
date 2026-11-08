@@ -1,11 +1,15 @@
 /* ------------------------------------------------------------------
-   LearnGeo — Road Trips path (LEA-85).
+   LearnGeo — Road Trips path (LEA-85 / LEA-96).
 
    Duolingo-style vertical zig-zag of lessons, chests, stories and a
    unit trophy. Units start in Africa; the learner can switch units.
    Existing mastery seeds completed lessons so shipping this does not
    reset progress. LearnGeo fonts/brand only — no Duo owl. Games stays
-   in the nav. No Stripe, no screen mirroring.
+   in the nav. No Stripe, no screen mirroring, no classroom wallet wall.
+
+   LEA-96 — addictive unit/lesson slide transitions (~400ms), share-
+   your-road (link + friend gamertag, wallet-style), motion polish on
+   path/nodes/XP/awards. Level numeral stays modest (LEA-95 separate).
 -------------------------------------------------------------------*/
 (function (global) {
   'use strict';
@@ -18,6 +22,16 @@
 
   /* Zig-zag horizontal slots: 0 center, -1 left, 1 right. */
   var ZIG = [0, 1, -1, 0, 1, -1, 0];
+
+  /* Slide + motion timing (ms). Crisp, satisfying — not sluggish. */
+  var SLIDE_MS = 420;
+  var SLIDE_EASE = 'cubic-bezier(.22,.8,.28,1)';
+
+  /* Pending enter animation for the next path paint. */
+  var pendingSlide = null; /* { dir: 1|-1 } */
+  var pendingPulse = null; /* node id just completed */
+  var pendingUnlock = null; /* node id that became playable */
+  var viewingShare = null; /* decoded friend road snapshot */
 
   var UNITS = [
     {
@@ -179,6 +193,31 @@
 
   function esc(s) { return W.escapeHtml(String(s == null ? '' : s)); }
   function host() { return document.getElementById('view-roadtrip'); }
+
+  function reduceMotion() {
+    try {
+      return !!(global.matchMedia &&
+        global.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    } catch (e) { return false; }
+  }
+
+  function sb() { return global.Cloud && global.Cloud.sb; }
+  function signedIn() { return !!(global.Cloud && global.Cloud.signedIn); }
+  function myTag() { return (W.state.gamertag || ''); }
+  function deviceId() {
+    return global.GameBoards && global.GameBoards.deviceId
+      ? global.GameBoards.deviceId()
+      : (W.state.deviceId || '');
+  }
+
+  function rpc(name, args) {
+    var c = sb();
+    if (!c) return Promise.resolve({ ok: false, error: 'offline' });
+    return c.rpc(name, args).then(function (res) {
+      if (res && res.error) return { ok: false, error: 'offline', message: res.error.message };
+      return res.data || { ok: false, error: 'offline' };
+    }, function () { return { ok: false, error: 'offline' }; });
+  }
 
   function rtState() {
     if (!W.state.roadtrip || typeof W.state.roadtrip !== 'object') {
@@ -354,10 +393,273 @@
   function start() {
     if (run && run.phase === 'running') return renderQuestion();
     if (run && run.phase === 'done') return renderDone();
+    captureShareFromUrl();
     renderPath();
   }
 
   function abandon() { run = null; }
+
+  /* ======================== share your road (LEA-96) ================= */
+  /* Compact snapshot for a share link. School-safe — progress only, no
+     classroom wallet wall, no screen mirroring. Friend share looks up a
+     gamertag the same way wallet/chess invites do, then hands them a link. */
+  function progressSnapshot() {
+    var r = rtState();
+    var counts = UNITS.map(function (u) {
+      var n = 0;
+      for (var i = 0; i < u.lessons.length; i++) {
+        if (isDone(u.id, u.lessons[i].id)) n += 1;
+      }
+      return n;
+    });
+    var unit = currentUnit();
+    var nodes = [];
+    (unit.lessons || []).forEach(function (les) {
+      if (isDone(unit.id, les.id)) nodes.push(les.id);
+    });
+    if (r.claimed[nodeKey(unit.id, 'chest')]) nodes.push('chest');
+    if (r.read[nodeKey(unit.id, 'story')]) nodes.push('story');
+    if (isDone(unit.id, 'trophy')) nodes.push('trophy');
+    return {
+      v: 1,
+      t: myTag() || 'Explorer',
+      u: unit.id,
+      n: nodes,
+      s: counts,
+      x: r.xpEarned || 0,
+      g: r.gemsEarned || 0
+    };
+  }
+
+  function b64urlEncode(str) {
+    var b64 = global.btoa(unescape(encodeURIComponent(str)));
+    return b64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  }
+
+  function b64urlDecode(str) {
+    var b64 = String(str || '').replace(/-/g, '+').replace(/_/g, '/');
+    while (b64.length % 4) b64 += '=';
+    return decodeURIComponent(escape(global.atob(b64)));
+  }
+
+  function encodeSharePayload(snap) {
+    try { return b64urlEncode(JSON.stringify(snap)); }
+    catch (e) { return ''; }
+  }
+
+  function decodeSharePayload(raw) {
+    try {
+      var obj = JSON.parse(b64urlDecode(raw));
+      if (!obj || obj.v !== 1 || typeof obj.u !== 'string') return null;
+      if (!Array.isArray(obj.s) || !Array.isArray(obj.n)) return null;
+      return {
+        v: 1,
+        t: String(obj.t || 'Friend').slice(0, 24),
+        u: obj.u,
+        n: obj.n.map(String).slice(0, 12),
+        s: obj.s.map(function (n) { return Math.max(0, Math.min(9, Number(n) || 0)); }).slice(0, UNITS.length),
+        x: Math.max(0, Number(obj.x) || 0),
+        g: Math.max(0, Number(obj.g) || 0)
+      };
+    } catch (e) { return null; }
+  }
+
+  function shareUrlFor(snap) {
+    var payload = encodeSharePayload(snap || progressSnapshot());
+    if (!payload) return '';
+    var origin = '';
+    try { origin = global.location.origin || ''; } catch (e) { origin = ''; }
+    if (!origin) origin = 'https://www.learngeo.app';
+    return origin + '/roadtrip?road=' + encodeURIComponent(payload);
+  }
+
+  function captureShareFromUrl() {
+    try {
+      var params = new URLSearchParams(global.location.search || '');
+      var raw = (params.get('road') || '').trim();
+      if (!raw) return null;
+      var snap = decodeSharePayload(raw);
+      if (!snap) return null;
+      viewingShare = snap;
+      /* Drop the query so refresh doesn’t keep reopening the friend card. */
+      if (global.history && global.history.replaceState) {
+        var path = (global.location.pathname || '/roadtrip') +
+          (global.location.hash || '');
+        global.history.replaceState(global.history.state || {}, '', path);
+      }
+      return snap;
+    } catch (e) { return null; }
+  }
+
+  function copyText(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      return navigator.clipboard.writeText(text).then(function () { return true; },
+        function () { return fallbackCopy(text); });
+    }
+    return Promise.resolve(fallbackCopy(text));
+  }
+
+  function fallbackCopy(text) {
+    try {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.setAttribute('readonly', '');
+      ta.style.cssText = 'position:fixed;left:-9999px;top:0';
+      document.body.appendChild(ta);
+      ta.select();
+      var ok = document.execCommand('copy');
+      document.body.removeChild(ta);
+      return !!ok;
+    } catch (e) { return false; }
+  }
+
+  function friendShareMessage(tag, url) {
+    return 'Hey ' + tag + ' — check my LearnGeo Road Trip! ' + url;
+  }
+
+  function lookupTag(tag) {
+    if (!tag || !/^[A-Za-z0-9_]{3,16}$/.test(tag)) {
+      return Promise.resolve({ ok: false, error: 'invalid_tag' });
+    }
+    if (myTag() && tag.toLowerCase() === myTag().toLowerCase()) {
+      return Promise.resolve({ ok: false, error: 'self' });
+    }
+    if (!signedIn()) return Promise.resolve({ ok: false, error: 'guest' });
+    return rpc('pvp_lookup_tag', { p_tag: tag }).then(function (rows) {
+      if (rows && rows.ok === false) return rows;
+      var row = Array.isArray(rows) ? rows[0] : rows;
+      var found = !!(row && (row.found === true || row.found === 't' || row.gamertag));
+      if (!found) return { ok: false, error: 'not_found' };
+      return {
+        ok: true,
+        tag: row.gamertag || tag
+      };
+    });
+  }
+
+  function openShareRoad() {
+    if (!global.UI || !global.UI.modal) return;
+    var snap = progressSnapshot();
+    var url = shareUrlFor(snap);
+    var unit = currentUnit();
+    var doneN = (snap.s[UNITS.indexOf(unit)] || 0);
+    global.UI.modal({
+      title: 'Share your road',
+      icon: I.users || I.car,
+      body:
+        '<div class="rtshare">' +
+          '<p class="rtshare__blurb">Send a snapshot of your Road Trip progress to a friend — school-safe link, no screen mirroring.</p>' +
+          '<div class="rtshare__stats">' +
+            '<span class="chip mono">' + esc(unit.title) + ' · ' + doneN + '/' +
+              unit.lessons.length + ' lessons</span>' +
+            '<span class="chip mono">Trip +' + (snap.x || 0) + ' XP</span>' +
+            '<span class="chip chip--gem mono">+' + (snap.g || 0) + ' gems</span>' +
+          '</div>' +
+          '<div class="field" style="margin-top:14px">' +
+            '<label class="field__label" for="rt-share-link">Share link</label>' +
+            '<div class="rtshare__linkrow">' +
+              '<input class="input" id="rt-share-link" readonly value="' + esc(url) + '">' +
+              '<button type="button" class="btn btn--ghost" id="rt-share-copy">Copy</button>' +
+            '</div>' +
+          '</div>' +
+          '<div class="panel" style="margin-top:16px;padding:14px 14px 12px">' +
+            '<div class="panel__head" style="margin-bottom:8px"><h3 style="margin:0;font-size:15px">Friend share</h3></div>' +
+            '<p class="t-sm t-muted" style="margin:0 0 10px">Same pattern as wallet shares — they need a Games gamertag. We look them up, then hand you a copy-ready note with your road link.</p>' +
+            '<div class="rtshare__friend">' +
+              '<div class="field" style="flex:1;margin:0">' +
+                '<label class="field__label" for="rt-share-tag">Friend’s gamertag</label>' +
+                '<input class="input" id="rt-share-tag" maxlength="16" autocomplete="off" autocapitalize="off" ' +
+                  'spellcheck="false" placeholder="e.g. MapWizard">' +
+              '</div>' +
+              '<button type="button" class="btn btn--accent" id="rt-share-friend" style="align-self:flex-end">' +
+                (I.play || '') + ' Share</button>' +
+            '</div>' +
+            '<div class="gt-err" id="rt-share-err" role="alert" style="margin-top:8px"></div>' +
+          '</div>' +
+        '</div>',
+      actions: [{ label: 'Close', cls: 'btn--ghost', close: true }],
+      onMount: function (m) {
+        var err = W.$('#rt-share-err', m);
+        W.$('#rt-share-copy', m).addEventListener('click', function () {
+          copyText(url).then(function (ok) {
+            W.toast(ok ? 'Link copied' : 'Copy failed',
+              ok ? 'Send it to a friend' : 'Select the link and copy manually',
+              ok ? I.check : I.info, 2800);
+          });
+        });
+        W.$('#rt-share-friend', m).addEventListener('click', function () {
+          var tagEl = W.$('#rt-share-tag', m);
+          var tag = (tagEl && tagEl.value || '').trim();
+          if (err) err.textContent = '';
+          if (!myTag()) {
+            if (err) err.textContent = 'Claim a gamertag in Games → Leaderboards first.';
+            return;
+          }
+          lookupTag(tag).then(function (res) {
+            if (!res || !res.ok) {
+              var msg = ({
+                guest: 'Sign in to look up friends.',
+                offline: 'Couldn’t reach the server — copy the link instead.',
+                invalid_tag: 'Gamertags are 3–16 letters, numbers, or _.',
+                not_found: 'No player with that gamertag.',
+                self: 'Share with a friend, not yourself.'
+              })[res && res.error] || 'Couldn’t share right now.';
+              if (err) err.textContent = msg;
+              return;
+            }
+            var note = friendShareMessage(res.tag, url);
+            var finish = function (ok) {
+              W.toast(ok ? 'Ready for ' + res.tag : 'Copy failed',
+                ok ? 'Message copied — paste it to your friend' : 'Use the share link above',
+                ok ? I.check : I.info, 3400);
+            };
+            if (navigator.share) {
+              navigator.share({
+                title: 'My LearnGeo Road Trip',
+                text: note,
+                url: url
+              }).then(function () {
+                W.toast('Shared', 'Road sent toward ' + res.tag, I.check, 2800);
+              }, function () {
+                copyText(note).then(finish);
+              });
+            } else {
+              copyText(note).then(finish);
+            }
+          });
+        });
+      }
+    });
+  }
+
+  function sharePreviewHtml(snap) {
+    if (!snap) return '';
+    var unit = unitById(snap.u);
+    var idx = UNITS.indexOf(unit);
+    var done = (snap.s && snap.s[idx]) || 0;
+    var rows = UNITS.map(function (u, i) {
+      var n = (snap.s && snap.s[i]) || 0;
+      var pct = Math.round((n / Math.max(1, u.lessons.length)) * 100);
+      return '<div class="rtshare-view__row' + (u.id === snap.u ? ' is-focus' : '') + '">' +
+        '<span class="rtshare-view__n mono">U' + u.n + '</span>' +
+        '<span class="rtshare-view__t">' + esc(u.title) + '</span>' +
+        '<span class="rtshare-view__bar" aria-hidden="true"><i style="width:' + pct + '%"></i></span>' +
+        '<span class="mono">' + n + '/' + u.lessons.length + '</span>' +
+      '</div>';
+    }).join('');
+    return '<div class="rtshare-view" id="rt-share-view">' +
+      '<div class="rtshare-view__card">' +
+        '<button type="button" class="rtshare-view__close" id="rt-share-dismiss" aria-label="Close">' +
+          (I.x || '×') + '</button>' +
+        '<div class="eyebrow">Friend’s road</div>' +
+        '<h2>' + esc(snap.t) + '</h2>' +
+        '<p>Focus unit <b>' + esc(unit.title) + '</b> · ' + done + '/' +
+          unit.lessons.length + ' lessons · Trip +' + (snap.x || 0) + ' XP</p>' +
+        '<div class="rtshare-view__list">' + rows + '</div>' +
+        '<p class="t-sm t-muted" style="margin:12px 0 0">Read-only snapshot — it doesn’t change your path.</p>' +
+      '</div>' +
+    '</div>';
+  }
 
   /* ====================== upcoming awards + XP chart ================= */
   /* Progress toward Cosmetics.achievements using the same counters
@@ -504,25 +806,84 @@
     run = null;
     var unit = currentUnit();
     var nodes = buildPath(unit);
+    var slide = pendingSlide;
+    pendingSlide = null;
+    var pulseId = pendingPulse;
+    pendingPulse = null;
+    var unlockId = pendingUnlock;
+    pendingUnlock = null;
+    var shareSnap = viewingShare;
+    var still = reduceMotion();
+    var slideCls = '';
+    if (slide && !still) {
+      slideCls = slide.dir > 0 ? ' is-enter-right' : ' is-enter-left';
+    }
 
-    /* LEA-92: three columns — big XP left, path center, big awards right. */
+    /* LEA-92: three columns — big XP left, path center, big awards right.
+       LEA-96: stage wrapper for horizontal unit slides. */
     el.innerHTML =
-      '<div class="rtpath rtpath--shell">' +
+      '<div class="rtpath rtpath--shell' + slideCls + '" id="rt-shell">' +
         xpGemsChartHtml() +
         '<div class="rtpath__main">' +
           unitBanner(unit) +
-          '<div class="rtpath__road">' +
-            '<div class="rtpath__trail" id="rt-trail">' +
-              nodes.map(function (n, i) { return pathNodeHtml(unit, n, i); }).join('') +
+          '<div class="rtpath__stage">' +
+            '<div class="rtpath__road" id="rt-road">' +
+              '<div class="rtpath__trail" id="rt-trail">' +
+                nodes.map(function (n, i) {
+                  return pathNodeHtml(unit, n, i, {
+                    pulse: pulseId === n.id,
+                    unlock: unlockId === n.id
+                  });
+                }).join('') +
+              '</div>' +
             '</div>' +
           '</div>' +
           '<p class="rtpath__foot">Past study seeds this path — lessons you already know light up gold. ' +
-            'Right column previews wallet awards you’re close to. Games stays in the nav.</p>' +
+            'Share your road with friends. Games stays in the nav.</p>' +
         '</div>' +
         awardsColumnHtml() +
-      '</div>';
+      '</div>' +
+      (shareSnap ? sharePreviewHtml(shareSnap) : '');
 
     wirePath(el, unit, nodes);
+    if (shareSnap) {
+      var dismiss = W.$('#rt-share-dismiss', el);
+      if (dismiss) dismiss.addEventListener('click', function () {
+        viewingShare = null;
+        var panel = W.$('#rt-share-view', el);
+        if (panel) panel.remove();
+      });
+    }
+    playPathEnter(el, still);
+  }
+
+  function playPathEnter(el, still) {
+    var shell = W.$('#rt-shell', el);
+    if (!shell) return;
+    if (still) {
+      shell.classList.remove('is-enter-left', 'is-enter-right');
+      return;
+    }
+    /* Kick CSS enter → settle on next frame for a crisp slide. */
+    global.requestAnimationFrame(function () {
+      if (!shell.isConnected) return;
+      shell.classList.add('is-settle');
+      global.setTimeout(function () {
+        if (!shell.isConnected) return;
+        shell.classList.remove('is-enter-left', 'is-enter-right', 'is-settle');
+      }, SLIDE_MS + 40);
+    });
+    /* Animate XP bar fill from 0 → target width. */
+    var bar = W.$('.rt-xpchart__bar i', el);
+    if (bar) {
+      var w = bar.style.width || '0%';
+      bar.style.width = '0%';
+      global.requestAnimationFrame(function () {
+        if (!bar.isConnected) return;
+        bar.style.transition = 'width ' + SLIDE_MS + 'ms ' + SLIDE_EASE;
+        bar.style.width = w;
+      });
+    }
   }
 
   function unitBanner(unit) {
@@ -534,6 +895,8 @@
         '<p>' + esc(unit.blurb) + '</p>' +
       '</div>' +
       '<div class="rtpath__banner-acts">' +
+        '<button type="button" class="rtpath__guide" id="rt-share" title="Share your road">' +
+          (I.users || I.inbox || '') + ' Share road</button>' +
         '<button type="button" class="rtpath__guide" id="rt-guide">' +
           (I.book || '') + ' Guidebook</button>' +
         '<div class="rtpath__switch">' +
@@ -548,8 +911,11 @@
     '</div>';
   }
 
-  function pathNodeHtml(unit, n, i) {
+  function pathNodeHtml(unit, n, i, flags) {
+    flags = flags || {};
     var cls = 'rtnode rtnode--' + n.kind + ' is-' + n.state;
+    if (flags.pulse) cls += ' is-pulse';
+    if (flags.unlock) cls += ' is-unlock';
     var label = '';
     if (n.state === 'current' && (n.kind === 'lesson' || n.kind === 'trophy')) {
       label = '<span class="rtnode__tip">START</span>';
@@ -576,7 +942,7 @@
       sub = n.title + ' · ' + ks.known + '/' + ks.total + ' known';
     }
 
-    return '<div class="rtnode__row" style="--zig:' + n.zig + '">' +
+    return '<div class="rtnode__row" style="--zig:' + n.zig + ';--rt-i:' + i + '">' +
       '<div class="' + cls + '" data-node="' + esc(n.id) + '" data-kind="' + esc(n.kind) + '" data-state="' + esc(n.state) + '">' +
         label +
         '<button type="button" class="rtnode__btn" ' + (n.state === 'locked' ? 'disabled' : '') + '>' +
@@ -588,7 +954,10 @@
   }
 
   function wirePath(el, unit, nodes) {
-    W.$('#rt-guide', el).addEventListener('click', function () { openGuide(unit); });
+    var guide = W.$('#rt-guide', el);
+    if (guide) guide.addEventListener('click', function () { openGuide(unit); });
+    var shareBtn = W.$('#rt-share', el);
+    if (shareBtn) shareBtn.addEventListener('click', openShareRoad);
     W.$('#rt-prev', el).addEventListener('click', function () { shiftUnit(-1); });
     W.$('#rt-next', el).addEventListener('click', function () { shiftUnit(1); });
     W.$('#rt-units', el).addEventListener('click', function () { openUnitPicker(); });
@@ -608,18 +977,39 @@
     });
   }
 
+  /* Horizontal unit slide: exit current shell, then enter from the
+     direction you navigated. Feels like “one more unit” dopamine. */
+  function slideToUnit(nextId, dir) {
+    var el = host();
+    var shell = el && W.$('#rt-shell', el);
+    var still = reduceMotion();
+    rtState().unitId = nextId;
+    W.save();
+    pendingSlide = { dir: dir };
+
+    if (still || !shell) {
+      renderPath();
+      return;
+    }
+
+    shell.classList.remove('is-enter-left', 'is-enter-right', 'is-settle');
+    shell.classList.add(dir > 0 ? 'is-exit-left' : 'is-exit-right');
+    global.setTimeout(function () {
+      renderPath();
+    }, Math.round(SLIDE_MS * 0.55));
+  }
+
   function shiftUnit(dir) {
     var cur = currentUnit();
     var i = UNITS.indexOf(cur) + dir;
     if (i < 0 || i >= UNITS.length) return;
-    rtState().unitId = UNITS[i].id;
-    W.save();
-    renderPath();
+    slideToUnit(UNITS[i].id, dir);
   }
 
   function openUnitPicker() {
     if (!global.UI || !global.UI.modal) return;
     var cur = rtState().unitId;
+    var curIdx = UNITS.indexOf(unitById(cur));
     global.UI.modal({
       title: 'Switch unit',
       icon: I.layers || I.car,
@@ -636,10 +1026,12 @@
       onMount: function (m, close) {
         W.$$('[data-unit]', m).forEach(function (b) {
           b.addEventListener('click', function () {
-            rtState().unitId = b.getAttribute('data-unit');
-            W.save();
+            var id = b.getAttribute('data-unit');
+            var nextIdx = UNITS.indexOf(unitById(id));
+            var dir = nextIdx >= curIdx ? 1 : -1;
             close();
-            renderPath();
+            if (id === cur) return;
+            slideToUnit(id, dir || 1);
           });
         });
       }
@@ -673,9 +1065,15 @@
     }
     rtState().claimed[key] = true;
     W.state.economy.diamonds += 40;
+    rtState().gemsEarned = (rtState().gemsEarned || 0) + 40;
     W.save();
     if (global.UI && global.UI.refreshHud) global.UI.refreshHud();
     W.toast('Route chest', '+40 diamonds for the road', I.gem, 3200);
+    pendingPulse = 'chest';
+    /* Next openable node gets an unlock pop. */
+    var path = buildPath(unit);
+    var nxt = path.find(function (n) { return n.state === 'current' && n.id !== 'chest'; });
+    if (nxt) pendingUnlock = nxt.id;
     renderPath();
   }
 
@@ -692,6 +1090,10 @@
         onClick: function () {
           rtState().read[key] = true;
           W.save();
+          pendingPulse = 'story';
+          var path = buildPath(unit);
+          var nxt = path.find(function (n) { return n.state === 'current' && n.id !== 'story'; });
+          if (nxt) pendingUnlock = nxt.id;
           renderPath();
         }
       }]
@@ -788,11 +1190,17 @@
     }
   }
 
-  function renderQuestion() {
+  function renderQuestion(opts) {
     var el = host();
     if (!el || !run) return;
+    opts = opts || {};
     var q = run.qs[run.i];
     var pct = Math.round((run.i / run.qs.length) * 100);
+    var still = reduceMotion();
+    var slideCls = '';
+    if (opts.slide && !still) {
+      slideCls = opts.slide > 0 ? ' is-q-enter-right' : ' is-q-enter-left';
+    }
     var mapHtml = needsMap(q)
       ? '<div class="rt-map" aria-label="Map showing the shaded country">' +
           '<div id="map-roadtrip" class="rt-map__host" role="img" ' +
@@ -809,21 +1217,23 @@
           '</div>' +
         '</div>' +
         '<div class="rt-progress"><div class="rt-progress__fill" style="width:' + pct + '%"></div></div>' +
-        '<div class="rt-q">' +
-          '<div class="qmeta">' +
-            '<span class="eyebrow">' + esc((global.Quiz.types[q.type] || {}).label || q.type) + '</span>' +
-            '<span class="eyebrow">Road trip</span>' +
+        '<div class="rt-q-stage">' +
+          '<div class="rt-q' + slideCls + '" id="rt-qcard">' +
+            '<div class="qmeta">' +
+              '<span class="eyebrow">' + esc((global.Quiz.types[q.type] || {}).label || q.type) + '</span>' +
+              '<span class="eyebrow">Road trip</span>' +
+            '</div>' +
+            '<div class="qprompt">' + esc(q.prompt) + '</div>' +
+            '<div class="qsubject">' + global.Quiz.subjectHtml(q) + '</div>' +
+            mapHtml +
+            '<div class="' + global.Quiz.optionsClass(q) + '" id="rt-opts"></div>' +
+            '<div id="rt-fb"></div>' +
           '</div>' +
-          '<div class="qprompt">' + esc(q.prompt) + '</div>' +
-          '<div class="qsubject">' + global.Quiz.subjectHtml(q) + '</div>' +
-          mapHtml +
-          '<div class="' + global.Quiz.optionsClass(q) + '" id="rt-opts"></div>' +
-          '<div id="rt-fb"></div>' +
         '</div>' +
       '</div>';
 
-    var opts = W.$('#rt-opts', el);
-    if (opts && q.choices) {
+    var optsEl = W.$('#rt-opts', el);
+    if (optsEl && q.choices) {
       q.choices.forEach(function (c, i) {
         var b = W.el('button', 'option');
         b.dataset.i = String(i);
@@ -832,7 +1242,7 @@
           '<span class="option__text">' + global.Quiz.choiceHtml(q, c) + '</span>' +
           '<span class="option__mark">' + (I.check || '') + '</span>';
         b.addEventListener('click', function () { pick(i); });
-        opts.appendChild(b);
+        optsEl.appendChild(b);
       });
     }
     if (needsMap(q)) paintMap(q, false);
@@ -841,6 +1251,16 @@
       abandon();
       renderPath();
     });
+    var card = W.$('#rt-qcard', el);
+    if (card && slideCls && !still) {
+      global.requestAnimationFrame(function () {
+        if (!card.isConnected) return;
+        card.classList.add('is-q-settle');
+        global.setTimeout(function () {
+          if (card.isConnected) card.classList.remove('is-q-enter-right', 'is-q-enter-left', 'is-q-settle');
+        }, SLIDE_MS + 40);
+      });
+    }
   }
 
   function pick(idx) {
@@ -892,9 +1312,20 @@
   function next() {
     if (!run) return;
     if (run.i >= run.qs.length - 1) return finish();
+    var el = host();
+    var card = el && W.$('#rt-qcard', el);
+    var still = reduceMotion();
     run.i += 1;
     run.answered = false;
-    renderQuestion();
+    if (still || !card) {
+      renderQuestion({ slide: 1 });
+      return;
+    }
+    card.classList.remove('is-q-enter-right', 'is-q-enter-left', 'is-q-settle');
+    card.classList.add('is-q-exit-left');
+    global.setTimeout(function () {
+      renderQuestion({ slide: 1 });
+    }, Math.round(SLIDE_MS * 0.5));
   }
 
   function finish() {
@@ -904,7 +1335,14 @@
     var pct = Math.round((score / total) * 100);
     /* Complete the node when they clear at least half — keeps the path moving
        without demanding perfection on a seeded review. */
-    if (pct >= 50) markDone(run.unitId, run.nodeId, 'played');
+    if (pct >= 50) {
+      markDone(run.unitId, run.nodeId, 'played');
+      pendingPulse = run.nodeId;
+      var unit = unitById(run.unitId);
+      var path = buildPath(unit);
+      var nxt = path.find(function (n) { return n.state === 'current'; });
+      if (nxt) pendingUnlock = nxt.id;
+    }
     run.phase = 'done';
     run.score = score;
     run.pct = pct;
@@ -915,9 +1353,10 @@
     var el = host();
     if (!el || !run) return;
     var cleared = run.pct >= 50;
+    var still = reduceMotion();
     el.innerHTML =
       '<div class="rtpath rtpath--done">' +
-        '<div class="rt-done">' +
+        '<div class="rt-done' + (still ? '' : ' is-pop') + '">' +
           '<div class="rt-done__badge mono">' + run.score + '<span>/' + run.qs.length + '</span></div>' +
           '<h2>' + esc(run.title) + '</h2>' +
           '<p>' + (cleared
@@ -927,6 +1366,7 @@
           '<div class="rt-done__acts">' +
             '<button type="button" class="btn btn--accent" id="rt-path">Back to path</button>' +
             (!cleared ? '<button type="button" class="btn btn--ghost" id="rt-retry">Try again</button>' : '') +
+            (cleared ? '<button type="button" class="btn btn--ghost" id="rt-share-done">Share road</button>' : '') +
           '</div>' +
         '</div>' +
       '</div>';
@@ -937,6 +1377,12 @@
     if (retry) retry.addEventListener('click', function () {
       abandon();
       startLesson(unitById(unitId), nodeId, kind);
+    });
+    var shareDone = W.$('#rt-share-done', el);
+    if (shareDone) shareDone.addEventListener('click', function () {
+      abandon();
+      renderPath();
+      openShareRoad();
     });
   }
 
@@ -950,7 +1396,12 @@
     buildPath: buildPath,
     achievementProgress: achievementProgress,
     upcomingAwards: upcomingAwards,
+    progressSnapshot: progressSnapshot,
+    encodeSharePayload: encodeSharePayload,
+    decodeSharePayload: decodeSharePayload,
+    shareUrlFor: shareUrlFor,
     SEED_BOX: SEED_BOX,
-    SEED_RATIO: SEED_RATIO
+    SEED_RATIO: SEED_RATIO,
+    SLIDE_MS: SLIDE_MS
   };
 })(window);

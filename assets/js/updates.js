@@ -20,6 +20,13 @@
      own What’s New id. `try` deep-links into the feature (LEA-79). */
   var UPDATES = [
     {
+      id: '2026-11-roadtrip-share-motion',
+      title: 'Road Trips that slide + share',
+      body: 'Switch units with a crisp sideways slide, polish every path/XP pop, and share your road with friends via link or gamertag — school-safe, no screen mirroring.',
+      date: '2026-11-08',
+      try: 'roadtrip'
+    },
+    {
       id: '2026-11-geo-chess-ladder',
       title: 'Geo Chess weekly ladder',
       body: 'Inside Geo Chess → Challenge a friend: climb this week’s Elo ladder (resets Monday UTC) and rematch your last opponent from the lobby or end screen — still no separate Chess Duel.',
@@ -332,6 +339,9 @@
         if (global.Teacher) global.Teacher.tab = 'duels';
         if (UI && UI.go) UI.go('teacher');
         else if (global.Teacher && global.Teacher.render) global.Teacher.render();
+        return;
+      case 'roadtrip':
+        if (UI && UI.go) UI.go('roadtrip');
         return;
       default:
         return;
