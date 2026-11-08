@@ -157,3 +157,16 @@ test('XP/gems chart maps onto economy + roadtrip earned counters', () => {
   assert.match(core, /xpEarned:\s*0/);
   assert.match(core, /gemsEarned:\s*0/);
 });
+
+test('LEA-92 layout uses large side columns, not postage-stamp floats', () => {
+  const css = fs.readFileSync(path.join(root, 'assets/css/roadtrip.css'), 'utf8');
+  const js = fs.readFileSync(path.join(root, 'assets/js/mode-roadtrip.js'), 'utf8');
+  assert.match(css, /grid-template-columns:\s*280px\s+480px\s+300px/);
+  assert.match(css, /\.rt-xpchart__level\s*\{[^}]*font-size:\s*40px/s);
+  assert.match(css, /\.rt-award__name\s*\{[^}]*font-size:\s*22px/s);
+  assert.match(css, /\.rt-xpchart\s*\{[^}]*width:\s*100%/s);
+  assert.match(css, /white-space:\s*nowrap/); /* trip line stays one line */
+  assert.doesNotMatch(css, /\.rt-side-card\b/);
+  assert.match(js, /awardsColumnHtml|rt-awards/);
+  assert.match(js, /Coming up/);
+});

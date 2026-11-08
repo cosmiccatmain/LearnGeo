@@ -1,9 +1,9 @@
 /* ------------------------------------------------------------------
-   LearnGeo — Road Trips Duo-style path (LEA-85 / LEA-90).
+   LearnGeo — Road Trips Duo-style path (LEA-85 / LEA-90 / LEA-92).
 
-   Vertical zig-zag lesson path with unit banner, START node, locked
-   nodes, chest, story, and trophy. LEA-90 adds a left XP/gems chart
-   and roadside mini wallet-award previews. Original LearnGeo fonts.
+   Vertical zig-zag path center; LEA-92 makes left XP/gems and right
+   upcoming award cards large and readable on desktop/iPad (not tiny
+   floating postage stamps). Original LearnGeo fonts.
 -------------------------------------------------------------------*/
 
 .rtpath {
@@ -12,180 +12,196 @@
   padding: 18px 16px 96px;
 }
 
-/* Shell: left XP chart + centered path with side award cards */
+/* Shell: left XP | center path | right awards */
 .rtpath--shell {
-  max-width: 980px;
+  width: max-content;
+  max-width: min(1180px, 100%);
   display: grid;
-  grid-template-columns: 132px minmax(0, 1fr);
-  gap: 18px;
+  grid-template-columns: 280px 480px 300px;
+  gap: 28px;
+  justify-content: center;
   align-items: start;
-  padding: 18px 16px 96px;
+  padding: 22px 24px 96px;
   margin: 0 auto;
+  box-sizing: border-box;
 }
 .rtpath__main {
   min-width: 0;
-  max-width: 560px;
-  margin: 0 auto;
   width: 100%;
 }
 
 /* ------------------------ left XP / gems chart -------------------- */
 .rt-xpchart {
-  position: sticky; top: calc(var(--topbar-h, 56px) + 12px);
+  width: 100%;
+  box-sizing: border-box;
+  position: sticky; top: calc(var(--topbar-h, 56px) + 14px);
   background: var(--white);
   border: 1px solid var(--line);
-  border-radius: 14px;
-  padding: 12px 11px 11px;
-  box-shadow: 0 1px 2px rgba(10,10,11,.04);
+  border-radius: 18px;
+  padding: 24px 22px 20px;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, .05);
 }
 .rt-xpchart__kicker {
-  font-family: var(--mono); font-size: 9.5px; font-weight: 700;
-  letter-spacing: .08em; text-transform: uppercase;
-  color: var(--faint); margin-bottom: 6px;
+  font-family: var(--mono); font-size: 12px; font-weight: 700;
+  letter-spacing: .1em; text-transform: uppercase;
+  color: var(--faint); margin-bottom: 10px;
 }
 .rt-xpchart__level {
-  font-size: 18px; font-weight: 720; letter-spacing: -.02em;
-  margin-bottom: 8px;
+  font-size: 40px; font-weight: 740; letter-spacing: -.03em;
+  line-height: 1; margin-bottom: 16px;
 }
 .rt-xpchart__bar {
-  height: 6px; border-radius: 999px;
-  background: var(--line-soft); overflow: hidden; margin-bottom: 5px;
+  height: 12px; border-radius: 999px;
+  background: var(--line-soft); overflow: hidden; margin-bottom: 8px;
 }
 .rt-xpchart__bar i {
   display: block; height: 100%; width: 0;
   background: var(--accent); border-radius: inherit;
 }
 .rt-xpchart__meta {
-  font-size: 10.5px; color: var(--faint); margin-bottom: 12px;
+  font-size: 14px; color: var(--ink-2); margin-bottom: 18px;
+  font-weight: 560;
 }
 .rt-xpchart__gems {
-  display: flex; align-items: center; gap: 6px;
-  padding-top: 10px; border-top: 1px solid var(--line-soft);
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 0 0;
+  border-top: 1px solid var(--line-soft);
 }
 .rt-xpchart__gemic {
-  width: 22px; height: 22px; border-radius: 8px;
+  width: 40px; height: 40px; border-radius: 12px;
   display: grid; place-items: center;
-  background: var(--accent-soft); color: var(--accent);
+  background: var(--accent-soft); color: var(--accent); flex: none;
 }
-.rt-xpchart__gemic svg { width: 14px; height: 14px; }
-.rt-xpchart__gems b { font-size: 15px; font-weight: 700; }
-.rt-xpchart__gems span { font-size: 11px; color: var(--faint); }
+.rt-xpchart__gemic svg { width: 22px; height: 22px; }
+.rt-xpchart__gemtxt { min-width: 0; }
+.rt-xpchart__gemtxt b {
+  display: block; font-size: 26px; font-weight: 720; letter-spacing: -.02em;
+  line-height: 1.1;
+}
+.rt-xpchart__gemtxt span {
+  display: block; font-size: 14px; color: var(--faint); margin-top: 2px;
+}
 .rt-xpchart__trip {
-  margin-top: 8px;
-  font-size: 9.5px; color: var(--faint); line-height: 1.35;
+  margin-top: 16px;
+  font-size: 14px; color: var(--ink-2); line-height: 1.35;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis;
 }
 
-/* -------------------- roadside award previews --------------------- */
+/* -------------------- right upcoming awards ----------------------- */
+.rt-awards {
+  width: 100%;
+  box-sizing: border-box;
+  position: sticky; top: calc(var(--topbar-h, 56px) + 14px);
+  display: flex; flex-direction: column; gap: 14px;
+  min-width: 0;
+}
+.rt-awards__head b {
+  display: block; font-size: 19px; font-weight: 680; letter-spacing: -.01em;
+}
+.rt-awards__head span {
+  display: block; font-size: 14px; color: var(--faint); margin-top: 3px;
+}
+.rt-awards__list {
+  display: flex; flex-direction: column; gap: 14px;
+}
+.rt-awards__empty {
+  margin: 0; padding: 18px;
+  background: var(--white); border: 1px dashed var(--line);
+  border-radius: 14px; color: var(--faint); font-size: 14px;
+}
+
+.rt-award {
+  width: 100%;
+  box-sizing: border-box;
+  background: linear-gradient(155deg, #1B4DFF 0%, #0B3A82 100%);
+  color: #fff;
+  border-radius: 16px;
+  padding: 20px 18px 16px;
+  box-shadow: 0 5px 0 rgba(11, 58, 130, .4), 0 12px 24px rgba(15, 23, 42, .1);
+}
+.rt-award.is-seasonal {
+  background: linear-gradient(155deg, #0F766E 0%, #115E59 100%);
+  box-shadow: 0 5px 0 rgba(17, 94, 89, .4), 0 12px 24px rgba(15, 23, 42, .1);
+}
+.rt-award__top {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 10px;
+}
+.rt-award__chip {
+  width: 36px; height: 26px; border-radius: 6px;
+  background: rgba(255,255,255,.22); flex: none;
+}
+.rt-award__eye {
+  font-family: var(--mono); font-size: 11px; font-weight: 700;
+  letter-spacing: .1em; text-transform: uppercase;
+  opacity: .8;
+}
+.rt-award__name {
+  margin: 0 0 8px;
+  font-size: 22px; font-weight: 720; letter-spacing: -.015em; line-height: 1.15;
+}
+.rt-award__desc {
+  margin: 0 0 14px;
+  font-size: 15px; line-height: 1.4; opacity: .92;
+}
+.rt-award__bar {
+  height: 8px; border-radius: 999px;
+  background: rgba(255,255,255,.22); overflow: hidden; margin-bottom: 10px;
+}
+.rt-award__bar i {
+  display: block; height: 100%; width: 0;
+  background: #F5B942; border-radius: inherit;
+}
+.rt-award__foot {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 14px; font-weight: 560;
+}
+.rt-award__reward {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-family: var(--mono); font-weight: 700; font-size: 14px;
+}
+.rt-award__reward svg { width: 15px; height: 15px; }
+
 .rtpath__road {
   position: relative;
   max-width: 420px;
   margin: 0 auto;
 }
-.rtpath__sides {
-  position: absolute; inset: 0;
-  pointer-events: none;
-  z-index: 1;
+
+@media (max-width: 1120px) {
+  .rtpath--shell {
+    grid-template-columns: 250px minmax(0, 440px) 270px;
+    gap: 20px;
+    width: 100%;
+    max-width: 1060px;
+  }
+  .rt-xpchart__level { font-size: 34px; }
+  .rt-award__name { font-size: 19px; }
+  .rt-award__desc { font-size: 14px; }
 }
-.rt-side-empty {
-  position: absolute; right: -4px; top: 8%;
-  max-width: 110px; text-align: right; font-size: 11px;
-}
-.rt-side-card {
-  position: absolute;
-  width: 128px;
-  pointer-events: auto;
-  background: linear-gradient(160deg, #1B4DFF 0%, #0B3A82 100%);
-  color: #fff;
-  border-radius: 12px;
-  padding: 10px 10px 9px;
-  box-shadow: 0 6px 0 rgba(11, 58, 130, .45), 0 10px 22px rgba(15, 23, 42, .12);
-  transform: rotate(-2deg);
-}
-.rt-side-card--right {
-  right: -118px;
-  transform: rotate(3deg);
-}
-.rt-side-card--left {
-  left: -118px;
-  transform: rotate(-3deg);
-}
-.rt-side-card.is-seasonal {
-  background: linear-gradient(160deg, #0F766E 0%, #115E59 100%);
-  box-shadow: 0 6px 0 rgba(17, 94, 89, .45), 0 10px 22px rgba(15, 23, 42, .12);
-}
-.rt-side-card__chip {
-  width: 22px; height: 16px; border-radius: 4px;
-  background: rgba(255,255,255,.22);
-  margin-bottom: 8px;
-}
-.rt-side-card__eye {
-  font-family: var(--mono); font-size: 8.5px; font-weight: 700;
-  letter-spacing: .1em; text-transform: uppercase;
-  opacity: .75; margin-bottom: 3px;
-}
-.rt-side-card__name {
-  font-size: 12.5px; font-weight: 700; line-height: 1.2;
-  margin-bottom: 4px;
-}
-.rt-side-card__desc {
-  font-size: 10.5px; line-height: 1.3; opacity: .88;
-  margin-bottom: 8px;
-  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-.rt-side-card__bar {
-  height: 4px; border-radius: 999px;
-  background: rgba(255,255,255,.22); overflow: hidden; margin-bottom: 6px;
-}
-.rt-side-card__bar i {
-  display: block; height: 100%; width: 0;
-  background: #F5B942; border-radius: inherit;
-}
-.rt-side-card__foot {
-  display: flex; justify-content: space-between; align-items: center;
-  font-size: 10px; opacity: .9;
-}
-.rt-side-card__reward {
-  display: inline-flex; align-items: center; gap: 3px;
-  font-family: var(--mono); font-weight: 650;
-}
-.rt-side-card__reward svg { width: 11px; height: 11px; }
 
 @media (max-width: 900px) {
   .rtpath--shell {
     grid-template-columns: 1fr;
+    width: 100%;
+    max-width: 640px;
   }
+  .rt-xpchart, .rt-awards { position: static; }
   .rt-xpchart {
-    position: static;
+    padding: 18px 16px 14px;
+  }
+  .rt-xpchart__trip { white-space: nowrap; }
+  .rt-awards__list {
     display: grid;
-    grid-template-columns: auto 1fr auto;
-    grid-template-areas:
-      "kick kick kick"
-      "lvl bar gems"
-      "meta meta trip";
-    gap: 4px 12px;
-    align-items: center;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
   }
-  .rt-xpchart__kicker { grid-area: kick; margin: 0; }
-  .rt-xpchart__level { grid-area: lvl; margin: 0; font-size: 16px; }
-  .rt-xpchart__bar { grid-area: bar; margin: 0; }
-  .rt-xpchart__meta { grid-area: meta; margin: 0; }
-  .rt-xpchart__gems {
-    grid-area: gems; border: 0; padding: 0; justify-self: end;
-  }
-  .rt-xpchart__trip { grid-area: trip; margin: 0; }
-  .rt-side-card--right { right: 0; }
-  .rt-side-card--left { left: 0; }
-  .rtpath__sides {
-    position: relative; inset: auto;
-    display: flex; gap: 10px; overflow-x: auto;
-    padding: 0 2px 14px; margin-bottom: 4px;
-  }
-  .rt-side-card {
-    position: relative; top: auto !important;
-    left: auto !important; right: auto !important;
-    flex: none; transform: none;
-  }
+}
+
+@media (max-width: 520px) {
+  .rt-awards__list { grid-template-columns: 1fr; }
+  .rt-xpchart__level { font-size: 28px; }
 }
 
 /* ---------------------------- unit banner ------------------------- */
