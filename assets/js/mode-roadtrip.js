@@ -429,42 +429,45 @@
     return list.slice(0, limit || 4);
   }
 
-  function miniAwardHtml(item, side, topPct) {
+  /* LEA-92 — large readable award cards in a right-hand column (not
+     postage-stamp floats beside the path). */
+  function awardCardHtml(item) {
     var a = item.ach;
     var p = item.progress;
     var pct = Math.round(p.pct * 100);
     var seasonal = !!a.seasonal;
-    return '<aside class="rt-side-card rt-side-card--' + side +
-      (seasonal ? ' is-seasonal' : '') + '" style="top:' + topPct + '%" data-award="' + esc(a.id) + '">' +
-      '<div class="rt-side-card__chip" aria-hidden="true"></div>' +
-      '<div class="rt-side-card__eye">' + (seasonal ? 'Seasonal' : 'Up next') + '</div>' +
-      '<div class="rt-side-card__name">' + esc(a.name) + '</div>' +
-      '<div class="rt-side-card__desc">' + esc(a.desc) + '</div>' +
-      '<div class="rt-side-card__bar"><i style="width:' + pct + '%"></i></div>' +
-      '<div class="rt-side-card__foot">' +
-        '<span class="mono">' + Math.min(p.have, p.need) + '/' + p.need + '</span>' +
-        '<span class="rt-side-card__reward">+' + a.reward + ' ' + (I.gem || '💎') + '</span>' +
+    return '<article class="rt-award' + (seasonal ? ' is-seasonal' : '') +
+      '" data-award="' + esc(a.id) + '">' +
+      '<div class="rt-award__top">' +
+        '<span class="rt-award__chip" aria-hidden="true"></span>' +
+        '<span class="rt-award__eye">' + (seasonal ? 'Seasonal' : 'Up next') + '</span>' +
       '</div>' +
+      '<h3 class="rt-award__name">' + esc(a.name) + '</h3>' +
+      '<p class="rt-award__desc">' + esc(a.desc) + '</p>' +
+      '<div class="rt-award__bar" aria-hidden="true"><i style="width:' + pct + '%"></i></div>' +
+      '<div class="rt-award__foot">' +
+        '<span class="mono">' + Math.min(p.have, p.need) + ' / ' + p.need + '</span>' +
+        '<span class="rt-award__reward">+' + a.reward + ' ' + (I.gem || '💎') + '</span>' +
+      '</div>' +
+    '</article>';
+  }
+
+  function awardsColumnHtml() {
+    var upcoming = upcomingAwards(4);
+    var body = upcoming.length
+      ? upcoming.map(awardCardHtml).join('')
+      : '<p class="rt-awards__empty">All wallet awards unlocked.</p>';
+    return '<aside class="rt-awards" aria-label="Upcoming wallet awards">' +
+      '<div class="rt-awards__head">' +
+        '<b>Coming up</b>' +
+        '<span>Wallet cards you’re close to</span>' +
+      '</div>' +
+      '<div class="rt-awards__list">' + body + '</div>' +
     '</aside>';
   }
 
-  function sideAwardsHtml() {
-    var upcoming = upcomingAwards(4);
-    if (!upcoming.length) {
-      return '<div class="rt-side-empty t-sm t-muted">All wallet awards unlocked.</div>';
-    }
-    /* Alternate right / left along the trail, Duo-style roadside props. */
-    return upcoming.map(function (item, i) {
-      var side = i % 2 === 0 ? 'right' : 'left';
-      var top = 12 + i * 22;
-      return miniAwardHtml(item, side, top);
-    }).join('');
-  }
-
-  /* Left rail: compact XP + gems. XP bar uses economy.xp / xpToNext(level)
-     (same as the top HUD). Gems = economy.diamonds. Road-trip session
-     totals (xpEarned / gemsEarned) are the sum of W.award gains from
-     lessons on this path — they feed the same economy counters. */
+  /* Left column: large XP + gems panel. XP bar = economy.xp / xpToNext
+     (same as HUD). Gems = economy.diamonds. Trip line = roadtrip earned. */
   function xpGemsChartHtml() {
     var eco = W.state.economy || { xp: 0, level: 1, diamonds: 0 };
     var prog = W.levelProgress ? W.levelProgress() : { have: eco.xp || 0, need: 80 };
@@ -472,22 +475,26 @@
     var have = Math.max(0, prog.have || 0);
     var pct = Math.min(100, Math.round((have / need) * 100));
     var r = rtState();
-    return '<div class="rt-xpchart" aria-label="XP and gems">' +
+    var gems = Number(eco.diamonds) || 0;
+    return '<aside class="rt-xpchart" aria-label="XP and gems">' +
       '<div class="rt-xpchart__kicker">On the road</div>' +
       '<div class="rt-xpchart__level mono">Lv ' + (eco.level || 1) + '</div>' +
       '<div class="rt-xpchart__bar" title="XP toward next level">' +
         '<i style="width:' + pct + '%"></i>' +
       '</div>' +
-      '<div class="rt-xpchart__meta mono">' + have + ' / ' + need + ' XP</div>' +
+      '<div class="rt-xpchart__meta mono">' + have.toLocaleString() + ' / ' +
+        need.toLocaleString() + ' XP</div>' +
       '<div class="rt-xpchart__gems">' +
         '<span class="rt-xpchart__gemic">' + (I.gem || '') + '</span>' +
-        '<b class="mono">' + (eco.diamonds || 0) + '</b>' +
-        '<span>gems</span>' +
+        '<div class="rt-xpchart__gemtxt">' +
+          '<b class="mono">' + gems.toLocaleString() + '</b>' +
+          '<span>gems</span>' +
+        '</div>' +
       '</div>' +
       '<div class="rt-xpchart__trip mono" title="Awarded from Road Trips lessons">' +
         'Trip +' + (r.xpEarned || 0) + ' XP · +' + (r.gemsEarned || 0) + ' gems' +
       '</div>' +
-    '</div>';
+    '</aside>';
   }
 
   /* ============================== path UI ============================ */
@@ -498,22 +505,21 @@
     var unit = currentUnit();
     var nodes = buildPath(unit);
 
+    /* LEA-92: three columns — big XP left, path center, big awards right. */
     el.innerHTML =
       '<div class="rtpath rtpath--shell">' +
         xpGemsChartHtml() +
         '<div class="rtpath__main">' +
           unitBanner(unit) +
           '<div class="rtpath__road">' +
-            '<div class="rtpath__sides" aria-label="Upcoming wallet awards">' +
-              sideAwardsHtml() +
-            '</div>' +
             '<div class="rtpath__trail" id="rt-trail">' +
               nodes.map(function (n, i) { return pathNodeHtml(unit, n, i); }).join('') +
             '</div>' +
           '</div>' +
           '<p class="rtpath__foot">Past study seeds this path — lessons you already know light up gold. ' +
-            'Side cards preview wallet awards you’re close to. Games stays in the nav.</p>' +
+            'Right column previews wallet awards you’re close to. Games stays in the nav.</p>' +
         '</div>' +
+        awardsColumnHtml() +
       '</div>';
 
     wirePath(el, unit, nodes);
