@@ -39,16 +39,29 @@ function load(mastery) {
     $$() { return []; },
     state: {
       mastery: mastery || {},
-      streak: { current: 0 },
-      stats: {},
-      economy: { diamonds: 150, xp: 0, level: 1 },
+      streak: { current: 0, best: 4 },
+      stats: { answered: 12, correct: 8, tests: 1, arcade: 0, perfectTests: 0 },
+      economy: { diamonds: 150, xp: 40, level: 2 },
       skills: {},
       daily: {},
-      roadtrip: { unitId: 'africa-north', done: {}, claimed: {}, read: {} }
-    }
+      achievements: [],
+      roadtrip: {
+        unitId: 'africa-north', done: {}, claimed: {}, read: {},
+        xpEarned: 0, gemsEarned: 0
+      }
+    },
+    levelProgress() {
+      return { have: this.state.economy.xp, need: 80 + 40 * this.state.economy.level };
+    },
+    masteredCount() {
+      return Object.keys(this.state.mastery).filter(k => (this.state.mastery[k].box || 0) >= 4).length;
+    },
+    checkAchievements() { return []; },
+    announceAchievements() {}
   };
   window.WW = WW;
   vm.runInNewContext(fs.readFileSync(path.join(root, 'assets/js/data.js'), 'utf8'), { window });
+  vm.runInNewContext(fs.readFileSync(path.join(root, 'assets/js/cosmetics.js'), 'utf8'), { window });
   vm.runInNewContext(fs.readFileSync(path.join(root, 'assets/js/quiz.js'), 'utf8'), { window });
   vm.runInNewContext(fs.readFileSync(path.join(root, 'assets/js/mode-roadtrip.js'), 'utf8'), { window });
   return window;
@@ -116,4 +129,31 @@ test('no Stripe checkout or screen-share hooks in roadtrip mode', () => {
   assert.doesNotMatch(src, /ScreenShare|share screen|stripe\.com|Checkout Session/i);
   assert.match(src, /LearnGeo/);
   assert.match(src, /no Duo owl/);
+});
+
+test('upcoming awards prefer partial progress toward Cosmetics.achievements', () => {
+  const { RoadTripMode, Cosmetics } = load();
+  assert.ok(Cosmetics.achievements.length > 3);
+  const first = RoadTripMode.achievementProgress(
+    Cosmetics.achievements.find(a => a.id === 'first-steps'));
+  assert.equal(first.pct, 1);
+  const streak = RoadTripMode.achievementProgress(
+    Cosmetics.achievements.find(a => a.id === 'streak-10'));
+  assert.ok(streak.pct > 0 && streak.pct < 1);
+  const upcoming = RoadTripMode.upcomingAwards(3);
+  assert.ok(upcoming.length >= 1);
+  assert.ok(upcoming.every(u => u.ach && u.progress));
+  /* Closest-to-done first among locked (first-steps is complete → unlocked filter skips if in achievements; here achievements=[] so first-steps pct=1 leads). */
+  assert.ok(upcoming[0].progress.pct >= upcoming[upcoming.length - 1].progress.pct);
+});
+
+test('XP/gems chart maps onto economy + roadtrip earned counters', () => {
+  const src = fs.readFileSync(path.join(root, 'assets/js/mode-roadtrip.js'), 'utf8');
+  assert.match(src, /levelProgress/);
+  assert.match(src, /economy\.diamonds|eco\.diamonds/);
+  assert.match(src, /xpEarned/);
+  assert.match(src, /gemsEarned/);
+  const core = fs.readFileSync(path.join(root, 'assets/js/core.js'), 'utf8');
+  assert.match(core, /xpEarned:\s*0/);
+  assert.match(core, /gemsEarned:\s*0/);
 });
