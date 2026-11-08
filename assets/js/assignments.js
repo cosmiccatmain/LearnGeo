@@ -256,11 +256,14 @@
       '</div>' +
       '<div class="picker__hits hidden" data-hits></div>' +
       '<div class="picker__bulk">' +
+        (global.WorldMap ? '<button type="button" class="mini-btn mini-btn--map" data-map-toggle ' +
+          'aria-expanded="false">' + MAP_ICON + 'Pick on map</button>' : '') +
         '<button class="mini-btn" data-bulk="clear">Clear</button>' +
         global.GeoData.regions.map(function (r) {
           return '<button class="mini-btn" data-bulk="' + r + '">+ ' + r + '</button>';
         }).join('') +
-      '</div>';
+      '</div>' +
+      '<div class="picker__map hidden" data-map></div>';
 
     var field = host.querySelector('[data-field]');
     var input = host.querySelector('[data-input]');
@@ -290,6 +293,7 @@
     }
 
     function drawTokens() {
+      if (mapApi) mapApi.refresh();
       W.$$('.token', field).forEach(function (t) { t.remove(); });
       chosen.forEach(function (nm) {
         var t = W.el('span', 'token', W.escapeHtml(nm) +
@@ -341,6 +345,34 @@
     });
     field.addEventListener('click', function () { input.focus(); });
 
+    /* The map is only built the first time it is opened: most people type. */
+    var mapApi = null;
+    var mapToggle = host.querySelector('[data-map-toggle]');
+    if (mapToggle) mapToggle.addEventListener('click', function () {
+      var box = host.querySelector('[data-map]');
+      var open = box.classList.toggle('hidden') === false;
+      mapToggle.setAttribute('aria-expanded', String(open));
+      mapToggle.classList.toggle('is-on', open);
+      if (open && !mapApi) {
+        mapApi = mapPicker(box, {
+          has: function (nm) { return chosen.indexOf(nm) !== -1; },
+          toggle: function (nm) {
+            if (chosen.indexOf(nm) !== -1) chosen = chosen.filter(function (x) { return x !== nm; });
+            else chosen.push(nm);
+            drawTokens(); notify();
+          },
+          addAll: function (names) {
+            names.forEach(function (nm) { if (chosen.indexOf(nm) === -1) chosen.push(nm); });
+            drawTokens(); notify();
+          },
+          removeAll: function (names) {
+            chosen = chosen.filter(function (x) { return names.indexOf(x) === -1; });
+            drawTokens(); notify();
+          }
+        });
+      }
+    });
+
     W.$$('[data-bulk]', host).forEach(function (b) {
       b.addEventListener('click', function () {
         var v = b.dataset.bulk;
@@ -360,6 +392,120 @@
       set: function (list) { chosen = list.slice(); drawTokens(); notify(); },
       focus: function () { input.focus(); }
     };
+  }
+
+  var MAP_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
+    'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+    '<path d="M9 5 4 7v12l5-2 6 2 5-2V5l-5 2z"/><path d="M9 5v12M15 7v12"/></svg>';
+
+  /* ====================== picking on the map ======================== */
+  /* Each continent's frame in degrees: west, east, north, south. Oceania
+     runs past the date line, so its east edge is over 180 and the islands
+     on the far side (Samoa, Tonga, French Polynesia) are slid across to
+     sit beside the rest rather than at the far left of the world. */
+  var FRAMES = {
+    'World':         [-180, 180, 84, -58],
+    'Africa':        [-26, 60, 38, -36],
+    'Asia':          [24, 150, 56, -12],
+    'Europe':        [-26, 62, 72, 34],
+    'North America': [-170, -10, 84, 6],
+    'South America': [-92, -30, 14, -57],
+    'Oceania':       [110, 215, 22, -50]
+  };
+
+  function mapPicker(box, api) {
+    var WM = global.WorldMap, regions = global.GeoData.regions;
+    var region = 'World';
+    box.innerHTML =
+      '<div class="pmap__tabs" role="tablist">' +
+        ['World'].concat(regions).map(function (r) {
+          return '<button type="button" role="tab" class="pmap__tab' + (r === region ? ' is-on' : '') +
+            '" data-region="' + r + '">' + r + '</button>';
+        }).join('') +
+      '</div>' +
+      '<div class="pmap__map" data-pmap></div>' +
+      '<div class="pmap__foot">' +
+        '<span class="pmap__hint" data-hint>Tap countries to add or remove them.</span>' +
+        '<button type="button" class="mini-btn" data-all></button>' +
+        '<button type="button" class="mini-btn" data-none></button>' +
+      '</div>';
+    var mapHost = box.querySelector('[data-pmap]');
+    var hint = box.querySelector('[data-hint]');
+    var svgEl = null;
+
+    function inRegion() {
+      return global.GeoData.countries.filter(function (c) {
+        return region === 'World' || c.region === region;
+      }).map(function (c) { return c.name; });
+    }
+
+    function draw() {
+      mapHost.innerHTML = WM.svg({ mode: 'pale', label: 'Pick countries on the map' });
+      svgEl = mapHost.querySelector('svg');
+      if (!svgEl) return;
+      svgEl.classList.add('pmap__svg');
+      frame();
+    }
+
+    function frame() {
+      if (!svgEl) return;
+      var f = FRAMES[region], a = WM.project(f[0], f[2]), b = WM.project(f[1], f[3]);
+      svgEl.setAttribute('viewBox', a.x + ' ' + a.y + ' ' + (b.x - a.x) + ' ' + (b.y - a.y));
+      var byName = {};
+      global.GeoData.countries.forEach(function (c) { byName[c.name] = c; });
+      W.$$('.wm__c', svgEl).forEach(function (el) {
+        var c = byName[el.getAttribute('data-c')];
+        var wrap = region === 'Oceania' && c && c.region === 'Oceania' && c.lon < 0;
+        if (wrap) el.setAttribute('transform', 'translate(' + WM.size.w + ' 0)');
+        else el.removeAttribute('transform');
+        el.classList.toggle('is-off', !!c && region !== 'World' && c.region !== region);
+      });
+      W.$$('.pmap__tab', box).forEach(function (t) {
+        t.classList.toggle('is-on', t.dataset.region === region);
+        t.setAttribute('aria-selected', String(t.dataset.region === region));
+      });
+      refresh();
+    }
+
+    function refresh() {
+      if (svgEl) W.$$('.wm__c', svgEl).forEach(function (el) {
+        el.classList.toggle('is-picked', api.has(el.getAttribute('data-c')));
+      });
+      var names = inRegion();
+      var n = names.filter(api.has).length;
+      var where = region === 'World' ? 'the world' : region;
+      box.querySelector('[data-all]').textContent = 'Select all of ' + where;
+      box.querySelector('[data-all]').disabled = n === names.length;
+      box.querySelector('[data-none]').textContent = 'Clear ' + where;
+      box.querySelector('[data-none]').disabled = n === 0;
+      hint.textContent = n + ' of ' + names.length + ' picked in ' + where + '. Tap a country to add or remove it.';
+    }
+
+    box.querySelector('.pmap__tabs').addEventListener('click', function (e) {
+      var t = e.target.closest('[data-region]');
+      if (!t) return;
+      region = t.dataset.region;
+      frame();
+    });
+    mapHost.addEventListener('click', function (e) {
+      var el = e.target.closest('.wm__c');
+      if (!el || el.classList.contains('is-off')) return;
+      api.toggle(el.getAttribute('data-c'));
+    });
+    mapHost.addEventListener('mouseover', function (e) {
+      var el = e.target.closest('.wm__c');
+      if (el && !el.classList.contains('is-off')) hint.textContent = el.getAttribute('data-c');
+    });
+    mapHost.addEventListener('mouseleave', refresh);
+    box.querySelector('[data-all]').addEventListener('click', function () { api.addAll(inRegion()); });
+    box.querySelector('[data-none]').addEventListener('click', function () { api.removeAll(inRegion()); });
+
+    if (WM.ready) draw();
+    else {
+      mapHost.innerHTML = '<div class="pmap__loading">Loading the map…</div>';
+      WM.load().then(function () { if (document.contains(box)) draw(); });
+    }
+    return { refresh: refresh };
   }
 
   /* Turn a list of names into country objects, dropping anything unknown. */
