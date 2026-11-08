@@ -1,5 +1,5 @@
 /* ------------------------------------------------------------------
-   LearnGeo — Journey path (LEA-85 / LEA-96 / LEA-99 / LEA-102 / LEA-105).
+   LearnGeo — Journey path (LEA-85 / LEA-96 / LEA-99 / LEA-102 / LEA-105 / LEA-110).
 
    Duolingo-style vertical zig-zag of lessons, chests, stories and a
    unit trophy. Units start in Africa; the learner can switch units.
@@ -15,8 +15,10 @@
    transform), current unit countries highlighted. Not a loupe; not
    screen mirroring. Respects prefers-reduced-motion.
    LEA-105 — Brawl Stars–style Journey chest open: big chest overlay,
-   tap to open with rarity upgrade chance, juicy multi-reward loot
-   (gems / XP / journey boosts / cosmetics). Reduced-motion safe.
+   rarity upgrade, juicy multi-reward loot (gems / XP / journey boosts /
+   cosmetics). Reduced-motion safe.
+   LEA-110 — Multi-tap rarity (upgrade or stay, never downgrade), bigger
+   chest, then one-reward-per-tap reveal before returning to the path.
 -------------------------------------------------------------------*/
 (function (global) {
   'use strict';
@@ -39,10 +41,10 @@
   var pendingPulse = null; /* node id just completed */
   var pendingUnlock = null; /* node id that became playable */
   var viewingShare = null; /* decoded friend road snapshot */
-  var chestBusy = false; /* LEA-105 — block double-open while overlay runs */
+  var chestBusy = false; /* LEA-105/110 — block double-open while overlay runs */
 
-  /* LEA-105 — Journey chest rarities (visual + loot tier). Cascade upgrade
-     chances are independent rolls after each step, Brawl Stars style. */
+  /* LEA-105/110 — Journey chest rarities. Each player tap may upgrade or
+     stay (never downgrade). After CHEST_RARITY_TAPS taps the chest opens. */
   var CHEST_RARITIES = [
     { id: 'common', label: 'Common', hue: '#94A3B8', glow: 'rgba(148,163,184,.45)' },
     { id: 'rare', label: 'Rare', hue: '#1B4DFF', glow: 'rgba(27,77,255,.5)' },
@@ -50,6 +52,8 @@
     { id: 'legendary', label: 'Legendary', hue: '#F59E0B', glow: 'rgba(245,158,11,.6)' }
   ];
   var CHEST_UPGRADE_CHANCE = { common: 0.42, rare: 0.32, epic: 0.22 };
+  var CHEST_RARITY_TAPS = 3;
+  var CHEST_TAP_LOCK_MS = 320;
 
   /* Interactive Journey globe (LEA-102). One live controller at a time. */
   var globeCtl = null;
@@ -1332,17 +1336,36 @@
     return a + Math.floor(rand01(rng) * (b - a + 1));
   }
 
-  /* Independent cascade: common → rare → epic → legendary. */
-  function rollChestRarity(rng) {
-    var path = ['common'];
+  function nextChestRarity(id) {
+    if (id === 'common') return 'rare';
+    if (id === 'rare') return 'epic';
+    if (id === 'epic') return 'legendary';
+    return id;
+  }
+
+  /* One player tap: upgrade with CHEST_UPGRADE_CHANCE[current], else stay.
+     Never downgrades. Legendary is a hard ceiling. */
+  function tapChestRarity(current, rng) {
+    var cur = current || 'common';
+    if (cur === 'legendary' || CHEST_UPGRADE_CHANCE[cur] == null) {
+      return { rarity: cur, upgraded: false };
+    }
+    if (rand01(rng) >= CHEST_UPGRADE_CHANCE[cur]) {
+      return { rarity: cur, upgraded: false };
+    }
+    return { rarity: nextChestRarity(cur), upgraded: true };
+  }
+
+  /* Simulate CHEST_RARITY_TAPS taps (tests / reduced-motion fast-path). */
+  function rollChestRarity(rng, taps) {
+    var n = taps == null ? CHEST_RARITY_TAPS : taps;
     var cur = 'common';
-    while (CHEST_UPGRADE_CHANCE[cur] != null) {
-      if (rand01(rng) >= CHEST_UPGRADE_CHANCE[cur]) break;
-      if (cur === 'common') cur = 'rare';
-      else if (cur === 'rare') cur = 'epic';
-      else if (cur === 'epic') cur = 'legendary';
-      else break;
-      path.push(cur);
+    var path = ['common'];
+    var i;
+    for (i = 0; i < n; i++) {
+      var step = tapChestRarity(cur, rng);
+      if (step.upgraded) path.push(step.rarity);
+      cur = step.rarity;
     }
     return { rarity: cur, path: path };
   }
@@ -1561,22 +1584,20 @@
     ov.setAttribute('aria-modal', 'true');
     ov.setAttribute('aria-label', 'Journey chest');
     ov.innerHTML =
-      '<div class="rt-chest" data-chest-stage="idle" data-rarity="common">' +
+      '<div class="rt-chest" data-chest-stage="idle" data-rarity="common" data-chest-phase="rarity">' +
         '<div class="rt-chest__glow" aria-hidden="true"></div>' +
         '<div class="rt-chest__particles" aria-hidden="true"></div>' +
-        '<button type="button" class="rt-chest__box" aria-label="Open Journey chest">' +
+        '<button type="button" class="rt-chest__box" aria-label="Tap Journey chest">' +
           '<span class="rt-chest__lid"></span>' +
           '<span class="rt-chest__body"></span>' +
           '<span class="rt-chest__band"></span>' +
           '<span class="rt-chest__lock"></span>' +
           '<span class="rt-chest__burst"></span>' +
         '</button>' +
-        '<p class="rt-chest__rarity" hidden></p>' +
-        '<p class="rt-chest__status">Tap the chest to open</p>' +
+        '<p class="rt-chest__rarity">Common</p>' +
+        '<p class="rt-chest__status">Tap to push rarity higher</p>' +
         '<div class="rt-chest__rewards" hidden></div>' +
-        '<div class="rt-chest__actions" hidden>' +
-          '<button type="button" class="btn btn--accent" data-rt-chest-collect>Collect</button>' +
-        '</div>' +
+        '<p class="rt-chest__progress" hidden aria-live="polite"></p>' +
       '</div>';
     document.body.appendChild(ov);
 
@@ -1584,10 +1605,18 @@
     var statusEl = ov.querySelector('.rt-chest__status');
     var rarityEl = ov.querySelector('.rt-chest__rarity');
     var rewardsEl = ov.querySelector('.rt-chest__rewards');
-    var actionsEl = ov.querySelector('.rt-chest__actions');
+    var progressEl = ov.querySelector('.rt-chest__progress');
     var boxBtn = ov.querySelector('.rt-chest__box');
-    var opened = false;
+    var phase = 'rarity'; /* rarity | opening | rewards */
+    var currentRarity = 'common';
+    var rarityTaps = 0;
+    var tapLocked = false;
+    var rewardList = [];
+    var rewardIdx = -1;
     var timers = [];
+    var appliedLoot = null;
+
+    setRarityVisual('common');
 
     function later(fn, ms) {
       if (still) { fn(); return null; }
@@ -1601,13 +1630,20 @@
       timers = [];
     }
 
+    function lockTaps(ms) {
+      tapLocked = true;
+      later(function () { tapLocked = false; }, ms == null ? CHEST_TAP_LOCK_MS : ms);
+    }
+
     function setStage(name, status) {
       stageEl.setAttribute('data-chest-stage', name);
+      stageEl.setAttribute('data-chest-phase', phase);
       if (status) statusEl.textContent = status;
     }
 
     function setRarityVisual(id) {
       var meta = rarityById(id);
+      currentRarity = meta.id;
       stageEl.setAttribute('data-rarity', meta.id);
       rarityEl.hidden = false;
       rarityEl.textContent = meta.label;
@@ -1616,8 +1652,15 @@
       stageEl.style.setProperty('--rt-chest-hue', meta.hue);
     }
 
+    function flashUpgrade() {
+      stageEl.classList.remove('is-upgrade-flash');
+      void stageEl.offsetWidth;
+      stageEl.classList.add('is-upgrade-flash');
+    }
+
     function finishAndClose() {
       clearTimers();
+      phase = 'done';
       closeChestOverlay();
       pendingPulse = 'chest';
       var path = buildPath(unit);
@@ -1626,40 +1669,43 @@
       renderPath();
     }
 
-    function revealRewards(loot, applied) {
-      setStage('open', loot.rarity === 'legendary'
-        ? 'Legendary haul!'
-        : (loot.rarity === 'epic' ? 'Epic pull!' : 'Chest opened!'));
-      rewardsEl.hidden = false;
-      rewardsEl.innerHTML = (applied.rewards || []).map(function (r, i) {
-        return '<div class="rt-chest__prize" style="--rt-ri:' + i + '">' +
-          '<span class="rt-chest__prize-ic" aria-hidden="true">' + rewardIcon(r.icon) + '</span>' +
-          '<span class="rt-chest__prize-label">' + esc(r.label) + '</span>' +
-          (r.detail ? '<span class="rt-chest__prize-detail">' + esc(r.detail) + '</span>' : '') +
-        '</div>';
-      }).join('');
-      actionsEl.hidden = false;
-
-      if (W.state.settings && W.state.settings.effects !== false && !still) {
-        if (W.confetti) {
-          W.confetti({
-            count: loot.rarity === 'legendary' ? 90 : (loot.rarity === 'epic' ? 64 : 42),
-            power: loot.rarity === 'legendary' ? 280 : 200,
-            y: window.innerHeight * 0.42
-          });
-        }
-      }
-      if (applied.level && W.Sound && W.Sound.levelUp) W.Sound.levelUp();
-      else if (W.Sound && W.Sound.gem) W.Sound.gem();
-
-      var collect = ov.querySelector('[data-rt-chest-collect]');
-      if (collect) collect.addEventListener('click', finishAndClose);
+    function prizeHtml(r) {
+      return '<div class="rt-chest__prize rt-chest__prize--solo">' +
+        '<span class="rt-chest__prize-ic" aria-hidden="true">' + rewardIcon(r.icon) + '</span>' +
+        '<span class="rt-chest__prize-label">' + esc(r.label) + '</span>' +
+        (r.detail ? '<span class="rt-chest__prize-detail">' + esc(r.detail) + '</span>' : '') +
+      '</div>';
     }
 
-    function runOpenSequence() {
-      if (opened) return;
-      opened = true;
-      boxBtn.disabled = true;
+    function showRewardAt(i) {
+      rewardIdx = i;
+      var r = rewardList[i];
+      if (!r) { finishAndClose(); return; }
+      phase = 'rewards';
+      rewardsEl.hidden = false;
+      progressEl.hidden = false;
+      rewardsEl.innerHTML = prizeHtml(r);
+      progressEl.textContent = (i + 1) + ' / ' + rewardList.length;
+      var last = i >= rewardList.length - 1;
+      setStage('open', last ? 'Tap to return to Journey' : 'Tap for next reward');
+      if (W.Sound && W.Sound.gem) W.Sound.gem();
+      if (i === 0 && appliedLoot && appliedLoot.level && W.Sound && W.Sound.levelUp) {
+        W.Sound.levelUp();
+      }
+      if (i === 0 && W.state.settings && W.state.settings.effects !== false && !still && W.confetti) {
+        W.confetti({
+          count: currentRarity === 'legendary' ? 90 : (currentRarity === 'epic' ? 64 : 42),
+          power: currentRarity === 'legendary' ? 280 : 200,
+          y: window.innerHeight * 0.42
+        });
+      }
+      lockTaps(still ? 0 : 220);
+    }
+
+    function beginOpen() {
+      if (phase !== 'rarity') return;
+      phase = 'opening';
+      tapLocked = true;
 
       var key = nodeKey(unit.id, 'chest');
       if (rtState().claimed[key]) {
@@ -1668,57 +1714,93 @@
         return;
       }
 
-      var roll = rollChestRarity();
-      var loot = buildChestLoot(roll.rarity, unit);
+      var loot = buildChestLoot(currentRarity, unit);
       /* Claim + grant before reveal so a mid-animation refresh cannot
-         double-pay. Overlay stays up until Collect. */
+         double-pay. Overlay stays up until the last reward tap. */
       rtState().claimed[key] = true;
-      var applied = applyChestLoot(loot, unit);
+      appliedLoot = applyChestLoot(loot, unit);
+      rewardList = appliedLoot.rewards || [];
       W.save();
       if (global.UI && global.UI.refreshHud) global.UI.refreshHud();
 
+      setRarityVisual(currentRarity);
       if (still) {
-        setRarityVisual(roll.rarity);
-        revealRewards(loot, applied);
+        showRewardAt(0);
         return;
       }
 
-      setStage('shake', 'Something\'s rattling…');
+      setStage('crack', 'Opening…');
       if (W.Sound && W.Sound.flip) W.Sound.flip();
-
-      var upgradeIdx = 0;
-      function playUpgradeStep() {
-        if (upgradeIdx >= roll.path.length) {
-          later(function () {
-            setStage('crack', 'Almost!');
-            if (W.Sound && W.Sound.gem) W.Sound.gem();
-          }, 280);
-          later(function () { revealRewards(loot, applied); }, 720);
-          return;
-        }
-        var id = roll.path[upgradeIdx];
-        setRarityVisual(id);
-        if (upgradeIdx > 0) {
-          setStage('upgrade', rarityById(id).label + '!');
-          stageEl.classList.remove('is-upgrade-flash');
-          /* reflow so the flash can replay */
-          void stageEl.offsetWidth;
-          stageEl.classList.add('is-upgrade-flash');
-          if (W.Sound && W.Sound.levelUp) W.Sound.levelUp();
-          else if (W.Sound && W.Sound.gem) W.Sound.gem();
-        } else {
-          setStage('shake', rarityById(id).label);
-        }
-        upgradeIdx += 1;
-        later(playUpgradeStep, upgradeIdx === 1 ? 520 : 640);
-      }
-      later(playUpgradeStep, 360);
+      later(function () {
+        setStage('open', 'Chest opened!');
+        if (W.Sound && W.Sound.gem) W.Sound.gem();
+      }, 280);
+      later(function () { showRewardAt(0); }, 720);
     }
 
-    boxBtn.addEventListener('click', runOpenSequence);
-    ov.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape' && stageEl.getAttribute('data-chest-stage') === 'open') {
+    function onRarityTap() {
+      if (phase !== 'rarity' || tapLocked) return;
+      var left = CHEST_RARITY_TAPS - rarityTaps;
+      if (left <= 0) { beginOpen(); return; }
+
+      var step = tapChestRarity(currentRarity);
+      rarityTaps += 1;
+      setRarityVisual(step.rarity);
+
+      if (step.upgraded) {
+        setStage('upgrade', rarityById(step.rarity).label + '!');
+        flashUpgrade();
+        if (W.Sound && W.Sound.levelUp) W.Sound.levelUp();
+        else if (W.Sound && W.Sound.gem) W.Sound.gem();
+      } else {
+        setStage('shake', 'Held at ' + rarityById(step.rarity).label);
+        if (W.Sound && W.Sound.flip) W.Sound.flip();
+      }
+
+      lockTaps();
+      if (rarityTaps >= CHEST_RARITY_TAPS) {
+        later(beginOpen, still ? 0 : 420);
+      } else {
+        var remain = CHEST_RARITY_TAPS - rarityTaps;
+        later(function () {
+          if (phase !== 'rarity') return;
+          setStage('idle', remain === 1
+            ? 'One more tap — then it opens'
+            : 'Tap again · ' + remain + ' left');
+        }, still ? 0 : 280);
+      }
+    }
+
+    function onRewardTap() {
+      if (phase !== 'rewards' || tapLocked) return;
+      if (rewardIdx >= rewardList.length - 1) {
         finishAndClose();
+        return;
+      }
+      showRewardAt(rewardIdx + 1);
+    }
+
+    function onAdvance() {
+      if (phase === 'rarity') onRarityTap();
+      else if (phase === 'rewards') onRewardTap();
+    }
+
+    boxBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      onAdvance();
+    });
+    ov.addEventListener('click', function (e) {
+      if (e.target === ov || e.target === stageEl || e.target === statusEl ||
+          e.target === rarityEl || e.target === rewardsEl || e.target === progressEl ||
+          (e.target.closest && e.target.closest('.rt-chest__prize'))) {
+        onAdvance();
+      }
+    });
+    ov.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && phase === 'rewards') finishAndClose();
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        onAdvance();
       }
     });
   }
@@ -2055,6 +2137,8 @@
     /* LEA-105 — exported for unit tests / demo harness. */
     CHEST_RARITIES: CHEST_RARITIES,
     CHEST_UPGRADE_CHANCE: CHEST_UPGRADE_CHANCE,
+    CHEST_RARITY_TAPS: CHEST_RARITY_TAPS,
+    tapChestRarity: tapChestRarity,
     rollChestRarity: rollChestRarity,
     buildChestLoot: buildChestLoot,
     applyChestLoot: applyChestLoot,

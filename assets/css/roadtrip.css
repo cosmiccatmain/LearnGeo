@@ -1,6 +1,6 @@
 /* ------------------------------------------------------------------
    LearnGeo — Journey Duo-style path
-   (LEA-85 / LEA-90 / LEA-92 / LEA-96 / LEA-99 / LEA-102 / LEA-105).
+   (LEA-85 / LEA-90 / LEA-92 / LEA-96 / LEA-99 / LEA-102 / LEA-105 / LEA-110).
 
    Vertical zig-zag path center; LEA-99 drops the Coming-up awards rail,
    enlarges the green unit banner, and tightens the left XP/gems panel
@@ -9,6 +9,8 @@
    LEA-102: interactive world map (pan/zoom, unit highlight).
    LEA-105: Brawl Stars–style Journey chest overlay (tap open, rarity
    upgrade flash, multi-reward reveal).
+   LEA-110: Multi-tap rarity (upgrade or stay), bigger chest, one
+   reward per tap then return to path.
    Original LearnGeo fonts. Respects prefers-reduced-motion.
 -------------------------------------------------------------------*/
 
@@ -936,7 +938,7 @@
   }
 }
 
-/* --------------------- LEA-105 Journey chest overlay -------------------- */
+/* --------------------- LEA-105 / LEA-110 Journey chest overlay -------------------- */
 .rt-chest-overlay {
   position: fixed;
   inset: 0;
@@ -947,21 +949,23 @@
   background: rgba(10, 14, 28, .72);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
+  cursor: pointer;
 }
 .rt-chest {
   --rt-chest-hue: #F59E0B;
   --rt-chest-glow: rgba(245, 158, 11, .45);
   position: relative;
-  width: min(360px, 100%);
+  width: min(440px, 100%);
   text-align: center;
   color: #fff;
   font-family: var(--sans, inherit);
+  cursor: default;
 }
 .rt-chest__glow {
   position: absolute;
-  left: 50%; top: 42%;
-  width: 220px; height: 220px;
-  margin: -110px 0 0 -110px;
+  left: 50%; top: 38%;
+  width: 320px; height: 320px;
+  margin: -160px 0 0 -160px;
   border-radius: 50%;
   background: radial-gradient(circle, var(--rt-chest-glow) 0%, transparent 68%);
   opacity: .55;
@@ -997,53 +1001,52 @@
 .rt-chest__box {
   position: relative;
   display: block;
-  width: 168px; height: 148px;
-  margin: 28px auto 18px;
+  width: min(252px, 72vw); height: min(222px, 64vw);
+  margin: 18px auto 20px;
   padding: 0; border: 0; cursor: pointer;
   background: transparent;
   transform-origin: 50% 80%;
 }
-.rt-chest__box:disabled { cursor: default; }
 .rt-chest__box:focus-visible {
   outline: 3px solid #fff;
-  outline-offset: 8px;
-  border-radius: 12px;
+  outline-offset: 10px;
+  border-radius: 16px;
 }
 .rt-chest__body {
   position: absolute;
-  left: 14px; right: 14px; bottom: 8px; height: 78px;
-  border-radius: 10px 10px 14px 14px;
+  left: 18px; right: 18px; bottom: 10px; height: 48%;
+  border-radius: 14px 14px 18px 18px;
   background: linear-gradient(180deg, #FBBF24 0%, #D97706 55%, #B45309 100%);
-  box-shadow: 0 10px 0 #7C2D12, inset 0 2px 0 rgba(255,255,255,.35);
+  box-shadow: 0 14px 0 #7C2D12, inset 0 3px 0 rgba(255,255,255,.35);
 }
 .rt-chest__lid {
   position: absolute;
-  left: 10px; right: 10px; top: 28px; height: 46px;
-  border-radius: 12px 12px 6px 6px;
+  left: 12px; right: 12px; top: 18%; height: 32%;
+  border-radius: 16px 16px 8px 8px;
   background: linear-gradient(180deg, #FDE68A 0%, #F59E0B 70%, #D97706 100%);
-  box-shadow: inset 0 2px 0 rgba(255,255,255,.45);
+  box-shadow: inset 0 3px 0 rgba(255,255,255,.45);
   transform-origin: 50% 100%;
   transition: transform .45s var(--rt-pop-ease);
   z-index: 2;
 }
 .rt-chest__band {
   position: absolute;
-  left: 50%; bottom: 34px;
-  width: 28px; height: 52px;
-  margin-left: -14px;
-  border-radius: 4px;
+  left: 50%; bottom: 24%;
+  width: 42px; height: 36%;
+  margin-left: -21px;
+  border-radius: 6px;
   background: linear-gradient(180deg, #FDE68A, #B45309);
   box-shadow: inset 0 0 0 2px rgba(120, 53, 15, .35);
   z-index: 3;
 }
 .rt-chest__lock {
   position: absolute;
-  left: 50%; bottom: 48px;
-  width: 22px; height: 22px;
-  margin-left: -11px;
+  left: 50%; bottom: 34%;
+  width: 32px; height: 32px;
+  margin-left: -16px;
   border-radius: 50%;
   background: radial-gradient(circle at 35% 30%, #FEF3C7, #B45309);
-  box-shadow: 0 2px 0 #7C2D12;
+  box-shadow: 0 3px 0 #7C2D12;
   z-index: 4;
 }
 .rt-chest__burst {
@@ -1065,7 +1068,12 @@
   animation: rt-chest-shake .2s ease-in-out infinite;
 }
 .rt-chest[data-chest-stage="open"] .rt-chest__lid {
-  transform: translateY(-18px) rotateX(48deg) skewX(-4deg);
+  transform: translateY(-28px) rotateX(48deg) skewX(-4deg);
+}
+.rt-chest[data-chest-phase="rewards"] .rt-chest__box {
+  width: min(180px, 48vw); height: min(158px, 42vw);
+  margin-bottom: 12px;
+  opacity: .92;
 }
 .rt-chest[data-chest-stage="open"] .rt-chest__burst {
   opacity: 1;
@@ -1099,56 +1107,82 @@
 .rt-chest__rarity {
   margin: 0 0 6px;
   font-family: var(--serif, Georgia, serif);
-  font-size: 28px;
+  font-size: clamp(28px, 5vw, 36px);
   font-weight: 600;
   letter-spacing: .02em;
   text-shadow: 0 2px 12px rgba(0,0,0,.35);
 }
 .rt-chest__status {
-  margin: 0 0 14px;
-  font-size: 15px;
+  margin: 0 0 10px;
+  font-size: 16px;
   font-weight: 560;
   color: rgba(255,255,255,.88);
+}
+.rt-chest__progress {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: .04em;
+  color: rgba(255,255,255,.62);
+  font-variant-numeric: tabular-nums;
 }
 .rt-chest__rewards {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  margin: 8px auto 16px;
-  width: min(280px, 100%);
+  margin: 8px auto 12px;
+  width: min(320px, 100%);
 }
 .rt-chest__prize {
   display: grid;
-  grid-template-columns: 36px 1fr;
+  grid-template-columns: 44px 1fr;
   grid-template-rows: auto auto;
-  column-gap: 10px;
+  column-gap: 12px;
   align-items: center;
   text-align: left;
-  padding: 10px 12px;
-  border-radius: 14px;
+  padding: 14px 16px;
+  border-radius: 16px;
   background: rgba(255,255,255,.1);
   border: 1px solid rgba(255,255,255,.16);
   animation: rt-chest-prize-in 480ms var(--rt-pop-ease) both;
-  animation-delay: calc(var(--rt-ri, 0) * 90ms);
+}
+.rt-chest__prize--solo {
+  grid-template-columns: 1fr;
+  justify-items: center;
+  text-align: center;
+  padding: 22px 18px 20px;
+  min-height: 132px;
+}
+.rt-chest__prize--solo .rt-chest__prize-ic {
+  grid-row: auto;
+  width: 64px; height: 64px;
+  border-radius: 18px;
+  margin-bottom: 10px;
+}
+.rt-chest__prize--solo .rt-chest__prize-ic svg { width: 32px; height: 32px; }
+.rt-chest__prize--solo .rt-chest__prize-label {
+  font-size: clamp(20px, 4.4vw, 26px);
+}
+.rt-chest__prize--solo .rt-chest__prize-detail {
+  grid-column: 1;
+  font-size: 13px;
 }
 .rt-chest__prize-ic {
   grid-row: 1 / span 2;
-  width: 36px; height: 36px;
+  width: 44px; height: 44px;
   display: grid; place-items: center;
-  border-radius: 10px;
+  border-radius: 12px;
   background: rgba(255,255,255,.12);
   color: #fff;
 }
-.rt-chest__prize-ic svg { width: 20px; height: 20px; stroke-width: 2.1; }
+.rt-chest__prize-ic svg { width: 22px; height: 22px; stroke-width: 2.1; }
 .rt-chest__prize-label {
-  font-size: 16px; font-weight: 650; color: #fff; line-height: 1.2;
+  font-size: 17px; font-weight: 650; color: #fff; line-height: 1.2;
 }
 .rt-chest__prize-detail {
   grid-column: 2;
   font-size: 12px; color: rgba(255,255,255,.72); margin-top: 2px;
 }
-.rt-chest__actions { margin-top: 4px; }
-.rt-chest__actions .btn { min-width: 140px; }
 
 @keyframes rt-chest-shake {
   0%, 100% { transform: rotate(0deg) translateX(0); }
