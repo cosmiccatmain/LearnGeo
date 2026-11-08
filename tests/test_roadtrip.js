@@ -181,8 +181,8 @@ test('LEA-96 CSS has unit slides, share UI, and reduced-motion guards', () => {
   assert.match(css, /\.rtshare\b|rtshare-view/);
   assert.match(css, /prefers-reduced-motion:\s*reduce/);
   assert.match(css, /rt-pulse|rt-unlock|rt-node-in/);
-  /* Level numeral stays modest — do not balloon past LEA-92's 40px. */
-  assert.match(css, /\.rt-xpchart__level\s*\{[^}]*font-size:\s*40px/s);
+  /* LEA-95: level numeral is panel-scale (22px), not hero-sized. */
+  assert.match(css, /\.rt-xpchart__level\s*\{[^}]*font-size:\s*22px/s);
   assert.doesNotMatch(css, /\.rt-xpchart__level\s*\{[^}]*font-size:\s*(6\d|7\d|[8-9]\d|[1-9]\d{2,})px/s);
 });
 
