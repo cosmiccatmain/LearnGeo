@@ -24,19 +24,28 @@
   padding: 18px 16px 96px;
 }
 
-/* Shell: left XP | center path (LEA-99 — no right awards rail) */
+/* Shell: header row (XP | banner) then main path (LEA-99/108).
+   No Coming-up awards rail. */
 .rtpath--shell {
-  width: max-content;
+  width: min(1120px, 100%);
   max-width: min(1120px, 100%);
-  display: grid;
-  grid-template-columns: 176px minmax(640px, 860px);
+  display: flex;
+  flex-direction: column;
   gap: 20px;
-  justify-content: center;
-  /* LEA-107: top-align XP card with green unit banner */
-  align-items: flex-start;
   padding: 22px 24px 96px;
   margin: 0 auto;
   box-sizing: border-box;
+}
+/* LEA-108: XP + green banner tops must be flush (same Y). */
+.rtpath__headers {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 20px;
+  width: 100%;
+  margin: 0;
+  padding: 0;
 }
 .rtpath__main {
   min-width: 0;
@@ -45,10 +54,16 @@
 
 /* ------------------------ left XP / gems chart -------------------- */
 .rt-xpchart {
-  width: 100%;
+  flex: 0 0 176px;
+  width: 176px;
+  max-width: 176px;
   box-sizing: border-box;
   align-self: flex-start;
-  position: sticky; top: calc(var(--topbar-h, 56px) + 14px);
+  /* LEA-108: sticky+top was still offsetting the card below the banner
+     whenever an ancestor formed a sticky containing block. Keep static. */
+  position: relative;
+  top: auto;
+  margin: 0;
   background: var(--white);
   border: 1px solid var(--line);
   border-radius: 14px;
@@ -78,9 +93,9 @@
   font-size: 12px; color: var(--ink-2); margin-bottom: 12px;
   font-weight: 560;
 }
-/* LEA-96 — soft enter for the XP panel (not a huge level numeral). */
+/* LEA-108: opacity-only enter — translateY left the card visually low. */
 .rtpath--shell .rt-xpchart {
-  animation: rt-panel-in 480ms var(--rt-slide-ease) both;
+  animation: rt-xp-fade 420ms var(--rt-slide-ease) both;
 }
 
 .rt-xpchart__gems {
@@ -199,10 +214,15 @@
 
 @media (max-width: 1120px) {
   .rtpath--shell {
-    grid-template-columns: 160px minmax(0, 640px);
     gap: 16px;
     width: 100%;
     max-width: 920px;
+  }
+  .rtpath__headers { gap: 16px; }
+  .rt-xpchart {
+    flex-basis: 160px;
+    width: 160px;
+    max-width: 160px;
   }
   .rt-xpchart__level { font-size: 17px; }
   .rt-award__name { font-size: 19px; }
@@ -211,12 +231,18 @@
 
 @media (max-width: 900px) {
   .rtpath--shell {
-    grid-template-columns: 1fr;
     width: 100%;
     max-width: 640px;
   }
+  .rtpath__headers {
+    flex-direction: column;
+    align-items: stretch;
+  }
   .rt-xpchart, .rt-awards { position: static; }
   .rt-xpchart {
+    flex: none;
+    width: 100%;
+    max-width: none;
     padding: 14px 14px 12px;
   }
   .rt-xpchart__trip { white-space: nowrap; }
@@ -236,14 +262,17 @@
 /* LEA-99 — dominant green hero band (wider/taller than side chrome). */
 .rtpath__banner {
   display: flex; gap: 18px; align-items: stretch; justify-content: space-between;
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
   background: var(--rt-accent, var(--accent));
   color: #fff;
   border-radius: 20px;
   padding: 24px 22px 20px;
-  margin-bottom: 32px;
   box-shadow: 0 5px 0 rgba(0,0,0,.18);
   min-height: 132px;
 }
+.rtpath__main .rt-globe { margin-top: 0; }
 .rtpath__banner-main { min-width: 0; flex: 1; display: flex; flex-direction: column; justify-content: center; }
 .rtpath__banner-kicker {
   font-family: var(--mono); font-size: 12px; font-weight: 650;
@@ -478,11 +507,12 @@
   display: flex; flex-direction: column; align-items: center;
   width: 96px;
 }
-/* LEA-107: START tip sits to the LEFT of the node (not centered on top). */
+/* LEA-107/108: START tip to the LEFT of the node; caret outside with a gap
+   so the triangle does not kiss the tip border (LEA-108). */
 .rtnode__tip {
   position: absolute;
   top: 12px;
-  right: calc(100% + 8px);
+  right: calc(100% + 14px);
   left: auto;
   font-family: var(--mono); font-size: 10px; font-weight: 750;
   letter-spacing: .1em;
@@ -490,18 +520,25 @@
   background: #fff;
   border: 2px solid var(--accent);
   border-radius: 9px;
-  padding: 4px 8px;
+  padding: 5px 12px;
   box-shadow: 0 3px 0 rgba(27,77,255,.25);
   z-index: 2;
   white-space: nowrap;
+  overflow: visible;
 }
 .rtnode__tip::after {
   content: "";
   position: absolute;
-  left: auto; right: -7px; top: 50%; bottom: auto;
+  top: 50%;
+  left: 100%;
+  right: auto;
+  bottom: auto;
+  /* Clear the 2px border + 5px air gap before the caret base. */
+  margin-left: 7px;
   transform: translateY(-50%);
   border: 6px solid transparent;
   border-left-color: var(--accent);
+  pointer-events: none;
 }
 
 .rtnode__btn {
@@ -855,6 +892,10 @@
 @keyframes rt-panel-in {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
+}
+@keyframes rt-xp-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 @keyframes rt-award-in {
   from { opacity: 0; transform: translateY(14px) scale(.97); }

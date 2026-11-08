@@ -905,13 +905,15 @@
       slideCls = slide.dir > 0 ? ' is-enter-right' : ' is-enter-left';
     }
 
-    /* LEA-99: two columns — compact XP left, dominant path/banner center.
-       Coming-up / wallet rail removed. LEA-96 stage for unit slides. */
+    /* LEA-108: XP + unit banner share one top row (flex-start) so tops are
+       flush. Globe/path sit below. Coming-up rail stays gone. */
     el.innerHTML =
       '<div class="rtpath rtpath--shell' + slideCls + '" id="rt-shell">' +
-        xpGemsChartHtml() +
-        '<div class="rtpath__main">' +
+        '<div class="rtpath__headers" id="rt-headers">' +
+          xpGemsChartHtml() +
           unitBanner(unit) +
+        '</div>' +
+        '<div class="rtpath__main">' +
           globeHtml(unit) +
           '<div class="rtpath__stage">' +
             '<div class="rtpath__road" id="rt-road">' +

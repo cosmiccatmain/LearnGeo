@@ -315,23 +315,23 @@ test('XP/gems chart maps onto economy + roadtrip earned counters', () => {
 test('LEA-99 Journey layout: compact XP + dominant banner, no Coming-up rail', () => {
   const css = fs.readFileSync(path.join(root, 'assets/css/roadtrip.css'), 'utf8');
   const js = fs.readFileSync(path.join(root, 'assets/js/mode-roadtrip.js'), 'utf8');
-  assert.match(css, /grid-template-columns:\s*176px\s+minmax\(640px,\s*860px\)/);
   assert.match(css, /\.rt-xpchart__level\s*\{[^}]*font-size:\s*18px/s);
   assert.match(css, /\.rtpath__banner\s*\{[^}]*min-height:\s*132px/s);
   assert.match(css, /\.rtnode__btn\s*\{[^}]*width:\s*54px/s);
-  assert.match(css, /\.rt-xpchart\s*\{[^}]*width:\s*100%/s);
+  assert.match(css, /\.rt-xpchart\s*\{[^}]*width:\s*176px/s);
   assert.match(css, /white-space:\s*nowrap/); /* journey line stays one line */
   assert.doesNotMatch(css, /\.rt-side-card\b/);
   /* Path render must not mount the Coming-up rail. */
   assert.doesNotMatch(js, /Coming up/);
   assert.match(js, /Share journey/);
+  assert.match(js, /rtpath__headers/);
   assert.match(js, /xpGemsChartHtml\(\)\s*\+/);
   assert.doesNotMatch(js, /awardsColumnHtml\(\)\s*\+/);
 });
 
 test('LEA-107 XP/banner top-align and START tip sits left of node', () => {
   const css = fs.readFileSync(path.join(root, 'assets/css/roadtrip.css'), 'utf8');
-  assert.match(css, /\.rtpath--shell\s*\{[^}]*align-items:\s*flex-start/s);
+  assert.match(css, /\.rtpath__headers\s*\{[^}]*align-items:\s*flex-start/s);
   assert.match(css, /\.rt-xpchart\s*\{[^}]*align-self:\s*flex-start/s);
   /* will-change:transform only while sliding — not at rest on .rtpath--shell alone */
   assert.doesNotMatch(
@@ -339,9 +339,23 @@ test('LEA-107 XP/banner top-align and START tip sits left of node', () => {
     /\.rtpath--shell\s*\{[^}]*will-change:\s*transform/s
   );
   assert.match(css, /\.rtpath--shell\.is-enter-right[^}]*will-change:\s*transform/s);
-  assert.match(css, /\.rtnode__tip\s*\{[^}]*right:\s*calc\(100%\s*\+\s*8px\)/s);
+  assert.match(css, /\.rtnode__tip\s*\{[^}]*right:\s*calc\(100%\s*\+\s*14px\)/s);
   assert.match(css, /\.rtnode__tip::after\s*\{[^}]*border-left-color:\s*var\(--accent\)/s);
   assert.doesNotMatch(css, /\.rtnode__tip\s*\{[^}]*top:\s*-26px/s);
+});
+
+test('LEA-108 headers row flushes XP card top with unit banner', () => {
+  const css = fs.readFileSync(path.join(root, 'assets/css/roadtrip.css'), 'utf8');
+  const js = fs.readFileSync(path.join(root, 'assets/js/mode-roadtrip.js'), 'utf8');
+  assert.match(js, /rtpath__headers/);
+  assert.match(css, /\.rtpath__headers\s*\{[^}]*align-items:\s*flex-start/s);
+  assert.match(css, /\.rt-xpchart\s*\{[^}]*position:\s*relative/s);
+  assert.doesNotMatch(css, /\.rt-xpchart\s*\{[^}]*position:\s*sticky/s);
+  assert.match(css, /rt-xp-fade/);
+  assert.doesNotMatch(js, /Coming up/);
+  /* START caret sits outside the tip with a margin gap — not kissing the border. */
+  assert.match(css, /\.rtnode__tip::after\s*\{[^}]*margin-left:\s*7px/s);
+  assert.match(css, /\.rtnode__tip\s*\{[^}]*padding:\s*5px\s+12px/s);
 });
 
 test('Road Trip lessons include identify and mount a map host for it', () => {
