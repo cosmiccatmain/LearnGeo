@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>LEA-109 leaderboard icon centering</title>
+  <link rel="stylesheet" href="/assets/css/app.css">
+  <link rel="stylesheet" href="/assets/css/game-boards.css">
+  <style>
+    body { margin: 0; padding: 24px; background: #F4F6F8; font-family: var(--sans, system-ui); }
+    h1 { font-size: 18px; margin: 0 0 6px; }
+    .note { margin: 0 0 18px; color: #6B7280; font-size: 13px; }
+    .gb__sections { max-width: 720px; }
+  </style>
+</head>
+<body>
+  <h1>LEA-109 · board card letter icons</h1>
+  <p class="note">Letters in .gb__sec-mark must sit centered in the mint tile.</p>
+  <div class="gb__sections">
+    <section class="gb__sec">
+      <div class="gb__sec-head">
+        <div class="gb__sec-title">
+          <span class="gb__sec-mark" aria-hidden="true">G</span>
+          <div><b>Geo Duel</b><span>Wins against friends</span></div>
+        </div>
+        <button type="button" class="linkbtn gb__sec-more">Full board</button>
+      </div>
+      <ol class="lb-list lb-list--compact">
+        <li class="lb-row"><span class="lb-rank lb-rank--3">3</span><span class="lb-name">cosmic <i>you</i></span><span class="lb-score mono">1,016 Elo</span></li>
+      </ol>
+    </section>
+    <section class="gb__sec">
+      <div class="gb__sec-head">
+        <div class="gb__sec-title">
+          <span class="gb__sec-mark" aria-hidden="true">G</span>
+          <div><b>Geo Chess</b><span>Chess Elo rating</span></div>
+        </div>
+        <button type="button" class="linkbtn gb__sec-more">Full board</button>
+      </div>
+      <ol class="lb-list lb-list--compact">
+        <li class="lb-row is-mine"><span class="lb-rank lb-rank--3">3</span><span class="lb-name">cosmic <i>you</i></span><span class="lb-score mono">1,016 Elo</span></li>
+      </ol>
+    </section>
+    <section class="gb__sec">
+      <div class="gb__sec-head">
+        <div class="gb__sec-title">
+          <span class="gb__sec-mark" aria-hidden="true">G</span>
+          <div><b>Geo Dash</b><span>Best distance</span></div>
+        </div>
+        <button type="button" class="linkbtn gb__sec-more">Full board</button>
+      </div>
+      <ol class="lb-list lb-list--compact">
+        <li class="lb-row is-mine"><span class="lb-rank">1</span><span class="lb-name">cosmic <i>you</i></span><span class="lb-score mono">2,834 m</span></li>
+      </ol>
+    </section>
+    <section class="gb__sec">
+      <div class="gb__sec-head">
+        <div class="gb__sec-title">
+          <span class="gb__sec-mark" aria-hidden="true">G</span>
+          <div><b>Globe Defender</b><span>Waves cleared</span></div>
+        </div>
+        <button type="button" class="linkbtn gb__sec-more">Full board</button>
+      </div>
+      <ol class="lb-list lb-list--compact">
+        <li class="lb-row is-mine"><span class="lb-rank">1</span><span class="lb-name">cosmic <i>you</i></span><span class="lb-score mono">12 waves</span></li>
+      </ol>
+    </section>
+    <section class="gb__sec">
+      <div class="gb__sec-head">
+        <div class="gb__sec-title">
+          <span class="gb__sec-mark" aria-hidden="true">C</span>
+          <div><b>Capital Snake</b><span>Longest snake</span></div>
+        </div>
+        <button type="button" class="linkbtn gb__sec-more">Full board</button>
+      </div>
+      <ol class="lb-list lb-list--compact">
+        <li class="lb-row is-mine"><span class="lb-rank">1</span><span class="lb-name">cosmic <i>you</i></span><span class="lb-score mono">47</span></li>
+      </ol>
+    </section>
+    <section class="gb__sec">
+      <div class="gb__sec-head">
+        <div class="gb__sec-title">
+          <span class="gb__sec-mark" aria-hidden="true">G</span>
+          <div><b>Geo Golf</b><span>Best score</span></div>
+        </div>
+        <button type="button" class="linkbtn gb__sec-more">Full board</button>
+      </div>
+      <ol class="lb-list lb-list--compact">
+        <li class="lb-row is-mine"><span class="lb-rank">1</span><span class="lb-name">cosmic <i>you</i></span><span class="lb-score mono">−4</span></li>
+      </ol>
+    </section>
+  </div>
+  <pre id="measure" style="margin-top:18px;font:12px/1.45 ui-monospace,monospace;color:#334155"></pre>
+  <script>
+    function inkBounds(el) {
+      const range = document.createRange();
+      range.selectNodeContents(el);
+      const rects = [...range.getClientRects()].filter((r) => r.width > 0 && r.height > 0);
+      if (!rects.length) return null;
+      const left = Math.min(...rects.map((r) => r.left));
+      const right = Math.max(...rects.map((r) => r.right));
+      const top = Math.min(...rects.map((r) => r.top));
+      const bottom = Math.max(...rects.map((r) => r.bottom));
+      return { left, right, top, bottom, width: right - left, height: bottom - top };
+    }
+    const rows = [...document.querySelectorAll('.gb__sec-mark')].map((el) => {
+      const box = el.getBoundingClientRect();
+      const ink = inkBounds(el);
+      if (!ink) return { letter: el.textContent, err: 'no ink' };
+      const dx = ((ink.left + ink.right) / 2) - ((box.left + box.right) / 2);
+      const dy = ((ink.top + ink.bottom) / 2) - ((box.top + box.bottom) / 2);
+      return {
+        letter: el.textContent.trim(),
+        dx: +dx.toFixed(2),
+        dy: +dy.toFixed(2),
+        display: getComputedStyle(el).display,
+      };
+    });
+    document.getElementById('measure').textContent = JSON.stringify(rows, null, 2);
+    console.log('LEA-109 mark centering', rows);
+  </script>
+</body>
+</html>
