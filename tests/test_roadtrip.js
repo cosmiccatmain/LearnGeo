@@ -247,6 +247,21 @@ test('LEA-99 Journey layout: compact XP + dominant banner, no Coming-up rail', (
   assert.doesNotMatch(js, /awardsColumnHtml\(\)\s*\+/);
 });
 
+test('LEA-107 XP/banner top-align and START tip sits left of node', () => {
+  const css = fs.readFileSync(path.join(root, 'assets/css/roadtrip.css'), 'utf8');
+  assert.match(css, /\.rtpath--shell\s*\{[^}]*align-items:\s*flex-start/s);
+  assert.match(css, /\.rt-xpchart\s*\{[^}]*align-self:\s*flex-start/s);
+  /* will-change:transform only while sliding — not at rest on .rtpath--shell alone */
+  assert.doesNotMatch(
+    css,
+    /\.rtpath--shell\s*\{[^}]*will-change:\s*transform/s
+  );
+  assert.match(css, /\.rtpath--shell\.is-enter-right[^}]*will-change:\s*transform/s);
+  assert.match(css, /\.rtnode__tip\s*\{[^}]*right:\s*calc\(100%\s*\+\s*8px\)/s);
+  assert.match(css, /\.rtnode__tip::after\s*\{[^}]*border-left-color:\s*var\(--accent\)/s);
+  assert.doesNotMatch(css, /\.rtnode__tip\s*\{[^}]*top:\s*-26px/s);
+});
+
 test('Road Trip lessons include identify and mount a map host for it', () => {
   const src = fs.readFileSync(path.join(root, 'assets/js/mode-roadtrip.js'), 'utf8');
   assert.match(src, /types:\s*\[[^\]]*identify/);

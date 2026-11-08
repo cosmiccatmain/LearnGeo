@@ -30,7 +30,8 @@
   grid-template-columns: 176px minmax(640px, 860px);
   gap: 20px;
   justify-content: center;
-  align-items: start;
+  /* LEA-107: top-align XP card with green unit banner */
+  align-items: flex-start;
   padding: 22px 24px 96px;
   margin: 0 auto;
   box-sizing: border-box;
@@ -44,6 +45,7 @@
 .rt-xpchart {
   width: 100%;
   box-sizing: border-box;
+  align-self: flex-start;
   position: sticky; top: calc(var(--topbar-h, 56px) + 14px);
   background: var(--white);
   border: 1px solid var(--line);
@@ -413,9 +415,16 @@
   margin: 0 -8px;
   padding: 0 8px;
 }
+/* LEA-107: omit will-change on resting shell — it becomes a sticky
+   containing block and drops the XP card below the unit banner. */
 .rtpath--shell {
   transition: transform var(--rt-slide) var(--rt-slide-ease),
               opacity calc(var(--rt-slide) * .85) var(--rt-slide-ease);
+}
+.rtpath--shell.is-exit-left,
+.rtpath--shell.is-exit-right,
+.rtpath--shell.is-enter-right,
+.rtpath--shell.is-enter-left {
   will-change: transform, opacity;
 }
 .rtpath--shell.is-exit-left {
@@ -467,9 +476,12 @@
   display: flex; flex-direction: column; align-items: center;
   width: 96px;
 }
+/* LEA-107: START tip sits to the LEFT of the node (not centered on top). */
 .rtnode__tip {
   position: absolute;
-  top: -26px;
+  top: 12px;
+  right: calc(100% + 8px);
+  left: auto;
   font-family: var(--mono); font-size: 10px; font-weight: 750;
   letter-spacing: .1em;
   color: var(--accent);
@@ -479,13 +491,15 @@
   padding: 4px 8px;
   box-shadow: 0 3px 0 rgba(27,77,255,.25);
   z-index: 2;
+  white-space: nowrap;
 }
 .rtnode__tip::after {
   content: "";
-  position: absolute; left: 50%; bottom: -7px;
-  transform: translateX(-50%);
+  position: absolute;
+  left: auto; right: -7px; top: 50%; bottom: auto;
+  transform: translateY(-50%);
   border: 6px solid transparent;
-  border-top-color: var(--accent);
+  border-left-color: var(--accent);
 }
 
 .rtnode__btn {
