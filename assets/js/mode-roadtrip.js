@@ -19,6 +19,8 @@
    cosmetics). Reduced-motion safe.
    LEA-110 — Multi-tap rarity (upgrade or stay, never downgrade), bigger
    chest, then one-reward-per-tap reveal before returning to the path.
+   LEA-111 — Admin-granted gift chests land on the path instantly via
+   realtime + short poll; same multi-tap open/reward flow as path chests.
 -------------------------------------------------------------------*/
 (function (global) {
   'use strict';
@@ -42,6 +44,12 @@
   var pendingUnlock = null; /* node id that became playable */
   var viewingShare = null; /* decoded friend road snapshot */
   var chestBusy = false; /* LEA-105/110 — block double-open while overlay runs */
+
+  /* LEA-111 — pending admin-granted gift chests for the signed-in player. */
+  var pendingGrants = [];
+  var grantWatch = null; /* { stop, timer, channel, uid, sig } */
+  var GRANT_POLL_MS = 3500;
+  var GRANT_POLL_HIDDEN_MS = 12000;
 
   /* LEA-105/110 — Journey chest rarities. Each player tap may upgrade or
      stay (never downgrade). After CHEST_RARITY_TAPS taps the chest opens. */
@@ -332,9 +340,30 @@
     return true;
   }
 
+  function grantsForUnit(unit) {
+    var uid = unit && unit.id;
+    return (pendingGrants || []).filter(function (g) {
+      if (!g || !g.id) return false;
+      if (!g.unit_id) return true;
+      return g.unit_id === uid;
+    });
+  }
+
   function buildPath(unit) {
     seedFromMastery(unit);
     var nodes = [];
+    /* LEA-111 — gift chests lead the path so they are never locked behind
+       lesson progress. Same chest kind → LEA-110 open flow. */
+    grantsForUnit(unit).forEach(function (g) {
+      nodes.push({
+        kind: 'chest',
+        id: 'grant-' + g.id,
+        grantId: g.id,
+        granted: true,
+        title: 'Gift Journey chest',
+        zig: ZIG[nodes.length % ZIG.length]
+      });
+    });
     unit.lessons.forEach(function (les, i) {
       nodes.push({
         kind: 'lesson',
@@ -453,10 +482,15 @@
           n.state = 'locked';
         }
       } else if (n.kind === 'chest') {
-        var claimed = !!rtState().claimed[nodeKey(unit.id, n.id)];
-        if (claimed) n.state = 'done';
-        else if (prevDone) n.state = 'current';
-        else n.state = 'locked';
+        if (n.granted) {
+          /* Gift chests are always openable — they are not gated by path. */
+          n.state = 'current';
+        } else {
+          var claimed = !!rtState().claimed[nodeKey(unit.id, n.id)];
+          if (claimed) n.state = 'done';
+          else if (prevDone) n.state = 'current';
+          else n.state = 'locked';
+        }
       } else if (n.kind === 'story') {
         var read = !!rtState().read[nodeKey(unit.id, n.id)];
         if (read) n.state = 'done';
@@ -475,22 +509,151 @@
 
   function nodeCleared(unit, node) {
     if (node.kind === 'lesson' || node.kind === 'trophy') return isDone(unit.id, node.id);
-    if (node.kind === 'chest') return !!rtState().claimed[nodeKey(unit.id, node.id)];
+    if (node.kind === 'chest') {
+      /* Gift chests sit beside the path gate — they must not lock lessons. */
+      if (node.granted) return true;
+      return !!rtState().claimed[nodeKey(unit.id, node.id)];
+    }
     if (node.kind === 'story') return !!rtState().read[nodeKey(unit.id, node.id)];
     return false;
   }
 
   function active() { return !!(run && run.phase === 'running'); }
 
+  function grantsSignature(list) {
+    return (list || []).map(function (g) { return g.id; }).join(',');
+  }
+
+  function applyPendingGrants(list, opts) {
+    opts = opts || {};
+    var prev = pendingGrants || [];
+    var next = Array.isArray(list) ? list.slice() : [];
+    var before = grantsSignature(prev);
+    var after = grantsSignature(next);
+    pendingGrants = next;
+    if (before === after) return false;
+    if (opts.silent) return true;
+    /* Only repaint the path shell — not mid-lesson / chest overlay. */
+    var el = host();
+    if (!el || !el.querySelector('.rtpath--shell')) return true;
+    if (chestBusy || (run && run.phase === 'running')) return true;
+    if (next.length > prev.length) {
+      pendingUnlock = pendingUnlock || ('grant-' + next[next.length - 1].id);
+      W.toast('Gift Journey chest', 'A new chest landed on your path.', I.chest || I.gem, 3200);
+    }
+    renderPath();
+    return true;
+  }
+
+  function fetchPendingGrants() {
+    if (!signedIn()) {
+      applyPendingGrants([]);
+      return Promise.resolve([]);
+    }
+    return rpc('my_journey_chest_grants', {}).then(function (data) {
+      if (!data || data.ok === false) return pendingGrants;
+      var list = Array.isArray(data.grants) ? data.grants : [];
+      applyPendingGrants(list);
+      return list;
+    });
+  }
+
+  function stopGrantWatch() {
+    if (!grantWatch) return;
+    try {
+      if (grantWatch.timer) clearTimeout(grantWatch.timer);
+    } catch (e) { /* ignore */ }
+    try {
+      if (grantWatch.channel && grantWatch.channel.unsubscribe) {
+        grantWatch.channel.unsubscribe();
+      }
+    } catch (e2) { /* ignore */ }
+    try {
+      if (global.document && grantWatch.onVis) {
+        global.document.removeEventListener('visibilitychange', grantWatch.onVis);
+      }
+    } catch (e3) { /* ignore */ }
+    grantWatch = null;
+  }
+
+  function startGrantWatch() {
+    var uid = global.Cloud && global.Cloud.user && global.Cloud.user.id;
+    if (!signedIn() || !uid) {
+      stopGrantWatch();
+      applyPendingGrants([]);
+      return;
+    }
+    if (grantWatch && grantWatch.uid === uid) {
+      fetchPendingGrants();
+      return;
+    }
+    stopGrantWatch();
+    var state = { uid: uid, timer: null, channel: null, reading: false, onVis: null };
+    grantWatch = state;
+
+    function hidden() {
+      try {
+        return !!(global.document && global.document.visibilityState === 'hidden');
+      } catch (e) { return false; }
+    }
+
+    function schedule(ms) {
+      if (!grantWatch || grantWatch !== state) return;
+      clearTimeout(state.timer);
+      state.timer = setTimeout(tick, ms == null ? GRANT_POLL_MS : ms);
+    }
+
+    function tick() {
+      if (!grantWatch || grantWatch !== state) return;
+      if (state.reading) return;
+      state.reading = true;
+      fetchPendingGrants().then(function () {
+        state.reading = false;
+        if (!grantWatch || grantWatch !== state) return;
+        schedule(hidden() ? GRANT_POLL_HIDDEN_MS : GRANT_POLL_MS);
+      }, function () {
+        state.reading = false;
+        if (!grantWatch || grantWatch !== state) return;
+        schedule(GRANT_POLL_MS);
+      });
+    }
+
+    state.onVis = function () {
+      if (!hidden()) schedule(80);
+    };
+    if (global.document) {
+      global.document.addEventListener('visibilitychange', state.onVis);
+    }
+
+    /* Realtime when published; poll regardless so a missed INSERT still lands. */
+    try {
+      var client = sb();
+      if (client && client.channel) {
+        state.channel = client.channel('journey-chests:' + uid);
+        state.channel.on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'journey_chest_grants',
+          filter: 'target_id=eq.' + uid
+        }, function () { schedule(60); });
+        state.channel.subscribe();
+      }
+    } catch (e) { state.channel = null; }
+
+    tick();
+  }
+
   function start() {
     if (run && run.phase === 'running') return renderQuestion();
     if (run && run.phase === 'done') return renderDone();
     captureShareFromUrl();
+    startGrantWatch();
     renderPath();
   }
 
   function abandon() {
     run = null;
+    stopGrantWatch();
     if (globeCtl && globeCtl.destroy) {
       globeCtl.destroy();
       globeCtl = null;
@@ -1007,13 +1170,14 @@
   function pathNodeHtml(unit, n, i, flags) {
     flags = flags || {};
     var cls = 'rtnode rtnode--' + n.kind + ' is-' + n.state;
+    if (n.granted) cls += ' is-gift';
     if (flags.pulse) cls += ' is-pulse';
     if (flags.unlock) cls += ' is-unlock';
     var label = '';
     if (n.state === 'current' && (n.kind === 'lesson' || n.kind === 'trophy')) {
       label = '<span class="rtnode__tip">START</span>';
     } else if (n.state === 'current' && n.kind === 'chest') {
-      label = '<span class="rtnode__tip">OPEN</span>';
+      label = '<span class="rtnode__tip">' + (n.granted ? 'GIFT' : 'OPEN') + '</span>';
     } else if (n.state === 'current' && n.kind === 'story') {
       label = '<span class="rtnode__tip">READ</span>';
     }
@@ -1036,7 +1200,9 @@
     }
 
     return '<div class="rtnode__row" style="--zig:' + n.zig + ';--rt-i:' + i + '">' +
-      '<div class="' + cls + '" data-node="' + esc(n.id) + '" data-kind="' + esc(n.kind) + '" data-state="' + esc(n.state) + '">' +
+      '<div class="' + cls + '" data-node="' + esc(n.id) + '" data-kind="' + esc(n.kind) +
+        '" data-state="' + esc(n.state) + '"' +
+        (n.grantId ? ' data-grant="' + esc(n.grantId) + '"' : '') + '>' +
         label +
         '<button type="button" class="rtnode__btn" ' + (n.state === 'locked' ? 'disabled' : '') + '>' +
           '<span class="rtnode__ic">' + icon + '</span>' +
@@ -1062,9 +1228,10 @@
         var id = nodeEl.getAttribute('data-node');
         var kind = nodeEl.getAttribute('data-kind');
         var state = nodeEl.getAttribute('data-state');
+        var grantId = nodeEl.getAttribute('data-grant');
         if (state === 'locked') return;
         if (kind === 'lesson' || kind === 'trophy') startLesson(unit, id, kind);
-        else if (kind === 'chest') openChest(unit);
+        else if (kind === 'chest') openChest(unit, grantId ? { grantId: grantId, nodeId: id } : null);
         else if (kind === 'story') openStory(unit);
       });
     });
@@ -1563,17 +1730,26 @@
     return I.chest || I.gem || '';
   }
 
-  function openChest(unit) {
+  function openChest(unit, opts) {
+    opts = opts || null;
+    if (opts && opts.grantId) {
+      if (chestBusy) return;
+      showChestOverlay(unit, { grantId: opts.grantId, nodeId: opts.nodeId || ('grant-' + opts.grantId) });
+      return;
+    }
     var key = nodeKey(unit.id, 'chest');
     if (rtState().claimed[key]) {
       W.toast('Already claimed', 'This Journey chest is empty.', I.chest || I.gem, 2600);
       return;
     }
     if (chestBusy) return;
-    showChestOverlay(unit);
+    showChestOverlay(unit, null);
   }
 
-  function showChestOverlay(unit) {
+  function showChestOverlay(unit, opts) {
+    opts = opts || null;
+    var grantId = opts && opts.grantId;
+    var pulseNodeId = (opts && opts.nodeId) || 'chest';
     closeChestOverlay();
     chestBusy = true;
     document.body.classList.add('no-scroll');
@@ -1582,7 +1758,7 @@
     var ov = W.el('div', 'rt-chest-overlay' + (still ? ' is-reduced' : ''));
     ov.setAttribute('role', 'dialog');
     ov.setAttribute('aria-modal', 'true');
-    ov.setAttribute('aria-label', 'Journey chest');
+    ov.setAttribute('aria-label', grantId ? 'Gift Journey chest' : 'Journey chest');
     ov.innerHTML =
       '<div class="rt-chest" data-chest-stage="idle" data-rarity="common" data-chest-phase="rarity">' +
         '<div class="rt-chest__glow" aria-hidden="true"></div>' +
@@ -1662,9 +1838,11 @@
       clearTimers();
       phase = 'done';
       closeChestOverlay();
-      pendingPulse = 'chest';
+      pendingPulse = pulseNodeId;
       var path = buildPath(unit);
-      var nxt = path.find(function (n) { return n.state === 'current' && n.id !== 'chest'; });
+      var nxt = path.find(function (n) {
+        return n.state === 'current' && n.id !== pulseNodeId && !(grantId && n.granted);
+      });
       if (nxt) pendingUnlock = nxt.id;
       renderPath();
     }
@@ -1707,17 +1885,34 @@
       phase = 'opening';
       tapLocked = true;
 
-      var key = nodeKey(unit.id, 'chest');
-      if (rtState().claimed[key]) {
-        closeChestOverlay();
-        W.toast('Already claimed', 'This Journey chest is empty.', I.chest || I.gem, 2600);
-        return;
+      if (grantId) {
+        /* LEA-111 — claim server-side first so a refresh cannot double-open. */
+        var stillPending = pendingGrants.some(function (g) { return g.id === grantId; });
+        if (!stillPending) {
+          closeChestOverlay();
+          W.toast('Already claimed', 'This gift Journey chest is empty.', I.chest || I.gem, 2600);
+          fetchPendingGrants();
+          return;
+        }
+        pendingGrants = pendingGrants.filter(function (g) { return g.id !== grantId; });
+        rpc('claim_journey_chest', { p_id: grantId }).then(function (res) {
+          if (res && res.ok === false && res.error === 'not_found') {
+            /* already gone — continue locally so the player still sees loot */
+          }
+        });
+      } else {
+        var key = nodeKey(unit.id, 'chest');
+        if (rtState().claimed[key]) {
+          closeChestOverlay();
+          W.toast('Already claimed', 'This Journey chest is empty.', I.chest || I.gem, 2600);
+          return;
+        }
+        rtState().claimed[key] = true;
       }
 
       var loot = buildChestLoot(currentRarity, unit);
       /* Claim + grant before reveal so a mid-animation refresh cannot
          double-pay. Overlay stays up until the last reward tap. */
-      rtState().claimed[key] = true;
       appliedLoot = applyChestLoot(loot, unit);
       rewardList = appliedLoot.rewards || [];
       W.save();
@@ -2142,6 +2337,11 @@
     rollChestRarity: rollChestRarity,
     buildChestLoot: buildChestLoot,
     applyChestLoot: applyChestLoot,
-    openChest: openChest
+    openChest: openChest,
+    /* LEA-111 — admin gift chests. */
+    applyPendingGrants: applyPendingGrants,
+    grantsForUnit: grantsForUnit,
+    fetchPendingGrants: fetchPendingGrants,
+    get pendingGrants() { return pendingGrants.slice(); }
   };
 })(window);

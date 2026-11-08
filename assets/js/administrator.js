@@ -227,6 +227,8 @@
       if (d.do === 'refsim') return simulateReferralSignup();
       if (d.do === 'refcopy') return copyReferralLink();
       if (d.do === 'refreset') return resetReferralTrial();
+      if (d.do === 'grantchest') return grantJourneyChests(+d.count || 1);
+      if (d.do === 'grantchesttag') return grantJourneyChestsByTag();
     });
 
     root.addEventListener('keydown', function (e) {
@@ -509,6 +511,25 @@
           (I.arrowR || '') + ' Open Premium plans</button>' +
       '</div>' +
       '<p class="t-sm t-muted" style="margin:0 0 18px">Also available from Commands: <code>plans</code> or <code>subscription</code>.</p>' +
+      '<div class="adminp__who" style="align-items:flex-start;margin-bottom:14px">' +
+        '<div class="grow">' +
+          '<div class="adminp__nm">' + (I.chest || I.gem || I.flask || '') +
+            '<span>Grant Journey chests</span></div>' +
+          '<p class="t-sm t-muted" style="margin:6px 0 0">' +
+            'Drop one or more gift Journey chests onto a player’s path. They appear instantly while the player is on Journey ' +
+            '(realtime + short poll). Open uses the same multi-tap rarity/reward flow. Lookup by gamertag or pick an account under Accounts.</p>' +
+          '<div class="adminp__search" style="margin-top:10px">' +
+            '<input class="input mono" id="ap-chest-tag" type="text" maxlength="16" ' +
+              'placeholder="Gamertag" autocomplete="off" spellcheck="false">' +
+            '<select class="input mono" id="ap-chest-count" aria-label="Chest count">' +
+              '<option value="1">1</option><option value="2">2</option><option value="3">3</option>' +
+              '<option value="5">5</option><option value="10">10</option>' +
+            '</select>' +
+            '<button type="button" class="btn btn--accent btn--sm" data-do="grantchesttag">' +
+              (I.chest || '') + ' Grant</button>' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
       '<div class="adminp__who" style="align-items:flex-start;margin-bottom:14px">' +
         '<div class="grow">' +
           '<div class="adminp__nm">' + (I.flask || I.bolt || '') +
@@ -1211,6 +1232,16 @@
         '</div>';
     }
 
+    /* LEA-111 — gift Journey chests onto their path (instant via realtime). */
+    var chestBlock =
+      '<div class="adminp__act">' +
+        '<span class="eyebrow">Journey chests</span>' +
+        [1, 2, 3, 5].map(function (n) {
+          return '<button type="button" class="btn btn--sm" data-do="grantchest" data-count="' + n + '">' +
+            'Grant ' + n + '</button>';
+        }).join('') +
+      '</div>';
+
     host.innerHTML =
       '<div class="adminp__who">' +
         '<div><b>' + esc(picked.display_name || 'Explorer') + '</b>' +
@@ -1218,7 +1249,7 @@
         '<div class="grow"></div>' +
         '<div class="adminp__bal"><b class="mono">' + num(picked.diamonds) + '</b><span>diamonds</span></div>' +
       '</div>' +
-      gemsBtns + marks + account +
+      gemsBtns + chestBlock + marks + account +
       (picked.banned
         ? '<div class="adminp__warn" style="margin:4px 0 12px"><b>Banned.</b> ' +
           '<div class="t-sm" style="margin-top:2px">They are shown the banned screen when they sign in.</div></div>'
@@ -1399,6 +1430,59 @@
     if (picked) return true;
     say('No account selected. Search for one under Accounts and click its row first.');
     return false;
+  }
+
+  /* LEA-111 — drop gift Journey chests on a player's path. */
+  function grantJourneyChests(count) {
+    if (!needPicked()) return;
+    var n = Math.max(1, Math.min(10, Number(count) || 1));
+    if (!ops().grantJourneyChests) {
+      return say('admin-ops.js needs a refresh for Journey chest grants.');
+    }
+    ops().grantJourneyChests({ target: picked.id, count: n }).then(function (r) {
+      guard(r, function (data) {
+        if (data && data.ok === false) {
+          return say(esc(data.message || data.error || 'Could not grant Journey chests.'));
+        }
+        var got = (data && data.count) || n;
+        say('Granted ' + got + ' Journey chest' + (got === 1 ? '' : 's') + ' to ' +
+          (picked.display_name || picked.email || 'account') +
+          '. They appear on Journey instantly.');
+        W.toast('Journey chests', 'Granted ' + got + ' to ' + (picked.display_name || 'player'),
+          I.chest || I.gem, 3200);
+        refreshLog();
+      });
+    });
+  }
+
+  function grantJourneyChestsByTag(tag, count) {
+    var tagBox = root && W.$('#ap-chest-tag', root);
+    var countBox = root && W.$('#ap-chest-count', root);
+    var t = tag != null ? String(tag) : (tagBox ? tagBox.value : '');
+    t = String(t || '').trim();
+    var n = count != null
+      ? Number(count)
+      : (countBox ? Number(countBox.value) : 1);
+    if (!/^[A-Za-z0-9_]{3,16}$/.test(t)) {
+      return say('Enter a gamertag (3–16 letters, numbers, or _).');
+    }
+    n = Math.max(1, Math.min(10, Number.isInteger(n) ? n : 1));
+    if (!ops().grantJourneyChests) {
+      return say('admin-ops.js needs a refresh for Journey chest grants.');
+    }
+    ops().grantJourneyChests({ tag: t, count: n }).then(function (r) {
+      guard(r, function (data) {
+        if (data && data.ok === false) {
+          return say(esc(data.message || data.error || 'No account matched that gamertag.'));
+        }
+        var got = (data && data.count) || n;
+        say('Granted ' + got + ' Journey chest' + (got === 1 ? '' : 's') + ' to @' + t +
+          '. They appear on Journey instantly.');
+        W.toast('Journey chests', 'Granted ' + got + ' to @' + t, I.chest || I.gem, 3200);
+        if (tagBox) tagBox.value = '';
+        refreshLog();
+      });
+    });
   }
 
   function gems(opts, label) {
@@ -1646,6 +1730,9 @@
         : a.action === 'staff' ? (d.on ? 'staff effect granted' : 'staff effect removed')
         : a.action === 'allow' ? (d.on ? 'given admin access' : 'admin access removed')
         : a.action === 'grants' ? ('commands: ' + esc(((d.commands || []).join(', ')) || 'restricted'))
+        : a.action === 'journey_chest'
+          ? ('Journey chest' + ((d.count || 1) === 1 ? '' : 's') + ' ×' + num(d.count || 1) +
+            (d.tag ? ' · @' + esc(d.tag) : ''))
         : a.action === 'message' ? 'message: “' + esc(trim(d.text, 80)) + '”'
         : a.action === 'reply'   ? 'reply: “' + esc(trim(d.text, 80)) + '”'
         : esc(a.action);
@@ -1746,7 +1833,10 @@
       'plans              open Premium plans (TEST grant for owner/admin)',
       'subscription       same as plans',
       'cooking            preview the cooking loader (TEST)',
-      'loader             same as cooking'
+      'loader             same as cooking',
+      'chest [n]          grant n Journey chests to the selected account (default 1)',
+      'grantchest [n]     same as chest',
+      'chesttag <tag> [n] grant n Journey chests by gamertag'
     ];
     if (can('gems')) {
       lines = lines.concat([
@@ -1804,6 +1894,25 @@
     if (cmd === 'cooking' || cmd === 'loader' || cmd === 'cookpreview') {
       previewCookingLoader();
       return;
+    }
+    if (cmd === 'chest' || cmd === 'grantchest' || cmd === 'journeychest') {
+      var chestN = rest === '' ? 1 : Number(rest.replace(/,/g, ''));
+      if (!Number.isInteger(chestN) || chestN < 1 || chestN > 10) {
+        return say('chest <n> takes a whole number from 1 to 10.');
+      }
+      return grantJourneyChests(chestN);
+    }
+    if (cmd === 'chesttag' || cmd === 'grantchesttag') {
+      var tagBits = rest.split(/\s+/).filter(Boolean);
+      var tagName = tagBits[0] || '';
+      var tagCount = tagBits[1] ? Number(tagBits[1].replace(/,/g, '')) : 1;
+      if (!/^[A-Za-z0-9_]{3,16}$/.test(tagName)) {
+        return say('chesttag <gamertag> [n] — gamertag is 3–16 letters, numbers, or _.');
+      }
+      if (!Number.isInteger(tagCount) || tagCount < 1 || tagCount > 10) {
+        return say('Count must be a whole number from 1 to 10.');
+      }
+      return grantJourneyChestsByTag(tagName, tagCount);
     }
     if (cmd === 'stats') { refresh(); return say('Reloading…'); }
     if (cmd === 'log') {

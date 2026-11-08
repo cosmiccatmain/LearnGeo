@@ -393,6 +393,17 @@
     grantsList: function ()               { return call('ultra_grants_list', {}); },
     grantsSet: function (email, cmds)     {
       return call('ultra_grants_set', { p_email: email, p_commands: cmds || [] });
+    },
+
+    /* LEA-111 — grant Journey path chests (1–10) by account id and/or gamertag. */
+    grantJourneyChests: function (opts) {
+      opts = opts || {};
+      return call('ultra_grant_journey_chests', {
+        p_target: opts.target || null,
+        p_tag: opts.tag || null,
+        p_count: typeof opts.count === 'number' ? opts.count : 1,
+        p_unit_id: opts.unitId || null
+      });
     }
   };
 })(window);
