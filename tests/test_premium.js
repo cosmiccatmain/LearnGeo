@@ -137,6 +137,14 @@ assert(/Games cosmetics/.test(ui) && /chessBoards/.test(ui) && /snakeBodies/.tes
 assert(/renderGamesPreview/.test(ui) || /chessPreviewHtml/.test(ui),
   'Games tab preview covers more than Dash');
 
+/* LEA-100: Customise piece cards + live preview use crisp SVG glyphs. */
+assert(/chessPieceSvg/.test(cos) && /CHESS_GLYPH_PATHS/.test(cos),
+  'cosmetics exports SVG chess glyph helper');
+assert(/pieceSvg\('q'/.test(ui) && /pieceSvg\('n'/.test(ui) && /pieceSvg\('k'/.test(ui),
+  'Customise piece cards and chess preview render SVG glyphs');
+assert(/cz-chess-glyph/.test(fs.readFileSync(path.join(root, 'assets/css/app.css'), 'utf8')),
+  'Customise CSS sizes SVG chess glyphs');
+
 var chess = fs.readFileSync(path.join(root, 'assets/js/game-chess.js'), 'utf8');
 assert(/applyChessCosmetics|--chess-light|chessBoard/.test(chess),
   'Geo Chess applies board/piece cosmetics');
