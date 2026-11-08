@@ -1,0 +1,287 @@
+/* ------------------------------------------------------------------
+   LearnGeo — Luxe profile effects (100K to 1B diamonds).
+
+   ui.js runEffect() adds one <span class="fxl fxl-<name>"> per entry
+   in the effect's `layers`, with its glow colours as --g1..--g3, then
+   the particles on top. The same spans are drawn in the shop tile, so
+   every rule here sizes itself in % and works in a 54px circle as well
+   as on a 340px card. Layers stay faint over the middle of the card so
+   the name and bio stay readable on light and dark themes alike.
+-------------------------------------------------------------------*/
+
+@property --fxl-a {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+
+.profile-fx--luxe { border-radius: inherit; }
+.fxl {
+  position: absolute; inset: 0; pointer-events: none;
+  border-radius: inherit; overflow: hidden;
+}
+.fxl::before, .fxl::after { content: ''; position: absolute; pointer-events: none; }
+
+/* ----------------------------- ribbons ---------------------------- */
+.fxl-ribbons {
+  -webkit-mask: linear-gradient(#000 0 30%, rgba(0, 0, 0, .25) 65%, transparent 90%);
+          mask: linear-gradient(#000 0 30%, rgba(0, 0, 0, .25) 65%, transparent 90%);
+}
+.fxl-ribbons::before, .fxl-ribbons::after {
+  left: -40%; width: 180%; top: -6%; height: 52%;
+  border-radius: 50%;
+  filter: blur(12px); opacity: .6;
+  background: linear-gradient(90deg, transparent 5%, var(--g1) 25%, var(--g2) 50%, var(--g3) 72%, transparent 95%);
+  animation: fxl-ribbon 9s ease-in-out infinite alternate;
+}
+.fxl-ribbons::after {
+  top: 6%; height: 36%; opacity: .55;
+  background: linear-gradient(90deg, transparent 10%, var(--g3) 30%, var(--g1) 58%, var(--g2) 80%, transparent);
+  animation-duration: 7s; animation-direction: alternate-reverse;
+}
+@keyframes fxl-ribbon {
+  0%   { transform: translateX(-12%) skewY(-6deg) scaleY(.8); }
+  50%  { transform: translateX(6%) skewY(5deg) scaleY(1.15); }
+  100% { transform: translateX(14%) skewY(-3deg) scaleY(.9); }
+}
+/* ----------------------------- nebula ----------------------------- */
+.fxl-nebula {
+  -webkit-mask: linear-gradient(#000 0 40%, rgba(0, 0, 0, .3) 100%);
+          mask: linear-gradient(#000 0 40%, rgba(0, 0, 0, .3) 100%);
+}
+.fxl-nebula::before {
+  inset: -30%;
+  background:
+    radial-gradient(30% 24% at 28% 22%, color-mix(in srgb, var(--g1) 70%, transparent), transparent 70%),
+    radial-gradient(34% 26% at 72% 30%, color-mix(in srgb, var(--g2) 65%, transparent), transparent 70%),
+    radial-gradient(26% 30% at 52% 60%, color-mix(in srgb, var(--g3) 55%, transparent), transparent 70%);
+  filter: blur(14px); opacity: .7;
+  animation: fxl-nebula 22s ease-in-out infinite alternate;
+}
+.fxl-nebula::after {
+  inset: -30%;
+  background:
+    radial-gradient(22% 18% at 64% 18%, color-mix(in srgb, var(--g3) 60%, transparent), transparent 70%),
+    radial-gradient(28% 20% at 34% 46%, color-mix(in srgb, var(--g1) 50%, transparent), transparent 70%);
+  filter: blur(18px); opacity: .6;
+  animation: fxl-nebula 30s ease-in-out infinite alternate-reverse;
+}
+@keyframes fxl-nebula {
+  0%   { transform: rotate(0deg) scale(1); }
+  50%  { transform: rotate(14deg) scale(1.12) translateX(4%); }
+  100% { transform: rotate(-10deg) scale(.95) translateY(3%); }
+}
+
+/* ------------------------------ aura ------------------------------ */
+.fxl-aura {
+  box-shadow:
+    inset 0 0 18px 1px color-mix(in srgb, var(--g1) 75%, transparent),
+    inset 0 0 46px 0 color-mix(in srgb, var(--g2) 45%, transparent);
+  animation: fxl-pulse 3.2s ease-in-out infinite;
+}
+@keyframes fxl-pulse {
+  0%, 100% { opacity: .45; }
+  50%      { opacity: 1; }
+}
+
+/* ------------------------------ tide ------------------------------ */
+.fxl-tide::before {
+  left: -20%; right: -20%; bottom: -30%; height: 70%;
+  background: radial-gradient(60% 55% at 50% 100%,
+    color-mix(in srgb, var(--g1) 75%, transparent),
+    color-mix(in srgb, var(--g2) 35%, transparent) 55%, transparent 75%);
+  filter: blur(8px);
+  animation: fxl-tide 6s ease-in-out infinite alternate;
+}
+@keyframes fxl-tide {
+  from { transform: translateY(8%) scaleX(1); opacity: .6; }
+  to   { transform: translateY(-6%) scaleX(1.15); opacity: 1; }
+}
+
+/* ------------------------------ rays ------------------------------ */
+.fxl-rays::before {
+  width: 260%; aspect-ratio: 1; left: 50%; top: 22%;
+  translate: -50% -50%;
+  background: repeating-conic-gradient(from 0deg,
+    color-mix(in srgb, var(--g1) 70%, transparent) 0deg 5deg,
+    transparent 5deg 15deg,
+    color-mix(in srgb, var(--g3) 55%, transparent) 15deg 19deg,
+    transparent 19deg 30deg);
+  -webkit-mask: radial-gradient(closest-side, #000 3%, rgba(0, 0, 0, .4) 15%, transparent 32%);
+          mask: radial-gradient(closest-side, #000 3%, rgba(0, 0, 0, .4) 15%, transparent 32%);
+  opacity: .65;
+  animation: fxl-spin 28s linear infinite;
+}
+.fxl-rays::after {
+  width: 70%; aspect-ratio: 1; left: 50%; top: 22%;
+  translate: -50% -50%; border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--g3) 80%, transparent), transparent 65%);
+  filter: blur(6px);
+  animation: fxl-pulse 2.6s ease-in-out infinite;
+}
+@keyframes fxl-spin { to { transform: rotate(360deg); } }
+
+/* ------------------------------ sheen ----------------------------- */
+.fxl-sheen::before {
+  top: -50%; bottom: -50%; width: 38%; left: -60%;
+  background: linear-gradient(90deg, transparent,
+    rgba(255, 255, 255, .15) 30%, rgba(255, 255, 255, .7) 50%, rgba(255, 255, 255, .15) 70%, transparent);
+  transform: rotate(18deg);
+  animation: fxl-sheen 4.6s cubic-bezier(.45, 0, .2, 1) infinite;
+}
+@keyframes fxl-sheen {
+  0%, 55% { left: -60%; }
+  100%    { left: 130%; }
+}
+
+/* ----------------------------- galaxy ----------------------------- */
+.fxl-galaxy::before {
+  width: 150%; aspect-ratio: 1; left: 50%; top: 30%;
+  translate: -50% -50%; border-radius: 50%;
+  background: conic-gradient(from 0deg,
+    transparent 0deg, color-mix(in srgb, var(--g1) 85%, transparent) 40deg, transparent 100deg,
+    transparent 120deg, color-mix(in srgb, var(--g2) 85%, transparent) 160deg, transparent 220deg,
+    transparent 240deg, color-mix(in srgb, var(--g3) 80%, transparent) 280deg, transparent 340deg);
+  -webkit-mask: radial-gradient(closest-side, transparent 6%, #000 14%, rgba(0, 0, 0, .6) 50%, transparent 92%);
+          mask: radial-gradient(closest-side, transparent 6%, #000 14%, rgba(0, 0, 0, .6) 50%, transparent 92%);
+  filter: blur(5px); opacity: .8;
+  animation: fxl-spin 18s linear infinite;
+}
+.fxl-galaxy::after {
+  width: 18%; aspect-ratio: 1; left: 50%; top: 30%;
+  translate: -50% -50%; border-radius: 50%;
+  background: radial-gradient(circle, #FFFFFF, color-mix(in srgb, var(--g2) 70%, transparent) 45%, transparent 72%);
+  animation: fxl-pulse 3s ease-in-out infinite;
+}
+
+/* ---------------------------- lightning --------------------------- */
+.fxl-lightning::before {
+  inset: 0;
+  background: radial-gradient(120% 80% at 62% 0%, rgba(224, 231, 255, .95), rgba(165, 180, 252, .35) 45%, transparent 75%);
+  opacity: 0;
+  animation: fxl-flash 6.5s linear infinite;
+}
+.fxl-lightning::after {
+  left: 56%; top: -2%; width: 22%; height: 62%;
+  background: linear-gradient(#FFFFFF, #C7D2FE);
+  clip-path: polygon(46% 0, 72% 0, 54% 36%, 78% 36%, 30% 100%, 44% 52%, 22% 52%);
+  filter: drop-shadow(0 0 6px #A5B4FC);
+  opacity: 0;
+  animation: fxl-flash 6.5s linear infinite;
+}
+@keyframes fxl-flash {
+  0%, 60%  { opacity: 0; }
+  61%      { opacity: 1; }
+  63%      { opacity: .1; }
+  65%      { opacity: .9; }
+  70%      { opacity: 0; }
+  86%      { opacity: 0; }
+  87%      { opacity: .55; }
+  89%, 100% { opacity: 0; }
+}
+
+/* ------------------------------ shock ----------------------------- */
+.fxl-shock::before, .fxl-shock::after {
+  width: 40%; aspect-ratio: 1; left: 50%; top: 34%;
+  translate: -50% -50%; border-radius: 50%;
+  border: 2px solid var(--g1);
+  box-shadow: 0 0 12px var(--g2), inset 0 0 12px var(--g3);
+  opacity: 0;
+  animation: fxl-shock 3.2s cubic-bezier(.15, .6, .3, 1) infinite;
+}
+.fxl-shock::after { border-color: var(--g3); animation-delay: 1.6s; }
+@keyframes fxl-shock {
+  0%   { transform: scale(.05); opacity: 0; }
+  8%   { opacity: 1; }
+  100% { transform: scale(4.2); opacity: 0; }
+}
+
+/* ------------------------------ border ---------------------------- */
+.fxl-border {
+  padding: 3px;
+  background: conic-gradient(from var(--fxl-a), var(--g1), var(--g2), var(--g3), #FFFFFF, var(--g1));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  animation: fxl-border 3.6s linear infinite;
+}
+@keyframes fxl-border { to { --fxl-a: 360deg; } }
+
+/* ============================ particles ============================ */
+.fx-diamond {
+  width: 14px; height: 16px;
+  clip-path: polygon(50% 0, 100% 34%, 50% 100%, 0 34%);
+}
+.fx-diamond::after {
+  content: ''; position: absolute; inset: 0;
+  background:
+    linear-gradient(115deg, rgba(255, 255, 255, .95) 0 22%, transparent 23% 48%, rgba(255, 255, 255, .5) 49% 55%, transparent 56%),
+    linear-gradient(transparent 0 34%, rgba(30, 64, 175, .28) 35% 100%);
+}
+
+.fx-coin {
+  width: 11px; height: 11px; border-radius: 50%;
+  box-shadow:
+    inset -1.5px -1.5px 0 rgba(146, 64, 14, .5),
+    inset 1px 1px 0 rgba(255, 255, 255, .8),
+    0 0 6px rgba(245, 179, 1, .65);
+}
+.fx-coin::after {
+  content: ''; position: absolute; inset: 2.5px; border-radius: 50%;
+  border: 1px solid rgba(146, 64, 14, .45);
+}
+.fx-motion-tumble.fx-coin { animation-name: fx-coin-flip; }
+@keyframes fx-coin-flip {
+  0%   { transform: translate3d(0, -14px, 0) rotateY(0deg) scale(var(--fx-scale)); opacity: 0; }
+  8%   { opacity: 1; }
+  100% { transform: translate3d(var(--fx-drift), 245px, 0) rotateY(900deg) scale(var(--fx-scale)); opacity: 0; }
+}
+
+.fx-orb {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #FFFFFF 0 18%, var(--fx-c) 55%, transparent 72%) !important;
+  box-shadow: 0 0 10px 2px color-mix(in srgb, var(--fx-c) 65%, transparent);
+}
+
+.fx-flare {
+  width: 15px; height: 15px;
+  background:
+    radial-gradient(circle, #FFFFFF 0 11%, transparent 13%),
+    linear-gradient(90deg, transparent 0 44%, var(--fx-c) 50%, transparent 56%),
+    linear-gradient(transparent 0 44%, var(--fx-c) 50%, transparent 56%),
+    radial-gradient(circle, color-mix(in srgb, var(--fx-c) 70%, transparent), transparent 48%) !important;
+  filter: drop-shadow(0 0 1.5px rgba(15, 23, 42, .3)) drop-shadow(0 0 4px var(--fx-c));
+}
+
+.fx-motion-glimmer { animation-name: fx-glimmer; animation-timing-function: ease-in-out; }
+@keyframes fx-glimmer {
+  0%, 100% { transform: scale(0) rotate(0deg); opacity: 0; }
+  45%      { transform: scale(var(--fx-scale)) rotate(45deg); opacity: 1; }
+  60%      { transform: scale(calc(var(--fx-scale) * .8)) rotate(60deg); opacity: .85; }
+}
+
+.fx-motion-burst { animation-name: fx-burst; animation-timing-function: cubic-bezier(.12, .7, .3, 1); }
+@keyframes fx-burst {
+  0%   { transform: translate3d(-50%, -50%, 0) scale(.2); opacity: 0; }
+  6%   { opacity: 1; }
+  100% { transform: translate3d(calc(var(--fx-dx) - 50%), calc(var(--fx-dy) - 50%), 0) scale(var(--fx-scale)) rotate(var(--fx-spin)); opacity: 0; }
+}
+
+/* ============================ shop tile ============================ */
+.shop-item--luxe {
+  border-color: #E9C46A;
+  background: linear-gradient(180deg, #FFFBEB, var(--white) 60%);
+}
+.shop-item--luxe .shop-item__price { color: #B45309; }
+.shop-item__vis--luxe {
+  background: radial-gradient(circle at 50% 30%, #1E293B, #070B16) !important;
+  box-shadow: 0 0 0 1.5px #E9C46A, 0 4px 14px rgba(180, 83, 9, .25);
+}
+.shop-item.is-locked .shop-item__vis--luxe { opacity: 1; }
+.shop-item__vis--fx-live .fx-preview.fx-motion-glimmer { top: 38%; }
+.shop-item__vis--fx-live .fx-preview.fx-motion-burst { left: 50%; top: 50%; }
+
+@media (prefers-reduced-motion: reduce) {
+  .fxl, .fxl::before, .fxl::after { animation: none !important; }
+  .fxl-lightning::before, .fxl-lightning::after, .fxl-shock::before, .fxl-shock::after { display: none; }
+}

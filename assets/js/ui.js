@@ -634,6 +634,7 @@
     var isEq = equipped === it.id;
     var how = earned ? Cos.unlockedBy(it) : null;
     return '<button class="shop-item' + (isEq ? ' is-equipped' : '') + (isOwned ? '' : ' is-locked') +
+      (it.tier ? ' shop-item--' + it.tier : '') +
       (earned ? ' shop-item--earned' : '') + (premLocked ? ' shop-item--premium' : '') + '" ' +
       'data-kind="' + kind + '" data-id="' + it.id + '" data-price="' + (earned || premLocked ? '' : (it.price || 0)) + '" ' +
       'data-earn="' + (it.earn || '') + '" ' +
@@ -652,8 +653,17 @@
             /* deliberately the existing "owned" style: small and quiet,
                and it needs no new CSS in a file I do not own */
             : earned ? '<span class="shop-item__owned">' + W.escapeHtml(how ? how.desc : 'Locked') + '</span>'
-            : '<span class="shop-item__price mono">' + I.gem + ' ' + it.price + '</span>') +
+            : '<span class="shop-item__price mono" title="' + Number(it.price).toLocaleString() + ' diamonds">' +
+                I.gem + ' ' + priceLabel(it.price) + '</span>') +
       '</button>';
+  }
+
+  /* 100000 → 100K, 1000000000 → 1B. Under 100K the full number fits. */
+  function priceLabel(n) {
+    if (n >= 1e9) return (n / 1e9) + 'B';
+    if (n >= 1e6) return (n / 1e6) + 'M';
+    if (n >= 1e5) return (n / 1e3) + 'K';
+    return String(n);
   }
 
   function shopPanel(kind) {
@@ -720,11 +730,19 @@
     if (kind === 'effects') {
       if (!it.shape) return '<span class="shop-item__vis shop-item__vis--fx" style="background:var(--paper);color:var(--faint)">—</span>';
       var motion = it.motion || 'fall';
-      return '<span class="shop-item__vis shop-item__vis--fx shop-item__vis--fx-live" data-fx-motion="' + motion + '" style="background:var(--paper)">' +
+      var lux = (it.layers || []).map(function (name) {
+        var g = it.glow || it.colors;
+        return '<span class="fxl fxl-' + name + '" aria-hidden="true" style="--g1:' + g[0] +
+          ';--g2:' + (g[1] || g[0]) + ';--g3:' + (g[2] || g[0]) + '"></span>';
+      }).join('');
+      return '<span class="shop-item__vis shop-item__vis--fx shop-item__vis--fx-live' +
+        (it.tier ? ' shop-item__vis--' + it.tier : '') + '" data-fx-motion="' + motion + '" style="background:var(--paper)">' + lux +
         it.colors.slice(0, 4).map(function (c, i) {
           var st = (it.shape === 'ring') ? 'border-color:' + c : 'background:' + c;
           return '<i class="fx-' + it.shape + ' fx-motion-' + motion + ' fx-preview" style="' + st +
-            ';--fx-i:' + i + ';--fx-scale:' + (0.75 + i * 0.12).toFixed(2) + '"></i>';
+            ';--fx-c:' + c + ';--fx-i:' + i + ';--fx-scale:' + (0.75 + i * 0.12).toFixed(2) +
+            (motion === 'burst' ? ';--fx-dx:' + [-26, 24, -18, 28][i] + 'px;--fx-dy:' + [-20, -16, 22, 18][i] + 'px' : '') +
+            '"></i>';
         }).join('') + '</span>';
     }
     if (kind === 'nameplates') {
@@ -869,7 +887,7 @@
     }
     if (W.state.economy.diamonds < price) {
       W.Sound.wrong();
-      W.toast('Not enough diamonds', 'You need ' + (price - W.state.economy.diamonds) + ' more', I.gem, 3400);
+      W.toast('Not enough diamonds', 'You need ' + (price - W.state.economy.diamonds).toLocaleString() + ' more', I.gem, 3400);
       return;
     }
     modal({
@@ -878,7 +896,7 @@
       body: '<div class="t-center" style="padding:8px 0 4px">' +
         '<div style="display:inline-block">' + visual(kind, item) + '</div>' +
         '<p style="margin-top:14px" class="t-muted">Unlock <b>' + W.escapeHtml(item.name) + '</b> for ' +
-        '<b class="mono">' + price + ' 💎</b>? You have ' +
+        '<b class="mono">' + price.toLocaleString() + ' 💎</b>? You have ' +
         '<b class="mono">' + W.state.economy.diamonds.toLocaleString() + ' 💎</b>.</p></div>',
       actions: [
         { label: 'Cancel', cls: 'btn--ghost', close: true },
@@ -1413,6 +1431,21 @@
     }
   }
 
+  /* Animated backdrop layers for Luxe effects (cosmetics-luxe.css).
+     Each gets the effect's three glow colours as --g1..--g3. */
+  function luxeLayers(fx) {
+    var g = fx.glow || fx.colors || [];
+    return (fx.layers || []).map(function (name) {
+      var el = document.createElement('span');
+      el.className = 'fxl fxl-' + name;
+      el.setAttribute('aria-hidden', 'true');
+      el.style.setProperty('--g1', g[0] || '#FFFFFF');
+      el.style.setProperty('--g2', g[1] || g[0] || '#FFFFFF');
+      el.style.setProperty('--g3', g[2] || g[0] || '#FFFFFF');
+      return el;
+    });
+  }
+
   function runEffect(host) {
     var layer = host.querySelector('.profile-fx');
     if (!layer) return;
@@ -1421,31 +1454,52 @@
     layer.className = 'profile-fx';
     if (!fx || !fx.shape || !W.state.settings.effects) return;
     var motion = fx.motion || 'fall';
-    var count = fx.count || 18;
     layer.classList.add('profile-fx--' + motion);
     layer.dataset.motion = motion;
-    for (var i = 0; i < count; i++) {
-      var n = document.createElement('i');
-      n.className = 'fx-' + fx.shape + ' fx-motion-' + motion;
-      var col = fx.colors[i % fx.colors.length];
-      if (fx.shape === 'ring') n.style.borderColor = col;
-      else n.style.background = col;
-      /* Scale via CSS var so keyframes can compose transform safely. */
-      var scale = (0.65 + Math.random() * 0.9).toFixed(2);
-      n.style.setProperty('--fx-scale', scale);
-      n.style.setProperty('--fx-x', (Math.random() * 100).toFixed(2) + '%');
-      n.style.setProperty('--fx-drift', ((Math.random() * 40) - 20).toFixed(1) + 'px');
-      n.style.setProperty('--fx-spin', ((Math.random() * 360) - 180).toFixed(0) + 'deg');
-      n.style.left = (Math.random() * 94) + '%';
-      n.style.top = motion === 'rise' || motion === 'embers' || motion === 'twinkle'
-        ? (55 + Math.random() * 40) + '%'
-        : (-8 + Math.random() * 18) + '%';
-      n.style.animationDuration = durationFor(motion);
-      n.style.animationDelay = (Math.random() * 2.8).toFixed(2) + 's';
-      layer.appendChild(n);
+    if (fx.tier) layer.classList.add('profile-fx--' + fx.tier);
+    luxeLayers(fx).forEach(function (el) { layer.appendChild(el); });
+    [fx].concat(fx.also || []).forEach(function (g) {
+      particles(g.shape, g.colors, g.motion || 'fall', g.count || 18);
+    });
+
+    function particles(shape, colors, m, count) {
+      for (var i = 0; i < count; i++) {
+        var n = document.createElement('i');
+        n.className = 'fx-' + shape + ' fx-motion-' + m;
+        var col = colors[i % colors.length];
+        if (shape === 'ring') n.style.borderColor = col;
+        else n.style.background = col;
+        n.style.setProperty('--fx-c', col);
+        /* Scale via CSS var so keyframes can compose transform safely. */
+        var scale = (0.65 + Math.random() * 0.9).toFixed(2);
+        n.style.setProperty('--fx-scale', scale);
+        n.style.setProperty('--fx-x', (Math.random() * 100).toFixed(2) + '%');
+        n.style.setProperty('--fx-drift', ((Math.random() * 40) - 20).toFixed(1) + 'px');
+        n.style.setProperty('--fx-spin', ((Math.random() * 360) - 180).toFixed(0) + 'deg');
+        if (m === 'burst') {
+          /* Spread evenly round the circle, jittered, so the blast reads as round. */
+          var ang = (i / count) * Math.PI * 2 + Math.random() * 0.4;
+          var dist = 90 + Math.random() * 110;
+          n.style.setProperty('--fx-dx', (Math.cos(ang) * dist).toFixed(0) + 'px');
+          n.style.setProperty('--fx-dy', (Math.sin(ang) * dist).toFixed(0) + 'px');
+          n.style.left = '50%';
+          n.style.top = '34%';
+        } else {
+          n.style.left = (Math.random() * 94) + '%';
+          n.style.top = m === 'glimmer' ? (4 + Math.random() * 88) + '%'
+            : m === 'rise' || m === 'embers' || m === 'twinkle'
+              ? (55 + Math.random() * 40) + '%'
+              : (-8 + Math.random() * 18) + '%';
+        }
+        n.style.animationDuration = durationFor(m);
+        n.style.animationDelay = (Math.random() * (m === 'burst' ? 3.2 : 2.8)).toFixed(2) + 's';
+        layer.appendChild(n);
+      }
     }
 
     function durationFor(m) {
+      if (m === 'glimmer') return (1.8 + Math.random() * 2.2).toFixed(2) + 's';
+      if (m === 'burst') return (2.6 + Math.random() * 1.2).toFixed(2) + 's';
       if (m === 'rain') return (0.7 + Math.random() * 0.55).toFixed(2) + 's';
       if (m === 'embers' || m === 'rise') return (2.4 + Math.random() * 2.2).toFixed(2) + 's';
       if (m === 'twinkle') return (1.6 + Math.random() * 1.8).toFixed(2) + 's';
