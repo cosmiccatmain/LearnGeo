@@ -100,9 +100,23 @@
     if (/Email not confirmed/i.test(m)) return "You need to confirm your email first. Check your inbox for the link.";
     if (/already registered|already been registered/i.test(m)) return "There's already an account with that email. Try signing in.";
     if (/Password should be/i.test(m)) return m;
+    if (/Unsupported provider|provider is not enabled/i.test(m)) {
+      return 'Google sign-in isn’t turned on yet. Use email for now, or try again later.';
+    }
+    if (/redirect_uri_mismatch|Invalid Redirect URL|redirect.?url/i.test(m)) {
+      return 'Google sign-in hit a redirect mismatch. Tell an admin to check the allow-list.';
+    }
     if (/rate limit|too many/i.test(m)) return 'Too many tries. Give it a minute and try again.';
     if (/Failed to fetch|NetworkError|Load failed/i.test(m)) return "Couldn't reach the server. Check your internet connection.";
     return m || 'Something went wrong. Please try again.';
+  }
+
+  /* Google (and other OAuth) often ships full_name / name, not display_name. */
+  function metaDisplayName(u) {
+    var meta = (u && u.user_metadata) || {};
+    var name = meta.display_name || meta.full_name || meta.name || '';
+    name = String(name).trim().slice(0, 40);
+    return name || '';
   }
 
   /* Confirmation and password-reset emails must come back to a URL on the
@@ -214,6 +228,13 @@
             W.state.roleChosen = true;
           }
         }
+        /* OAuth (Google) first visit: profile row is empty or still Explorer,
+           so take the provider display name when the guest never set one. */
+        if ((!cloud || !row || !row.display_name || row.display_name === 'Explorer') &&
+            (!W.state.profile.displayName || W.state.profile.displayName === 'Explorer')) {
+          var fromMeta = metaDisplayName(u);
+          if (fromMeta) W.state.profile.displayName = fromMeta;
+        }
         if (chosen === cloud) W.state.meta.syncedAt = row.updated_at;
         applying = false;
 
@@ -290,6 +311,20 @@
   function signIn(email, password) {
     if (!client()) return Promise.reject(new Error("Accounts aren't working right now. You can keep playing as a guest."));
     return sb.auth.signInWithPassword({ email: email, password: password }).then(check);
+  }
+
+  /* LEA-113: Google OAuth. Same redirect root as email confirm / reset so the
+     allow-list already covers production and local. detectSessionInUrl +
+     onAuthStateChange → adopt() pick the session up on return — no second path. */
+  function signInWithGoogle() {
+    if (!client()) return Promise.reject(new Error("Accounts aren't working right now. You can keep playing as a guest."));
+    return sb.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: redirectUrl() }
+    }).then(function (res) {
+      if (res && res.error) throw res.error;
+      return res ? res.data : null;
+    });
   }
 
   /* The copy on this device is only forgotten when the save definitely went
@@ -1323,7 +1358,7 @@
 
   global.Cloud = {
     init: init,
-    signUp: signUp, signIn: signIn, signOut: signOut,
+    signUp: signUp, signIn: signIn, signInWithGoogle: signInWithGoogle, signOut: signOut,
     resetPassword: resetPassword, updatePassword: updatePassword,
     push: push, onChange: onChange, friendly: friendly,
     teacherSync: teacherSync, saveAssignment: saveAssignment, deleteAssignment: deleteAssignment,
