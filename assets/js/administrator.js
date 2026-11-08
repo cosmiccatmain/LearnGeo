@@ -1432,6 +1432,20 @@
     return false;
   }
 
+  /* LEA-112 — if the grant target is this signed-in session, force Journey
+     to refetch + repaint immediately (realtime can miss while Admin is open). */
+  function refreshOwnJourneyChests(data) {
+    var me = global.Cloud && global.Cloud.user && global.Cloud.user.id;
+    var target = data && data.target_id;
+    if (!me || !target || String(me) !== String(target)) return;
+    var RT = global.RoadTripMode;
+    if (RT && RT.refreshGiftChests) {
+      RT.refreshGiftChests({ force: true, arrived: true, toast: true, scroll: true });
+    } else if (RT && RT.fetchPendingGrants) {
+      RT.fetchPendingGrants();
+    }
+  }
+
   /* LEA-111 — drop gift Journey chests on a player's path. */
   function grantJourneyChests(count) {
     if (!needPicked()) return;
@@ -1450,6 +1464,7 @@
           '. They appear on Journey instantly.');
         W.toast('Journey chests', 'Granted ' + got + ' to ' + (picked.display_name || 'player'),
           I.chest || I.gem, 3200);
+        refreshOwnJourneyChests(data);
         refreshLog();
       });
     });
@@ -1479,6 +1494,7 @@
         say('Granted ' + got + ' Journey chest' + (got === 1 ? '' : 's') + ' to @' + t +
           '. They appear on Journey instantly.');
         W.toast('Journey chests', 'Granted ' + got + ' to @' + t, I.chest || I.gem, 3200);
+        refreshOwnJourneyChests(data);
         if (tagBox) tagBox.value = '';
         refreshLog();
       });

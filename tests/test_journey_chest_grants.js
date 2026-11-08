@@ -117,6 +117,7 @@ test('LEA-111 gift chests inject onto the path without locking lessons', () => {
   assert.match(src, /claim_journey_chest|Gift Journey chest|is-gift/);
   assert.match(src, /GRANT_POLL_MS|postgres_changes/);
   assert.match(src, /CHEST_RARITY_TAPS|Tap to push rarity higher/);
+  assert.match(src, /refreshGiftChests|Chest arrived|giftBannerHtml|MAX_GIFT_NODES/);
 
   const { RoadTripMode } = loadRoadtrip();
   RoadTripMode.applyPendingGrants([
@@ -139,6 +140,27 @@ test('LEA-111 gift chests inject onto the path without locking lessons', () => {
 
   const css = read('assets/css/roadtrip.css');
   assert.match(css, /\.rtnode--chest\.is-gift/);
+  assert.match(css, /\.rt-gifts/);
+});
+
+test('LEA-112 caps visible gift nodes and exposes refreshGiftChests', () => {
+  const admin = read('assets/js/administrator.js');
+  assert.match(admin, /refreshOwnJourneyChests|refreshGiftChests/);
+  assert.match(admin, /target_id/);
+
+  const { RoadTripMode } = loadRoadtrip();
+  const many = [];
+  for (let i = 0; i < 40; i++) {
+    many.push({
+      id: '00000000-0000-4000-8000-' + String(i).padStart(12, '0'),
+      unit_id: null
+    });
+  }
+  RoadTripMode.applyPendingGrants(many, { silent: true });
+  assert.equal(RoadTripMode.pendingGrants.length, 40);
+  const north = RoadTripMode.buildPath(RoadTripMode.units[0]);
+  assert.equal(north.filter(n => n.granted).length, RoadTripMode.MAX_GIFT_NODES);
+  assert.equal(typeof RoadTripMode.refreshGiftChests, 'function');
 });
 
 test('deployed README documents 0033 / LEA-111', () => {

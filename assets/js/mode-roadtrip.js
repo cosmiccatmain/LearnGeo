@@ -21,6 +21,9 @@
    chest, then one-reward-per-tap reveal before returning to the path.
    LEA-111 — Admin-granted gift chests land on the path instantly via
    realtime + short poll; same multi-tap open/reward flow as path chests.
+   LEA-112 — Self-grant from UltraAdmin forces an immediate path refresh,
+   “Chest arrived” toast, above-the-fold gift banner, and fetch-on-enter
+   so gifts still show when realtime misses.
 -------------------------------------------------------------------*/
 (function (global) {
   'use strict';
@@ -45,11 +48,14 @@
   var viewingShare = null; /* decoded friend road snapshot */
   var chestBusy = false; /* LEA-105/110 — block double-open while overlay runs */
 
-  /* LEA-111 — pending admin-granted gift chests for the signed-in player. */
+  /* LEA-111 / LEA-112 — pending admin-granted gift chests for the signed-in player. */
   var pendingGrants = [];
-  var grantWatch = null; /* { stop, timer, channel, uid, sig } */
+  var grantWatch = null; /* { timer, channel, uid, reading, onVis } */
+  var grantsDirty = false; /* repaint path when a lesson/chest overlay finishes */
   var GRANT_POLL_MS = 3500;
   var GRANT_POLL_HIDDEN_MS = 12000;
+  /* Keep the trail usable when UltraAdmin drops a pile at once. */
+  var MAX_GIFT_NODES = 15;
 
   /* LEA-105/110 — Journey chest rarities. Each player tap may upgrade or
      stay (never downgrade). After CHEST_RARITY_TAPS taps the chest opens. */
@@ -251,8 +257,32 @@
     if (!c) return Promise.resolve({ ok: false, error: 'offline' });
     return c.rpc(name, args).then(function (res) {
       if (res && res.error) return { ok: false, error: 'offline', message: res.error.message };
-      return res.data || { ok: false, error: 'offline' };
+      var data = res && res.data;
+      if (typeof data === 'string') {
+        try { data = JSON.parse(data); } catch (e) { return { ok: false, error: 'offline' }; }
+      }
+      return data || { ok: false, error: 'offline' };
     }, function () { return { ok: false, error: 'offline' }; });
+  }
+
+  function normalizeGrantList(data) {
+    if (!data || data.ok === false) return null;
+    var raw = data.grants;
+    if (typeof raw === 'string') {
+      try { raw = JSON.parse(raw); } catch (e) { return []; }
+    }
+    if (!Array.isArray(raw)) return [];
+    var out = [];
+    for (var i = 0; i < raw.length; i++) {
+      var g = raw[i];
+      if (!g || g.id == null || g.id === '') continue;
+      out.push({
+        id: String(g.id),
+        unit_id: g.unit_id == null || g.unit_id === '' ? null : String(g.unit_id),
+        created_at: g.created_at || null
+      });
+    }
+    return out;
   }
 
   function rtState() {
@@ -342,11 +372,13 @@
 
   function grantsForUnit(unit) {
     var uid = unit && unit.id;
-    return (pendingGrants || []).filter(function (g) {
+    var all = (pendingGrants || []).filter(function (g) {
       if (!g || !g.id) return false;
       if (!g.unit_id) return true;
       return g.unit_id === uid;
     });
+    if (all.length <= MAX_GIFT_NODES) return all;
+    return all.slice(0, MAX_GIFT_NODES);
   }
 
   function buildPath(unit) {
@@ -524,6 +556,47 @@
     return (list || []).map(function (g) { return g.id; }).join(',');
   }
 
+  function journeyViewVisible() {
+    var el = host();
+    return !!(el && !el.classList.contains('hidden'));
+  }
+
+  function scrollGiftsIntoView() {
+    try {
+      var el = host();
+      if (!el || !journeyViewVisible()) return;
+      var banner = W.$('#rt-gifts', el);
+      var node = W.$('.rtnode.is-gift', el);
+      var target = banner || node;
+      if (target && target.scrollIntoView) {
+        target.scrollIntoView({ block: 'nearest', behavior: reduceMotion() ? 'auto' : 'smooth' });
+      }
+    } catch (e) { /* ignore */ }
+  }
+
+  function paintGrantsOntoPath(opts) {
+    opts = opts || {};
+    if (chestBusy || (run && run.phase === 'running')) {
+      grantsDirty = true;
+      return false;
+    }
+    var el = host();
+    if (!el) return false;
+    /* Mid done-screen / question replaces the shell — wait for Back to path. */
+    if (run && run.phase === 'done' && !opts.force) {
+      grantsDirty = true;
+      return false;
+    }
+    if (!el.querySelector('.rtpath--shell') && !opts.force && !journeyViewVisible()) {
+      grantsDirty = true;
+      return false;
+    }
+    renderPath();
+    if (opts.scroll !== false && pendingGrants.length) scrollGiftsIntoView();
+    grantsDirty = false;
+    return true;
+  }
+
   function applyPendingGrants(list, opts) {
     opts = opts || {};
     var prev = pendingGrants || [];
@@ -531,29 +604,54 @@
     var before = grantsSignature(prev);
     var after = grantsSignature(next);
     pendingGrants = next;
-    if (before === after) return false;
+    var changed = before !== after;
+    if (!changed && !opts.force) return false;
     if (opts.silent) return true;
-    /* Only repaint the path shell — not mid-lesson / chest overlay. */
-    var el = host();
-    if (!el || !el.querySelector('.rtpath--shell')) return true;
-    if (chestBusy || (run && run.phase === 'running')) return true;
-    if (next.length > prev.length) {
+
+    var arrived = !!opts.arrived || (changed && next.length > prev.length);
+    if (arrived && next.length && opts.toast !== false) {
       pendingUnlock = pendingUnlock || ('grant-' + next[next.length - 1].id);
-      W.toast('Gift Journey chest', 'A new chest landed on your path.', I.chest || I.gem, 3200);
+      var nNew = Math.max(1, next.length - prev.length);
+      W.toast(
+        'Chest arrived',
+        nNew === 1
+          ? 'A gift Journey chest is on your path.'
+          : (nNew + ' gift Journey chests are on your path.'),
+        I.chest || I.gem,
+        3600
+      );
     }
-    renderPath();
+    paintGrantsOntoPath(opts);
     return true;
   }
 
-  function fetchPendingGrants() {
+  function fetchPendingGrants(opts) {
+    opts = opts || {};
     if (!signedIn()) {
-      applyPendingGrants([]);
+      applyPendingGrants([], { silent: true });
       return Promise.resolve([]);
     }
     return rpc('my_journey_chest_grants', {}).then(function (data) {
-      if (!data || data.ok === false) return pendingGrants;
-      var list = Array.isArray(data.grants) ? data.grants : [];
-      applyPendingGrants(list);
+      var list = normalizeGrantList(data);
+      if (list === null) return pendingGrants;
+      applyPendingGrants(list, opts);
+      return list;
+    });
+  }
+
+  /* LEA-112 — UltraAdmin self-grant and Journey enter call this so gifts
+     show even when realtime misses or the path shell was not mounted. */
+  function refreshGiftChests(opts) {
+    opts = opts || {};
+    var paintOpts = {
+      force: opts.force !== false,
+      arrived: !!opts.arrived,
+      toast: opts.toast,
+      scroll: opts.scroll
+    };
+    startGrantWatch();
+    return fetchPendingGrants(paintOpts).then(function (list) {
+      if (paintOpts.force) paintGrantsOntoPath(paintOpts);
       return list;
     });
   }
@@ -580,11 +678,11 @@
     var uid = global.Cloud && global.Cloud.user && global.Cloud.user.id;
     if (!signedIn() || !uid) {
       stopGrantWatch();
-      applyPendingGrants([]);
+      applyPendingGrants([], { silent: true });
       return;
     }
     if (grantWatch && grantWatch.uid === uid) {
-      fetchPendingGrants();
+      fetchPendingGrants({ force: grantsDirty });
       return;
     }
     stopGrantWatch();
@@ -605,9 +703,23 @@
 
     function tick() {
       if (!grantWatch || grantWatch !== state) return;
+      /* Auth can finish after Journey mounted — swap onto the live uid. */
+      var liveUid = global.Cloud && global.Cloud.user && global.Cloud.user.id;
+      if (!signedIn() || !liveUid) {
+        stopGrantWatch();
+        applyPendingGrants([], { silent: true });
+        global.setTimeout(function () {
+          if (journeyViewVisible()) startGrantWatch();
+        }, GRANT_POLL_MS);
+        return;
+      }
+      if (liveUid !== state.uid) {
+        startGrantWatch();
+        return;
+      }
       if (state.reading) return;
       state.reading = true;
-      fetchPendingGrants().then(function () {
+      fetchPendingGrants(grantsDirty ? { force: true } : {}).then(function () {
         state.reading = false;
         if (!grantWatch || grantWatch !== state) return;
         schedule(hidden() ? GRANT_POLL_HIDDEN_MS : GRANT_POLL_MS);
@@ -647,16 +759,28 @@
     if (run && run.phase === 'running') return renderQuestion();
     if (run && run.phase === 'done') return renderDone();
     captureShareFromUrl();
+    /* Fetch on every Journey enter so pending admin gifts show without a
+       hard refresh, even if realtime missed the INSERT. */
     startGrantWatch();
     renderPath();
+    fetchPendingGrants({ force: true, toast: false, scroll: true });
+    if (!signedIn()) {
+      global.setTimeout(function () {
+        if (journeyViewVisible()) refreshGiftChests({ force: true, toast: false });
+      }, 900);
+    }
   }
 
   function abandon() {
+    /* End the lesson only. Grant watch keeps polling so UltraAdmin
+       self-grants can land on the path without a hard refresh. */
     run = null;
-    stopGrantWatch();
     if (globeCtl && globeCtl.destroy) {
       globeCtl.destroy();
       globeCtl = null;
+    }
+    if (grantsDirty && journeyViewVisible()) {
+      paintGrantsOntoPath({ force: true, scroll: false });
     }
   }
 
@@ -1073,7 +1197,9 @@
     }
 
     /* LEA-108: XP + unit banner share one top row (flex-start) so tops are
-       flush. Globe/path sit below. Coming-up rail stays gone. */
+       flush. Globe/path sit below. Coming-up rail stays gone.
+       LEA-112: gift banner sits above the globe so admin chests are visible
+       without scrolling past the map. */
     el.innerHTML =
       '<div class="rtpath rtpath--shell' + slideCls + '" id="rt-shell">' +
         '<div class="rtpath__headers" id="rt-headers">' +
@@ -1081,6 +1207,7 @@
           unitBanner(unit) +
         '</div>' +
         '<div class="rtpath__main">' +
+          giftBannerHtml(unit) +
           globeHtml(unit) +
           '<div class="rtpath__stage">' +
             '<div class="rtpath__road" id="rt-road">' +
@@ -1102,6 +1229,7 @@
 
     wirePath(el, unit, nodes);
     wireGlobe(el, unit);
+    grantsDirty = false;
     if (shareSnap) {
       var dismiss = W.$('#rt-share-dismiss', el);
       if (dismiss) dismiss.addEventListener('click', function () {
@@ -1167,6 +1295,27 @@
     '</div>';
   }
 
+  /* LEA-112 — above-the-fold notice so gift chests are not missed under the globe. */
+  function giftBannerHtml(unit) {
+    var total = (pendingGrants || []).filter(function (g) {
+      if (!g || !g.id) return false;
+      if (!g.unit_id) return true;
+      return g.unit_id === (unit && unit.id);
+    }).length;
+    if (!total) return '';
+    var shown = grantsForUnit(unit).length;
+    var more = total > shown ? (' · showing ' + shown + ' now') : '';
+    return '<div class="rt-gifts" id="rt-gifts" role="status">' +
+      '<div class="rt-gifts__ic" aria-hidden="true">' + (I.chest || I.gem || '') + '</div>' +
+      '<div class="rt-gifts__copy">' +
+        '<b>Chest arrived</b>' +
+        '<span>' + total + ' gift Journey chest' + (total === 1 ? '' : 's') +
+          ' on your path' + more + '. Open the teal GIFT node' +
+          (total === 1 ? '' : 's') + ' below.</span>' +
+      '</div>' +
+    '</div>';
+  }
+
   function pathNodeHtml(unit, n, i, flags) {
     flags = flags || {};
     var cls = 'rtnode rtnode--' + n.kind + ' is-' + n.state;
@@ -1217,9 +1366,12 @@
     if (guide) guide.addEventListener('click', function () { openGuide(unit); });
     var shareBtn = W.$('#rt-share', el);
     if (shareBtn) shareBtn.addEventListener('click', openShareRoad);
-    W.$('#rt-prev', el).addEventListener('click', function () { shiftUnit(-1); });
-    W.$('#rt-next', el).addEventListener('click', function () { shiftUnit(1); });
-    W.$('#rt-units', el).addEventListener('click', function () { openUnitPicker(); });
+    var prev = W.$('#rt-prev', el);
+    if (prev) prev.addEventListener('click', function () { shiftUnit(-1); });
+    var next = W.$('#rt-next', el);
+    if (next) next.addEventListener('click', function () { shiftUnit(1); });
+    var unitsBtn = W.$('#rt-units', el);
+    if (unitsBtn) unitsBtn.addEventListener('click', function () { openUnitPicker(); });
 
     W.$$('[data-node]', el).forEach(function (nodeEl) {
       var btn = nodeEl.querySelector('.rtnode__btn');
@@ -2338,10 +2490,13 @@
     buildChestLoot: buildChestLoot,
     applyChestLoot: applyChestLoot,
     openChest: openChest,
-    /* LEA-111 — admin gift chests. */
+    /* LEA-111 / LEA-112 — admin gift chests. */
     applyPendingGrants: applyPendingGrants,
     grantsForUnit: grantsForUnit,
     fetchPendingGrants: fetchPendingGrants,
+    refreshGiftChests: refreshGiftChests,
+    startGrantWatch: startGrantWatch,
+    MAX_GIFT_NODES: MAX_GIFT_NODES,
     get pendingGrants() { return pendingGrants.slice(); }
   };
 })(window);

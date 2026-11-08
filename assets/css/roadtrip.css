@@ -11,6 +11,7 @@
    upgrade flash, multi-reward reveal).
    LEA-110: Multi-tap rarity (upgrade or stay), bigger chest, one
    reward per tap then return to path.
+   LEA-112: above-the-fold gift banner for admin-granted chests.
    Original LearnGeo fonts. Respects prefers-reduced-motion.
 -------------------------------------------------------------------*/
 
@@ -275,6 +276,47 @@
   min-height: 132px;
 }
 .rtpath__main .rt-globe { margin-top: 0; }
+
+/* LEA-112 — above-the-fold gift notice (admin-granted Journey chests). */
+.rt-gifts {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 14px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #ECFDF5 0%, #F0FDFA 55%, #FFF 100%);
+  border: 1px solid #99F6E4;
+  box-shadow: 0 2px 0 rgba(15, 118, 110, .12);
+  animation: rt-panel-in 420ms var(--rt-slide-ease) both;
+}
+.rt-gifts__ic {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: #0F766E;
+  color: #fff;
+  box-shadow: 0 3px 0 #115E59;
+}
+.rt-gifts__ic svg { width: 20px; height: 20px; }
+.rt-gifts__copy { min-width: 0; }
+.rt-gifts__copy b {
+  display: block;
+  font-size: 14px;
+  font-weight: 700;
+  color: #115E59;
+  letter-spacing: -.01em;
+}
+.rt-gifts__copy span {
+  display: block;
+  margin-top: 2px;
+  font-size: 12.5px;
+  line-height: 1.35;
+  color: var(--ink-2);
+}
 .rtpath__banner-main { min-width: 0; flex: 1; display: flex; flex-direction: column; justify-content: center; }
 .rtpath__banner-kicker {
   font-family: var(--mono); font-size: 12px; font-weight: 650;
