@@ -2794,6 +2794,30 @@ button.game-card.is-picked {
 .game-card--soon { border-style: dashed; background: var(--paper); justify-content: center; }
 .game-card--soon h3 { color: var(--muted); }
 
+/* Hub card art: Framer-exported thumbs (LEA-87), with CSS art as fallback. */
+.game-card__art {
+  position: relative; height: 150px; overflow: hidden;
+  background: #0B1520;
+}
+.game-card__thumb {
+  display: block; width: 100%; height: 100%;
+  object-fit: cover; object-position: center;
+  pointer-events: none; user-select: none;
+}
+/* When a Framer PNG is present, suppress legacy CSS-art skins. */
+.game-card__art:has(.game-card__thumb),
+.game-card__art:has(.game-card__thumb).game-art--dash,
+.game-card__art:has(.game-card__thumb).game-art--orbit,
+.game-card__art:has(.game-card__thumb).game-art--snake,
+.game-card__art:has(.game-card__thumb).game-art--golf {
+  background: #0B1520;
+}
+.game-card__art:has(.game-card__thumb)::before,
+.game-card__art:has(.game-card__thumb)::after {
+  content: none !important; display: none !important;
+}
+.dash-setup__art { height: 180px; border-radius: 14px; overflow: hidden; }
+
 /* a still from the game, drawn in CSS so the hub needs no image */
 .game-art--dash {
   position: relative; height: 150px; overflow: hidden;

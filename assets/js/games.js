@@ -1185,7 +1185,19 @@
     '</button>';
   }
 
+  /* Framer-designed hub thumbs (LEA-87). Files live under assets/img/games/. */
+  var THUMB_ART = {
+    duel: 1, chess: 1, dash: 1, orbit: 1, snake: 1, golf: 1, invaders: 1,
+    breakout: 1, maze: 1, typer: 1, crossing: 1, whack: 1, match: 1, sort: 1,
+    stack: 1, echo: 1
+  };
+
   function art(kind) {
+    var thumb = THUMB_ART[kind] ? kind : (kind === 'chessduel' ? 'duel' : null);
+    if (thumb) {
+      return '<img class="game-card__thumb" src="assets/img/games/' + thumb +
+        '.png" alt="" width="640" height="320" loading="lazy" decoding="async">';
+    }
     if (kind === 'chess') {
       return '<span class="chess-art__board"></span><span class="chess-art__piece">♞</span><span class="chess-art__caption">Your next move starts here</span>';
     }
