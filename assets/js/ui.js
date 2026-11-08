@@ -1588,7 +1588,9 @@
       '</div>';
 
     var dlg = modal({
-      title: signup ? 'Create your account' : 'Sign in', icon: I.user, body: body,
+      title: signup ? 'Create your account' : 'Sign in',
+      icon: '<img src="assets/img/brand/mark.svg" alt="" width="28" height="28" style="border-radius:8px;display:block">',
+      body: body,
       actions: [{ label: label, cls: 'btn--accent', onClick: function (root) { submit(root); return false; } }],
       onMount: function (root, close) {
         wireSeg(root);

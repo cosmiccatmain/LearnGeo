@@ -1,22 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-hidden="true">
-  <!-- LearnGeo mark v2: atlas-teal tile + LG monogram (slab L + Globe-G) -->
-  <defs>
-    <linearGradient id="lgBg" x1="3" y1="1" x2="29" y2="31" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#12A394"/>
-      <stop offset=".48" stop-color="#0C8F7F"/>
-      <stop offset="1" stop-color="#0B1520"/>
-    </linearGradient>
-  </defs>
-  <rect width="32" height="32" rx="8" fill="url(#lgBg)"/>
-  <!-- Slab L -->
-  <path fill="#fff" d="M5.6 6.2h3.85v15.35h6.7v3.45H5.6z"/>
-  <!-- Globe-G: open ring -->
-  <path fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round"
-        d="M25.7 9.7a8.5 8.5 0 1 0 .25 12.45"/>
-  <!-- G spur -->
-  <path fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round"
-        d="M17.9 16.2H27.05"/>
-  <!-- Meridian in the G counter -->
-  <path fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round"
-        d="M20.7 9.55c-2.95 2.7-2.95 10.6 0 13.3"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img" aria-hidden="true">
+  <!-- LearnGeo mark: teal rounded square + white square / arcs / circle (LEA-115) -->
+  <rect width="100" height="100" rx="18.37" fill="#12907B"/>
+  <g fill="#fff">
+    <rect x="17.86" y="17.86" width="29.59" height="29.59" rx="3.06"/>
+    <path d="M 52.04 47.45 L 52.04 17.86 A 29.59 29.59 0 0 1 81.63 47.45 Z"/>
+    <path d="M 17.86 52.04 L 47.45 52.04 L 47.45 81.63 A 29.59 29.59 0 0 1 17.86 52.04 Z"/>
+    <circle cx="66.84" cy="66.84" r="14.79"/>
+  </g>
 </svg>

@@ -104,9 +104,12 @@ def page(path, title, desc, body, crumbs, extra_ld=None):
 <title>%(title)s</title>
 <meta name="description" content="%(desc)s">
 <link rel="canonical" href="%(url)s">
+<link rel="icon" href="/assets/img/brand/favicon.ico" sizes="any">
 <link rel="icon" href="/assets/img/brand/favicon.svg" type="image/svg+xml">
 <link rel="icon" href="/assets/img/brand/favicon-32.png" type="image/png" sizes="32x32">
-<link rel="apple-touch-icon" href="/assets/img/brand/apple-touch-icon.png">
+<link rel="icon" href="/assets/img/brand/favicon-48.png" type="image/png" sizes="48x48">
+<link rel="apple-touch-icon" href="/assets/img/brand/apple-touch-icon.png" sizes="180x180">
+<link rel="manifest" href="/site.webmanifest">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="LearnGeo">
 <meta property="og:title" content="%(title)s">
@@ -122,7 +125,7 @@ def page(path, title, desc, body, crumbs, extra_ld=None):
 </head>
 <body>
 <header class="sp-top">
-  <a class="sp-brand" href="/"><img src="/assets/img/brand/mark.svg" alt="" width="28" height="28"> LearnGeo</a>
+  <a class="sp-brand" href="/"><img src="/assets/img/brand/mark.svg" alt="" width="32" height="32"> LearnGeo</a>
   <nav class="sp-nav"><a href="/countries">Countries</a><a href="/teachers.html">For teachers</a>
   <a class="sp-btn sp-btn--sm" href="/">Start learning</a></nav>
 </header>
