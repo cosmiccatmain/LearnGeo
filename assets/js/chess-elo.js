@@ -1,15 +1,19 @@
 /* ------------------------------------------------------------------
-   LearnGeo — Geo Chess Elo helper (LEA-60 / LEA-68).
+   LearnGeo — Geo Chess Elo helper (LEA-60 / LEA-68 / LEA-76).
 
    One rating for Geo Chess: vs-bot games and in-game PvP (challenge by
    gamertag). Starting Elo 1000, K=32 (school-friendly). Bot nominal
    Elos match difficulty. Server RPCs in supabase/deployed/0024_chess_elo.sql
-   are authoritative when online; this module keeps local
-   state.games.chess.elo in sync for UI and offline play.
+   (+ weekly ladder in 0030_chess_weekly_ladder.sql) are authoritative
+   when online; this module keeps local state.games.chess.elo in sync
+   for UI and offline play.
 
    Legacy win/draw/loss counts (pre-Elo, or older Chess Duel records)
    convert once into a starting rating so existing players are not
    zeroed at 1000. See seedFromLegacy().
+
+   LEA-76: weekly Elo ladder (UTC ISO week, ranked by Elo gained) and
+   last-opponent rematch helpers for in-game Geo Chess PvP.
 -------------------------------------------------------------------*/
 (function (global) {
   'use strict';
@@ -167,6 +171,13 @@
   /* Pull server rating into local state when available.
      Prefer server when it already has rated games; otherwise keep a
      local legacy seed and push it up once. */
+  function applyWeekFields(rec, data) {
+    if (!rec || !data) return;
+    if (typeof data.week_key === 'string') rec.weekKey = data.week_key;
+    if (typeof data.week_delta === 'number') rec.weekDelta = data.week_delta;
+    if (typeof data.week_games === 'number') rec.weekGames = data.week_games;
+  }
+
   function pull() {
     var c = sb(), id = deviceId(), rec = chessRecord();
     if (!c || !id || !rec) return Promise.resolve(ensure(rec));
@@ -175,6 +186,7 @@
       var data = res && res.data;
       if (data && data.ok && typeof data.elo === 'number') {
         var serverGames = typeof data.games === 'number' ? data.games : 0;
+        applyWeekFields(rec, data);
         if (serverGames > 0 || !rec.eloFromLegacy) {
           rec.elo = clamp(data.elo);
           rec.eloGames = serverGames;
@@ -188,6 +200,84 @@
       }
       return ensure(rec);
     }, function () { return ensure(rec); });
+  }
+
+  /* ISO week label matching private.chess_week_key (UTC Monday). */
+  function weekKey(d) {
+    d = d ? new Date(d) : new Date();
+    var utc = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+    var day = utc.getUTCDay() || 7;
+    utc.setUTCDate(utc.getUTCDate() + 4 - day);
+    var yearStart = new Date(Date.UTC(utc.getUTCFullYear(), 0, 1));
+    var week = Math.ceil((((utc - yearStart) / 86400000) + 1) / 7);
+    var y = utc.getUTCFullYear();
+    return y + '-W' + (week < 10 ? '0' + week : String(week));
+  }
+
+  function fmtWeekDelta(d) {
+    d = Math.round(Number(d) || 0);
+    if (!d) return '±0';
+    return (d > 0 ? '+' : '') + d;
+  }
+
+  function weeklyLadder(limit) {
+    var c = sb(), id = deviceId();
+    if (!c) {
+      return Promise.resolve({ ok: false, error: 'offline', week_key: weekKey(), rows: [], me: null });
+    }
+    return c.rpc('chess_weekly_ladder', {
+      p_device: id || null,
+      p_limit: typeof limit === 'number' ? limit : 10
+    }).then(function (res) {
+      var data = res && res.data;
+      if (data && data.ok) {
+        var rec = chessRecord();
+        if (rec && data.me) {
+          rec.weekKey = data.week_key || rec.weekKey;
+          if (typeof data.me.week_delta === 'number') rec.weekDelta = data.me.week_delta;
+          if (typeof data.me.week_games === 'number') rec.weekGames = data.me.week_games;
+          if (global.WW && global.WW.save) global.WW.save();
+        }
+        return data;
+      }
+      return { ok: false, error: 'offline', week_key: weekKey(), rows: [], me: null };
+    }, function () {
+      return { ok: false, error: 'offline', week_key: weekKey(), rows: [], me: null };
+    });
+  }
+
+  function rememberLastOpponent(tag) {
+    var rec = chessRecord();
+    if (!rec || !tag) return;
+    tag = String(tag).trim();
+    if (!/^[A-Za-z0-9_]{3,16}$/.test(tag)) return;
+    rec.lastOpponentTag = tag;
+    if (global.WW && global.WW.save) global.WW.save();
+  }
+
+  function lastOpponentLocal() {
+    var rec = chessRecord();
+    var tag = rec && rec.lastOpponentTag;
+    return tag && /^[A-Za-z0-9_]{3,16}$/.test(tag) ? tag : null;
+  }
+
+  function lastOpponent() {
+    var local = lastOpponentLocal();
+    var c = sb(), id = deviceId();
+    if (!c || !id || !global.Cloud || !global.Cloud.signedIn) {
+      return Promise.resolve(local ? { ok: true, found: true, tag: local, local: true } : { ok: true, found: false });
+    }
+    return c.rpc('chess_duel_last_opponent', { p_device: id }).then(function (res) {
+      var data = res && res.data;
+      if (data && data.ok && data.found && data.tag) {
+        rememberLastOpponent(data.tag);
+        return data;
+      }
+      if (local) return { ok: true, found: true, tag: local, local: true };
+      return data || { ok: true, found: false };
+    }, function () {
+      return local ? { ok: true, found: true, tag: local, local: true } : { ok: true, found: false };
+    });
   }
 
   function pushSeed(rec) {
@@ -242,6 +332,7 @@
         rec.elo = clamp(data.elo);
         if (typeof data.games === 'number') rec.eloGames = data.games;
         if (typeof data.delta === 'number') rec.lastEloDelta = data.delta;
+        applyWeekFields(rec, data);
         rec.eloFromLegacy = false;
         rememberSent(rec.elo);
         if (global.WW && global.WW.saveNow) global.WW.saveNow();
@@ -250,6 +341,7 @@
           delta: data.delta || 0,
           before: data.before,
           opp: opp,
+          week_delta: data.week_delta,
           server: true
         });
       }
@@ -275,6 +367,7 @@
         rec.elo = clamp(data.elo);
         if (typeof data.games === 'number') rec.eloGames = data.games;
         if (typeof data.delta === 'number') rec.lastEloDelta = data.delta;
+        applyWeekFields(rec, data);
         rec.eloFromLegacy = false;
         rememberSent(rec.elo);
         if (global.WW && global.WW.saveNow) global.WW.saveNow();
@@ -302,6 +395,12 @@
     botElo: botElo,
     fmt: fmt,
     fmtDelta: fmtDelta,
+    fmtWeekDelta: fmtWeekDelta,
+    weekKey: weekKey,
+    weeklyLadder: weeklyLadder,
+    rememberLastOpponent: rememberLastOpponent,
+    lastOpponentLocal: lastOpponentLocal,
+    lastOpponent: lastOpponent,
     pull: pull,
     afterBot: afterBot,
     afterDuel: afterDuel,

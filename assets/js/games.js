@@ -187,8 +187,8 @@
          LEA-68: PvP (invite by gamertag) lives inside Geo Chess — no
          separate Chess Duel hub entry. Backend RPCs stay chess_duel_*. */
       id: 'chess', title: 'Geo Chess', art: 'chess',
-      blurb: 'Play bots from Beginner to Engine Max, or challenge a classmate by gamertag. Geography questions unlock bot moves. Every rated game updates your Chess Elo.',
-      meta: 'Chess Elo · bots + play other players',
+      blurb: 'Play bots from Beginner to Engine Max, or challenge a classmate by gamertag. Geography questions unlock bot moves. Every rated game updates your Chess Elo — climb the weekly ladder, rematch your last opponent.',
+      meta: 'Chess Elo · weekly ladder · rematch',
       playLabel: function (r) {
         return chessOpponent(r) === 'pvp' ? 'Open lobby' : 'Play';
       },
@@ -196,11 +196,12 @@
         var elo = global.ChessElo ? global.ChessElo.ensure(r) : (typeof r.elo === 'number' ? r.elo : 0);
         return elo ? elo + ' Elo' : '';
       },
-      intro: 'Choose Vs bot or Challenge a friend. Against the computer you play White and answer a study-set question before each move — wrong answers show the key and deal another question. Choose a piece, then a highlighted square. Castling, en passant, promotion, check, checkmate, stalemate, threefold repetition and the fifty-move rule follow standard chess. Known openings appear after the first few moves. Against a friend, invite by gamertag (same inbox flow as Geo Duel); the challenger is White. Every finished rated game updates your Chess Elo (starts at 1000; prior wins convert into a starting rating).',
+      intro: 'Choose Vs bot or Challenge a friend. Against the computer you play White and answer a study-set question before each move — wrong answers show the key and deal another question. Choose a piece, then a highlighted square. Castling, en passant, promotion, check, checkmate, stalemate, threefold repetition and the fifty-move rule follow standard chess. Known openings appear after the first few moves. Against a friend, invite by gamertag (same inbox flow as Geo Duel); the challenger is White. Rematch your last opponent from the lobby or end screen. Every finished rated game updates your Chess Elo (starts at 1000; prior wins convert into a starting rating) and this week’s Elo ladder (UTC Monday reset).',
       keys: function (r) {
         if (chessOpponent(r) === 'pvp') {
           return [
             [['Gamertag'], 'look up a friend and send an invite'],
+            [['Rematch'], 'challenge your last opponent again'],
             [['Click / tap'], 'your piece, then a highlighted square'],
             [['Resign'], 'leave a live match from the foot bar']
           ];
@@ -223,17 +224,23 @@
           var box = global.ChessDuel && global.ChessDuel.inbox ? global.ChessDuel.inbox() : { incoming: [], outgoing: [] };
           var pending = (box.incoming || []).length;
           var duel = record('chessduel');
+          var weekDelta = typeof r.weekDelta === 'number' ? r.weekDelta : 0;
+          var weekLabel = (weekDelta > 0 ? '+' : '') + weekDelta;
+          var lastOpp = r.lastOpponentTag || '';
           return mode +
             '<div class="panel">' +
               '<div class="panel__head"><h3>How invites work</h3></div>' +
-              '<p class="t-sm t-muted" style="margin:0">Your friend needs a gamertag (any Games leaderboard claim works). They see the invite in profile → Friend inbox and here in Geo Chess. Wins and losses change your Chess Elo.</p>' +
+              '<p class="t-sm t-muted" style="margin:0">Your friend needs a gamertag (any Games leaderboard claim works). They see the invite in profile → Friend inbox and here in Geo Chess. Open the lobby for this week’s Elo ladder and Rematch last opponent.</p>' +
               (pending
                 ? '<p class="t-sm" style="margin:10px 0 0"><b>' + pending + ' pending invite' + (pending === 1 ? '' : 's') + '</b> waiting in the lobby.</p>'
                 : '') +
+              (lastOpp
+                ? '<p class="t-sm" style="margin:10px 0 0">Last opponent: <b>' + W.escapeHtml(lastOpp) + '</b></p>'
+                : '') +
             '</div>' +
-            stats([[elo, 'Chess Elo'], [(r.wins || 0) + (duel.wins || 0), 'Wins'],
-              [(r.draws || 0) + (duel.draws || 0), 'Draws'],
-              [(r.completed || 0) + (duel.runs || 0), 'Finished games']]);
+            stats([[elo, 'Chess Elo'], [weekLabel, 'This week'],
+              [(r.wins || 0) + (duel.wins || 0), 'Wins'],
+              [(r.draws || 0) + (duel.draws || 0), 'Draws']]);
         }
         var level = +pick(LEVELS, String(r.level), '1');
         var slider = global.DifficultySlider
@@ -253,6 +260,7 @@
       },
       wire: function (el, r) {
         if (global.ChessElo && global.ChessElo.pull) global.ChessElo.pull();
+        if (global.ChessElo && global.ChessElo.lastOpponent) global.ChessElo.lastOpponent();
         seg(el, '[data-opponent]', function (v) {
           r.opponent = v === 'pvp' ? 'pvp' : 'bot';
           W.save();

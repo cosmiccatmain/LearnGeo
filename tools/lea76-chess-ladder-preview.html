@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>LEA-76 Geo Chess weekly ladder preview</title>
+<link rel="stylesheet" href="../assets/css/arcade.css">
+<link rel="stylesheet" href="../assets/css/chess.css">
+<style>
+  body { margin: 0; font-family: Georgia, "Times New Roman", serif; background: #eef3fb; color: #12204a; }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 24px 16px 40px; }
+  .shot-note { font-size: 12px; color: #5a6a80; margin-bottom: 12px; }
+  h1 { font-size: 22px; margin: 0 0 6px; letter-spacing: -.02em; }
+  .panel { background: #fff; border: 1px solid #d8e0ef; border-radius: 16px; padding: 14px 16px; margin-bottom: 14px; }
+  .panel__head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+  .panel__head h3 { margin: 0; font-size: 15px; }
+  .btn { appearance: none; border: 0; border-radius: 10px; padding: 8px 14px; font: inherit; font-weight: 700; cursor: pointer; }
+  .btn--accent { background: #1B4DFF; color: #fff; }
+  .btn--sm { padding: 6px 12px; font-size: 13px; }
+  .btn--ghost { background: transparent; border: 1px solid #d8e0ef; color: #12204a; }
+  .t-sm { font-size: 13px; } .t-muted { color: #5a6a80; }
+  .mono { font-variant-numeric: tabular-nums; }
+  .duel-end { min-height: 280px; display: grid; place-content: center; text-align: center; gap: 14px;
+    background: #fff; border: 1px solid #d8e0ef; border-radius: 18px; padding: 24px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="shot-note" id="shot-note">Harness: Geo Chess → Challenge a friend · weekly Elo ladder + rematch</p>
+  <h1>Challenge a friend</h1>
+  <p class="t-sm t-muted">Look up their gamertag. Climb this week’s Elo ladder, or rematch your last opponent.</p>
+
+  <div class="panel" id="invite">
+    <div class="panel__head"><h3>Invite by gamertag</h3></div>
+    <div class="duel-note duel-note--rematch">
+      <div><b>Rematch MapWizard</b><span>Challenge your last opponent again</span></div>
+      <button class="btn btn--accent btn--sm" type="button">Rematch</button>
+    </div>
+    <p class="t-sm t-muted" style="margin:0">Friend’s gamertag · e.g. MapWizard</p>
+  </div>
+
+  <div class="chess-ladder panel" id="ladder">
+    <div class="panel__head"><h3>This week’s Elo ladder</h3>
+      <span class="chess-ladder__week mono">2026-W45</span></div>
+    <p class="t-sm t-muted chess-ladder__hint">Ranked by Elo gained this UTC week (bots + friend matches). Resets Monday.</p>
+    <ol class="chess-ladder__list">
+      <li class="chess-ladder__row">
+        <span class="chess-ladder__rank">1</span>
+        <span class="chess-ladder__tag">MapWizard</span>
+        <span class="chess-ladder__delta is-up">+48</span>
+        <span class="chess-ladder__elo mono">1240</span>
+      </li>
+      <li class="chess-ladder__row">
+        <span class="chess-ladder__rank">2</span>
+        <span class="chess-ladder__tag">AtlasKid</span>
+        <span class="chess-ladder__delta is-up">+32</span>
+        <span class="chess-ladder__elo mono">1188</span>
+      </li>
+      <li class="chess-ladder__row is-me">
+        <span class="chess-ladder__rank">3</span>
+        <span class="chess-ladder__tag">You</span>
+        <span class="chess-ladder__delta is-up">+16</span>
+        <span class="chess-ladder__elo mono">1016</span>
+      </li>
+    </ol>
+  </div>
+
+  <div class="duel-end" id="end">
+    <div class="duel-end__badge is-win">You win!</div>
+    <div class="duel-vs">
+      <span>You (W)</span><b>VS</b><span>MapWizard (B)</span>
+    </div>
+    <p>Checkmate. Rematch, or challenge someone new from the lobby.</p>
+    <div class="duel-end__actions">
+      <button class="btn btn--accent" type="button">Rematch MapWizard</button>
+      <button class="btn btn--ghost" type="button">Back to lobby</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>
