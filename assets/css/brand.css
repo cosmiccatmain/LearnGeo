@@ -1,6 +1,6 @@
 /* ============================ BRAND MARK ============================
-   LearnGeo logo (assets/img/brand/mark.svg) is a self-contained atlas-teal
-   tile with the LG monogram (slab L + Globe-G). Keep emoji out of the mark. */
+   LearnGeo logo (assets/img/brand/mark.svg) is AJ’s teal geometric mark:
+   rounded teal tile + white square / quarter-arcs / circle. Keep emoji out. */
 
 .brand__mark img,
 .brand__mark svg {
@@ -10,7 +10,7 @@
 }
 
 .brand__mark--sm {
-  width: 20px;
-  height: 20px;
-  border-radius: 6px;
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
 }
