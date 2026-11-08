@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 644 296" width="644" height="296" role="img" aria-label="Capital Typer">
+  <!-- LEA-104 brand-new LearnGeo hub cover — vector, not a sheet crop -->
+  
+      <defs>
+        <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#12183A"/><stop offset="100%" stop-color="#04060F"/>
+        </linearGradient>
+      </defs>
+      <rect width="644" height="296" fill="url(#bg)"/>
+      <g transform="translate(90,50)">
+    <rect width="90" height="36" rx="10" fill="#101840"
+      stroke="rgba(124,243,255,.45)" stroke-width="2"/>
+    <text x="45" y="24" text-anchor="middle" font-family="system-ui,-apple-system,Segoe UI,sans-serif"
+      font-size="15" font-weight="700" fill="#EAF2FF">France</text>
+  </g>
+      <g transform="translate(280,70)">
+    <rect width="78" height="36" rx="10" fill="#1B4DFF"
+      stroke="#7CF3FF" stroke-width="2"/>
+    <text x="39" y="24" text-anchor="middle" font-family="system-ui,-apple-system,Segoe UI,sans-serif"
+      font-size="15" font-weight="700" fill="#EAF2FF">Japan</text>
+  </g>
+      <g transform="translate(460,45)">
+    <rect width="90" height="36" rx="10" fill="#101840"
+      stroke="rgba(124,243,255,.45)" stroke-width="2"/>
+    <text x="45" y="24" text-anchor="middle" font-family="system-ui,-apple-system,Segoe UI,sans-serif"
+      font-size="15" font-weight="700" fill="#EAF2FF">Brazil</text>
+  </g>
+      <g transform="translate(160,120)">
+    <rect width="78" height="36" rx="10" fill="#101840"
+      stroke="rgba(124,243,255,.45)" stroke-width="2"/>
+    <text x="39" y="24" text-anchor="middle" font-family="system-ui,-apple-system,Segoe UI,sans-serif"
+      font-size="15" font-weight="700" fill="#EAF2FF">Egypt</text>
+  </g>
+      <g transform="translate(400,130)">
+    <rect width="78" height="36" rx="10" fill="#101840"
+      stroke="rgba(124,243,255,.45)" stroke-width="2"/>
+    <text x="39" y="24" text-anchor="middle" font-family="system-ui,-apple-system,Segoe UI,sans-serif"
+      font-size="15" font-weight="700" fill="#EAF2FF">Kenya</text>
+  </g>
+      <rect x="48" y="220" width="548" height="44" rx="10" fill="#0B1520" stroke="#7CF3FF" stroke-width="2.5"/>
+      <text x="70" y="249" font-family="ui-monospace,SFMono-Regular,Menlo,monospace"
+        font-size="20" font-weight="600" fill="#7CF3FF">tokyo_</text>
+    
+  <defs>
+    <linearGradient id="titleFade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0B1520" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#0B1520" stop-opacity="0.72"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="208" width="644" height="88" fill="url(#titleFade)"/>
+  <text x="28" y="268" font-family="system-ui,-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif"
+    font-size="34" font-weight="800" fill="#FFFFFF" letter-spacing="-0.5">Capital Typer</text>
+</svg>

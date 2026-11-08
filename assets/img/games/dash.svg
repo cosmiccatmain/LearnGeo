@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 644 296" width="644" height="296" role="img" aria-label="Geo Dash">
+  <!-- LEA-104 brand-new LearnGeo hub cover — vector, not a sheet crop -->
+  
+      <defs>
+        <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#3B82F6"/><stop offset="100%" stop-color="#1E3A8A"/>
+        </linearGradient>
+      </defs>
+      <rect width="644" height="296" fill="url(#bg)"/>
+      <rect x="0" y="230" width="644" height="66" fill="#122047"/>
+      <rect x="0" y="228" width="644" height="4" fill="#F8FAFC" opacity=".9"/>
+      <g transform="translate(120,128) rotate(28)">
+        <rect width="56" height="56" rx="6" fill="#FFD23F" stroke="#0B1520" stroke-width="4"/>
+        <rect x="10" y="10" width="36" height="36" rx="3" fill="#1B4DFF"/>
+      </g>
+      <path d="M280 230 L296 194 L312 230 Z" fill="#F8FAFC" stroke="#0B1520" stroke-width="2"/> <path d="M320 230 L336 194 L352 230 Z" fill="#F8FAFC" stroke="#0B1520" stroke-width="2"/>
+      <rect x="400" y="170" width="48" height="60" fill="#0B1520" stroke="#F8FAFC" stroke-width="3" rx="4"/>
+      <g transform="translate(500,100)">
+        <rect width="70" height="70" rx="10" fill="#0B1520" stroke="#FFD23F" stroke-width="4"/>
+        <text x="35" y="48" text-anchor="middle" font-family="system-ui,-apple-system,Segoe UI,sans-serif"
+          font-size="36" font-weight="800" fill="#FFD23F">?</text>
+      </g>
+    
+  <defs>
+    <linearGradient id="titleFade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0B1520" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#0B1520" stop-opacity="0.72"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="208" width="644" height="88" fill="url(#titleFade)"/>
+  <text x="28" y="268" font-family="system-ui,-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif"
+    font-size="34" font-weight="800" fill="#FFFFFF" letter-spacing="-0.5">Geo Dash</text>
+</svg>

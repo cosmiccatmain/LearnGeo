@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 644 296" width="644" height="296" role="img" aria-label="Continent Sort">
+  <!-- LEA-104 brand-new LearnGeo hub cover — vector, not a sheet crop -->
+  
+      <defs>
+        <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#12203A"/><stop offset="100%" stop-color="#0A1024"/>
+        </linearGradient>
+      </defs>
+      <rect width="644" height="296" fill="url(#bg)"/>
+      <rect x="40" y="70" width="564" height="36" rx="8" fill="#1E293B" stroke="#334155" stroke-width="2"/>
+      <rect x="120" y="76" width="110" height="24" rx="6" fill="#0C8F7F"/>
+      <text x="175" y="93" text-anchor="middle" font-family="system-ui,-apple-system,Segoe UI,sans-serif"
+        font-size="13" font-weight="700" fill="#F8FAFC">Kenya</text>
+      <rect x="300" y="76" width="110" height="24" rx="6" fill="#1B4DFF" opacity=".85"/>
+      <text x="355" y="93" text-anchor="middle" font-family="system-ui,-apple-system,Segoe UI,sans-serif"
+        font-size="13" font-weight="700" fill="#F8FAFC">Peru</text>
+      <g transform="translate(70,150)">
+    <rect width="70" height="90" rx="8" fill="#0B1520" stroke="#2DD4BF" stroke-width="2.5"/>
+    <text x="35" y="52" text-anchor="middle" font-family="system-ui,-apple-system,Segoe UI,sans-serif"
+      font-size="16" font-weight="800" fill="#2DD4BF">AF</text>
+  </g> <g transform="translate(160,150)">
+    <rect width="70" height="90" rx="8" fill="#0B1520" stroke="#2DD4BF" stroke-width="2.5"/>
+    <text x="35" y="52" text-anchor="middle" font-family="system-ui,-apple-system,Segoe UI,sans-serif"
+      font-size="16" font-weight="800" fill="#2DD4BF">AS</text>
+  </g> <g transform="translate(250,150)">
+    <rect width="70" height="90" rx="8" fill="#0B1520" stroke="#2DD4BF" stroke-width="2.5"/>
+    <text x="35" y="52" text-anchor="middle" font-family="system-ui,-apple-system,Segoe UI,sans-serif"
+      font-size="16" font-weight="800" fill="#2DD4BF">EU</text>
+  </g> <g transform="translate(340,150)">
+    <rect width="70" height="90" rx="8" fill="#0B1520" stroke="#2DD4BF" stroke-width="2.5"/>
+    <text x="35" y="52" text-anchor="middle" font-family="system-ui,-apple-system,Segoe UI,sans-serif"
+      font-size="16" font-weight="800" fill="#2DD4BF">NA</text>
+  </g> <g transform="translate(430,150)">
+    <rect width="70" height="90" rx="8" fill="#0B1520" stroke="#2DD4BF" stroke-width="2.5"/>
+    <text x="35" y="52" text-anchor="middle" font-family="system-ui,-apple-system,Segoe UI,sans-serif"
+      font-size="16" font-weight="800" fill="#2DD4BF">SA</text>
+  </g> <g transform="translate(520,150)">
+    <rect width="70" height="90" rx="8" fill="#0B1520" stroke="#2DD4BF" stroke-width="2.5"/>
+    <text x="35" y="52" text-anchor="middle" font-family="system-ui,-apple-system,Segoe UI,sans-serif"
+      font-size="16" font-weight="800" fill="#2DD4BF">OC</text>
+  </g>
+    
+  <defs>
+    <linearGradient id="titleFade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0B1520" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#0B1520" stop-opacity="0.72"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="208" width="644" height="88" fill="url(#titleFade)"/>
+  <text x="28" y="268" font-family="system-ui,-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif"
+    font-size="34" font-weight="800" fill="#FFFFFF" letter-spacing="-0.5">Continent Sort</text>
+</svg>

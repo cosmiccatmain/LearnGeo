@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 644 296" width="644" height="296" role="img" aria-label="Geo Golf">
+  <!-- LEA-104 brand-new LearnGeo hub cover — vector, not a sheet crop -->
+  
+      <defs>
+        <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#1E3A5F"/><stop offset="100%" stop-color="#0B1520"/>
+        </linearGradient>
+        <linearGradient id="fairway" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#22C55E"/><stop offset="100%" stop-color="#166534"/>
+        </linearGradient>
+      </defs>
+      <rect width="644" height="296" fill="url(#bg)"/>
+      <ellipse cx="360" cy="210" rx="240" ry="70" fill="url(#fairway)" opacity=".95"/>
+      <ellipse cx="200" cy="180" rx="90" ry="36" fill="#15803D" opacity=".7"/>
+      <path d="M140 200 Q220 140 320 160 T480 120" fill="none" stroke="#F8FAFC" stroke-width="3"
+        stroke-dasharray="8 10" opacity=".55"/>
+      <circle cx="160" cy="188" r="12" fill="#F8FAFC" stroke="#0B1520" stroke-width="2"/>
+      <g transform="translate(470,70)">
+        <line x1="0" y1="0" x2="0" y2="110" stroke="#F8FAFC" stroke-width="3"/>
+        <path d="M0 8 L48 22 L0 36 Z" fill="#EF4444"/>
+        <ellipse cx="0" cy="112" rx="14" ry="5" fill="#0B1520" opacity=".45"/>
+      </g>
+      <g transform="translate(70,48)">
+        <rect width="132" height="34" rx="17" fill="#0B1520" stroke="#86EFAC" stroke-width="2"/>
+        <text x="66" y="23" text-anchor="middle" font-family="system-ui,-apple-system,Segoe UI,sans-serif"
+          font-size="14" font-weight="700" fill="#EAF2FF">Putt to Kenya</text>
+      </g>
+    
+  <defs>
+    <linearGradient id="titleFade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0B1520" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#0B1520" stop-opacity="0.72"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="208" width="644" height="88" fill="url(#titleFade)"/>
+  <text x="28" y="268" font-family="system-ui,-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif"
+    font-size="34" font-weight="800" fill="#FFFFFF" letter-spacing="-0.5">Geo Golf</text>
+</svg>

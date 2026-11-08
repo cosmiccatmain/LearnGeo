@@ -970,7 +970,7 @@
 
   /* ------------------------------ hub -------------------------------
      Same shell language as Home and Learn: eyebrow, heading, panels.
-     Hub cards are cover-led (LEA-98 chrome + LEA-91 sheet crops).
+     Hub cards are cover-led (LEA-98 chrome + LEA-104 SVG covers).
      Arrow keys move focus between cards; Enter and Space are native. */
   function renderHub() {
     stop();
@@ -1159,7 +1159,7 @@
     } else if (g.id === 'chess' && global.ChessDuel && global.ChessDuel.pendingCount) {
       invites = global.ChessDuel.pendingCount();
     }
-    /* LEA-98: cover-led chrome. Title lives on the LEA-91 PNG; keep an
+    /* Cover-led chrome. Title lives on the SVG cover; keep an
        sr-only h3 so the button name stays clear. */
     return '<button class="game-card game-card--cover' + (off ? ' is-blocked' : '') +
       (prem ? ' is-premium-locked' : '') + (guest ? ' is-auth-locked' : '') +
@@ -1188,7 +1188,7 @@
     '</button>';
   }
 
-  /* Exact crops from AJ cover sheet (LEA-91). Files live under assets/img/games/. */
+  /* LEA-104 brand-new vector hub covers (not LEA-91 sheet crops). */
   var THUMB_ART = {
     duel: 1, chess: 1, dash: 1, orbit: 1, snake: 1, golf: 1, invaders: 1,
     breakout: 1, maze: 1, typer: 1, crossing: 1, whack: 1, match: 1, sort: 1,
@@ -1199,7 +1199,7 @@
     var thumb = THUMB_ART[kind] ? kind : (kind === 'chessduel' ? 'duel' : null);
     if (thumb) {
       return '<img class="game-card__thumb" src="assets/img/games/' + thumb +
-        '.png" alt="" width="161" height="74" loading="lazy" decoding="async">';
+        '.svg" alt="" width="644" height="296" loading="lazy" decoding="async">';
     }
     if (kind === 'chess') {
       return '<span class="chess-art__board"></span><span class="chess-art__piece">♞</span><span class="chess-art__caption">Your next move starts here</span>';
