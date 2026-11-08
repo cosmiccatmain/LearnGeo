@@ -1,5 +1,5 @@
 /* ------------------------------------------------------------------
-   LearnGeo — Road Trips path (LEA-85 / LEA-96).
+   LearnGeo — Road Trips / Journey path (LEA-85 / LEA-96 / LEA-102).
 
    Duolingo-style vertical zig-zag of lessons, chests, stories and a
    unit trophy. Units start in Africa; the learner can switch units.
@@ -10,6 +10,10 @@
    LEA-96 — addictive unit/lesson slide transitions (~400ms), share-
    your-road (link + friend gamertag, wallet-style), motion polish on
    path/nodes/XP/awards. Level numeral stays modest (LEA-95 separate).
+
+   LEA-102 — interactive world map on the path: pan/zoom (CSS
+   transform), current unit countries highlighted. Not a loupe; not
+   screen mirroring. Respects prefers-reduced-motion.
 -------------------------------------------------------------------*/
 (function (global) {
   'use strict';
@@ -32,6 +36,12 @@
   var pendingPulse = null; /* node id just completed */
   var pendingUnlock = null; /* node id that became playable */
   var viewingShare = null; /* decoded friend road snapshot */
+
+  /* Interactive Journey globe (LEA-102). One live controller at a time. */
+  var globeCtl = null;
+  var GLOBE_MIN = 1;
+  var GLOBE_MAX = 4.8;
+  var GLOBE_PAD = 0.22; /* fraction of bbox padding when framing a unit */
 
   var UNITS = [
     {
@@ -344,6 +354,70 @@
     return out;
   }
 
+  /* Map unit.region labels onto GeoData region names for a soft wash. */
+  function unitSoftRegions(unit) {
+    if (!unit) return [];
+    if (unit.region === 'Americas') return ['North America', 'South America'];
+    return unit.region ? [unit.region] : [];
+  }
+
+  /* Bounding box of unit countries in WorldMap viewBox units. */
+  function unitMapBounds(unit) {
+    var WM = global.WorldMap;
+    if (!WM || !WM.project || !global.GeoData) return null;
+    var names = unitCountries(unit);
+    var minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    var hit = 0;
+    for (var i = 0; i < names.length; i++) {
+      var c = null;
+      for (var j = 0; j < global.GeoData.countries.length; j++) {
+        if (global.GeoData.countries[j].name === names[i]) {
+          c = global.GeoData.countries[j];
+          break;
+        }
+      }
+      if (!c) continue;
+      var p = WM.project(c.lon, c.lat);
+      if (p.x < minX) minX = p.x;
+      if (p.y < minY) minY = p.y;
+      if (p.x > maxX) maxX = p.x;
+      if (p.y > maxY) maxY = p.y;
+      hit++;
+    }
+    if (!hit) return null;
+    /* Tiny island packs need a floor span so zoom doesn't blow past MAX. */
+    var padX = Math.max(18, (maxX - minX) * GLOBE_PAD + 10);
+    var padY = Math.max(14, (maxY - minY) * GLOBE_PAD + 8);
+    return {
+      x: minX - padX,
+      y: minY - padY,
+      w: Math.max(36, maxX - minX + padX * 2),
+      h: Math.max(28, maxY - minY + padY * 2)
+    };
+  }
+
+  function globeHtml(unit) {
+    return '<section class="rt-globe" id="rt-globe" style="--rt-accent:' + esc(unit.accent) +
+      '" aria-label="Interactive map of ' + esc(unit.title) + '">' +
+      '<div class="rt-globe__head">' +
+        '<div class="rt-globe__copy">' +
+          '<b>On the map</b>' +
+          '<span>Drag to pan · scroll to zoom · unit region lit</span>' +
+        '</div>' +
+        '<div class="rt-globe__tools" role="group" aria-label="Map controls">' +
+          '<button type="button" class="rt-globe__btn" id="rt-globe-out" aria-label="Zoom out" title="Zoom out">−</button>' +
+          '<button type="button" class="rt-globe__btn" id="rt-globe-in" aria-label="Zoom in" title="Zoom in">+</button>' +
+          '<button type="button" class="rt-globe__btn rt-globe__btn--wide" id="rt-globe-reset" aria-label="Frame unit" title="Frame this unit">Frame</button>' +
+        '</div>' +
+      '</div>' +
+      '<div class="rt-globe__frame" id="rt-globe-frame">' +
+        '<div class="rt-globe__stage" id="rt-globe-stage">' +
+          '<div class="rt-globe__map" id="rt-globe-map"></div>' +
+        '</div>' +
+      '</div>' +
+    '</section>';
+  }
+
   function annotate(unit, nodes) {
     var currentSet = false;
     for (var i = 0; i < nodes.length; i++) {
@@ -397,7 +471,13 @@
     renderPath();
   }
 
-  function abandon() { run = null; }
+  function abandon() {
+    run = null;
+    if (globeCtl && globeCtl.destroy) {
+      globeCtl.destroy();
+      globeCtl = null;
+    }
+  }
 
   /* ======================== share your road (LEA-96) ================= */
   /* Compact snapshot for a share link. School-safe — progress only, no
@@ -826,6 +906,7 @@
         xpGemsChartHtml() +
         '<div class="rtpath__main">' +
           unitBanner(unit) +
+          globeHtml(unit) +
           '<div class="rtpath__stage">' +
             '<div class="rtpath__road" id="rt-road">' +
               '<div class="rtpath__trail" id="rt-trail">' +
@@ -846,6 +927,7 @@
       (shareSnap ? sharePreviewHtml(shareSnap) : '');
 
     wirePath(el, unit, nodes);
+    wireGlobe(el, unit);
     if (shareSnap) {
       var dismiss = W.$('#rt-share-dismiss', el);
       if (dismiss) dismiss.addEventListener('click', function () {
@@ -975,6 +1057,172 @@
         else if (kind === 'story') openStory(unit);
       });
     });
+  }
+
+  /* LEA-102 — pan/zoom Journey globe. GPU-friendly CSS transforms only. */
+  function wireGlobe(root, unit) {
+    if (globeCtl && globeCtl.destroy) globeCtl.destroy();
+    globeCtl = null;
+
+    var frame = W.$('#rt-globe-frame', root);
+    var stage = W.$('#rt-globe-stage', root);
+    var mapHost = W.$('#rt-globe-map', root);
+    if (!frame || !stage || !mapHost || !global.WorldMap) return;
+
+    var countries = unitCountries(unit);
+    var paintOpts = {
+      mode: 'journey',
+      countries: countries,
+      softRegions: unitSoftRegions(unit),
+      label: unit.title + ' on the world map'
+    };
+
+    var still = reduceMotion();
+    var tx = 0, ty = 0, scale = 1;
+    var dragging = false;
+    var moved = false;
+    var lastX = 0, lastY = 0;
+    var pid = null;
+    var anim = null;
+    var destroyed = false;
+
+    function apply(animated) {
+      if (destroyed || !stage.isConnected) return;
+      var useMotion = animated && !still;
+      stage.style.transition = useMotion
+        ? 'transform ' + SLIDE_MS + 'ms ' + SLIDE_EASE
+        : 'none';
+      stage.style.transform = 'translate3d(' + tx + 'px,' + ty + 'px,0) scale(' + scale + ')';
+    }
+
+    function clampScale(s) {
+      return Math.max(GLOBE_MIN, Math.min(GLOBE_MAX, s));
+    }
+
+    function zoomAt(clientX, clientY, nextScale, animated) {
+      var rect = frame.getBoundingClientRect();
+      var px = clientX - rect.left;
+      var py = clientY - rect.top;
+      var wx = (px - tx) / scale;
+      var wy = (py - ty) / scale;
+      scale = clampScale(nextScale);
+      tx = px - wx * scale;
+      ty = py - wy * scale;
+      apply(!!animated);
+    }
+
+    function frameUnit(animated) {
+      var bounds = unitMapBounds(unit);
+      var WM = global.WorldMap;
+      var fw = frame.clientWidth || 1;
+      var fh = frame.clientHeight || 1;
+      if (!bounds || !WM) {
+        scale = 1; tx = 0; ty = 0; apply(false);
+        return;
+      }
+      /* Stage is laid out at WorldMap aspect filling frame width. */
+      var baseW = fw;
+      var baseH = baseW * (WM.size.h / WM.size.w);
+      var sx = fw / (bounds.w * (baseW / WM.size.w));
+      var sy = fh / (bounds.h * (baseH / WM.size.h));
+      scale = clampScale(Math.min(sx, sy) * 0.92);
+      var cx = (bounds.x + bounds.w / 2) * (baseW / WM.size.w);
+      var cy = (bounds.y + bounds.h / 2) * (baseH / WM.size.h);
+      tx = fw / 2 - cx * scale;
+      ty = fh / 2 - cy * scale;
+      apply(!!animated && !still);
+    }
+
+    function paintAndFrame(animated) {
+      global.WorldMap.paint(mapHost, paintOpts);
+      /* Layout then frame — rAF so clientWidth is real. */
+      global.requestAnimationFrame(function () {
+        if (destroyed || !frame.isConnected) return;
+        frameUnit(animated);
+      });
+    }
+
+    paintAndFrame(false);
+    if (!global.WorldMap.ready && global.WorldMap.load) {
+      global.WorldMap.load().then(function () {
+        if (destroyed || !mapHost.isConnected) return;
+        paintAndFrame(false);
+      });
+    }
+
+    function onPointerDown(e) {
+      if (e.button != null && e.button !== 0) return;
+      dragging = true;
+      moved = false;
+      pid = e.pointerId;
+      lastX = e.clientX;
+      lastY = e.clientY;
+      try { frame.setPointerCapture(pid); } catch (err) {}
+      frame.classList.add('is-dragging');
+      stage.style.transition = 'none';
+    }
+    function onPointerMove(e) {
+      if (!dragging || (pid != null && e.pointerId !== pid)) return;
+      var dx = e.clientX - lastX;
+      var dy = e.clientY - lastY;
+      if (Math.abs(dx) + Math.abs(dy) > 2) moved = true;
+      lastX = e.clientX;
+      lastY = e.clientY;
+      tx += dx;
+      ty += dy;
+      apply(false);
+    }
+    function onPointerUp(e) {
+      if (pid != null && e.pointerId !== pid) return;
+      dragging = false;
+      pid = null;
+      frame.classList.remove('is-dragging');
+    }
+    function onWheel(e) {
+      e.preventDefault();
+      var factor = e.deltaY > 0 ? 0.9 : 1.12;
+      zoomAt(e.clientX, e.clientY, scale * factor, false);
+    }
+    function onDblClick(e) {
+      if (moved) return;
+      zoomAt(e.clientX, e.clientY, scale * 1.45, !still);
+    }
+
+    frame.addEventListener('pointerdown', onPointerDown);
+    frame.addEventListener('pointermove', onPointerMove);
+    frame.addEventListener('pointerup', onPointerUp);
+    frame.addEventListener('pointercancel', onPointerUp);
+    frame.addEventListener('wheel', onWheel, { passive: false });
+    frame.addEventListener('dblclick', onDblClick);
+
+    var btnIn = W.$('#rt-globe-in', root);
+    var btnOut = W.$('#rt-globe-out', root);
+    var btnReset = W.$('#rt-globe-reset', root);
+    if (btnIn) btnIn.addEventListener('click', function () {
+      var r = frame.getBoundingClientRect();
+      zoomAt(r.left + r.width / 2, r.top + r.height / 2, scale * 1.28, !still);
+    });
+    if (btnOut) btnOut.addEventListener('click', function () {
+      var r = frame.getBoundingClientRect();
+      zoomAt(r.left + r.width / 2, r.top + r.height / 2, scale / 1.28, !still);
+    });
+    if (btnReset) btnReset.addEventListener('click', function () {
+      frameUnit(true);
+    });
+
+    globeCtl = {
+      destroy: function () {
+        destroyed = true;
+        if (anim) { global.cancelAnimationFrame(anim); anim = null; }
+        frame.removeEventListener('pointerdown', onPointerDown);
+        frame.removeEventListener('pointermove', onPointerMove);
+        frame.removeEventListener('pointerup', onPointerUp);
+        frame.removeEventListener('pointercancel', onPointerUp);
+        frame.removeEventListener('wheel', onWheel);
+        frame.removeEventListener('dblclick', onDblClick);
+      },
+      frameUnit: frameUnit
+    };
   }
 
   /* Horizontal unit slide: exit current shell, then enter from the
@@ -1400,6 +1648,9 @@
     encodeSharePayload: encodeSharePayload,
     decodeSharePayload: decodeSharePayload,
     shareUrlFor: shareUrlFor,
+    unitCountries: unitCountries,
+    unitSoftRegions: unitSoftRegions,
+    unitMapBounds: unitMapBounds,
     SEED_BOX: SEED_BOX,
     SEED_RATIO: SEED_RATIO,
     SLIDE_MS: SLIDE_MS

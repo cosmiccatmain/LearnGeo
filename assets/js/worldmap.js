@@ -185,6 +185,12 @@
     if (opts.mode === 'pale') return '';
     if (opts.mode === 'sample') return SAMPLE[c.region] || '';
     if (opts.mode === 'demo') return c.name === opts.highlight ? (opts.lit || 'is-target') : '';
+    /* Journey path: unit countries lit, optional soft region wash, rest dim. */
+    if (opts.mode === 'journey') {
+      if (opts._hit && opts._hit[c.name]) return opts.lit || 'is-journey';
+      if (opts._soft && opts._soft[c.region]) return 'is-journey-soft';
+      return 'is-dim';
+    }
     return stateOf(c.name);
   }
 
@@ -196,6 +202,10 @@
      different map, and the cache would then hand back the old colours.
      So the band each country is in goes into the key as well. */
   function signature(opts) {
+    if (opts.mode === 'journey') {
+      return 'journey:' + (opts.countries || []).join(',') + ':' +
+        Object.keys(opts._soft || {}).sort().join(',');
+    }
     if (opts.mode && opts.mode !== 'mastery') return opts.mode + ':' + (opts.highlight || '');
     var m = W.state.mastery, seen = 0, done = 0, h = 0;
     Object.keys(m).forEach(function (k) {
@@ -243,10 +253,25 @@
     return out;
   }
 
+  /* Normalize journey opts once so classOf/signature stay O(1) per country. */
+  function prepare(opts) {
+    opts = opts || {};
+    if (opts.mode === 'journey') {
+      var hit = {}, i, list = opts.countries || [];
+      for (i = 0; i < list.length; i++) hit[list[i]] = 1;
+      opts._hit = hit;
+      var soft = {};
+      var regions = opts.softRegions || [];
+      for (i = 0; i < regions.length; i++) soft[regions[i]] = 1;
+      opts._soft = soft;
+    }
+    return opts;
+  }
+
   /* One picture as a string. The study centre and the landing page both
      draw from here, which is why the outlines are only ever projected once. */
   function svg(opts) {
-    opts = opts || {};
+    opts = prepare(opts);
     var view = viewBox(opts);
     var key = view + '|' + signature(opts) + '|' + (opts.fit || '') + '|' + (opts.lit || '');
     if (cache[key]) return cache[key];
@@ -265,7 +290,7 @@
      pale until the world arrives. */
   function paint(host, opts) {
     if (!host) return;
-    opts = opts || {};
+    opts = prepare(opts || {});
     host.classList.toggle('is-loading', !geometry);
     host.innerHTML = svg(opts) +
       (!geometry && global.CookingLoader ? global.CookingLoader.overlay({ size: 'sm' }) : '');
@@ -277,11 +302,17 @@
     });
   }
 
+  /* Equirectangular px inside the fixed world viewBox (for Journey focus). */
+  function project(lon, lat) {
+    return { x: px(lon), y: py(lat) };
+  }
+
   global.WorldMap = {
     svg: svg,
     paint: paint,
     load: load,
     stateOf: stateOf,
+    project: project,
     size: { w: VB_W, h: VB_H },
     get ready() { return !!geometry; }
   };

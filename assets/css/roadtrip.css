@@ -1,10 +1,12 @@
 /* ------------------------------------------------------------------
-   LearnGeo — Road Trips Duo-style path (LEA-85 / LEA-90 / LEA-92 / LEA-96).
+   LearnGeo — Road Trips / Journey Duo-style path
+   (LEA-85 / LEA-90 / LEA-92 / LEA-96 / LEA-102).
 
    Vertical zig-zag path center; LEA-92 makes left XP/gems and right
    upcoming award cards large and readable on desktop/iPad (not tiny
    floating postage stamps). LEA-96: unit/lesson slides, share-road,
    path/node/XP/award motion polish. Level numeral stays modest.
+   LEA-102: interactive world map (pan/zoom, unit highlight).
    Original LearnGeo fonts. Respects prefers-reduced-motion.
 -------------------------------------------------------------------*/
 
@@ -276,6 +278,129 @@
 .rtpath__navbtn:active:not(:disabled) { transform: scale(.92); }
 .rtpath__navbtn:disabled { opacity: .35; cursor: default; box-shadow: none; }
 .rtpath__navbtn svg { width: 16px; height: 16px; }
+
+/* ---------------- interactive Journey globe (LEA-102) ------------- */
+.rt-globe {
+  margin: 0 0 22px;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, .05);
+  overflow: hidden;
+  animation: rt-panel-in 480ms var(--rt-slide-ease) both;
+  animation-delay: 60ms;
+}
+.rt-globe__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px 10px;
+  border-bottom: 1px solid var(--line-soft);
+}
+.rt-globe__copy { min-width: 0; }
+.rt-globe__copy b {
+  display: block;
+  font-size: 15px;
+  font-weight: 680;
+  letter-spacing: -.01em;
+  line-height: 1.2;
+}
+.rt-globe__copy span {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--faint);
+  font-weight: 520;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rt-globe__tools {
+  display: flex;
+  gap: 6px;
+  flex: none;
+}
+.rt-globe__btn {
+  min-width: 34px;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--paper, #F8FAFC);
+  color: var(--ink);
+  font: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 2px 0 rgba(15, 23, 42, .06);
+  transition: transform .14s var(--rt-slide-ease), background .14s ease;
+}
+.rt-globe__btn:hover { background: #fff; }
+.rt-globe__btn:active { transform: translateY(1px); box-shadow: none; }
+.rt-globe__btn--wide {
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: .02em;
+  padding: 0 12px;
+}
+.rt-globe__frame {
+  position: relative;
+  height: 212px;
+  overflow: hidden;
+  touch-action: none;
+  cursor: grab;
+  background:
+    radial-gradient(120% 90% at 50% 0%, rgba(27, 77, 255, .06), transparent 55%),
+    linear-gradient(180deg, #E8F1F8 0%, #D7E6F2 100%);
+  user-select: none;
+}
+.rt-globe__frame.is-dragging { cursor: grabbing; }
+.rt-globe__stage {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  transform-origin: 0 0;
+  will-change: transform;
+  backface-visibility: hidden;
+}
+.rt-globe__map {
+  width: 100%;
+  line-height: 0;
+}
+.rt-globe__map .wm__svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  pointer-events: none;
+}
+.rt-globe .wm__c {
+  stroke: rgba(15, 23, 42, .12);
+  stroke-width: 0.35;
+  transition: fill 220ms ease;
+}
+.rt-globe .wm__c.is-dim {
+  fill: #C9D6E4;
+}
+.rt-globe .wm__c.is-journey-soft {
+  fill: #A8C4DE;
+  fill: color-mix(in srgb, var(--rt-accent, var(--accent)) 28%, #D5E4F2);
+}
+.rt-globe .wm__c.is-journey {
+  fill: var(--rt-accent, var(--accent));
+  stroke: rgba(15, 23, 42, .28);
+  stroke-width: 0.55;
+  filter: drop-shadow(0 0 1.2px rgba(15, 23, 42, .18));
+  animation: rt-globe-pulse 2.4s ease-in-out infinite;
+}
+
+@media (max-width: 520px) {
+  .rt-globe__frame { height: 188px; }
+  .rt-globe__copy span { display: none; }
+  .rt-globe__head { padding: 10px 12px 8px; }
+}
 
 /* ------------------------ unit slide stage ------------------------ */
 .rtpath__stage {
@@ -716,6 +841,10 @@
   from { opacity: 0; transform: translateY(16px) scale(.94); }
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
+@keyframes rt-globe-pulse {
+  0%, 100% { filter: drop-shadow(0 0 1px rgba(15, 23, 42, .16)); }
+  50% { filter: drop-shadow(0 0 2.4px rgba(15, 23, 42, .28)); }
+}
 
 @media (max-width: 420px) {
   @keyframes rt-node-in {
@@ -731,7 +860,10 @@
   .rt-award__bar i,
   .rt-progress__fill,
   .rtpath__navbtn,
-  .rtnode__btn {
+  .rtnode__btn,
+  .rt-globe__btn,
+  .rt-globe__stage,
+  .rt-globe .wm__c {
     transition: none !important;
   }
   .rtpath--shell.is-exit-left,
@@ -753,7 +885,9 @@
   .rtnode.is-unlock .rtnode__btn,
   .rtnode.is-current .rtnode__tip,
   .rt-done.is-pop,
-  .rtshare-view {
+  .rtshare-view,
+  .rt-globe,
+  .rt-globe .wm__c.is-journey {
     animation: none !important;
   }
 }

@@ -84,6 +84,22 @@ function load(mastery) {
   return window;
 }
 
+/* Stub WorldMap.project using the same equirectangular math as worldmap.js. */
+function loadWithWorldMap(mastery) {
+  const window = load(mastery);
+  const VB_W = 760;
+  const LAT_TOP = 84;
+  const LAT_BOT = -58;
+  const SCALE = VB_W / 360;
+  window.WorldMap = {
+    project(lon, lat) {
+      return { x: (lon + 180) * SCALE, y: (LAT_TOP - lat) * SCALE };
+    },
+    size: { w: VB_W, h: Math.round((LAT_TOP - LAT_BOT) * SCALE) }
+  };
+  return window;
+}
+
 test('units start in Africa and cover a zig-zag path shape', () => {
   const { RoadTripMode, GeoData } = load();
   assert.ok(RoadTripMode.units.length >= 5);
@@ -263,4 +279,38 @@ test('non-map Road Trip question types still generate without a map requirement'
   assert.equal(qs.length, 4);
   assert.ok(qs.every(q => q.choices && q.choices.length === 4));
   assert.ok(qs.every(q => q.type !== 'locate'));
+});
+
+test('LEA-102 Journey globe: unit bounds + soft regions + markup hooks', () => {
+  const { RoadTripMode, WorldMap, GeoData } = loadWithWorldMap();
+  const unit = RoadTripMode.units[0];
+  assert.ok(RoadTripMode.unitCountries(unit).includes('Morocco'));
+  /* Sandbox strings are another realm — compare via JSON. */
+  assert.equal(JSON.stringify(RoadTripMode.unitSoftRegions(unit)), '["Africa"]');
+  assert.equal(
+    JSON.stringify(RoadTripMode.unitSoftRegions(RoadTripMode.units.find(u => u.id === 'americas'))),
+    '["North America","South America"]'
+  );
+  const bounds = RoadTripMode.unitMapBounds(unit);
+  assert.ok(bounds && bounds.w > 0 && bounds.h > 0);
+  assert.ok(WorldMap.project);
+  const p = WorldMap.project(0, 0);
+  assert.equal(typeof p.x, 'number');
+  assert.equal(typeof p.y, 'number');
+  /* Soft-region wash covers Africa countries that are not in the unit. */
+  assert.ok(GeoData.countries.some(c => c.region === 'Africa' && c.name === 'Nigeria'));
+
+  const src = fs.readFileSync(path.join(root, 'assets/js/mode-roadtrip.js'), 'utf8');
+  assert.match(src, /rt-globe|wireGlobe|mode:\s*'journey'/);
+  assert.match(src, /prefers-reduced-motion|reduceMotion/);
+  assert.doesNotMatch(src, /ScreenShare|share screen/i);
+  const wm = fs.readFileSync(path.join(root, 'assets/js/worldmap.js'), 'utf8');
+  assert.match(wm, /mode === 'journey'/);
+  assert.match(wm, /is-journey/);
+  assert.match(wm, /project:/);
+  const css = fs.readFileSync(path.join(root, 'assets/css/roadtrip.css'), 'utf8');
+  assert.match(css, /\.rt-globe\b/);
+  assert.match(css, /is-journey/);
+  assert.match(css, /prefers-reduced-motion:\s*reduce/);
+  assert.match(css, /rt-globe__stage/);
 });
