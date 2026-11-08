@@ -199,7 +199,10 @@
         unitId: 'africa-north',
         done: {},
         claimed: {},
-        read: {}
+        read: {},
+        /* LEA-90 — totals from Road Trips awards (maps onto economy gains). */
+        xpEarned: 0,
+        gemsEarned: 0
       },
       settings: {
         sound: true,

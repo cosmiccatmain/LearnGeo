@@ -182,13 +182,18 @@
 
   function rtState() {
     if (!W.state.roadtrip || typeof W.state.roadtrip !== 'object') {
-      W.state.roadtrip = { unitId: 'africa-north', done: {}, claimed: {}, read: {} };
+      W.state.roadtrip = {
+        unitId: 'africa-north', done: {}, claimed: {}, read: {},
+        xpEarned: 0, gemsEarned: 0
+      };
     }
     var r = W.state.roadtrip;
     if (!r.done || typeof r.done !== 'object') r.done = {};
     if (!r.claimed || typeof r.claimed !== 'object') r.claimed = {};
     if (!r.read || typeof r.read !== 'object') r.read = {};
     if (!r.unitId) r.unitId = 'africa-north';
+    if (typeof r.xpEarned !== 'number') r.xpEarned = 0;
+    if (typeof r.gemsEarned !== 'number') r.gemsEarned = 0;
     return r;
   }
 
@@ -354,6 +359,137 @@
 
   function abandon() { run = null; }
 
+  /* ====================== upcoming awards + XP chart ================= */
+  /* Progress toward Cosmetics.achievements using the same counters
+     checkAchievements() reads (stats, streak, level, mastery, seasonal). */
+  function achievementProgress(a) {
+    var Cos = global.Cosmetics;
+    var s = W.state.stats || {};
+    if (a.seasonal && a.season) {
+      if (!Cos.seasonInWindow(a.season)) return { have: 0, need: a.season.goal || 1, pct: 0 };
+      var slot = (W.state.seasonal && W.state.seasonal[a.id]) || null;
+      var year = Cos.seasonEditionYear(a.season);
+      if (!slot || slot.year !== year) return { have: 0, need: a.season.goal || 1, pct: 0 };
+      var have = Cos.seasonProgressValue(slot, a.season.metric);
+      var need = a.season.goal || 1;
+      return { have: have, need: need, pct: Math.min(1, have / need) };
+    }
+    switch (a.id) {
+      case 'first-steps':  return ratio(s.answered || 0, 1);
+      case 'streak-10':    return ratio((W.state.streak && W.state.streak.best) || 0, 10);
+      case 'streak-25':    return ratio((W.state.streak && W.state.streak.best) || 0, 25);
+      case 'perfect-test': return ratio(s.perfectTests || 0, 1);
+      case 'test-5':       return ratio(s.tests || 0, 5);
+      case 'cards-100':    return ratio(s.arcade || 0, 150);
+      case 'level-10':     return ratio((W.state.economy && W.state.economy.level) || 1, 10);
+      case 'answers-500':  return ratio(s.answered || 0, 500);
+      case 'globetrotter': return ratio(W.masteredCount ? W.masteredCount() : 0, 100);
+      case 'region-master': return bestRegionRatio();
+      default: return { have: 0, need: 1, pct: 0 };
+    }
+  }
+
+  function ratio(have, need) {
+    return { have: have, need: need, pct: Math.min(1, (have || 0) / (need || 1)) };
+  }
+
+  function bestRegionRatio() {
+    var regions = (global.GeoData && global.GeoData.regions) || [];
+    var best = 0, have = 0, need = 1;
+    for (var i = 0; i < regions.length; i++) {
+      var list = global.GeoData.countries.filter(function (c) { return c.region === regions[i]; });
+      if (!list.length) continue;
+      var done = list.filter(function (c) {
+        var m = W.state.mastery[c.name]; return m && m.box >= 4;
+      }).length;
+      var pct = done / list.length;
+      if (pct > best) { best = pct; have = done; need = list.length; }
+    }
+    return { have: have, need: need, pct: best };
+  }
+
+  /* Locked wallet awards closest to unlocking — shown as mini cards on the
+     sides of the road (LEA-90). */
+  function upcomingAwards(limit) {
+    var have = W.state.achievements || [];
+    var list = ((global.Cosmetics && global.Cosmetics.achievements) || [])
+      .filter(function (a) { return have.indexOf(a.id) === -1; })
+      .map(function (a) {
+        var p = achievementProgress(a);
+        return { ach: a, progress: p };
+      })
+      .sort(function (x, y) {
+        /* Prefer partial progress, then higher %, then smaller remaining. */
+        var xp = x.progress.pct > 0 ? 1 : 0;
+        var yp = y.progress.pct > 0 ? 1 : 0;
+        if (yp !== xp) return yp - xp;
+        if (y.progress.pct !== x.progress.pct) return y.progress.pct - x.progress.pct;
+        return (x.progress.need - x.progress.have) - (y.progress.need - y.progress.have);
+      });
+    return list.slice(0, limit || 4);
+  }
+
+  function miniAwardHtml(item, side, topPct) {
+    var a = item.ach;
+    var p = item.progress;
+    var pct = Math.round(p.pct * 100);
+    var seasonal = !!a.seasonal;
+    return '<aside class="rt-side-card rt-side-card--' + side +
+      (seasonal ? ' is-seasonal' : '') + '" style="top:' + topPct + '%" data-award="' + esc(a.id) + '">' +
+      '<div class="rt-side-card__chip" aria-hidden="true"></div>' +
+      '<div class="rt-side-card__eye">' + (seasonal ? 'Seasonal' : 'Up next') + '</div>' +
+      '<div class="rt-side-card__name">' + esc(a.name) + '</div>' +
+      '<div class="rt-side-card__desc">' + esc(a.desc) + '</div>' +
+      '<div class="rt-side-card__bar"><i style="width:' + pct + '%"></i></div>' +
+      '<div class="rt-side-card__foot">' +
+        '<span class="mono">' + Math.min(p.have, p.need) + '/' + p.need + '</span>' +
+        '<span class="rt-side-card__reward">+' + a.reward + ' ' + (I.gem || '💎') + '</span>' +
+      '</div>' +
+    '</aside>';
+  }
+
+  function sideAwardsHtml() {
+    var upcoming = upcomingAwards(4);
+    if (!upcoming.length) {
+      return '<div class="rt-side-empty t-sm t-muted">All wallet awards unlocked.</div>';
+    }
+    /* Alternate right / left along the trail, Duo-style roadside props. */
+    return upcoming.map(function (item, i) {
+      var side = i % 2 === 0 ? 'right' : 'left';
+      var top = 12 + i * 22;
+      return miniAwardHtml(item, side, top);
+    }).join('');
+  }
+
+  /* Left rail: compact XP + gems. XP bar uses economy.xp / xpToNext(level)
+     (same as the top HUD). Gems = economy.diamonds. Road-trip session
+     totals (xpEarned / gemsEarned) are the sum of W.award gains from
+     lessons on this path — they feed the same economy counters. */
+  function xpGemsChartHtml() {
+    var eco = W.state.economy || { xp: 0, level: 1, diamonds: 0 };
+    var prog = W.levelProgress ? W.levelProgress() : { have: eco.xp || 0, need: 80 };
+    var need = Math.max(1, prog.need || 1);
+    var have = Math.max(0, prog.have || 0);
+    var pct = Math.min(100, Math.round((have / need) * 100));
+    var r = rtState();
+    return '<div class="rt-xpchart" aria-label="XP and gems">' +
+      '<div class="rt-xpchart__kicker">On the road</div>' +
+      '<div class="rt-xpchart__level mono">Lv ' + (eco.level || 1) + '</div>' +
+      '<div class="rt-xpchart__bar" title="XP toward next level">' +
+        '<i style="width:' + pct + '%"></i>' +
+      '</div>' +
+      '<div class="rt-xpchart__meta mono">' + have + ' / ' + need + ' XP</div>' +
+      '<div class="rt-xpchart__gems">' +
+        '<span class="rt-xpchart__gemic">' + (I.gem || '') + '</span>' +
+        '<b class="mono">' + (eco.diamonds || 0) + '</b>' +
+        '<span>gems</span>' +
+      '</div>' +
+      '<div class="rt-xpchart__trip mono" title="Awarded from Road Trips lessons">' +
+        'Trip +' + (r.xpEarned || 0) + ' XP · +' + (r.gemsEarned || 0) + ' gems' +
+      '</div>' +
+    '</div>';
+  }
+
   /* ============================== path UI ============================ */
   function renderPath() {
     var el = host();
@@ -361,16 +497,23 @@
     run = null;
     var unit = currentUnit();
     var nodes = buildPath(unit);
-    var r = rtState();
 
     el.innerHTML =
-      '<div class="rtpath">' +
-        unitBanner(unit) +
-        '<div class="rtpath__trail" id="rt-trail">' +
-          nodes.map(function (n, i) { return pathNodeHtml(unit, n, i); }).join('') +
+      '<div class="rtpath rtpath--shell">' +
+        xpGemsChartHtml() +
+        '<div class="rtpath__main">' +
+          unitBanner(unit) +
+          '<div class="rtpath__road">' +
+            '<div class="rtpath__sides" aria-label="Upcoming wallet awards">' +
+              sideAwardsHtml() +
+            '</div>' +
+            '<div class="rtpath__trail" id="rt-trail">' +
+              nodes.map(function (n, i) { return pathNodeHtml(unit, n, i); }).join('') +
+            '</div>' +
+          '</div>' +
+          '<p class="rtpath__foot">Past study seeds this path — lessons you already know light up gold. ' +
+            'Side cards preview wallet awards you’re close to. Games stays in the nav.</p>' +
         '</div>' +
-        '<p class="rtpath__foot">Past study seeds this path — lessons you already know light up gold. ' +
-          'Games stays in the nav. LearnGeo brand only.</p>' +
       '</div>';
 
     wirePath(el, unit, nodes);
@@ -652,6 +795,12 @@
     run.answered = true;
     run.right[run.i] = correct;
     var gains = W.award(correct, { country: q.country.name, type: q.type });
+    if (correct && gains) {
+      var r = rtState();
+      r.xpEarned = (r.xpEarned || 0) + (gains.xp || 0);
+      r.gemsEarned = (r.gemsEarned || 0) + (gains.gems || 0);
+    }
+    if (W.checkAchievements) W.announceAchievements(W.checkAchievements());
     W.save();
     if (global.UI && global.UI.refreshHud) global.UI.refreshHud();
 
@@ -741,6 +890,8 @@
     seedFromMastery: seedFromMastery,
     seedLessonDone: seedLessonDone,
     buildPath: buildPath,
+    achievementProgress: achievementProgress,
+    upcomingAwards: upcomingAwards,
     SEED_BOX: SEED_BOX,
     SEED_RATIO: SEED_RATIO
   };
