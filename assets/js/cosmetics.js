@@ -345,6 +345,37 @@
       blurb: 'Meridian gold outline. Premium.' }
   ];
 
+  /* Vector chess silhouettes for Customise → Games piece cards + live
+     preview (LEA-100). Unicode glyphs looked soft/tiny at shop sizes;
+     these fill crisp at any scale. viewBox 0 0 45 45. Paths are original
+     silhouettes (keep every command fully numbered — browsers reject
+     truncated coords and then the glyph collapses into a blob). */
+  var CHESS_GLYPH_PATHS = {
+    k: 'M22.5 4.5h2.5v3H28v2.5h-3v2.2c4.2.8 7 3.2 7 6.8v2.4c0 1.5-.7 2.8-1.9 3.7 2.7 1.3 4.5 4 4.5 7.1V36H10.9v-3.8c0-3.1 1.8-5.8 4.5-7.1-1.2-.9-1.9-2.2-1.9-3.7v-2.4c0-3.6 2.8-6 7-6.8V10H17V7.5h3V4.5h2.5zm0 13.2c-2.5 0-4.1 1.2-4.1 2.9v1.8h8.2v-1.8c0-1.7-1.6-2.9-4.1-2.9zM16.2 32.2h12.6c0-2.5-2-4.5-4.5-5h-3.6c-2.5.5-4.5 2.5-4.5 5z',
+    q: 'M9.8 11.8l2.4-6.2 3.8 5.2L22.5 4.8l6.5 6 3.8-5.2 2.4 6.2-2.4 1.4c1 1.3 1.7 2.9 1.7 4.7v2.6c0 2.5-1.4 4.6-3.5 5.9 2.5 1.4 4.2 4 4.2 7.1V36H9.2v-3.9c0-3.1 1.7-5.7 4.2-7.1-2.1-1.3-3.5-3.4-3.5-5.9v-2.6c0-1.8.7-3.4 1.7-4.7l-1.8-1.4zm5.4 7.2c0 1.8 1.5 3.2 3.4 3.2h8.6c1.9 0 3.4-1.4 3.4-3.2v-1.7c0-1.8-1.5-3.2-3.4-3.2h-8.6c-1.9 0-3.4 1.4-3.4 3.2v1.7zm-1.8 13.2h18.2c0-2.6-2.1-4.7-4.7-5.2H19.9c-2.6.5-4.7 2.6-4.7 5.2z',
+    r: 'M13.2 7.5h4.6v3.4h-1.4v4.8h12.2V10.9h-1.4V7.5h4.6v8.2h-1.6v5.2c2.3.7 3.9 2.7 3.9 5.2V29h-2.4v7H14.1v-7H11.7v-2.9c0-2.5 1.6-4.5 3.9-5.2v-5.2h-2.4V7.5zm4.4 25.5h9.8v-4.4h-9.8V33z',
+    b: 'M22.5 5.2c1.9 0 3.4 1.3 3.8 3.1 2.1 1.2 4.1 3.4 5.3 6.1.8 1.7 1.2 3.5 1.2 5.3 0 2.7-1 5.1-2.7 6.9 2.6 1.6 4.4 4.4 4.4 7.7V36H11.5v-1.7c0-3.3 1.8-6.1 4.4-7.7-1.7-1.8-2.7-4.2-2.7-6.9 0-1.8.4-3.6 1.2-5.3 1.2-2.7 3.2-4.9 5.3-6.1.4-1.8 1.9-3.1 3.8-3.1zm0 5.8c-3.1 0-5.6 3.4-5.6 7.6 0 1.5.4 3 1 4.2l3.7-5 1.8 1.3-3.8 5.1c.9.5 1.9.7 3 .7 3.1 0 5.6-3.4 5.6-7.6S25.6 11 22.5 11zm-6.2 21.2h12.4c0-2.4-1.9-4.4-4.3-4.9h-3.8c-2.4.5-4.3 2.5-4.3 4.9z',
+    n: 'M11.2 36v-2.4c0-3.4 1.5-6.2 3.8-7.8C12.4 23.6 10.5 20 10.5 15.8c0-2.9.9-5.4 2.5-7.3 1.9-2.4 5-4.5 9.6-5 .4-1.3 1.6-2.2 3-2.2 1.2 0 2.2.6 2.8 1.5l3.1 1.2c1.6.6 2.5 2.4 2 4l-.8 2.3 2.7 1c1.5.5 2.4 2.1 1.9 3.7l-1.6 5.5c-.5 1.8-2.1 3-3.9 3.3-.7 2.6-2.2 4.8-4.2 6.2 2.5 1.5 4.1 4.2 4.1 7.4V36H11.2zm8.8-24.2c-1 .2-1.8-.5-1.7-1.5.1-.8.9-1.3 1.6-1.2.9.1 1.4 1 1.2 1.7-.2.6-.6 1-1.1 1z',
+    p: 'M22.5 7.5c-2.9 0-5.2 2.3-5.2 5.2 0 1.3.5 2.4 1.2 3.3-2.6 1.4-4.4 4.2-4.4 7.4 0 1.9.7 3.6 1.8 5-3.1 1.6-5.2 4.9-5.2 8.7V38h25.6v-1.9c0-3.8-2.1-7.1-5.2-8.7 1.1-1.4 1.8-3.1 1.8-5 0-3.2-1.8-6-4.4-7.4.7-.9 1.2-2 1.2-3.3 0-2.9-2.3-5.2-5.2-5.2zM15.4 34.2h14.2c0-2.6-2.1-4.8-4.7-5.2h-4.8c-2.6.4-4.7 2.6-4.7 5.2z'
+  };
+
+  /* Render one piece glyph. `type` is chess.js letter (k/q/r/b/n/p).
+     White pieces pass `stroke` (theme outline) so cream fills stay readable
+     on light squares; black pieces usually omit stroke. */
+  function chessPieceSvg(type, opts) {
+    opts = opts || {};
+    var key = typeof type === 'string' ? type.toLowerCase() : 'p';
+    var d = CHESS_GLYPH_PATHS[key] || CHESS_GLYPH_PATHS.p;
+    var fill = opts.fill || 'currentColor';
+    var stroke = opts.stroke || '';
+    var sw = opts.strokeWidth != null ? opts.strokeWidth : 1.5;
+    var strokeAttrs = stroke
+      ? ' stroke="' + stroke + '" stroke-width="' + sw + '" stroke-linejoin="round" paint-order="stroke fill"'
+      : ' stroke="none"';
+    return '<svg class="cz-chess-glyph" viewBox="0 0 45 45" aria-hidden="true" focusable="false">' +
+      '<path d="' + d + '" fill="' + fill + '"' + strokeAttrs + '/></svg>';
+  }
+
   var SNAKE_BODIES = [
     { id: 'meadow', name: 'Meadow Coil', price: 0,
       bands: ['#1d5a24', '#8BD650', '#B5EE7A'], face: '#9BE15D',
@@ -533,6 +564,10 @@
        so nobody hardcodes four names that later disagree with this file. */
     tagGlyph: tagGlyph,
     tagGlyphs: Object.keys(TAG_GLYPHS),
+
+    /* LEA-100 — crisp SVG chess silhouettes for Customise piece cards /
+       live preview (and any other surface that needs themed glyphs). */
+    chessPieceSvg: chessPieceSvg,
 
     /* Premium cosmetics need flags.premium (account Premium). LEA-43. */
     requiresPremium: function (item) {

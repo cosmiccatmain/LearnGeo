@@ -758,9 +758,10 @@
         '<i style="background:' + (it.light || '#e8ebd5') + '"></i></span>';
     }
     if (kind === 'chessPieces') {
+      var pieceSvg = Cos.chessPieceSvg || function () { return ''; };
       return '<span class="shop-item__vis shop-item__vis--pieces" style="background:var(--paper)">' +
-        '<span style="color:' + (it.white || '#fffdf2') + ';text-shadow:0 0 1px ' + (it.outline || '#243c35') + '">♕</span>' +
-        '<span style="color:' + (it.black || '#172e2b') + '">♛</span></span>';
+        pieceSvg('q', { fill: it.white || '#fffdf2', stroke: it.outline || '#243c35', strokeWidth: 1.8 }) +
+        pieceSvg('q', { fill: it.black || '#172e2b' }) + '</span>';
     }
     if (kind === 'snakeBodies') {
       var bands = it.bands || ['#1d5a24', '#8BD650', '#B5EE7A'];
@@ -1072,16 +1073,17 @@
   function chessPreviewHtml() {
     var board = Cos.find(Cos.chessBoards, (W.state.profile && W.state.profile.chessBoard) || 'classic');
     var pieces = Cos.find(Cos.chessPieces, (W.state.profile && W.state.profile.chessPieces) || 'classic');
+    var pieceSvg = Cos.chessPieceSvg || function () { return ''; };
+    var whiteOpts = { fill: pieces.white || '#fffdf2', stroke: pieces.outline || '#243c35', strokeWidth: 1.7 };
+    var blackOpts = { fill: pieces.black || '#172e2b' };
     var cells = '';
     for (var i = 0; i < 16; i++) {
       var dark = Math.floor(i / 4) % 2 ? i % 2 === 0 : i % 2 === 1;
       var glyph = '';
-      if (i === 1) glyph = '<span style="color:' + (pieces.black || '#172e2b') + '">♞</span>';
-      if (i === 12) glyph = '<span style="color:' + (pieces.white || '#fffdf2') +
-        ';text-shadow:0 0 1px ' + (pieces.outline || '#243c35') + '">♕</span>';
-      if (i === 13) glyph = '<span style="color:' + (pieces.white || '#fffdf2') +
-        ';text-shadow:0 0 1px ' + (pieces.outline || '#243c35') + '">♔</span>';
-      if (i === 4) glyph = '<span style="color:' + (pieces.black || '#172e2b') + '">♚</span>';
+      if (i === 1) glyph = pieceSvg('n', blackOpts);
+      if (i === 4) glyph = pieceSvg('k', blackOpts);
+      if (i === 12) glyph = pieceSvg('q', whiteOpts);
+      if (i === 13) glyph = pieceSvg('k', whiteOpts);
       cells += '<i style="background:' + (dark ? (board.dark || '#72957d') : (board.light || '#e8ebd5')) +
         '">' + glyph + '</i>';
     }
