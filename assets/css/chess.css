@@ -73,6 +73,7 @@
   position: relative; display: grid; place-items: center; aspect-ratio: 1; width: 100%;
   padding: 0; border: 0; border-radius: 0; cursor: pointer; touch-action: manipulation;
   transition: background-color .18s ease, background-image .18s ease;
+  container-type: size;
 }
 .chess-square--light { background: var(--chess-light, #e8ebd5); }
 .chess-square--dark { background: var(--chess-dark, #72957d); }
@@ -104,8 +105,16 @@
 .chess-square:focus-visible { outline: 3px solid #102c72; outline-offset: -4px; z-index: 1; }
 .chess-piece {
   font-family: 'DejaVu Sans', 'Segoe UI Symbol', 'Apple Symbols', serif;
+  /* Fallback for promotion / off-board glyphs; board pieces override via cqmin below. */
   font-size: clamp(25px, 4.6vw, 52px); line-height: 1; z-index: 1; pointer-events: none;
   transition: transform .15s ease, opacity .12s ease;
+}
+/* Size pieces to the square. Unicode glyphs have large internal padding, so
+   font-size near 100% of the square lands ~75–90% visual fill without overflow. */
+.chess-square .chess-piece,
+.chess-flyer .chess-piece,
+.chess-capture-ghost .chess-piece {
+  font-size: 100cqmin;
 }
 .chess-piece.is-hidden { opacity: 0; }
 .chess-piece--w .chess-piece {
@@ -120,6 +129,7 @@
 .chess-capture-ghost {
   position: absolute; display: grid; place-items: center; margin: 0; padding: 0;
   pointer-events: none; z-index: 6; will-change: transform, opacity;
+  container-type: size;
 }
 .chess-flyer {
   transition: transform .22s cubic-bezier(.22, .8, .28, 1);
@@ -218,8 +228,5 @@
   .chess-game { grid-template-columns: minmax(0, 1fr); gap: 20px; }
   .chess-side { display: contents; }
   .chess-question { grid-row: 1; }
-  .chess-piece, .chess-flyer .chess-piece, .chess-capture-ghost .chess-piece {
-    font-size: clamp(26px, 8vw, 55px);
-  }
   .chess-coordinate { font-size: 8px; }
 }
