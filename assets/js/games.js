@@ -969,10 +969,9 @@
   }
 
   /* ------------------------------ hub -------------------------------
-     Same shell language as Home and Learn: eyebrow, heading, panels,
-     light game cards. The cards reuse the landing .game-card markup so
-     Games.art() stays honest. Arrow keys move focus between cards;
-     Enter and Space are the buttons' own. */
+     Same shell language as Home and Learn: eyebrow, heading, panels.
+     Hub cards are cover-led (LEA-98 chrome + LEA-91 sheet crops).
+     Arrow keys move focus between cards; Enter and Space are native. */
   function renderHub() {
     stop();
     screen = 'hub';
@@ -1160,20 +1159,24 @@
     } else if (g.id === 'chess' && global.ChessDuel && global.ChessDuel.pendingCount) {
       invites = global.ChessDuel.pendingCount();
     }
-    return '<button class="game-card' + (off ? ' is-blocked' : '') +
+    /* LEA-98: cover-led chrome. Title lives on the LEA-91 PNG; keep an
+       sr-only h3 so the button name stays clear. */
+    return '<button class="game-card game-card--cover' + (off ? ' is-blocked' : '') +
       (prem ? ' is-premium-locked' : '') + (guest ? ' is-auth-locked' : '') +
       '" data-game="' + g.id + '" type="button"' +
       (locked ? ' aria-disabled="true"' : '') + '>' +
-      '<div class="game-card__art game-art--' + g.art + '" aria-hidden="true">' + art(g.art) +
-        (showPrem ? '<span class="game-card__prem-badge" title="Premium">' +
-          crown + '<span>Premium</span></span>' : '') +
-        (invites ? '<span class="game-card__invite-badge">' + invites + ' invite' + (invites === 1 ? '' : 's') + '</span>' : '') +
+      '<div class="game-card__media">' +
+        '<div class="game-card__art game-art--' + g.art + '" aria-hidden="true">' + art(g.art) +
+          (showPrem ? '<span class="game-card__prem-badge" title="Premium">' +
+            crown + '<span>Premium</span></span>' : '') +
+          (invites ? '<span class="game-card__invite-badge">' + invites + ' invite' + (invites === 1 ? '' : 's') + '</span>' : '') +
+        '</div>' +
       '</div>' +
       '<div class="game-card__body">' +
-        '<h3>' + esc(g.title) +
+        '<h3 class="game-card__title">' + esc(g.title) +
           (prem ? ' <span class="game-card__crown" title="Premium" aria-hidden="true">' + crown + '</span>' : '') +
         '</h3>' +
-        '<p>' + esc(g.blurb) + '</p>' +
+        '<p class="game-card__blurb">' + esc(g.blurb) + '</p>' +
         '<div class="game-card__foot"><span>' + esc(meta) + '</span>' +
           (best ? '<span class="game-card__best">' + esc(best) + '</span>' : '') +
           (off ? '<span class="game-card__go">' + I.lock + ' Blocked by your teacher</span>'
@@ -1196,7 +1199,7 @@
     var thumb = THUMB_ART[kind] ? kind : (kind === 'chessduel' ? 'duel' : null);
     if (thumb) {
       return '<img class="game-card__thumb" src="assets/img/games/' + thumb +
-        '.png" alt="" width="640" height="320" loading="lazy" decoding="async">';
+        '.png" alt="" width="161" height="74" loading="lazy" decoding="async">';
     }
     if (kind === 'chess') {
       return '<span class="chess-art__board"></span><span class="chess-art__piece">♞</span><span class="chess-art__caption">Your next move starts here</span>';
