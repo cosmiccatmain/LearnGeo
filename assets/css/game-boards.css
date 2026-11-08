@@ -112,23 +112,30 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.gb__sec-title span {
+/* Metric line only — do not match .gb__sec-mark (also a span). */
+.gb__sec-title > div span {
   display: block;
   margin-top: 1px;
   font-size: 11px;
   color: var(--muted);
 }
 .gb__sec-mark {
+  box-sizing: border-box;
   width: 34px;
   height: 34px;
   flex: none;
   border-radius: 9px;
-  display: grid;
-  place-items: center;
-  font: 700 14px var(--mono);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font: 700 14px/1 var(--mono);
+  letter-spacing: 0;
   color: var(--accent);
   background: var(--accent-soft);
   border: 1px solid transparent;
+  /* JetBrains Mono caps paint high in the em box — pad so ink centers in the tile. */
+  padding-top: 2.5px;
 }
 .gb__sec-more {
   flex: none;
