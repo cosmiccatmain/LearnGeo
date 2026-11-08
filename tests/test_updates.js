@@ -23,7 +23,8 @@ const KNOWN_TRY = new Set([
   'games',
   'leaderboards',
   'friend-inbox',
-  'duel-spectate'
+  'duel-spectate',
+  'roadtrip'
 ]);
 
 test('updates.json entries each carry a known try action', () => {
@@ -40,6 +41,7 @@ test('updates.json entries each carry a known try action', () => {
   assert.equal(byId['2026-11-geo-chess-pvp'], 'chess-pvp');
   assert.equal(byId['2026-11-friend-inbox-menu'], 'friend-inbox');
   assert.equal(byId['2026-11-duel-spectate'], 'duel-spectate');
+  assert.equal(byId['2026-11-roadtrip-share-motion'], 'roadtrip');
 });
 
 test('updates.js seeds try fields and wires Try it UI + runTry', () => {
@@ -50,12 +52,14 @@ test('updates.js seeds try fields and wires Try it UI + runTry', () => {
   assert.match(src, /case 'cooking'/);
   assert.match(src, /case 'chess-pvp'/);
   assert.match(src, /case 'achievements'/);
+  assert.match(src, /case 'roadtrip'/);
   assert.match(src, /CookingLoader\.preview/);
   assert.match(src, /openChessPvp|open\('chess',\s*\{\s*opponent:\s*'pvp'/);
   assert.match(src, /openAchievements|go\('achievements'\)/);
   assert.match(src, /try:\s*'cooking'/);
   assert.match(src, /try:\s*'achievements'/);
   assert.match(src, /try:\s*'chess-pvp'/);
+  assert.match(src, /try:\s*'roadtrip'/);
   assert.match(src, /entry\.try\s*=\s*tryAct/);
 });
 

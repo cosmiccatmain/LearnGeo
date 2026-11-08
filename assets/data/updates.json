@@ -1,6 +1,13 @@
 {
-  "_comment": "Append newest entries at the top of `updates`. Each needs a unique `id`. Optional `image` is a path under /assets/. Optional `try` is a deep-link action id handled by LearnGeoUpdates.runTry (cooking, achievements, chess-pvp, chess, chess-boards, cosmetics-games, learn-filters, crossing, badges, games, leaderboards, friend-inbox, duel-spectate). Keep entries public-safe: no Pets/Brainrot, no admin-only or subscription marketing.",
+  "_comment": "Append newest entries at the top of `updates`. Each needs a unique `id`. Optional `image` is a path under /assets/. Optional `try` is a deep-link action id handled by LearnGeoUpdates.runTry (cooking, achievements, chess-pvp, chess, chess-boards, cosmetics-games, learn-filters, crossing, badges, games, leaderboards, friend-inbox, duel-spectate, roadtrip). Keep entries public-safe: no Pets/Brainrot, no admin-only or subscription marketing.",
   "updates": [
+    {
+      "id": "2026-11-roadtrip-share-motion",
+      "title": "Road Trips that slide + share",
+      "body": "Switch units with a crisp sideways slide, polish every path/XP pop, and share your road with friends via link or gamertag — school-safe, no screen mirroring.",
+      "date": "2026-11-08",
+      "try": "roadtrip"
+    },
     {
       "id": "2026-11-geo-chess-ladder",
       "title": "Geo Chess weekly ladder",
