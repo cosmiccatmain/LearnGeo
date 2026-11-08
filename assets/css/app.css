@@ -489,13 +489,18 @@ a { color: inherit; text-decoration: none; }
 .avatar__ring { position: absolute; inset: -3px; border-radius: 50%; }
 
 .avatar__badge {
-  position: absolute; right: -8%; top: -10%;
-  width: 44%; height: 44%; min-width: 13px; min-height: 13px;
+  position: absolute; right: -6%; top: -8%;
+  width: 42%; height: 42%; min-width: 13px; min-height: 13px;
   border-radius: 50%; background: var(--white);
   box-shadow: 0 1px 3px rgba(10,10,11,.22);
-  display: grid; place-items: center; padding: 14%;
+  display: grid; place-items: center; padding: 0;
+  line-height: 0;
 }
-.avatar__badge svg { width: 100%; height: 100%; display: block; }
+.avatar__badge svg {
+  width: 68%; height: 68%; display: block;
+  /* Crown / badge glyphs sit slightly high in the 24 viewBox. */
+  transform: translateY(0.5px);
+}
 
 .avatar__orbit {
   position: absolute; inset: -5px; border-radius: 50%;
@@ -1181,7 +1186,11 @@ textarea.input:focus { outline: none; border-color: var(--accent); box-shadow: 0
   position: relative; font-size: 25px;
 }
 .shop-item__vis--bar { width: 100%; height: 32px; border-radius: 8px; }
-.shop-item__name { font-size: 12.5px; font-weight: 550; text-align: center; line-height: 1.3; }
+.shop-item__name {
+  font-size: 12.5px; font-weight: 550; text-align: center; line-height: 1.3;
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+  width: 100%;
+}
 .shop-item__price {
   font-family: var(--mono); font-size: 11.5px; font-weight: 600;
   display: inline-flex; align-items: center; gap: 4px; color: #0369A1;
@@ -1338,17 +1347,22 @@ textarea.input:focus { outline: none; border-color: var(--accent); box-shadow: 0
 .cz-duel-preview__mid { font-weight: 700; letter-spacing: .08em; color: var(--muted); font-size: 12px; }
 
 .shop-item__prem {
-  display: inline-flex; align-items: center; gap: 3px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 3px;
   font-family: var(--mono); font-size: 9.5px; font-weight: 700;
   letter-spacing: .05em; text-transform: uppercase;
   color: #92400E; background: #FEF3C7; border: 1px solid #FDE68A;
-  border-radius: 4px; padding: 1px 5px; margin-left: 4px;
-  vertical-align: middle;
+  border-radius: 999px; padding: 2px 8px; margin: 0;
+  line-height: 1;
 }
-.shop-item__prem svg { width: 10px; height: 10px; flex: none; }
+.shop-item__prem svg {
+  width: 10px; height: 10px; flex: none; display: block;
+  /* Optical center for crown glyph inside the pill. */
+  transform: translateY(0.5px);
+}
+.shop-item__prem > span { display: block; line-height: 1; }
 .shop-item--premium .shop-item__vis::after {
   content: "";
-  position: absolute; top: -2px; right: -2px;
+  position: absolute; top: -3px; right: -3px;
   width: 18px; height: 18px;
   border-radius: 50%;
   border: 1px solid #FDE68A;
@@ -1358,7 +1372,7 @@ textarea.input:focus { outline: none; border-color: var(--accent); box-shadow: 0
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23B45309' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M3 17 4.5 8l4.2 3.2L12 5l3.3 6.2L19.5 8 21 17z'/><path d='M4 20h16'/></svg>");
   background-size: 11px 11px;
   background-repeat: no-repeat;
-  background-position: center;
+  background-position: center 55%;
 }
 
 /* achievements */
@@ -1908,10 +1922,14 @@ textarea.input:focus { outline: none; border-color: var(--accent); box-shadow: 0
 .shop-item__vis-inner svg { width: 100%; height: 100%; display: block; }
 .shop-item__badge {
   position: absolute; top: -2px; right: -2px; width: 20px; height: 20px;
-  background: var(--white); border-radius: 50%; padding: 3px;
+  background: var(--white); border-radius: 50%; padding: 0;
   box-shadow: 0 1px 3px rgba(10,10,11,.2);
+  display: grid; place-items: center; line-height: 0;
 }
-.shop-item__badge svg { width: 100%; height: 100%; display: block; }
+.shop-item__badge svg {
+  width: 68%; height: 68%; display: block;
+  transform: translateY(0.5px);
+}
 .shop-item__vis--fx { display: flex; align-items: center; justify-content: center; gap: 3px; }
 
 /* ================================================================

@@ -641,10 +641,11 @@
       'data-owned="' + (isOwned ? 1 : 0) + '">' +
       visual(kind, it) +
       '<span class="shop-item__name">' + W.escapeHtml(it.name || it.id) +
-        (needsPrem ? ' <span class="shop-item__prem" title="Premium">' +
+        (needsPrem ? '<span class="shop-item__prem" title="Premium">' +
           (I.crown || I.lock || '') + '<span>Premium</span></span>' : '') + '</span>' +
       (isEq ? '<span class="shop-item__eq mono">EQUIPPED</span>'
-            : premLocked ? '<span class="shop-item__owned">' + (I.crown || I.lock || '') + ' Premium</span>'
+            /* Prem pill above already says Premium — avoid a second crown label. */
+            : premLocked ? '<span class="shop-item__owned">Upgrade</span>'
             : isOwned ? '<span class="shop-item__owned">' + (earned ? 'earned' : 'owned') + '</span>'
             /* A locked badge says what to go and do. A grid of grey
                question marks is worth less than a list to aim at. */
