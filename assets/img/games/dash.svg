@@ -1,34 +1,31 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 644 296" width="644" height="296" role="img" aria-label="Geo Dash">
-  <!-- LEA-104 brand-new LearnGeo hub cover — vector, not a sheet crop -->
-  
-      <defs>
-        <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#3B82F6"/><stop offset="100%" stop-color="#1E3A8A"/>
-        </linearGradient>
-      </defs>
-      <rect width="644" height="296" fill="url(#bg)"/>
-      <rect x="0" y="230" width="644" height="66" fill="#122047"/>
-      <rect x="0" y="228" width="644" height="4" fill="#F8FAFC" opacity=".9"/>
-      <g transform="translate(120,128) rotate(28)">
-        <rect width="56" height="56" rx="6" fill="#FFD23F" stroke="#0B1520" stroke-width="4"/>
-        <rect x="10" y="10" width="36" height="36" rx="3" fill="#1B4DFF"/>
-      </g>
-      <path d="M280 230 L296 194 L312 230 Z" fill="#F8FAFC" stroke="#0B1520" stroke-width="2"/> <path d="M320 230 L336 194 L352 230 Z" fill="#F8FAFC" stroke="#0B1520" stroke-width="2"/>
-      <rect x="400" y="170" width="48" height="60" fill="#0B1520" stroke="#F8FAFC" stroke-width="3" rx="4"/>
-      <g transform="translate(500,100)">
-        <rect width="70" height="70" rx="10" fill="#0B1520" stroke="#FFD23F" stroke-width="4"/>
-        <text x="35" y="48" text-anchor="middle" font-family="system-ui,-apple-system,Segoe UI,sans-serif"
-          font-size="36" font-weight="800" fill="#FFD23F">?</text>
-      </g>
-    
-  <defs>
-    <linearGradient id="titleFade" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#0B1520" stop-opacity="0"/>
-      <stop offset="100%" stop-color="#0B1520" stop-opacity="0.72"/>
-    </linearGradient>
-  </defs>
-  <rect x="0" y="208" width="644" height="88" fill="url(#titleFade)"/>
-  <text x="28" y="268" font-family="system-ui,-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif"
-    font-size="34" font-weight="800" fill="#FFFFFF" letter-spacing="-0.5">Geo Dash</text>
+  <!-- LEA-132 editorial hub cover. Replaces the LEA-104 illustration. Original vector, not a sheet crop. -->
+  <rect width="644" height="296" fill="#0B1520"/>
+  <!-- Course section: floor, gap, plinth, spikes, capital gate. -->
+  <rect x="0" y="170" width="196" height="8" fill="#E6E2D8"/>
+  <rect x="268" y="104" width="88" height="74" fill="#E6E2D8"/>
+  <rect x="412" y="170" width="232" height="8" fill="#E6E2D8"/>
+  <polygon points="436,170 452,132 468,170" fill="#C9D2D4"/>
+  <polygon points="476,170 492,132 508,170" fill="#C9D2D4"/>
+  <polygon points="516,170 532,132 548,170" fill="#C9D2D4"/>
+  <g fill="none" stroke="#0C8F7F" stroke-width="2">
+    <line x1="572" y1="62" x2="572" y2="170"/>
+    <line x1="632" y1="62" x2="632" y2="170"/>
+    <line x1="572" y1="62" x2="632" y2="62"/>
+  </g>
+  <g stroke="#0C8F7F" stroke-linecap="square" fill="none">
+    <line x1="48" y1="150" x2="108" y2="150" stroke-width="2"/>
+    <line x1="68" y1="160" x2="108" y2="160" stroke-width="2" opacity="0.5"/>
+    <line x1="84" y1="140" x2="108" y2="140" stroke-width="2" opacity="0.28"/>
+  </g>
+  <g transform="translate(116,120) rotate(-12 22 22)">
+    <rect width="44" height="44" fill="#0C8F7F"/>
+  </g>
+  <rect x="0" y="208" width="644" height="88" fill="#0B1520"/>
+  <rect x="32" y="228" width="36" height="2" fill="#0C8F7F"/>
+  <text x="32" y="268" font-family="Georgia, 'Liberation Serif', 'Times New Roman', 'Noto Serif', serif"
+    font-size="42" font-weight="400" fill="#F4F7F6" letter-spacing="-0.6">Geo Dash</text>
+  <text x="612" y="264" text-anchor="end" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace"
+    font-size="14" font-weight="500" fill="#0C8F7F" letter-spacing="2.4">ONE BUTTON</text>
 </svg>
