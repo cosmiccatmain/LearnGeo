@@ -1,38 +1,51 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 644 296" width="644" height="296" role="img" aria-label="Geo Invaders">
   <!-- LEA-104 brand-new LearnGeo hub cover — vector, not a sheet crop -->
-  
-      <defs>
-        <radialGradient id="bg" cx="50%" cy="100%" r="80%">
-          <stop offset="0%" stop-color="#1E1B4B"/><stop offset="100%" stop-color="#050814"/>
-        </radialGradient>
-      </defs>
-      <rect width="644" height="296" fill="url(#bg)"/>
-      <circle cx="40" cy="40" r="3" fill="#EAF2FF" opacity="0.35"/><circle cx="80" cy="90" r="2" fill="#EAF2FF" opacity="0.5"/><circle cx="140" cy="30" r="3" fill="#EAF2FF" opacity="0.6499999999999999"/><circle cx="520" cy="50" r="2" fill="#EAF2FF" opacity="0.35"/><circle cx="580" cy="100" r="3" fill="#EAF2FF" opacity="0.5"/><circle cx="600" cy="40" r="2" fill="#EAF2FF" opacity="0.6499999999999999"/><circle cx="60" cy="200" r="3" fill="#EAF2FF" opacity="0.35"/><circle cx="560" cy="220" r="2" fill="#EAF2FF" opacity="0.5"/>
-      <g transform="translate(110,55)">
-    <rect width="70" height="40" rx="8" fill="#16205A" stroke="#7CF3FF" stroke-width="2.5"/>
-    <rect x="10" y="10" width="50" height="20" rx="4" fill="#7CF3FF" opacity=".35"/>
-  </g> <g transform="translate(230,40)">
-    <rect width="70" height="40" rx="8" fill="#16205A" stroke="#7CF3FF" stroke-width="2.5"/>
-    <rect x="10" y="10" width="50" height="20" rx="4" fill="#7CF3FF" opacity=".35"/>
-  </g> <g transform="translate(350,55)">
-    <rect width="70" height="40" rx="8" fill="#16205A" stroke="#7CF3FF" stroke-width="2.5"/>
-    <rect x="10" y="10" width="50" height="20" rx="4" fill="#7CF3FF" opacity=".35"/>
-  </g> <g transform="translate(470,40)">
-    <rect width="70" height="40" rx="8" fill="#16205A" stroke="#7CF3FF" stroke-width="2.5"/>
-    <rect x="10" y="10" width="50" height="20" rx="4" fill="#7CF3FF" opacity=".35"/>
+  <!-- LEA-134 editorial plate: formation chart, one marked pod, firing lane -->
+  <rect width="644" height="296" fill="#E7EEF1"/>
+  <rect x="0" y="206" width="644" height="90" fill="#0B1520"/>
+  <rect x="0" y="206" width="644" height="3" fill="#0C8F7F"/>
+
+  <!-- two ranks, five plates. Only the named pod carries a flag. -->
+  <g fill="none" stroke="#0B1520" stroke-width="1.5">
+    <rect x="119" y="28" width="70" height="36"/>
+    <rect x="203" y="28" width="70" height="36"/>
+    <rect x="287" y="28" width="70" height="36"/>
+    <rect x="371" y="28" width="70" height="36"/>
+    <rect x="455" y="28" width="70" height="36"/>
+    <rect x="119" y="80" width="70" height="36"/>
+    <rect x="203" y="80" width="70" height="36"/>
+    <rect x="371" y="80" width="70" height="36"/>
+    <rect x="455" y="80" width="70" height="36"/>
   </g>
-      <rect x="318" y="150" width="6" height="40" fill="#7CF3FF" opacity=".9"/>
-      <path d="M300 230 L322 198 L344 230 Z" fill="#FFD23F" stroke="#0B1520" stroke-width="2"/>
-      <rect x="292" y="228" width="60" height="14" rx="4" fill="#1B4DFF" stroke="#7CF3FF" stroke-width="2"/>
-    
-  <defs>
-    <linearGradient id="titleFade" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#0B1520" stop-opacity="0"/>
-      <stop offset="100%" stop-color="#0B1520" stop-opacity="0.72"/>
-    </linearGradient>
-  </defs>
-  <rect x="0" y="208" width="644" height="88" fill="url(#titleFade)"/>
-  <text x="28" y="268" font-family="system-ui,-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif"
-    font-size="34" font-weight="800" fill="#FFFFFF" letter-spacing="-0.5">Geo Invaders</text>
+  <!-- empty flag wells -->
+  <g fill="none" stroke="#0B1520" stroke-opacity="0.28" stroke-width="1">
+    <rect x="131" y="38" width="46" height="16"/>
+    <rect x="215" y="38" width="46" height="16"/>
+    <rect x="299" y="38" width="46" height="16"/>
+    <rect x="383" y="38" width="46" height="16"/>
+    <rect x="467" y="38" width="46" height="16"/>
+    <rect x="131" y="90" width="46" height="16"/>
+    <rect x="215" y="90" width="46" height="16"/>
+    <rect x="383" y="90" width="46" height="16"/>
+    <rect x="467" y="90" width="46" height="16"/>
+  </g>
+
+  <!-- the pod the banner names -->
+  <rect x="283" y="76" width="78" height="44" fill="none" stroke="#0C8F7F" stroke-width="2"/>
+  <rect x="287" y="80" width="70" height="36" fill="#0C8F7F"/>
+  <g transform="translate(298,91)">
+    <rect width="16" height="14" fill="#0055A4"/>
+    <rect x="16" width="16" height="14" fill="#F7FBFC"/>
+    <rect x="32" width="16" height="14" fill="#EF4135"/>
+  </g>
+
+  <!-- cannon: a section, not a character -->
+  <rect x="283" y="168" width="78" height="8" fill="#0B1520"/>
+  <rect x="309" y="156" width="26" height="14" fill="#0B1520"/>
+  <line x1="322" y1="156" x2="322" y2="120" stroke="#0C8F7F" stroke-width="2" stroke-dasharray="3 4"/>
+  <polygon points="322,116 317,126 327,126" fill="#0C8F7F"/>
+
+  <line x1="28" y1="232" x2="76" y2="232" stroke="#0C8F7F" stroke-width="3"/>
+  <text x="28" y="270" font-family="Inter, 'Noto Sans', 'Segoe UI', Helvetica, Arial, sans-serif" font-size="34" font-weight="600" fill="#F7FBFC" letter-spacing="-0.6">Geo Invaders</text>
 </svg>
