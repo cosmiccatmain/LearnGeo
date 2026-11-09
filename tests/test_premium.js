@@ -65,6 +65,10 @@ assert(!/chess:\s*true/.test(prem) && !/dash:\s*true/.test(prem),
   'premium.js does not gate Chess or Dash');
 assert(/crown:/.test(fs.readFileSync(path.join(root, 'assets/js/core.js'), 'utf8')),
   'Icons.crown still exists');
+assert(/function isPremiumLocked/.test(games) && /if \(!gameShown\(g\)\) return ''/.test(games),
+  'Games hub does not render a Plus card for Free');
+assert(!/function gameAllowed\(id\) \{[\s\S]{0,180}if \(!previewEnabled\(\)\) return true/.test(prem),
+  'missing the plan hides the four Plus games even when the dev preview is off');
 assert(/ultra_set_premium/.test(sql), 'SQL exposes ultra_set_premium');
 assert(/premium_game_ids/.test(sql), 'SQL lists premium_game_ids');
 assert(/raise exception 'premium'/.test(sql), 'submit_game_score refuses Premium without flag');

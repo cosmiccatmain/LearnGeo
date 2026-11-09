@@ -714,7 +714,7 @@
       if (!have[a.id]) { a.added = Date.now(); W.state.inbox.push(a); }
     });
     W.saveNow();
-    W.confetti({ count: 70, power: 240 });
+    (W.calmConfetti || W.confetti)({ count: 14, power: 120 });
     W.toast('Joined ' + (e.className || 'your class'), note, I.check);
     global.UI.refreshHud();
     tab = 'classwork';

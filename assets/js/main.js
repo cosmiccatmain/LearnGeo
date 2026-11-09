@@ -27,6 +27,10 @@
        and closed the tab meets it the next time they come back rather
        than never. */
     if (global.Enforcement) global.Enforcement.check();
+    /* Unequip Plus / Schools cosmetics the signed-in plan does not include. */
+    if (global.Premium && global.Premium.stripUnearnedCosmetics) {
+      try { global.Premium.stripUnearnedCosmetics(); } catch (e) { /* cosmetics may load later */ }
+    }
 
     var pex = document.getElementById('preview-exit');
     if (pex) pex.addEventListener('click', global.UI.endPreview);

@@ -871,6 +871,7 @@
       }
       W.save();
     }
+    if (!gameShown(g)) return;
     current = g.id;
     toSetup();
   }
@@ -1076,7 +1077,7 @@
           });
           return;
         }
-        if (isPremiumLocked(btn.dataset.game)) { return; }
+        if (isPremiumLocked(btn.dataset.game)) return;
         current = btn.dataset.game; toSetup();
       });
       btn.addEventListener('focus', function () {
@@ -1158,15 +1159,12 @@
   }
 
   function isPremiumLocked(id) {
-    if (!premiumPreviewOn()) return false;
-    var g = byId(id);
-    var needs = !!(g && g.premium) || !!(global.Premium && global.Premium.gameRequires && global.Premium.gameRequires(id));
-    if (!needs) return false;
-    return !(global.Premium && global.Premium.gameAllowed && global.Premium.gameAllowed(id));
+    var g = GAMES.filter(function (x) { return x.id === id; })[0];
+    return !gameShown(g);
   }
 
   function card(g) {
-    /* Plus games are omitted for Free while gating is on — never a locked teaser. */
+    /* Plus games are omitted for Free — never a locked teaser. */
     if (!gameShown(g)) return '';
     var best = g.best(record(g.id));
     var off = isBlocked(g.id);

@@ -13,55 +13,48 @@
 
 /* --------------------------- fx pieces --------------------------- */
 .jz-ring {
-  position: absolute; width: 64px; height: 64px; border-radius: 50%;
-  border: 3px solid rgba(14, 159, 110, .75);
-  box-shadow: 0 0 18px rgba(14, 159, 110, .45), inset 0 0 12px rgba(14, 159, 110, .3);
+  position: absolute; width: 48px; height: 48px; border-radius: 50%;
+  border: 2px solid rgba(12, 143, 127, .45);
+  box-shadow: none;
   will-change: transform, opacity;
 }
-.jz-ring--big { border-color: rgba(245, 179, 1, .85); box-shadow: 0 0 26px rgba(245, 179, 1, .55), inset 0 0 14px rgba(245, 179, 1, .35); }
+.jz-ring--big { border-color: rgba(12, 143, 127, .55); box-shadow: none; }
 
 .jz-spark {
-  position: absolute; width: 14px; height: 14px; will-change: transform, opacity;
-  background: radial-gradient(circle, #fff 0 18%, #FDE68A 30%, rgba(245, 179, 1, 0) 70%);
-  clip-path: polygon(50% 0, 61% 39%, 100% 50%, 61% 61%, 50% 100%, 39% 61%, 0 50%, 39% 39%);
-  filter: drop-shadow(0 0 4px rgba(245, 179, 1, .9));
+  position: absolute; width: 6px; height: 6px; border-radius: 50%; will-change: transform, opacity;
+  background: var(--accent, #0C8F7F);
 }
 
 .jz-orb {
   position: absolute; width: 12px; height: 12px; border-radius: 50%; will-change: transform, opacity;
 }
-.jz-orb--xp  { background: radial-gradient(circle at 35% 30%, #fff, #7DD3FC 35%, #1B4DFF 80%); box-shadow: 0 0 10px #38BDF8, 0 0 22px rgba(27, 77, 255, .55); }
-.jz-orb--gem { width: 11px; height: 11px; border-radius: 2px; rotate: 45deg;
-  background: linear-gradient(135deg, #fff, #A5F3FC 30%, #06B6D4 70%, #0369A1);
-  box-shadow: 0 0 10px #22D3EE, 0 0 20px rgba(6, 182, 212, .5); }
+.jz-orb--xp  { background: var(--accent, #0C8F7F); }
+.jz-orb--gem { width: 8px; height: 8px; border-radius: 2px; background: #0E7490; }
 
 .jz-edge {
   position: fixed; inset: 0; pointer-events: none;
-  box-shadow: inset 0 0 70px 6px rgba(14, 159, 110, .28);
+  box-shadow: none;
 }
-.jz-edge--strong { box-shadow: inset 0 0 110px 14px rgba(245, 179, 1, .32); }
+.jz-edge--strong { box-shadow: none; }
 
 .jz-callout {
   position: absolute; z-index: 2; text-align: center; white-space: nowrap; will-change: transform, opacity;
   font-family: var(--sans, Inter, system-ui, sans-serif); pointer-events: none;
 }
 .jz-callout b {
-  display: block; font-size: 38px; font-weight: 800; letter-spacing: -.03em; line-height: 1;
-  background: var(--jz-c, linear-gradient(180deg, #34D399, #059669));
-  -webkit-background-clip: text; background-clip: text; color: transparent;
-  -webkit-text-stroke: 1px rgba(255, 255, 255, .6);
-  filter: drop-shadow(0 3px 0 rgba(10, 10, 11, .18)) drop-shadow(0 8px 18px var(--jz-glow, rgba(5, 150, 105, .45)));
+  display: block; font-size: 20px; font-weight: 650; letter-spacing: -.02em; line-height: 1.1;
+  font-family: var(--sans, Inter, system-ui, sans-serif);
+  color: var(--jz-c, var(--accent, #0C8F7F));
 }
 .jz-callout span {
-  display: inline-block; margin-top: 6px; padding: 3px 10px; border-radius: 999px;
-  font-family: var(--mono, monospace); font-size: 12px; font-weight: 650; color: #fff;
-  background: var(--jz-pill, #059669); box-shadow: 0 6px 14px -6px var(--jz-glow, rgba(5, 150, 105, .6));
+  display: inline-block; margin-top: 6px; padding: 2px 8px; border-radius: 999px;
+  font-family: var(--mono, monospace); font-size: 12px; font-weight: 560; color: var(--ink, #0B1520);
+  background: var(--paper, #EEF3F5); box-shadow: none;
 }
-.jz-callout--sky    { --jz-c: linear-gradient(180deg, #7DD3FC, #2563EB); --jz-glow: rgba(37, 99, 235, .45); --jz-pill: #2563EB; }
-.jz-callout--flame  { --jz-c: linear-gradient(180deg, #FDE047, #F97316 55%, #DC2626); --jz-glow: rgba(249, 115, 22, .55); --jz-pill: #EA580C; }
-.jz-callout--violet { --jz-c: linear-gradient(180deg, #F0ABFC, #8B5CF6 55%, #4F46E5); --jz-glow: rgba(139, 92, 246, .55); --jz-pill: #7C3AED; }
-.jz-callout--gold   { --jz-c: linear-gradient(180deg, #FEF9C3, #FACC15 40%, #D97706); --jz-glow: rgba(217, 119, 6, .6); --jz-pill: #B45309; }
-.jz-callout--gold b, .jz-callout--violet b { font-size: 44px; }
+.jz-callout--sky    { --jz-c: #0C8F7F; }
+.jz-callout--flame  { --jz-c: #0A6F63; }
+.jz-callout--violet { --jz-c: #0C8F7F; }
+.jz-callout--gold   { --jz-c: #0A6F63; }
 
 /* richer confetti: ribbons and a 3D flutter (see core.js confetti) */
 #fx-layer { perspective: 800px; }
@@ -82,38 +75,32 @@
 }
 
 /* ----------------------------- HUD ------------------------------- */
-.hud__item.jz-hit { animation: jzHit .42s var(--jz-spring); }
+.hud__item.jz-hit { animation: jzHit .28s var(--ease, ease); }
 @keyframes jzHit {
   0%   { transform: scale(1); }
-  35%  { transform: scale(1.18); box-shadow: 0 0 0 4px rgba(var(--accent-rgb), .14), 0 0 18px rgba(56, 189, 248, .55); }
+  40%  { transform: scale(1.03); }
   100% { transform: scale(1); }
 }
 .hud__gem.jz-hit { animation-name: jzHitGem; }
 @keyframes jzHitGem {
   0%   { transform: scale(1); }
-  35%  { transform: scale(1.18); box-shadow: 0 0 0 4px rgba(6, 182, 212, .16), 0 0 18px rgba(34, 211, 238, .6); }
+  40%  { transform: scale(1.03); }
   100% { transform: scale(1); }
 }
-.hud__xp.jz-lvl { animation: jzLvlChip 1.2s var(--jz-spring); }
+.hud__xp.jz-lvl { animation: jzLvlChip .4s var(--ease, ease); }
 @keyframes jzLvlChip {
   0%   { transform: scale(1); }
-  20%  { transform: scale(1.3) rotate(-4deg); background: linear-gradient(135deg, #FDE047, #F59E0B); color: #451A03; box-shadow: 0 0 22px rgba(245, 158, 11, .7); }
-  45%  { transform: scale(1.1) rotate(3deg); }
+  40%  { transform: scale(1.04); }
   100% { transform: scale(1); }
 }
 #hud-xpbar {
   position: relative;
-  background: linear-gradient(90deg, var(--accent), #22D3EE, var(--accent));
-  background-size: 200% 100%;
-  box-shadow: 0 0 8px rgba(34, 211, 238, .6);
-  transition: width .6s var(--jz-out);
+  background: var(--accent, #0C8F7F);
+  box-shadow: none;
+  transition: width .35s var(--ease, ease);
 }
-#hud-xpbar::after {
-  content: ''; position: absolute; right: 0; top: -2px; bottom: -2px; width: 14px;
-  background: radial-gradient(closest-side, #fff, rgba(255, 255, 255, 0));
-}
-#hud-xpbar.jz-lvl { animation: jzBarFlash .9s ease-out; }
-@keyframes jzBarFlash { 0%, 40% { background: #FDE047; box-shadow: 0 0 14px #FACC15; } }
+#hud-xpbar::after { content: none; }
+#hud-xpbar.jz-lvl { animation: none; }
 
 /* ------------------------- answer states ------------------------- */
 .option.is-right {
@@ -154,18 +141,17 @@
 /* streak bar: warmer and alive */
 .combo {
   position: relative; overflow: hidden;
-  background: linear-gradient(90deg, #FFFBEB, #FFEDD5, #FFFBEB);
-  background-size: 200% 100%;
-  box-shadow: 0 6px 18px -10px rgba(234, 88, 12, .55);
+  background: #F4F7F8;
+  box-shadow: none;
 }
-.combo__n { display: inline-block; animation: jzPop .5s var(--jz-spring); text-shadow: 0 0 12px rgba(251, 146, 60, .55); }
-@keyframes jzPop { 0% { transform: scale(.4); } 60% { transform: scale(1.25); } 100% { transform: scale(1); } }
-.combo__mult { background: linear-gradient(135deg, #F97316, #B45309); box-shadow: 0 0 0 0 rgba(249, 115, 22, .5); }
+.combo__n { display: inline-block; text-shadow: none; }
+@keyframes jzPop { 0% { transform: none; } 100% { transform: none; } }
+.combo__mult { background: var(--accent, #0C8F7F); box-shadow: none; }
 
-/* toasts spring in */
-.toast { animation: jzToastIn .5s var(--jz-spring); }
-@keyframes jzToastIn { from { opacity: 0; transform: translateX(40px) scale(.85); } }
-.toast__i { animation: jzPop .55s .1s var(--jz-spring) both; }
+/* toasts fade in. Original LearnGeo type, no spring. */
+.toast { animation: jzToastIn .2s var(--ease, ease); font-family: var(--sans, Inter, system-ui, sans-serif); }
+@keyframes jzToastIn { from { opacity: 0; } }
+.toast__i { animation: none; }
 
 /* --------------------------- level up ---------------------------- */
 .levelup { position: relative; overflow: hidden; isolation: isolate; }
@@ -208,9 +194,6 @@
 
 /* ----------------------- looping, motion-ok ----------------------- */
 @media (prefers-reduced-motion: no-preference) {
-  html:not(.jz-off) #hud-xpbar { animation: jzFlow 3s linear infinite; }
-  html:not(.jz-off) .combo { animation: lgFeedIn .5s var(--jz-spring), jzFlow 4s linear infinite; }
-  html:not(.jz-off) .combo__mult { animation: jzPulse 1.6s ease-in-out infinite; }
   html:not(.jz-off) .levelup .levelup__ring { animation: jzRingIn .75s var(--jz-spring) both, jzBreathe 2.6s 1s ease-in-out infinite; }
 }
 @keyframes jzFlow { to { background-position: -200% 0; } }

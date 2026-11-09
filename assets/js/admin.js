@@ -547,7 +547,7 @@
     }
     if (wasOver) msg += ' The old balance was too large to count exactly, so it was brought down to the ' + cap + ' cap first.';
     say(root, msg);
-    if (moved > 0) { W.Sound.gem(); W.confetti({ count: 26, power: 150 }); }
+    if (moved > 0) { W.Sound.gem(); (W.calmConfetti || W.confetti)({ count: 10, power: 100 }); }
     else if (moved < 0) W.Sound.flip();
   }
 

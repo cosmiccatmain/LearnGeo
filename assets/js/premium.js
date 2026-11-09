@@ -6,11 +6,14 @@
    ultra_set_premium / score-submit checks keep working. flags.plan is
    'free' | 'plus' | 'schools'. flags.school marks a Schools account.
 
-   LEA-46: plans UI and client gating stay DEVELOPMENT-ONLY.
-   Owner / UltraAdmin flips the preview in Administrator → Development
-   ("Premium plans & gating preview"). When the preview is off, Games,
-   cosmetics, and Geo Classroom do not show live paywalls. Checkout
-   stays mock / TEST until Stripe keys exist.
+   LEA-46: the plans screen and upgrade modal stay DEVELOPMENT-ONLY.
+   Owner / UltraAdmin flips the preview in Administrator → Development.
+   Checkout stays mock / TEST until Stripe keys exist.
+
+   LEA-125: Free never renders the ten Plus extras (four games and six
+   cosmetics). No locked card, crown, or grey tile. Plus, Schools, and
+   an active referral trial see them. The preview switch still only
+   opens the upgrade modal and the Schools classroom paywall.
 
    Plus extras are the ten ids in PLUS_EXTRAS (games + skins already
    in the repo). Games and cosmetics also mark themselves with
@@ -128,10 +131,9 @@
     return !!PREMIUM_GAMES[id];
   }
 
-  /* Gates only apply while the Development preview switch is on. */
+  /* The ten Plus extras stay off Free. Not a lock and not a grey card. */
   function gameAllowed(id) {
     if (!gameRequires(id)) return true;
-    if (!previewEnabled()) return true;
     return active();
   }
 
@@ -141,26 +143,22 @@
 
   function itemAllowed(item) {
     if (!itemRequires(item)) return true;
-    if (!previewEnabled()) return true;
     return active();
   }
 
-  /* Free only sees Free. While the Development preview is on, Plus games
-     and cosmetics are omitted entirely — no locked cards, crowns, or
-     upgrade teasers. Preview off keeps the full catalogue (no live paywall).
-     Plus, Schools, and an active referral trial see the extras. */
+  /* Free only sees Free. Plus, Schools, and an active referral trial
+     see the ten extras. The preview switch does not put them back. */
   function catalogueVisible(thing) {
     var needs = false;
     if (typeof thing === 'string') needs = gameRequires(thing);
     else needs = itemRequires(thing);
     if (!needs) return true;
-    if (!previewEnabled()) return true;
     return active();
   }
 
   function stripUnearnedCosmetics() {
     var s = W() && W().state;
-    if (!s || !s.profile || active() || !previewEnabled()) return false;
+    if (!s || !s.profile || active()) return false;
     var Cos = global.Cosmetics;
     if (!Cos) return false;
     var changed = false;
@@ -191,7 +189,7 @@
       if (!list) return;
       var id = s.profile[slot];
       var item = Cos.find(list, id);
-      if (item && item.premium) {
+      if (item && item.premium && !itemAllowed(item)) {
         if (freeFallback[slot] != null) s.profile[slot] = freeFallback[slot];
         else s.profile[slot] = list[0] ? list[0].id : 'none';
         changed = true;

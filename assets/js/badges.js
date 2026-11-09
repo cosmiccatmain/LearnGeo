@@ -408,8 +408,22 @@
   /* `onPlate` is for a name sitting on a nameplate or a banner. The pastel
      fills that read as emblems against white read as stickers against a
      colour, so there they turn into frosted glass and keep only their ink. */
+  /* Entitlement badges (Premium, and any Plus / Education plate) render
+     only while the account holds that plan. No greyed locked card. */
+  function entitlementShown(b) {
+    if (!entitlement(b)) return true;
+    if (!has(b.id)) return false;
+    if (!global.Premium) return true;
+    if (b.entitlement === 'education' || b.entitlement === 'schools') {
+      return global.Premium.isSchool ? !!global.Premium.isSchool() : true;
+    }
+    return global.Premium.isPlus ? !!global.Premium.isPlus() : true;
+  }
+
   function markup(ids, size, bare, onPlate) {
-    var list = (ids || shown()).map(find).filter(Boolean);
+    var list = (ids || shown()).map(find).filter(function (b) {
+      return b && entitlementShown(b);
+    });
     if (!list.length) return '';
     var inner = list.map(function (b) {
       return '<span class="bdg bdg--' + b.tone + (onPlate ? ' bdg--plate' : '') +
@@ -422,7 +436,8 @@
   /* =========================== the badge case ======================= */
   function openCase() {
     var have = owned();
-    var membership = BADGES.filter(entitlement);
+    var listed = BADGES.filter(function (b) { return entitlementShown(b); });
+    var membership = listed.filter(entitlement);
     var earned = BADGES.filter(function (b) {
       return !granted(b) && !entitlement(b) && !b.secret;
     });
@@ -435,7 +450,7 @@
       title: 'Badges', icon: W.Icons.trophy, wide: true,
       body:
         '<div class="row row--between" style="margin-bottom:14px">' +
-          '<span class="eyebrow">' + have.length + ' of ' + BADGES.length + ' held</span>' +
+          '<span class="eyebrow">' + have.length + ' of ' + listed.length + ' held</span>' +
           '<span class="t-sm t-muted">Up to ' + SHOWN_MAX + ' show beside your name</span>' +
         '</div>' +
         section('Membership', membership) +
@@ -466,6 +481,7 @@
     });
 
     function section(title, list) {
+      if (!list.length) return '';
       return '<div class="field"><label class="field__label">' + title + '</label>' +
         '<div class="bdg-grid">' +
           list.map(function (b) {

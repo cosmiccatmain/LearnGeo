@@ -1418,9 +1418,10 @@ textarea.input:focus { outline: none; border-color: var(--accent); box-shadow: 0
   background: var(--ink); color: #fff; border-radius: 12px;
   padding: 12px 16px; box-shadow: var(--shadow-xl);
   font-size: 13.5px; font-weight: 500; max-width: 340px;
-  animation: toastIn .26s var(--ease);
+  animation: toastIn .2s var(--ease);
+  font-family: var(--sans);
 }
-@keyframes toastIn { from { opacity: 0; transform: translateX(28px) scale(.96); } }
+@keyframes toastIn { from { opacity: 0; } }
 .toast.is-out { animation: toastOut .24s var(--ease) forwards; }
 @keyframes toastOut { to { opacity: 0; transform: translateX(28px) scale(.96); } }
 .toast__i { width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center; flex: none; background: rgba(255,255,255,.14); }
