@@ -43,7 +43,18 @@ assert(!/id: 'stack'[\s\S]{0,80}premium:\s*true/.test(games), 'Capital Stack sta
 assert(/id: 'embers'[\s\S]{0,220}premium:\s*true/.test(cos), 'Embers effect is a Plus extra');
 assert(/id: 'bubbles'[\s\S]{0,220}premium:\s*true/.test(cos), 'Deep Current is a Plus extra');
 assert(!/id: 'rain'[\s\S]{0,220}premium:\s*true/.test(cos), 'Monsoon stays on Free');
-assert(/id: 'wings'[\s\S]{0,220}premium:\s*true/.test(cos), 'Chicken Wings is a Plus extra');
+assert(!/id: 'wings'/.test(cos), 'Chicken Wings effect is removed from the catalogue');
+assert(!/name: 'Chicken Wings'/.test(cos), 'cosmetics catalogue does not name Chicken Wings');
+assert(!/id: 'wings'/.test(prem), 'Plus extras do not grant Chicken Wings');
+assert(!/Chicken Wings/.test(sub), 'plans copy does not name Chicken Wings');
+assert(/Embers and Deep Current/.test(sub), 'Plus still lists Embers and Deep Current');
+assert(/Ember Wake, Gilded Cube, and Meridian Gold/.test(sub), 'other Plus looks stay listed');
+assert(/Geo Invaders, Flag Breakout, Capital Typer, Flag Echo/.test(sub), 'Plus games stay listed');
+var extraCss = fs.readFileSync(path.join(root, 'assets/css/cosmetics-extra.css'), 'utf8');
+assert(!/\.fx-wing\b|fx-flutter|fx-motion-flutter/.test(extraCss), 'wing-only CSS is gone');
+var coreSrc = fs.readFileSync(path.join(root, 'assets/js/core.js'), 'utf8');
+assert(/function retireChickenWings/.test(coreSrc) && /profile\.effect === 'wings'/.test(coreSrc) &&
+  /effect = 'none'/.test(coreSrc), 'a save that still has wings falls back to no effect');
 assert(!/id: 'gambling'[\s\S]{0,280}premium:\s*true/.test(cos), 'Gambling stays on Free');
 assert(/id: 'spark'[\s\S]*?price:\s*0/.test(cos), 'Atlas Sparks is free');
 assert(!/id: 'spark'[\s\S]{0,120}premium:\s*true/.test(cos), 'Atlas Sparks is not Premium');
@@ -127,6 +138,7 @@ assert(/'ember',\s*'neon',\s*'aurora'/.test(sql16), '0016 lists Premium trails')
 assert(/'aurora',\s*'gilded'/.test(sql16), '0016 lists Premium jumpers');
 
 var ui = fs.readFileSync(path.join(root, 'assets/js/ui.js'), 'utf8');
+assert(!/m === 'flutter'/.test(ui), 'effect runner has no flutter timing');
 assert(/plusItemVisible/.test(ui),
   'Customise hides Plus skins and profile looks from Free');
 assert(/vt\('games'/.test(ui), 'Customise has Games tab');

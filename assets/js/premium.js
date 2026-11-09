@@ -10,14 +10,15 @@
    Owner / UltraAdmin flips the preview in Administrator → Development.
    Checkout stays mock / TEST until Stripe keys exist.
 
-   LEA-125: Free never renders the ten Plus extras (four games and six
+   LEA-125: Free never renders the Plus extras (four games and five
    cosmetics). No locked card, crown, or grey tile. Plus, Schools, and
    an active referral trial see them. The preview switch still only
    opens the upgrade modal and the Schools classroom paywall.
 
-   Plus extras are the ten ids in PLUS_EXTRAS (games + skins already
-   in the repo). Games and cosmetics also mark themselves with
-   `premium: true`. This file is the single client check.
+   Plus extras are the ids in PLUS_EXTRAS (games + skins already
+   in the repo). Chicken Wings is not one of them. Games and cosmetics
+   also mark themselves with `premium: true`. This file is the single
+   client check.
 -------------------------------------------------------------------*/
 (function (global) {
   'use strict';
@@ -26,18 +27,18 @@
 
   var PREVIEW_KEY = 'learngeo.dev.premiumPreview';
 
-  /* LEA-122: about ten Plus extras. Keep in sync with
+  /* LEA-122: Plus extras. Keep in sync with
      public.premium_game_ids() in 0034 (games only) and the
      premium: true flags in games.js / cosmetics.js.
-     Free keeps the popular arcade (Dash, Chess, Duel, Snake, Match,
-     Maze, Golf, Defender) plus the titles dropped from this list. */
+     Chicken Wings is not granted. Free keeps the popular arcade
+     (Dash, Chess, Duel, Snake, Match, Maze, Golf, Defender) plus
+     the titles dropped from this list. */
   var PLUS_EXTRAS = [
     { kind: 'game', id: 'invaders', name: 'Geo Invaders' },
     { kind: 'game', id: 'breakout', name: 'Flag Breakout' },
     { kind: 'game', id: 'typer', name: 'Capital Typer' },
     { kind: 'game', id: 'echo', name: 'Flag Echo' },
     { kind: 'effect', id: 'embers', name: 'Embers' },
-    { kind: 'effect', id: 'wings', name: 'Chicken Wings' },
     { kind: 'effect', id: 'bubbles', name: 'Deep Current' },
     { kind: 'trail', id: 'ember', name: 'Ember Wake' },
     { kind: 'jumper', id: 'gilded', name: 'Gilded Cube' },

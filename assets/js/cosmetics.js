@@ -113,8 +113,9 @@
 
   /* Profile effects — animated particles over the profile card.
      `motion` picks the CSS keyframe family in cosmetics-extra.css /
-     runEffect(). Premium ids must stay in sync with
-     0013_premium_subscriptions.sql (embers, gambling, wings, rain, bubbles). */
+     runEffect(). Plus effects still in this list are embers and bubbles.
+     Chicken Wings (id wings) was removed; a save that still names it
+     falls back to none in core.js. */
   var EFFECTS = [
     { id: 'none', name: 'None', price: 0, shape: null, colors: [], motion: null, count: 0 },
     /* Free solid effect — soft atlas sparks so Free accounts get a real
@@ -162,11 +163,6 @@
       layers: ['heat', 'glow'], glow: ['#F97316', '#DC2626', '#F5B301'],
       also: [{ shape: 'spark', colors: ['#FDE047', '#FFFFFF'], motion: 'glimmer', count: 8 }],
       blurb: 'Glowing embers drifting upward. Plus.' },
-    { id: 'wings', name: 'Chicken Wings', price: 900, shape: 'wing',
-      colors: ['#B45309', '#D97706', '#92400E', '#C2410C'], motion: 'flutter', count: 16, premium: true,
-      layers: ['glow', 'sunbeam'], glow: ['#F59E0B', '#FDE68A', '#C2410C'],
-      also: [{ shape: 'flare', colors: ['#FFFFFF', '#FDE68A'], motion: 'glimmer', count: 8 }],
-      blurb: 'Fluttering wings across the card. Plus.' },
     { id: 'gambling', name: 'Gambling', price: 1500, shape: 'dice',
       colors: ['#FFFFFF', '#FEF3C7', '#F1F5F9'], motion: 'tumble', count: 14,
       layers: ['felt', 'sheen'], glow: ['#16A34A', '#F5B301', '#065F46'],
