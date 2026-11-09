@@ -1,43 +1,84 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 644 296" width="644" height="296" role="img" aria-label="Border Crossing">
   <!-- LEA-104 brand-new LearnGeo hub cover — vector, not a sheet crop -->
-  
-      <defs>
-        <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#0C1A33"/><stop offset="100%" stop-color="#071024"/>
-        </linearGradient>
-      </defs>
-      <rect width="644" height="296" fill="url(#bg)"/>
-      <rect x="0" y="70" width="644" height="36" fill="#0F1838"/> <rect x="0" y="110" width="644" height="36" fill="#0D1530"/> <rect x="0" y="150" width="644" height="36" fill="#0F1838"/> <rect x="0" y="190" width="644" height="36" fill="#0D1530"/> <rect x="0" y="230" width="644" height="36" fill="#0F1838"/>
-      <rect x="80" y="118" width="56" height="22" rx="5" fill="#EF4444"/>
-      <rect x="280" y="158" width="70" height="22" rx="5" fill="#3B82F6"/>
-      <rect x="450" y="98" width="60" height="22" rx="5" fill="#F59E0B"/>
-      <circle cx="200" cy="250" r="14" fill="#22C55E" stroke="#0B1520" stroke-width="3"/>
-      <g transform="translate(100,28)">
-    <rect width="70" height="36" rx="6" fill="#0B1520" stroke="#FFD23F" stroke-width="2"/>
-    <text x="35" y="24" text-anchor="middle" font-family="system-ui,-apple-system,Segoe UI,sans-serif"
-      font-size="16" font-weight="800" fill="#FFD23F">A</text>
-  </g> <g transform="translate(230,28)">
-    <rect width="70" height="36" rx="6" fill="#0B1520" stroke="#FFD23F" stroke-width="2"/>
-    <text x="35" y="24" text-anchor="middle" font-family="system-ui,-apple-system,Segoe UI,sans-serif"
-      font-size="16" font-weight="800" fill="#FFD23F">B</text>
-  </g> <g transform="translate(360,28)">
-    <rect width="70" height="36" rx="6" fill="#0B1520" stroke="#FFD23F" stroke-width="2"/>
-    <text x="35" y="24" text-anchor="middle" font-family="system-ui,-apple-system,Segoe UI,sans-serif"
-      font-size="16" font-weight="800" fill="#FFD23F">C</text>
-  </g> <g transform="translate(490,28)">
-    <rect width="70" height="36" rx="6" fill="#0B1520" stroke="#FFD23F" stroke-width="2"/>
-    <text x="35" y="24" text-anchor="middle" font-family="system-ui,-apple-system,Segoe UI,sans-serif"
-      font-size="16" font-weight="800" fill="#FFD23F">D</text>
-  </g>
-    
+  <!-- LEA-133 editorial atlas plate. Original geometry in LearnGeo teal. -->
   <defs>
-    <linearGradient id="titleFade" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#0B1520" stop-opacity="0"/>
-      <stop offset="100%" stop-color="#0B1520" stop-opacity="0.72"/>
-    </linearGradient>
+    <radialGradient id="wash" cx="8%" cy="0%" r="70%">
+      <stop offset="0%" stop-color="#0C8F7F" stop-opacity="0.30"/>
+      <stop offset="58%" stop-color="#0C8F7F" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="grat" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M40 0 H0 V40" fill="none" stroke="#14322E" stroke-width="1"/>
+    </pattern>
   </defs>
-  <rect x="0" y="208" width="644" height="88" fill="url(#titleFade)"/>
-  <text x="28" y="268" font-family="system-ui,-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif"
-    font-size="34" font-weight="800" fill="#FFFFFF" letter-spacing="-0.5">Border Crossing</text>
+  <rect width="644" height="296" fill="#07131A"/>
+  <rect width="644" height="228" fill="url(#grat)"/>
+  <rect width="644" height="296" fill="url(#wash)"/>
+  <rect x="28" y="16" width="588" height="198" fill="#0A161A" stroke="#1E3834" stroke-width="1.75"/>
+
+  <g fill="none" stroke="#8FD4C8" stroke-width="1.25" stroke-linejoin="miter">
+    <path d="M48 36 V22 M48 22 H56"/>
+    <path d="M596 36 V22 M596 22 H588"/>
+  </g>
+
+  <g font-family="Inter, system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="14" font-weight="600" text-anchor="middle">
+    <rect x="52" y="40" width="118" height="32" fill="#101C20" stroke="#2C4A46"/>
+    <text x="111" y="61" fill="#D5E3DF">LAGOS</text>
+    <rect x="186" y="40" width="118" height="32" fill="#101C20" stroke="#2C4A46"/>
+    <text x="245" y="61" fill="#D5E3DF">NAIROBI</text>
+    <rect x="320" y="40" width="118" height="32" fill="#0C8F7F"/>
+    <text x="379" y="61" fill="#F4F7F6">CAIRO</text>
+    <rect x="454" y="40" width="118" height="32" fill="#101C20" stroke="#2C4A46"/>
+    <text x="513" y="61" fill="#D5E3DF">ACCRA</text>
+  </g>
+
+  <line x1="44" y1="80" x2="600" y2="80" stroke="#D7E3E0" stroke-width="2"/>
+  <line x1="44" y1="86" x2="600" y2="86" stroke="#D7E3E0" stroke-width="2"/>
+
+  <g stroke="#2A524C" stroke-width="1.75">
+    <line x1="44" y1="108" x2="600" y2="108"/>
+    <line x1="44" y1="130" x2="600" y2="130"/>
+    <line x1="44" y1="152" x2="600" y2="152"/>
+    <line x1="44" y1="174" x2="600" y2="174"/>
+    <line x1="44" y1="196" x2="600" y2="196"/>
+  </g>
+
+  <line x1="379" y1="86" x2="379" y2="140" stroke="#0C8F7F" stroke-width="2" stroke-dasharray="3 4"/>
+
+  <g fill="#16302C" stroke="#3E6A64" stroke-width="1">
+    <rect x="78" y="102" width="44" height="11"/>
+    <rect x="74" y="102" width="4" height="11" fill="#0C8F7F" stroke="none"/>
+    <rect x="430" y="102" width="44" height="11"/>
+    <rect x="426" y="102" width="4" height="11" fill="#0C8F7F" stroke="none"/>
+
+    <rect x="250" y="124" width="44" height="11"/>
+    <rect x="294" y="124" width="4" height="11" fill="#0C8F7F" stroke="none"/>
+    <rect x="520" y="124" width="44" height="11"/>
+    <rect x="564" y="124" width="4" height="11" fill="#0C8F7F" stroke="none"/>
+
+    <rect x="96" y="146" width="44" height="11"/>
+    <rect x="92" y="146" width="4" height="11" fill="#0C8F7F" stroke="none"/>
+    <rect x="470" y="146" width="44" height="11"/>
+    <rect x="466" y="146" width="4" height="11" fill="#0C8F7F" stroke="none"/>
+
+    <rect x="200" y="168" width="44" height="11"/>
+    <rect x="244" y="168" width="4" height="11" fill="#0C8F7F" stroke="none"/>
+    <rect x="500" y="168" width="44" height="11"/>
+    <rect x="544" y="168" width="4" height="11" fill="#0C8F7F" stroke="none"/>
+
+    <rect x="140" y="190" width="44" height="11"/>
+    <rect x="136" y="190" width="4" height="11" fill="#0C8F7F" stroke="none"/>
+    <rect x="360" y="190" width="44" height="11"/>
+    <rect x="356" y="190" width="4" height="11" fill="#0C8F7F" stroke="none"/>
+  </g>
+
+  <g transform="translate(379,152)">
+    <circle r="12" fill="#07131A" stroke="#0C8F7F" stroke-width="1.75"/>
+    <circle r="3" fill="#0C8F7F"/>
+    <path d="M0 -18 V-14 M0 14 V18 M-18 0 H-14 M14 0 H18" fill="none" stroke="#0C8F7F" stroke-width="1.25"/>
+  </g>
+
+  <rect x="0" y="228" width="644" height="68" fill="#061014"/>
+  <rect x="0" y="228" width="644" height="3" fill="#0C8F7F"/>
+  <text x="28" y="272" font-family="'Liberation Serif', 'Noto Serif', Georgia, 'Times New Roman', serif" font-size="36" fill="#F4F7F6">Border Crossing</text>
 </svg>

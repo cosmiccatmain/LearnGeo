@@ -1,53 +1,62 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 644 296" width="644" height="296" role="img" aria-label="Continent Sort">
   <!-- LEA-104 brand-new LearnGeo hub cover — vector, not a sheet crop -->
-  
-      <defs>
-        <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#12203A"/><stop offset="100%" stop-color="#0A1024"/>
-        </linearGradient>
-      </defs>
-      <rect width="644" height="296" fill="url(#bg)"/>
-      <rect x="40" y="70" width="564" height="36" rx="8" fill="#1E293B" stroke="#334155" stroke-width="2"/>
-      <rect x="120" y="76" width="110" height="24" rx="6" fill="#0C8F7F"/>
-      <text x="175" y="93" text-anchor="middle" font-family="system-ui,-apple-system,Segoe UI,sans-serif"
-        font-size="13" font-weight="700" fill="#F8FAFC">Kenya</text>
-      <rect x="300" y="76" width="110" height="24" rx="6" fill="#1B4DFF" opacity=".85"/>
-      <text x="355" y="93" text-anchor="middle" font-family="system-ui,-apple-system,Segoe UI,sans-serif"
-        font-size="13" font-weight="700" fill="#F8FAFC">Peru</text>
-      <g transform="translate(70,150)">
-    <rect width="70" height="90" rx="8" fill="#0B1520" stroke="#2DD4BF" stroke-width="2.5"/>
-    <text x="35" y="52" text-anchor="middle" font-family="system-ui,-apple-system,Segoe UI,sans-serif"
-      font-size="16" font-weight="800" fill="#2DD4BF">AF</text>
-  </g> <g transform="translate(160,150)">
-    <rect width="70" height="90" rx="8" fill="#0B1520" stroke="#2DD4BF" stroke-width="2.5"/>
-    <text x="35" y="52" text-anchor="middle" font-family="system-ui,-apple-system,Segoe UI,sans-serif"
-      font-size="16" font-weight="800" fill="#2DD4BF">AS</text>
-  </g> <g transform="translate(250,150)">
-    <rect width="70" height="90" rx="8" fill="#0B1520" stroke="#2DD4BF" stroke-width="2.5"/>
-    <text x="35" y="52" text-anchor="middle" font-family="system-ui,-apple-system,Segoe UI,sans-serif"
-      font-size="16" font-weight="800" fill="#2DD4BF">EU</text>
-  </g> <g transform="translate(340,150)">
-    <rect width="70" height="90" rx="8" fill="#0B1520" stroke="#2DD4BF" stroke-width="2.5"/>
-    <text x="35" y="52" text-anchor="middle" font-family="system-ui,-apple-system,Segoe UI,sans-serif"
-      font-size="16" font-weight="800" fill="#2DD4BF">NA</text>
-  </g> <g transform="translate(430,150)">
-    <rect width="70" height="90" rx="8" fill="#0B1520" stroke="#2DD4BF" stroke-width="2.5"/>
-    <text x="35" y="52" text-anchor="middle" font-family="system-ui,-apple-system,Segoe UI,sans-serif"
-      font-size="16" font-weight="800" fill="#2DD4BF">SA</text>
-  </g> <g transform="translate(520,150)">
-    <rect width="70" height="90" rx="8" fill="#0B1520" stroke="#2DD4BF" stroke-width="2.5"/>
-    <text x="35" y="52" text-anchor="middle" font-family="system-ui,-apple-system,Segoe UI,sans-serif"
-      font-size="16" font-weight="800" fill="#2DD4BF">OC</text>
-  </g>
-    
+  <!-- LEA-133 editorial atlas plate. Original geometry in LearnGeo teal. -->
   <defs>
-    <linearGradient id="titleFade" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#0B1520" stop-opacity="0"/>
-      <stop offset="100%" stop-color="#0B1520" stop-opacity="0.72"/>
-    </linearGradient>
+    <radialGradient id="wash" cx="50%" cy="0%" r="68%">
+      <stop offset="0%" stop-color="#0C8F7F" stop-opacity="0.22"/>
+      <stop offset="64%" stop-color="#0C8F7F" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="grat" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M40 0 H0 V40" fill="none" stroke="#14322E" stroke-width="1"/>
+    </pattern>
   </defs>
-  <rect x="0" y="208" width="644" height="88" fill="url(#titleFade)"/>
-  <text x="28" y="268" font-family="system-ui,-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif"
-    font-size="34" font-weight="800" fill="#FFFFFF" letter-spacing="-0.5">Continent Sort</text>
+  <rect width="644" height="296" fill="#07131A"/>
+  <rect width="644" height="228" fill="url(#grat)"/>
+  <rect width="644" height="296" fill="url(#wash)"/>
+  <rect x="28" y="16" width="588" height="198" fill="#0A161A" stroke="#1E3834" stroke-width="1.75"/>
+
+  <rect x="46" y="30" width="552" height="36" fill="#0C191C" stroke="#1E3834" stroke-width="1.75"/>
+  <g stroke="#234440" stroke-width="1">
+    <path d="M60 66 V58 M88 66 V58 M116 66 V58 M144 66 V58 M172 66 V58 M200 66 V58 M228 66 V58 M256 66 V58 M284 66 V58 M312 66 V58 M340 66 V58 M368 66 V58 M396 66 V58 M424 66 V58 M452 66 V58 M480 66 V58 M508 66 V58 M536 66 V58 M564 66 V58"/>
+  </g>
+
+  <rect x="46" y="34" width="84" height="28" fill="#0C8F7F"/>
+  <text x="88" y="53" text-anchor="middle" font-family="Inter, system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="14" font-weight="600" fill="#F4F7F6">KENYA</text>
+
+  <rect x="422" y="34" width="84" height="28" fill="#101C20" stroke="#3E6A64"/>
+  <text x="464" y="53" text-anchor="middle" font-family="Inter, system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="14" font-weight="600" fill="#D5E3DF">PERU</text>
+
+  <line x1="88" y1="66" x2="88" y2="92" stroke="#0C8F7F" stroke-width="1.25" stroke-dasharray="2 3"/>
+  <path d="M82 88 L88 96 L94 88" fill="none" stroke="#0C8F7F" stroke-width="1.25"/>
+
+  <g font-family="Inter, system-ui, -apple-system, 'Segoe UI', sans-serif" text-anchor="middle">
+    <rect x="46" y="104" width="84" height="92" fill="#0C8F7F"/>
+    <text x="88" y="146" font-size="22" font-weight="600" fill="#F4F7F6">AF</text>
+    <text x="88" y="170" font-size="11" font-weight="600" letter-spacing="1.2" fill="#E7F6F3">AFRICA</text>
+
+    <rect x="140" y="104" width="84" height="92" fill="#101C20" stroke="#234844" stroke-width="1.75"/>
+    <text x="182" y="146" font-size="22" font-weight="600" fill="#C5D6D2">AS</text>
+    <text x="182" y="170" font-size="11" font-weight="600" letter-spacing="1.2" fill="#7E9894">ASIA</text>
+
+    <rect x="234" y="104" width="84" height="92" fill="#101C20" stroke="#234844" stroke-width="1.75"/>
+    <text x="276" y="146" font-size="22" font-weight="600" fill="#C5D6D2">EU</text>
+    <text x="276" y="170" font-size="11" font-weight="600" letter-spacing="1.2" fill="#7E9894">EUROPE</text>
+
+    <rect x="328" y="104" width="84" height="92" fill="#101C20" stroke="#234844" stroke-width="1.75"/>
+    <text x="370" y="146" font-size="22" font-weight="600" fill="#C5D6D2">NA</text>
+    <text x="370" y="170" font-size="11" font-weight="600" letter-spacing="0.6" fill="#7E9894">N. AMER</text>
+
+    <rect x="422" y="104" width="84" height="92" fill="#101C20" stroke="#234844" stroke-width="1.75"/>
+    <text x="464" y="146" font-size="22" font-weight="600" fill="#C5D6D2">SA</text>
+    <text x="464" y="170" font-size="11" font-weight="600" letter-spacing="0.6" fill="#7E9894">S. AMER</text>
+
+    <rect x="516" y="104" width="84" height="92" fill="#101C20" stroke="#234844" stroke-width="1.75"/>
+    <text x="558" y="146" font-size="22" font-weight="600" fill="#C5D6D2">OC</text>
+    <text x="558" y="170" font-size="11" font-weight="600" letter-spacing="0.8" fill="#7E9894">OCEANIA</text>
+  </g>
+
+  <rect x="0" y="228" width="644" height="68" fill="#061014"/>
+  <rect x="0" y="228" width="644" height="3" fill="#0C8F7F"/>
+  <text x="28" y="272" font-family="'Liberation Serif', 'Noto Serif', Georgia, 'Times New Roman', serif" font-size="36" fill="#F4F7F6">Continent Sort</text>
 </svg>

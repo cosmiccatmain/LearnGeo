@@ -1,31 +1,60 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 644 296" width="644" height="296" role="img" aria-label="Capital Whack">
   <!-- LEA-104 brand-new LearnGeo hub cover — vector, not a sheet crop -->
-  
-      <defs>
-        <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#1A3324"/><stop offset="100%" stop-color="#10251A"/>
-        </linearGradient>
-      </defs>
-      <rect width="644" height="296" fill="url(#bg)"/>
-      <ellipse cx="160" cy="125" rx="40" ry="14" fill="#0B1520"/><circle cx="160" cy="98" r="28" fill="#F8FAFC" stroke="#0C8F7F" stroke-width="3"/><g transform="translate(142,86)">
-      <rect width="12" height="24" fill="#009246"/><rect x="12" width="12" height="24" fill="#F8FAFC"/>
-      <rect x="24" width="12" height="24" fill="#CE2B37"/></g> <ellipse cx="320" cy="125" rx="40" ry="14" fill="#0B1520"/><ellipse cx="320" cy="122" rx="28" ry="8" fill="#14532D"/> <ellipse cx="480" cy="125" rx="40" ry="14" fill="#0B1520"/><ellipse cx="480" cy="122" rx="28" ry="8" fill="#14532D"/>
-      <ellipse cx="160" cy="215" rx="40" ry="14" fill="#0B1520"/><ellipse cx="160" cy="212" rx="28" ry="8" fill="#14532D"/> <ellipse cx="320" cy="215" rx="40" ry="14" fill="#0B1520"/><circle cx="320" cy="188" r="28" fill="#F8FAFC" stroke="#0C8F7F" stroke-width="3"/><g transform="translate(302,176)">
-      <rect width="36" height="24" fill="#F8FAFC"/><circle cx="18" cy="12" r="7" fill="#BC002D"/></g> <ellipse cx="480" cy="215" rx="40" ry="14" fill="#0B1520"/><ellipse cx="480" cy="212" rx="28" ry="8" fill="#14532D"/>
-      <g transform="translate(500,40)">
-        <rect width="100" height="34" rx="17" fill="#0B1520" stroke="#FFD23F" stroke-width="2"/>
-        <text x="50" y="23" text-anchor="middle" font-family="system-ui,-apple-system,Segoe UI,sans-serif"
-          font-size="14" font-weight="700" fill="#FFD23F">0:42</text>
-      </g>
-    
+  <!-- LEA-133 editorial atlas plate. Original geometry in LearnGeo teal. -->
   <defs>
-    <linearGradient id="titleFade" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#0B1520" stop-opacity="0"/>
-      <stop offset="100%" stop-color="#0B1520" stop-opacity="0.72"/>
-    </linearGradient>
+    <radialGradient id="wash" cx="82%" cy="18%" r="62%">
+      <stop offset="0%" stop-color="#0C8F7F" stop-opacity="0.26"/>
+      <stop offset="60%" stop-color="#0C8F7F" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="grat" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M40 0 H0 V40" fill="none" stroke="#14322E" stroke-width="1"/>
+    </pattern>
   </defs>
-  <rect x="0" y="208" width="644" height="88" fill="url(#titleFade)"/>
-  <text x="28" y="268" font-family="system-ui,-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif"
-    font-size="34" font-weight="800" fill="#FFFFFF" letter-spacing="-0.5">Capital Whack</text>
+  <rect width="644" height="296" fill="#07131A"/>
+  <rect width="644" height="228" fill="url(#grat)"/>
+  <rect width="644" height="296" fill="url(#wash)"/>
+  <rect x="28" y="16" width="588" height="198" fill="#0A161A" stroke="#1E3834" stroke-width="1.75"/>
+
+  <line x1="318" y1="36" x2="318" y2="194" stroke="#1E3834" stroke-width="1.75"/>
+
+  <g font-family="Inter, system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="12" font-weight="600" text-anchor="middle">
+    <g fill="#081416" stroke="#234844" stroke-width="2">
+      <circle cx="104" cy="50" r="26"/>
+      <circle cx="172" cy="50" r="26"/>
+      <circle cx="104" cy="116" r="26"/>
+      <circle cx="240" cy="116" r="26"/>
+      <circle cx="172" cy="182" r="26"/>
+      <circle cx="240" cy="182" r="26"/>
+    </g>
+    <g fill="#0C8F7F" opacity="0.28">
+      <circle cx="104" cy="50" r="7"/>
+      <circle cx="172" cy="50" r="7"/>
+      <circle cx="104" cy="116" r="7"/>
+      <circle cx="240" cy="116" r="7"/>
+      <circle cx="172" cy="182" r="7"/>
+      <circle cx="240" cy="182" r="7"/>
+    </g>
+
+    <circle cx="240" cy="50" r="26" fill="#D7DEDB" stroke="#6A8480" stroke-width="1.5"/>
+    <text x="240" y="54" fill="#0B1520">LIMA</text>
+
+    <circle cx="172" cy="116" r="26" fill="#F4F1EA" stroke="#0C8F7F" stroke-width="2.25"/>
+    <text x="172" y="120" fill="#0B1520">OSLO</text>
+
+    <circle cx="104" cy="182" r="26" fill="#D7DEDB" stroke="#6A8480" stroke-width="1.5"/>
+    <text x="104" y="186" fill="#0B1520">RIGA</text>
+  </g>
+
+  <g transform="translate(468,114)" fill="none">
+    <circle r="68" stroke="#163430" stroke-width="7"/>
+    <circle r="68" stroke="#0C8F7F" stroke-width="7" stroke-dasharray="268 426" transform="rotate(-90)"/>
+    <circle r="52" stroke="#1E3834" stroke-width="1.75"/>
+  </g>
+  <text x="468" y="108" text-anchor="middle" font-family="'JetBrains Mono', ui-monospace, 'Cascadia Mono', Menlo, Consolas, monospace" font-size="28" fill="#F4F7F6">0:42</text>
+  <text x="468" y="132" text-anchor="middle" font-family="'JetBrains Mono', ui-monospace, 'Cascadia Mono', Menlo, Consolas, monospace" font-size="12" fill="#8FD4C8" letter-spacing="2.2">LEFT</text>
+
+  <rect x="0" y="228" width="644" height="68" fill="#061014"/>
+  <rect x="0" y="228" width="644" height="3" fill="#0C8F7F"/>
+  <text x="28" y="272" font-family="'Liberation Serif', 'Noto Serif', Georgia, 'Times New Roman', serif" font-size="36" fill="#F4F7F6">Capital Whack</text>
 </svg>
