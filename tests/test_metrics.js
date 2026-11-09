@@ -23,6 +23,8 @@ test('metrics-config keeps GA4 empty and uses AJ’s AdSense publisher ID', () =
   vm.runInNewContext(src, { window });
   assert.equal(window.LearnGeoMetricsConfig.GA4_MEASUREMENT_ID, '');
   assert.equal(window.LearnGeoMetricsConfig.ADSENSE_PUBLISHER_ID, PUB);
+  assert.equal(window.LearnGeoMetricsConfig.ADS_ENABLED, false);
+  assert.match(src, /ADS_ENABLED:\s*false/);
 });
 
 test('official AdSense snippet is in every public HTML head', () => {
@@ -75,18 +77,24 @@ test('Games hub has sparse ad slots; in-round play canvas does not', () => {
   assert.match(play, /LearnGeoMetrics\.syncGameplay/);
 });
 
-test('landing and teachers keep a single footer slot; chrome and heroes are gone', () => {
+test('landing and teachers render no footer slot while ads are off', () => {
   const index = read('index.html');
   const teachers = read('teachers.html');
+  const ads = read('assets/js/ads.js');
+  assert.doesNotMatch(index, /data-ad-slot=/);
   assert.doesNotMatch(index, /data-ad-slot="landing-hero"/);
-  assert.match(index, /data-ad-slot="landing-footer"/);
   assert.doesNotMatch(index, /data-ad-slot="app-chrome"/);
   assert.doesNotMatch(index, /id="app-ad-chrome"/);
   assert.match(index, /assets\/js\/ads\.js/);
+  assert.doesNotMatch(teachers, /data-ad-slot=/);
   assert.doesNotMatch(teachers, /data-ad-slot="teachers-hero"/);
-  assert.match(teachers, /data-ad-slot="teachers-footer"/);
+  assert.match(teachers, /assets\/js\/ads\.js/);
+  assert.match(ads, /landing-footer/);
+  assert.match(ads, /teachers-footer/);
+  assert.match(read('assets/js/metrics.js'), /ADS_ENABLED/);
   assert.match(read('assets/css/ads.css'), /html\.ads-gameplay/);
   assert.match(read('assets/css/ads.css'), /html\.ads-explicit/);
+  assert.match(read('assets/css/ads.css'), /html:not\(\.ads-on\)/);
   assert.match(read('assets/css/ads.css'), /#games-stage/);
   assert.match(read('assets/css/ads.css'), /\.map-pane/);
 });

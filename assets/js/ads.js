@@ -1,12 +1,18 @@
 /* ------------------------------------------------------------------
-   LearnGeo — explicit AdSense slots (LEA-118).
+   LearnGeo — explicit AdSense slots (LEA-118), held off (LEA-121).
 
-   Auto ads / page-level ads stay off. Allowed inventory is a short
-   list: home footer, a few Games hub banners, one 20s pre-game
-   interstitial, plus a single footer on the public landing/teachers
-   pages. Premium (flags.premium) skips every slot even while the
-   public paywall is Admin-gated. 100,000,000 gems (economy.diamonds)
-   skips ads for one play; they return on the next session/play.
+   ADS_ENABLED in metrics-config.js is the one switch. While it is
+   false, no slot is rendered and showPregame starts the game
+   immediately. The head snippet and ads.txt stay so review can finish.
+   Set ADS_ENABLED true to mount the same inventory again: home footer,
+   three Games hub banners, a 20s pre-game interstitial, and one footer
+   on the public landing and teachers pages. No left/right rails.
+
+   Auto ads / page-level ads stay off. Premium (flags.premium) skips
+   every slot even while the public paywall is Admin-gated.
+   100,000,000 gems (economy.diamonds) skips ads for one play; they
+   return on the next session/play. Both skips stay dormant until
+   ADS_ENABLED is true.
 -------------------------------------------------------------------*/
 (function (global) {
   'use strict';
@@ -16,6 +22,11 @@
   var GEM_SKIP = 100000000;
   var WAIT_MS = 20000;
   var HUB_AFTER = { 5: 'games-hub-a', 10: 'games-hub-b', 15: 'games-hub-c' };
+  /* Restored as real elements only when ADS_ENABLED is true. */
+  var PAGE_SLOTS = {
+    landing: 'landing-footer',
+    teachers: 'teachers-footer'
+  };
   var overlay = null;
   var tickTimer = null;
   var watchTimer = null;
@@ -30,19 +41,72 @@
     return false;
   }
 
+  function placementsOn() {
+    return cfg.ADS_ENABLED === true;
+  }
+
   function shouldShowAds() {
+    if (!placementsOn()) return false;
     if (premium()) return false;
     if (skipThisPlay) return false;
     return true;
   }
 
   function syncRoot() {
-    var off = !shouldShowAds();
-    if (document.documentElement) {
-      document.documentElement.classList.toggle('ads-off', off);
+    var on = shouldShowAds();
+    if (document.documentElement && document.documentElement.classList) {
+      document.documentElement.classList.toggle('ads-off', !on);
+      document.documentElement.classList.toggle('ads-on', on);
       document.documentElement.classList.add('ads-explicit');
     }
-    return !off;
+    return on;
+  }
+
+  var stripping = false;
+  function stripSlots(root) {
+    if (stripping || !root || typeof root.querySelectorAll !== 'function') return;
+    var nodes = root.querySelectorAll('.ad-slot, .ad-pregame, ins.adsbygoogle, .google-auto-placed, .ad-rail, [data-ad-rail]');
+    if (!nodes.length) return;
+    stripping = true;
+    for (var i = nodes.length - 1; i >= 0; i--) {
+      if (nodes[i].parentNode) nodes[i].parentNode.removeChild(nodes[i]);
+    }
+    stripping = false;
+  }
+
+  function watchStrayAds() {
+    if (placementsOn() || watchStrayAds.started) return;
+    if (typeof MutationObserver !== 'function' || !document.documentElement) return;
+    watchStrayAds.started = true;
+    var obs = new MutationObserver(function () {
+      if (!placementsOn()) stripSlots(document);
+    });
+    obs.observe(document.documentElement, { childList: true, subtree: true });
+  }
+
+  function pageSlotTarget() {
+    if (!document.getElementById) return null;
+    var landing = document.getElementById('landing');
+    if (landing) return { host: landing, id: PAGE_SLOTS.landing };
+    if (!document.querySelector) return null;
+    var teachers = document.querySelector('body > .landing');
+    if (teachers) return { host: teachers, id: PAGE_SLOTS.teachers };
+    return null;
+  }
+
+  function mountPageSlots() {
+    if (!shouldShowAds()) {
+      stripSlots(document);
+      return;
+    }
+    var page = pageSlotTarget();
+    if (!page || !page.host.querySelector) return;
+    if (page.host.querySelector('[data-ad-slot="' + page.id + '"]')) return;
+    var footer = page.host.querySelector(':scope > .footer') || page.host.querySelector('.footer');
+    if (!footer || !footer.parentNode) return;
+    var holder = document.createElement('div');
+    holder.innerHTML = slotHtml(page.id, 'ad-slot--banner');
+    if (holder.firstChild) footer.parentNode.insertBefore(holder.firstChild, footer);
   }
 
   function slotHtml(id, extraClass) {
@@ -238,6 +302,12 @@
   function boot() {
     disablePageLevelAds();
     syncRoot();
+    if (!placementsOn()) {
+      stripSlots(document);
+      watchStrayAds();
+      return;
+    }
+    mountPageSlots();
     fill();
   }
 
@@ -248,14 +318,17 @@
   }
 
   global.LearnGeoAds = {
+    get ADS_ENABLED() { return placementsOn(); },
     PUBLISHER_ID: PUB,
     GEM_SKIP: GEM_SKIP,
     WAIT_MS: WAIT_MS,
     HUB_AFTER: HUB_AFTER,
+    PAGE_SLOTS: PAGE_SLOTS,
     shouldShowAds: shouldShowAds,
     slotHtml: slotHtml,
     homeFooterHtml: homeFooterHtml,
     hubSlotAfter: hubSlotAfter,
+    mountPageSlots: mountPageSlots,
     fill: fill,
     disablePageLevelAds: disablePageLevelAds,
     buySkip: buySkip,

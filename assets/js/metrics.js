@@ -4,7 +4,8 @@
    Empty GA4_MEASUREMENT_ID means zero gtag network calls. AdSense is
    loaded by the official <head> snippet (not from here) so Google's
    site crawler can verify the publisher ID. Auto ads / page-level ads
-   stay off; LearnGeoAds fills the explicit slots (LEA-118).
+   stay off. Explicit slots render only when ADS_ENABLED is true
+   (LEA-118 inventory, held off by LEA-121 during site review).
 -------------------------------------------------------------------*/
 (function (global) {
   'use strict';
@@ -92,8 +93,12 @@
     } catch (err) {}
   }
 
+  function placementsOn() {
+    return cfg.ADS_ENABLED === true;
+  }
+
   function fillSlots() {
-    if (!validAds(adsId) || inRound()) return;
+    if (!placementsOn() || !validAds(adsId) || inRound()) return;
     if (global.LearnGeoAds && global.LearnGeoAds.fill) {
       global.LearnGeoAds.fill();
       return;
