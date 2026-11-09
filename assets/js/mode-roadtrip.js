@@ -24,6 +24,9 @@
    LEA-112 — Self-grant from UltraAdmin forces an immediate path refresh,
    “Chest arrived” toast, above-the-fold gift banner, and fetch-on-enter
    so gifts still show when realtime misses.
+   LEA-123 — Richer chest art (depth, clasp, lid highlight) and a
+   rarity rise. Common is the pewter low tier; Rare / Epic / Legendary
+   share the same chest and step up. Tap-to-raise stays.
 -------------------------------------------------------------------*/
 (function (global) {
   'use strict';
@@ -1916,13 +1919,20 @@
         '<div class="rt-chest__glow" aria-hidden="true"></div>' +
         '<div class="rt-chest__particles" aria-hidden="true"></div>' +
         '<button type="button" class="rt-chest__box" aria-label="Tap Journey chest">' +
-          '<span class="rt-chest__lid"></span>' +
-          '<span class="rt-chest__body"></span>' +
-          '<span class="rt-chest__band"></span>' +
-          '<span class="rt-chest__lock"></span>' +
-          '<span class="rt-chest__burst"></span>' +
+          '<span class="rt-chest__shadow" aria-hidden="true"></span>' +
+          '<span class="rt-chest__well" aria-hidden="true"></span>' +
+          '<span class="rt-chest__body"><span class="rt-chest__face" aria-hidden="true"></span></span>' +
+          '<span class="rt-chest__lid">' +
+            '<span class="rt-chest__shine" aria-hidden="true"></span>' +
+            '<span class="rt-chest__strap" aria-hidden="true"></span>' +
+          '</span>' +
+          '<span class="rt-chest__band" aria-hidden="true"></span>' +
+          '<span class="rt-chest__clasp" aria-hidden="true"></span>' +
+          '<span class="rt-chest__lock" aria-hidden="true"></span>' +
+          '<span class="rt-chest__burst" aria-hidden="true"></span>' +
         '</button>' +
         '<p class="rt-chest__rarity">Common</p>' +
+        '<div class="rt-chest__pips" aria-hidden="true"><i></i><i></i><i></i><i></i></div>' +
         '<p class="rt-chest__status">Tap to push rarity higher</p>' +
         '<div class="rt-chest__rewards" hidden></div>' +
         '<p class="rt-chest__progress" hidden aria-live="polite"></p>' +
