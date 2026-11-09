@@ -1,0 +1,416 @@
+/* ------------------------------------------------------------------
+   LearnGeo — School dashboard (LEA-128).
+
+   Same official shell as Administrator: navy side, paper main,
+   Inter / Instrument Serif / JetBrains Mono from the app. No new
+   typefaces. Sits above the admin page (190) and under modals (200).
+-------------------------------------------------------------------*/
+
+.schooldash {
+  position: fixed;
+  inset: 0;
+  z-index: 195;
+  display: flex;
+  flex-direction: column;
+  background: #EEF3F5;
+  color: var(--ink);
+  font-family: var(--sans);
+}
+
+.schooldash__ribbon {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  background: #0B3A82;
+  color: #fff;
+  font-size: 13px;
+}
+.schooldash__ribbon b {
+  font-weight: 650;
+  letter-spacing: .04em;
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.schooldash__frame {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: row;
+}
+
+.schooldash__side {
+  flex: none;
+  width: 248px;
+  display: flex;
+  flex-direction: column;
+  background: #0B3A82;
+  color: #fff;
+  padding: 18px 14px 14px;
+}
+.schooldash__who {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 4px 8px 16px;
+  border-bottom: 1px solid rgba(255,255,255,.14);
+  margin-bottom: 12px;
+}
+.schooldash__mark {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  flex: none;
+  background: rgba(255,255,255,.14);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #9EC5FF;
+}
+.schooldash__mark svg { width: 22px; height: 22px; }
+.schooldash__who b {
+  display: block;
+  font-size: 14.5px;
+  font-weight: 650;
+}
+.schooldash__who span {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  color: #8EB8F5;
+  font-family: var(--mono);
+}
+.schooldash__nav {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow-y: auto;
+}
+.schooldash__nav button {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: #fff;
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 520;
+  cursor: pointer;
+}
+.schooldash__nav button svg { width: 18px; height: 18px; color: #9EC5FF; }
+.schooldash__nav button:hover { background: rgba(255,255,255,.08); }
+.schooldash__nav button.is-on { background: rgba(255,255,255,.16); }
+.schooldash__foot {
+  border-top: 1px solid rgba(255,255,255,.14);
+  padding-top: 12px;
+}
+.schooldash__foot button {
+  width: 100%;
+  background: transparent;
+  color: #fff;
+  border: 1px solid rgba(255,255,255,.28);
+  border-radius: 10px;
+  padding: 9px 12px;
+  font: inherit;
+  font-size: 13.5px;
+  cursor: pointer;
+}
+.schooldash__foot button:hover { background: rgba(255,255,255,.08); }
+
+.schooldash__main {
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
+  padding: 28px 32px 48px;
+  background: #EEF3F5;
+}
+.schooldash__main h1 {
+  margin: 0 0 6px;
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 34px;
+  letter-spacing: -0.02em;
+}
+.schooldash__lead {
+  margin: 0 0 18px;
+  color: var(--muted);
+  max-width: 62ch;
+}
+
+.schooldash__note {
+  margin: 0 0 16px;
+  padding: 10px 12px;
+  border-radius: var(--r);
+  background: var(--white);
+  border: 1px solid var(--line);
+  font-size: 14px;
+}
+.schooldash__note.is-bad {
+  background: var(--danger-soft);
+  border-color: transparent;
+  color: var(--danger);
+}
+.schooldash__note.is-ok {
+  background: var(--success-soft);
+  border-color: transparent;
+}
+
+.schooldash__grid {
+  display: grid;
+  grid-template-columns: 1.2fr .8fr;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+.schooldash__card {
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  padding: 16px 18px 18px;
+  box-shadow: var(--shadow-sm);
+}
+.schooldash__card h2 {
+  margin: 0 0 8px;
+  font-size: 15px;
+  font-weight: 650;
+}
+.schooldash__card p { margin: 0; color: var(--ink-2); font-size: 14px; }
+
+.schooldash__seats-num {
+  font-family: var(--mono);
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  margin: 4px 0 10px;
+}
+.schooldash__seats-num span { color: var(--muted); font-size: 16px; font-weight: 500; }
+.schooldash__meter {
+  height: 8px;
+  background: var(--line-soft);
+  border-radius: 99px;
+  overflow: hidden;
+}
+.schooldash__meter > i {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  border-radius: 99px;
+}
+
+.schooldash__table-wrap {
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  overflow: auto;
+  box-shadow: var(--shadow-sm);
+}
+.schooldash__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.schooldash__table th {
+  text-align: left;
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--muted);
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+.schooldash__table td {
+  padding: 11px 12px;
+  border-bottom: 1px solid var(--line-soft);
+  vertical-align: middle;
+}
+.schooldash__table tr:last-child td { border-bottom: 0; }
+.schooldash__table .mono { font-size: 12.5px; }
+
+.schooldash__form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: flex-end;
+  margin: 0 0 14px;
+}
+.schooldash__form label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--muted);
+  min-width: 180px;
+  flex: 1;
+}
+.schooldash__form .btn { margin-bottom: 1px; }
+
+.schooldash__class {
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  padding: 16px 18px;
+  margin-bottom: 12px;
+  box-shadow: var(--shadow-sm);
+}
+.schooldash__class-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+.schooldash__class-head .input { flex: 1; min-width: 180px; }
+.schooldash__code {
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--accent-ink);
+  background: var(--accent-soft);
+  border-radius: 8px;
+  padding: 6px 8px;
+}
+.schooldash__people {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 0;
+}
+.schooldash__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px 4px 10px;
+  border-radius: 99px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  font-size: 13px;
+}
+.schooldash__chip button {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font: inherit;
+  padding: 0 2px;
+}
+.schooldash__add {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 8px;
+}
+.schooldash__add select { min-width: 200px; flex: 1; }
+
+.schooldash__danger {
+  color: var(--danger);
+  border-color: transparent;
+  background: var(--danger-soft);
+}
+.schooldash__empty {
+  padding: 22px 16px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.schooldash__search {
+  display: block;
+  margin: 0 0 16px;
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--ink);
+}
+.schooldash__search input {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+  font-weight: 450;
+}
+
+.schooldash__hits { margin: 0 0 16px; }
+.schooldash__hits h2 {
+  margin: 0 0 8px;
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.schooldash__hit {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  margin: 0 0 8px;
+  padding: 12px 14px;
+  text-align: left;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  font: inherit;
+  color: inherit;
+}
+.schooldash__hit b { font-weight: 650; }
+.schooldash__hit span {
+  color: var(--muted);
+  font-size: 13px;
+  font-family: var(--mono);
+}
+
+.schooldash__account-meta {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 14px 16px;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+}
+.schooldash__rules {
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  padding: 8px 16px 4px;
+  margin-bottom: 12px;
+}
+.schooldash__rules h2 {
+  margin: 8px 0 4px;
+  font-family: var(--sans);
+  font-size: 15px;
+  font-weight: 650;
+}
+.schooldash__rules .setting-row { border-bottom: 1px solid var(--line); }
+.schooldash__rules .setting-row:last-child { border-bottom: 0; }
+.schooldash__rules .is-hit { background: var(--accent-soft); }
+.schooldash__row-actions { display: flex; gap: 8px; justify-content: flex-end; }
+
+.school-managed {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  background: var(--white);
+  color: var(--ink-soft, var(--muted));
+  font-family: var(--sans);
+  font-size: 14px;
+}
+.menu .school-managed { margin: 6px 10px; }
+.game-card.is-school { cursor: default; }
+
+@media (max-width: 860px) {
+  .schooldash__frame { flex-direction: column; }
+  .schooldash__side { width: auto; }
+  .schooldash__nav { flex-direction: row; flex-wrap: wrap; }
+  .schooldash__grid { grid-template-columns: 1fr; }
+  .schooldash__account-meta { grid-template-columns: 1fr; }
+  .schooldash__main { padding: 20px 16px 40px; }
+}
+

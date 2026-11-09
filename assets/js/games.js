@@ -872,6 +872,7 @@
       W.save();
     }
     if (!gameShown(g)) return;
+    if (schoolManagedGame(g.id)) return;
     current = g.id;
     toSetup();
   }
@@ -896,6 +897,13 @@
 
   function start() {
     /* ask who is blocked, then redraw if the answer changed anything */
+    if (global.SchoolDashboard && global.SchoolDashboard.onRules && !start.schoolWatch) {
+      start.schoolWatch = true;
+      global.SchoolDashboard.onRules(function () {
+        if (screen === 'hub') renderHub();
+      });
+    }
+    if (global.SchoolDashboard && global.SchoolDashboard.loadRules) global.SchoolDashboard.loadRules();
     if (global.GameBlocks && !start.watching) {
       start.watching = true;
       global.GameBlocks.onChange(function () {
@@ -1153,6 +1161,10 @@
   }
 
   function isBlocked(id) { return !!(global.GameBlocks && global.GameBlocks.blocked(id)); }
+  function schoolManagedGame(id) {
+    return !!(global.SchoolDashboard && global.SchoolDashboard.gameBlocked &&
+      global.SchoolDashboard.gameBlocked(id));
+  }
 
   function premiumPreviewOn() {
     return !!(global.Premium && global.Premium.previewEnabled && global.Premium.previewEnabled());
@@ -1168,8 +1180,9 @@
     if (!gameShown(g)) return '';
     var best = g.best(record(g.id));
     var off = isBlocked(g.id);
-    var guest = !off && needsAccount();
-    var locked = off || guest;
+    var schoolOff = schoolManagedGame(g.id);
+    var guest = !off && !schoolOff && needsAccount();
+    var locked = off || guest || schoolOff;
     var meta = String(g.meta || '').replace(/^(Premium|Plus)\s*·\s*/i, '');
     var invites = 0;
     if (g.id === 'duel' && global.GeoDuel && global.GeoDuel.pendingCount) {
@@ -1179,10 +1192,14 @@
     }
     /* Cover-led chrome. Title lives on the SVG cover; keep an
        sr-only h3 so the button name stays clear. */
-    return '<button class="game-card game-card--cover' + (off ? ' is-blocked' : '') +
-      (guest ? ' is-auth-locked' : '') +
-      '" data-game="' + g.id + '" type="button"' +
-      (locked ? ' aria-disabled="true"' : '') + '>' +
+    var tag = schoolOff ? 'div' : 'button';
+    var attrs = schoolOff
+      ? ' class="game-card game-card--cover is-school" role="group" aria-label="' + esc(g.title) + '"'
+      : ' class="game-card game-card--cover' + (off ? ' is-blocked' : '') +
+          (guest ? ' is-auth-locked' : '') +
+          '" data-game="' + g.id + '" type="button"' +
+          (locked ? ' aria-disabled="true"' : '');
+    return '<' + tag + attrs + '>' +
       '<div class="game-card__media">' +
         '<div class="game-card__art game-art--' + g.art + '" aria-hidden="true">' + art(g.art) +
           (invites ? '<span class="game-card__invite-badge">' + invites + ' invite' + (invites === 1 ? '' : 's') + '</span>' : '') +
@@ -1193,12 +1210,13 @@
         '<p class="game-card__blurb">' + esc(g.blurb) + '</p>' +
         '<div class="game-card__foot"><span>' + esc(meta) + '</span>' +
           (best ? '<span class="game-card__best">' + esc(best) + '</span>' : '') +
-          (off ? '<span class="game-card__go">' + I.lock + ' Blocked by your teacher</span>'
+          (schoolOff ? '<span class="game-card__go">Managed by your school</span>'
+               : off ? '<span class="game-card__go">' + I.lock + ' Blocked by your teacher</span>'
                : guest ? '<span class="game-card__go">' + I.lock + ' Account to play</span>'
                : '<span class="game-card__go">' +
                    (g.id === 'duel' ? 'Challenge ' : 'Play ') + I.arrowR + '</span>') + '</div>' +
       '</div>' +
-    '</button>';
+    '</' + tag + '>';
   }
 
   /* LEA-104 brand-new vector hub covers (not LEA-91 sheet crops). */
@@ -1471,6 +1489,7 @@
   /* ------------------------------ play ------------------------------ */
   function play() {
     var g0 = byId(current);
+    if (schoolManagedGame(g0.id)) { renderHub(); return; }
     if (isBlocked(g0.id)) { blockedToast(); renderHub(); return; }
     if (needsAccount()) {
       promptAccount(function () {

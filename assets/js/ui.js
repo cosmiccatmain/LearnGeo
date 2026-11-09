@@ -238,8 +238,15 @@
       '</div>' +
       acctBlock() +
       item('settings', I.gear, 'Settings') +
-      item('custom', I.palette, 'Customization') +
-      item('friend-inbox', I.inbox, 'Friend inbox') +
+      (schoolCustomizationBlocked()
+        ? schoolManagedNote()
+        : item('custom', I.palette, 'Customization')) +
+      (global.Premium && global.Premium.isSchool && global.Premium.isSchool()
+        ? item('school', I.users, 'School dashboard')
+        : '') +
+      (schoolFeatureBlocked('messaging')
+        ? schoolManagedNote()
+        : item('friend-inbox', I.inbox, 'Friend inbox')) +
       item('achievements', I.trophy, 'Achievements') +
       item('badges', I.shield, 'Badges') +
       '<div class="menu__sep"></div>' +
@@ -263,6 +270,7 @@
         closeMenu();
         if (dest === 'settings') openSettings();
         else if (dest === 'custom') openCustomization();
+        else if (dest === 'school') openSchoolDashboard();
         else if (dest === 'friend-inbox') openFriendInbox();
         else if (dest === 'achievements') go('achievements');
         else if (dest === 'badges') global.Badges.openCase();
@@ -299,14 +307,18 @@
     var general =
       '<div data-panel="general">' +
         '<div class="field"><label class="field__label">Use LearnGeo as</label>' +
-          '<div class="seg" id="set-role">' +
+          (schoolFeatureBlocked('role')
+            ? schoolManagedNote()
+            : '<div class="seg" id="set-role">' +
             '<button data-v="student" class="' + (W.state.role !== 'teacher' ? 'is-active' : '') + '">Student</button>' +
             '<button data-v="teacher" class="' + (W.state.role === 'teacher' ? 'is-active' : '') + '">Teacher</button>' +
-          '</div>' +
+          '</div>') +
           '<div class="field__hint">Switch between study tools and your teacher workspace. Your progress and classes stay saved.</div></div>' +
         '<div class="divider"></div>' +
         row('Sound effects', 'Plays a little sound when you answer.', sw('set-sound', s.sound)) +
-        row('Reward animations', 'Shows confetti, floating XP and profile effects.', sw('set-effects', s.effects)) +
+        (schoolFeatureBlocked('effects')
+          ? row('Reward animations', 'Shows confetti, floating XP and profile effects.', schoolManagedNote())
+          : row('Reward animations', 'Shows confetti, floating XP and profile effects.', sw('set-effects', s.effects))) +
         row('Show capital pins in Learn', 'Puts a pin on the capital as soon as you answer.', sw('set-pins', s.showCapitalPins)) +
         '<div class="divider"></div>' +
         '<div class="field"><label class="field__label">Daily goal</label>' +
@@ -343,7 +355,11 @@
         '<div class="setting-row"><div class="setting-row__t">' +
           '<b>Reset all progress</b><span>This deletes your XP, diamonds, progress, purchases and achievements' +
             (signedIn() ? ', here and in your account' : '') + '. You can’t undo it.</span>' +
-          '</div><button class="btn btn--ghost btn--sm" id="set-reset" style="color:var(--danger);border-color:#F3C6C6">Reset</button></div>' +
+          '</div>' +
+          (schoolFeatureBlocked('reset')
+            ? schoolManagedNote()
+            : '<button class="btn btn--ghost btn--sm" id="set-reset" style="color:var(--danger);border-color:#F3C6C6">Reset</button>') +
+          '</div>' +
       '</div>';
 
     /* The X, Escape and a click outside are all ways people close this, so
@@ -536,6 +552,9 @@
   }
 
   function gamesPanel() {
+    if (schoolFeatureBlocked('gameSkins')) {
+      return '<div data-panel="games" class="hidden"><p class="school-managed">Managed by your school</p></div>';
+    }
     return '<div data-panel="games" class="hidden">' +
       '<div class="row row--between" style="margin-bottom:14px">' +
         '<div><b style="font-size:15px">Games cosmetics</b>' +
@@ -579,6 +598,9 @@
   }
 
   function profilePanel() {
+    if (schoolFeatureBlocked('profile')) {
+      return '<div data-panel="profile"><p class="school-managed">Managed by your school</p></div>';
+    }
     var p = W.state.profile;
     return '<div data-panel="profile">' +
       '<div class="field"><label class="field__label">Display name</label>' +
@@ -676,6 +698,13 @@
   }
 
   function shopPanel(kind) {
+    var gate = {
+      avatars: 'avatar', decorations: 'frames', effects: 'effects',
+      nameplates: 'nameplates', banners: 'banners', themes: 'themes'
+    };
+    if (gate[kind] && schoolFeatureBlocked(gate[kind])) {
+      return '<div data-panel="' + kind + '" class="hidden"><p class="school-managed">Managed by your school</p></div>';
+    }
     var list = (Cos[kind] || []).filter(offerable);
     var slot = LISTS[kind];
     var owned = W.state.owned[kind] || [];
@@ -1516,11 +1545,37 @@
     go('achievements');
   }
 
+  /* LEA-128: Schools buyers only. Preview stays on Administrator → Development. */
+  function openSchoolDashboard() {
+    if (!(global.Premium && global.Premium.isSchool && global.Premium.isSchool())) return;
+    if (global.SchoolDashboard && global.SchoolDashboard.open) {
+      global.SchoolDashboard.open();
+      return;
+    }
+    W.toast('School dashboard', 'Reload the page to open the school dashboard.', I.users, 3200);
+  }
+
+  function schoolFeatureBlocked(id) {
+    return !!(global.SchoolDashboard && global.SchoolDashboard.featureBlocked &&
+      global.SchoolDashboard.featureBlocked(id));
+  }
+  function schoolCustomizationBlocked() {
+    return !!(global.SchoolDashboard && global.SchoolDashboard.customizationBlocked &&
+      global.SchoolDashboard.customizationBlocked());
+  }
+  function schoolManagedNote() {
+    return '<div class="school-managed" role="note">Managed by your school</div>';
+  }
+
   /* LEA-84: Friend inbox lives in the profile menu (beside Customization),
      not under the Achievements tab. */
   function openFriendInbox() {
-    if (global.Premium && global.Premium.blockStudentMessaging &&
-        global.Premium.blockStudentMessaging()) return;
+    if (schoolFeatureBlocked('messaging')) return;
+    if (!(global.SchoolDashboard && global.SchoolDashboard.outsideOnly &&
+          global.SchoolDashboard.outsideOnly())) {
+      if (global.Premium && global.Premium.blockStudentMessaging &&
+          global.Premium.blockStudentMessaging()) return;
+    }
     if (global.AchievementCards && global.AchievementCards.openFriendInbox) {
       global.AchievementCards.openFriendInbox();
       return;

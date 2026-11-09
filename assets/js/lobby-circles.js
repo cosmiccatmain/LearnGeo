@@ -240,17 +240,19 @@
     }
 
     function openChat(tag) {
-      if (global.Premium && global.Premium.blockStudentMessaging &&
-          global.Premium.blockStudentMessaging()) return;
       if (!chatPanel) return;
+      var allowed = !(global.Premium && global.Premium.messagingAllowed) ||
+        global.Premium.messagingAllowed(tag);
       chatPanel.classList.remove('hidden');
       chatPanel.innerHTML =
         '<div class="panel__head"><h3>Chat · ' + esc(tag) + '</h3>' +
           '<button type="button" class="btn btn--ghost btn--sm" data-chat-close>Close</button></div>' +
         '<div class="lobby-chat__thread" data-chat-thread></div>' +
         '<div class="lobby-chat__compose">' +
-          '<input class="input" maxlength="120" data-chat-input placeholder="Say hi (school-safe)…" autocomplete="off">' +
-          '<button type="button" class="btn btn--accent btn--sm" data-chat-send>Send</button>' +
+          (allowed
+            ? '<input class="input" maxlength="120" data-chat-input placeholder="Say hi (school-safe)…" autocomplete="off">' +
+              '<button type="button" class="btn btn--accent btn--sm" data-chat-send>Send</button>'
+            : '<p class="school-managed">Managed by your school</p>') +
         '</div>';
       paintThread(tag);
       W.$('[data-chat-close]', chatPanel).addEventListener('click', function () {
@@ -258,31 +260,40 @@
         chatPanel.innerHTML = '';
       });
       var input = W.$('[data-chat-input]', chatPanel);
+      if (!input) return;
       var send = function () {
         var body = (input.value || '').trim();
         if (!body) return;
-        rpc('pvp_lobby_chat_send', {
-          p_device: deviceId(),
-          p_to_tag: tag,
-          p_lobby: lobby,
-          p_body: body
-        }).then(function (res) {
-          if (!res || !res.ok) {
-            W.toast('Chat failed', errMsg(res && res.error), I.info, 3200);
-            return;
-          }
-          input.value = '';
-          messages.unshift({
-            id: res.id,
-            from_tag: myTag(),
-            to_tag: tag,
-            lobby: lobby,
-            body: body,
-            mine: true,
-            created_at: new Date().toISOString()
+        var post = function () {
+          return rpc('pvp_lobby_chat_send', {
+            p_device: deviceId(),
+            p_to_tag: tag,
+            p_lobby: lobby,
+            p_body: body
+          }).then(function (res) {
+            if (!res || !res.ok) {
+              W.toast('Chat failed', errMsg(res && res.error), I.info, 3200);
+              return;
+            }
+            input.value = '';
+            messages.unshift({
+              id: res.id,
+              from_tag: myTag(),
+              to_tag: tag,
+              lobby: lobby,
+              body: body,
+              mine: true,
+              created_at: new Date().toISOString()
+            });
+            paintThread(tag);
+            W.toast('Sent', 'Message to ' + tag, I.check, 2000);
           });
-          paintThread(tag);
-          W.toast('Sent', 'Message to ' + tag, I.check, 2000);
+        };
+        if (!(global.SchoolDashboard && global.SchoolDashboard.confirmMessage)) return post();
+        global.SchoolDashboard.confirmMessage(tag).then(function (ok) {
+          if (ok) return post();
+          var box = W.$('.lobby-chat__compose', chatPanel);
+          if (box) box.innerHTML = '<p class="school-managed">Managed by your school</p>';
         });
       };
       W.$('[data-chat-send]', chatPanel).addEventListener('click', send);
