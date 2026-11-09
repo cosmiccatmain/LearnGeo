@@ -46,6 +46,10 @@ assert(!/id: 'rain'[\s\S]{0,220}premium:\s*true/.test(cos), 'Monsoon stays on Fr
 assert(!/id: 'wings'/.test(cos), 'Chicken Wings effect is removed from the catalogue');
 assert(!/name: 'Chicken Wings'/.test(cos), 'cosmetics catalogue does not name Chicken Wings');
 assert(!/id: 'wings'/.test(prem), 'Plus extras do not grant Chicken Wings');
+assert(!/Chicken Wings/.test(sub), 'plans copy does not name Chicken Wings');
+assert(/Embers and Deep Current/.test(sub), 'Plus still lists Embers and Deep Current');
+assert(/Ember Wake, Gilded Cube, and Meridian Gold/.test(sub), 'other Plus looks stay listed');
+assert(/Geo Invaders, Flag Breakout, Capital Typer, Flag Echo/.test(sub), 'Plus games stay listed');
 var extraCss = fs.readFileSync(path.join(root, 'assets/css/cosmetics-extra.css'), 'utf8');
 assert(!/\.fx-wing\b|fx-flutter|fx-motion-flutter/.test(extraCss), 'wing-only CSS is gone');
 var coreSrc = fs.readFileSync(path.join(root, 'assets/js/core.js'), 'utf8');

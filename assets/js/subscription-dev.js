@@ -58,7 +58,7 @@
         { t: 'Everything in Free, with no ads', on: true },
         { t: 'Plus badge beside your name', on: true },
         { t: 'Geo Invaders, Flag Breakout, Capital Typer, Flag Echo', on: true },
-        { t: 'Embers, Chicken Wings, and Deep Current', on: true },
+        { t: 'Embers and Deep Current', on: true },
         { t: 'Ember Wake, Gilded Cube, and Meridian Gold', on: true },
         { t: 'Full Geo Classroom', on: false },
         { t: 'Education badge', on: false }
@@ -259,7 +259,7 @@
 
       '<div class="subdev__faq">' +
         '<article><h3>What is Plus for?</h3>' +
-          '<p>No ads. You also get a Plus badge and ten extras already in LearnGeo: Geo Invaders, Flag Breakout, Capital Typer, Flag Echo, Embers, Chicken Wings, Deep Current, Ember Wake, Gilded Cube, and Meridian Gold.</p></article>' +
+          '<p>No ads. You also get a Plus badge and nine extras already in LearnGeo: Geo Invaders, Flag Breakout, Capital Typer, Flag Echo, Embers, Deep Current, Ember Wake, Gilded Cube, and Meridian Gold.</p></article>' +
         '<article><h3>How does the Schools slider work?</h3>' +
           '<p>$2 per student. Drag the slider to set how many students, and the card shows count × $2. Mock checkout only.</p></article>' +
         '<article><h3>What do Schools accounts not get?</h3>' +
