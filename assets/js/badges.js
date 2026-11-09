@@ -14,11 +14,11 @@
                    revoked.
      granted       an admin turned it on. No rule, no way to earn it, and
                    the only thing that can set it is the admin panel.
-     entitlement   follows an account flag (Premium). Awarded once when
-                   the flag is on (idempotent), greyed in the case and
-                   hidden beside the name when it lapses. Mock subscribe,
-                   admin grant, and a later Stripe path all land here
-                   because they all set flags.premium.
+     entitlement   follows an account plan (Plus / Schools). Awarded
+                   once when the plan is on (idempotent), greyed in the
+                   case and hidden beside the name when it lapses. Mock
+                   subscribe, admin grant, and a later Stripe path all
+                   land here because they set flags.plan / flags.premium.
 
    Admin is the reason the earned/granted split exists. A badge that says
    somebody runs this thing must not be reachable by playing well.
@@ -54,7 +54,11 @@
     mark: '<rect x="4.3" y="4.3" width="7.1" height="7.1" rx=".7"/>' +
           '<path d="M12.5 11.4V4.3A7.1 7.1 0 0 1 19.6 11.4Z"/>' +
           '<path d="M4.3 12.5h7.1v7.1A7.1 7.1 0 0 1 4.3 12.5Z"/>' +
-          '<circle cx="16.04" cy="16.04" r="3.55"/>'
+          '<circle cx="16.04" cy="16.04" r="3.55"/>',
+    /* Mortarboard. Filled, distinct from the LearnGeo mark. Not a Stripe glyph. */
+    cap: '<path d="M12 3.4 2.4 8.2 12 13l9.6-4.8L12 3.4z"/>' +
+         '<path d="M6.4 10.1v4.4c0 2.3 2.5 4.1 5.6 4.1s5.6-1.8 5.6-4.1v-4.4"/>' +
+         '<path d="M21.6 8.2v5.4"/><circle cx="21.6" cy="14.4" r="1.15"/>'
   };
 
   function art(id) { return ART[id] || ART.star; }
@@ -63,10 +67,13 @@
      tone drives the plate colour in the case and the tint beside a name.
   ------------------------------------------------------------------ */
   var BADGES = [
-    /* ---- entitlement. Follows flags.premium; not an admin switch. ---- */
-    { id: 'premium', name: 'Premium', art: 'mark', tone: 'premium', fill: true,
-      entitlement: 'premium',
-      desc: 'Subscribe to LearnGeo Premium. Shows while Premium is active on this account.' },
+    /* ---- entitlement. Follows flags.plan; not an admin switch. ---- */
+    { id: 'plus', name: 'Plus', art: 'mark', tone: 'plus', fill: true,
+      entitlement: 'plus',
+      desc: 'Subscribe to LearnGeo Plus. No ads, and ten extra games and looks. Shows while Plus or Schools is active.' },
+    { id: 'education', name: 'Education', art: 'cap', tone: 'education', fill: true,
+      entitlement: 'education',
+      desc: 'Subscribe to LearnGeo Schools. Full Geo Classroom. Shows while a Schools plan is active on this account.' },
 
     /* ---- granted only. No rule, so nothing here can be played into. ---- */
     { id: 'admin', name: 'Admin', art: 'key', tone: 'admin', grant: true,
@@ -222,9 +229,10 @@
   ------------------------------------------------------------------ */
   function evaluate() {
     var s = W.state, fresh = [];
-    var hadPrem = has('premium');
-    var prem = syncPremium({ announce: false, save: false, paint: false });
-    if (prem) fresh.push(prem);
+    var hadPlus = has('plus');
+    var hadEdu = has('education');
+    var awarded = syncPlans({ announce: false, save: false, paint: false });
+    if (awarded && awarded.length) fresh = fresh.concat(awarded);
     BADGES.forEach(function (b) {
       if (granted(b) || entitlement(b) || !b.test) return;
       if (has(b.id)) return;
@@ -232,8 +240,8 @@
       try { ok = !!b.test(s); } catch (e) { ok = false; }
       if (ok) { owned().push(b.id); fresh.push(b); }
     });
-    if (fresh.length || hadPrem !== has('premium')) W.save();
-    if (hadPrem !== has('premium')) paintHud();
+    if (fresh.length || hadPlus !== has('plus') || hadEdu !== has('education')) W.save();
+    if (hadPlus !== has('plus') || hadEdu !== has('education')) paintHud();
     return fresh;
   }
 
@@ -299,10 +307,33 @@
     return true;
   }
 
-  /* LEA-119: award / grey the Premium badge from flags.premium.
-     Returns the badge when it was newly awarded, otherwise null. */
-  function premiumFlagOn() {
-    return !!(W.state && W.state.flags && W.state.flags.premium);
+  /* LEA-119 / LEA-122: award / grey Plus and Education from the plan.
+     Mock subscribe counts. Returns newly awarded badges (empty if the
+     sync changed nothing — idempotent). Legacy id 'premium' migrates
+     to 'plus' so an older grant still shows. */
+  function currentPlan() {
+    if (global.Premium && typeof global.Premium.plan === 'function') {
+      return global.Premium.plan();
+    }
+    var f = (W.state && W.state.flags) || {};
+    if (f.plan === 'schools' || f.school === true) return 'schools';
+    if (f.plan === 'plus' || f.premium) return 'plus';
+    return 'free';
+  }
+
+  function migrateLegacyPremium() {
+    if (!has('premium')) return;
+    var seen = {};
+    W.state.badges = owned().map(function (x) { return x === 'premium' ? 'plus' : x; })
+      .filter(function (x) {
+        if (seen[x]) return false;
+        seen[x] = true;
+        return true;
+      });
+    var p = W.state.profile;
+    if (p && Array.isArray(p.badgeSlots)) {
+      p.badgeSlots = p.badgeSlots.map(function (x) { return x === 'premium' ? 'plus' : x; });
+    }
   }
 
   function paintHud() {
@@ -321,23 +352,38 @@
     else if (W.save) W.save();
   }
 
-  function syncPremium(opts) {
-    opts = opts || {};
-    var b = find('premium');
-    if (!b || !W || !W.state) return null;
-    var on = premiumFlagOn();
+  function syncOne(id, on, fresh) {
+    var b = find(id);
+    if (!b) return;
     if (on) {
-      if (!addOwned('premium')) return null;
-      persist(opts);
-      if (opts.announce) announce([b]);
-      if (opts.paint !== false) paintHud();
-      return b;
+      if (addOwned(id)) fresh.push(b);
+      return;
     }
-    if (dropOwned('premium')) {
-      persist(opts);
-      if (opts.paint !== false) paintHud();
-    }
-    return null;
+    dropOwned(id);
+  }
+
+  function syncPlans(opts) {
+    opts = opts || {};
+    if (!W || !W.state) return [];
+    migrateLegacyPremium();
+    var id = currentPlan();
+    var beforePlus = has('plus');
+    var beforeEdu = has('education');
+    var fresh = [];
+    syncOne('plus', id === 'plus' || id === 'schools', fresh);
+    syncOne('education', id === 'schools', fresh);
+    var changed = fresh.length || beforePlus !== has('plus') || beforeEdu !== has('education');
+    if (changed) persist(opts);
+    if (opts.announce && fresh.length) announce(fresh);
+    if (changed && opts.paint !== false) paintHud();
+    return fresh;
+  }
+
+  /* Older callers (admin inbox, account adopt, setLocal) keep this name.
+     Returns the first newly awarded badge, or null when nothing new. */
+  function syncPremium(opts) {
+    var fresh = syncPlans(opts);
+    return fresh && fresh.length ? fresh[0] : null;
   }
 
   function setShown(ids) {
@@ -451,7 +497,7 @@
 
   global.Badges = {
     all: all, find: find, has: has, owned: owned, shown: shown, granted: granted,
-    entitlement: entitlement, syncPremium: syncPremium,
+    entitlement: entitlement, syncPremium: syncPremium, syncPlans: syncPlans,
     evaluate: evaluate, announce: announce, noteAnswerTime: noteAnswerTime,
     grant: grant, revoke: revoke, setShown: setShown,
     markup: markup, svg: svg, openCase: openCase,

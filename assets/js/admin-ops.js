@@ -350,6 +350,14 @@
     staff:    function (id, on)           { return call('ultra_set_staff', { p_target: id, p_on: !!on }); },
     /* LEA-43: account Premium (not teacher-based). Same Ultra gate as staff. */
     premium:  function (id, on)           { return call('ultra_set_premium', { p_target: id, p_on: !!on }); },
+    /* LEA-122: Schools seat count. Falls back to the boolean premium RPC. */
+    plan:     function (id, plan, students) {
+      return call('ultra_set_plan', {
+        p_target: id,
+        p_plan: plan || 'free',
+        p_students: students || 0
+      });
+    },
     message:  function (id, text)         { return call('ultra_send_message', { p_target: id, p_text: String(text || '') }); },
     /* 0011. Messages to this account and their replies, oldest first. */
     thread:   function (id)               { return call('ultra_message_thread', { p_target: id }); },

@@ -32,25 +32,39 @@ assert(/id: 'golf'/.test(games) && !/id: 'golf'[\s\S]{0,80}premium:\s*true/.test
   'Geo Golf stays free (LEA-62)');
 assert(/id: 'orbit'/.test(games) && !/id: 'orbit'[\s\S]{0,80}premium:\s*true/.test(games),
   'Globe Defender stays free (LEA-62)');
-assert(/id: 'invaders'[\s\S]*?premium:\s*true/.test(games), 'Geo Invaders is Premium');
-assert(/id: 'echo'[\s\S]*?premium:\s*true/.test(games), 'Flag Echo is Premium');
-assert(/id: 'embers'[\s\S]*?premium:\s*true/.test(cos), 'Embers effect is Premium');
-assert(/id: 'bubbles'[\s\S]*?premium:\s*true/.test(cos), 'Deep Current is Premium');
-assert(/id: 'rain'[\s\S]*?premium:\s*true/.test(cos), 'Monsoon is Premium');
-assert(/id: 'wings'[\s\S]*?premium:\s*true/.test(cos), 'Wings is Premium');
-assert(/id: 'gambling'[\s\S]*?premium:\s*true/.test(cos), 'Gambling is Premium');
+assert(/id: 'invaders'[\s\S]{0,80}premium:\s*true/.test(games), 'Geo Invaders is a Plus extra');
+assert(/id: 'breakout'[\s\S]{0,80}premium:\s*true/.test(games), 'Flag Breakout is a Plus extra');
+assert(/id: 'typer'[\s\S]{0,80}premium:\s*true/.test(games), 'Capital Typer is a Plus extra');
+assert(/id: 'echo'[\s\S]{0,80}premium:\s*true/.test(games), 'Flag Echo is a Plus extra');
+assert(!/id: 'crossing'[\s\S]{0,80}premium:\s*true/.test(games), 'Border Crossing stays on Free');
+assert(!/id: 'whack'[\s\S]{0,80}premium:\s*true/.test(games), 'Capital Whack stays on Free');
+assert(!/id: 'sort'[\s\S]{0,80}premium:\s*true/.test(games), 'Continent Sort stays on Free');
+assert(!/id: 'stack'[\s\S]{0,80}premium:\s*true/.test(games), 'Capital Stack stays on Free');
+assert(/id: 'embers'[\s\S]{0,220}premium:\s*true/.test(cos), 'Embers effect is a Plus extra');
+assert(/id: 'bubbles'[\s\S]{0,220}premium:\s*true/.test(cos), 'Deep Current is a Plus extra');
+assert(!/id: 'rain'[\s\S]{0,220}premium:\s*true/.test(cos), 'Monsoon stays on Free');
+assert(/id: 'wings'[\s\S]{0,220}premium:\s*true/.test(cos), 'Chicken Wings is a Plus extra');
+assert(!/id: 'gambling'[\s\S]{0,280}premium:\s*true/.test(cos), 'Gambling stays on Free');
 assert(/id: 'spark'[\s\S]*?price:\s*0/.test(cos), 'Atlas Sparks is free');
 assert(!/id: 'spark'[\s\S]{0,120}premium:\s*true/.test(cos), 'Atlas Sparks is not Premium');
 assert(/PREMIUM_GAMES/.test(prem) && /invaders:\s*true/.test(prem) && /echo:\s*true/.test(prem),
-  'premium.js lists gated lesser-played games');
+  'premium.js lists the Plus games');
+assert(!/crossing:\s*true/.test(prem) && !/whack:\s*true/.test(prem) && !/stack:\s*true/.test(prem),
+  'premium.js does not gate Crossing, Whack, or Stack');
+assert(/PLUS_EXTRAS/.test(prem) && /catalogueVisible/.test(prem),
+  'Free catalogue hides Plus extras while the preview gate is on');
+assert(/function gameShown/.test(games) && /visibleGames/.test(games),
+  'Games hub drops Plus titles for Free instead of rendering locks');
+assert(!/game-card__prem-badge/.test(games) && !/Premium · Upgrade/.test(games),
+  'hub cards do not tease locked Plus games');
+assert(!/\(prem \?/.test(games),
+  'hub cards do not reference a removed prem flag');
 assert(!/golf:\s*true/.test(prem) && !/orbit:\s*true/.test(prem),
   'premium.js does not gate Golf or Globe Defender (LEA-62)');
 assert(!/chess:\s*true/.test(prem) && !/dash:\s*true/.test(prem),
   'premium.js does not gate Chess or Dash');
 assert(/crown:/.test(fs.readFileSync(path.join(root, 'assets/js/core.js'), 'utf8')),
-  'Icons.crown exists for Premium locks');
-assert(/game-card__crown|game-card__prem-badge/.test(games),
-  'Games hub renders crown / Premium badge on locked cards');
+  'Icons.crown still exists');
 assert(/ultra_set_premium/.test(sql), 'SQL exposes ultra_set_premium');
 assert(/premium_game_ids/.test(sql), 'SQL lists premium_game_ids');
 assert(/raise exception 'premium'/.test(sql), 'submit_game_score refuses Premium without flag');
@@ -64,10 +78,14 @@ assert(/'invaders'/.test(sql22) && /'echo'/.test(sql22) && /'breakout'/.test(sql
   '0022 keeps remaining Premium arcade titles');
 assert(!/'golf'/.test(sql22) && !/'orbit'/.test(sql22),
   '0022 unlocks Golf and Globe Defender');
-assert(/name: 'Premium'/.test(sub), 'plans UI uses Premium label');
+assert(/name: 'Free'/.test(sub) && /name: 'Plus'/.test(sub) && /name: 'Schools'/.test(sub),
+  'plans UI uses Free, Plus, and Schools');
+assert(!/name: 'Premium'/.test(sub), 'plans UI does not keep the Premium plan name');
+assert(/\$2/.test(sub) && /id="subdev-students"/.test(sub) && /How many students/.test(sub),
+  'Schools card has a $2 student slider');
+assert(/No ads/.test(sub) && /Education badge/.test(sub) && /Geo Classroom/.test(sub),
+  'Plus is no ads; Schools has the Education badge and Geo Classroom');
 assert(!/Brainrot/i.test(sub), 'no Brainrot copy in subscription UI');
-assert(/not tied to being a teacher/i.test(sub) || /not teacher/i.test(sub),
-  'copy says Premium is not teacher-based');
 assert(/alexjschendel@gmail\.com/.test(sub), 'owner TEST email kept');
 assert(/previewEnabled/.test(prem) && /setPreviewEnabled/.test(prem),
   'premium.js exposes Development preview switch');
@@ -85,9 +103,9 @@ assert(/trails:\s*TRAILS/.test(cos), 'cosmetics exports trails');
 assert(/jumpers:\s*JUMPERS/.test(cos), 'cosmetics exports jumpers');
 assert(/id: 'dust'[\s\S]*?price:\s*0/.test(cos), 'Chalk Dust trail is free');
 assert(/id: 'classic'[\s\S]*?price:\s*0/.test(cos), 'Classic jumper is free');
-assert(/id: 'ember'[\s\S]*?premium:\s*true/.test(cos), 'Ember Wake trail is Premium');
-assert(/id: 'neon'[\s\S]*?premium:\s*true/.test(cos), 'Neon Stream trail is Premium');
-assert(/id: 'gilded'[\s\S]*?premium:\s*true/.test(cos), 'Gilded Cube jumper is Premium');
+assert(/id: 'ember'[\s\S]{0,180}premium:\s*true/.test(cos), 'Ember Wake trail is a Plus extra');
+assert(!/name: 'Neon Stream'[\s\S]{0,160}premium:\s*true/.test(cos), 'Neon Stream stays on Free');
+assert(/name: 'Gilded Cube'[\s\S]{0,180}premium:\s*true/.test(cos), 'Gilded Cube jumper is a Plus extra');
 assert(/dashTrail/.test(prem) && /dashJumper/.test(prem),
   'premium.js strips Geo Dash cosmetics without entitlement');
 
@@ -98,6 +116,8 @@ assert(/'ember',\s*'neon',\s*'aurora'/.test(sql16), '0016 lists Premium trails')
 assert(/'aurora',\s*'gilded'/.test(sql16), '0016 lists Premium jumpers');
 
 var ui = fs.readFileSync(path.join(root, 'assets/js/ui.js'), 'utf8');
+assert(/plusItemVisible/.test(ui),
+  'Customise hides Plus skins and profile looks from Free');
 assert(/vt\('games'/.test(ui), 'Customise has Games tab');
 assert(/gamesPanel/.test(ui) && /Geo Dash cosmetics/.test(ui), 'Games panel for dash cosmetics');
 var gamesPanelChunk = (ui.match(/function gamesPanel[\s\S]*?function gamesSection/) || [''])[0];
@@ -118,9 +138,9 @@ assert(/matchBacks:\s*MATCH_BACKS/.test(cos), 'cosmetics exports matchBacks');
 assert(/mazeRunners:\s*MAZE_RUNNERS/.test(cos), 'cosmetics exports mazeRunners');
 assert(/duelAccents:\s*DUEL_ACCENTS/.test(cos), 'cosmetics exports duelAccents');
 assert(/id: 'parchment'[\s\S]*?price:\s*0/.test(cos), 'Parchment chess board is free');
-assert(/id: 'meridian'[\s\S]*?premium:\s*true/.test(cos), 'Meridian chess board is Premium');
-assert(/SNAKE_BODIES[\s\S]*?id: 'neon'[\s\S]*?premium:\s*true/.test(cos),
-  'Neon snake coil is Premium');
+assert(/id: 'meridian'[\s\S]{0,160}premium:\s*true/.test(cos), 'Meridian Gold is a Plus extra');
+assert(!/name: 'Neon Coil'[\s\S]{0,140}premium:\s*true/.test(cos),
+  'Neon snake coil stays on Free');
 assert(/chessBoard/.test(prem) && /snakeBody/.test(prem) && /duelAccent/.test(prem),
   'premium.js strips LEA-59 Games cosmetics without entitlement');
 
@@ -174,19 +194,29 @@ assert(/cmd === 'cooking'|cmd === \"cooking\"/.test(admin),
   'Commands include cooking loader preview');
 assert(/ReferralTrial/.test(prem), 'premium.js honors referral trial');
 
-/* LEA-119: Premium collection badge (same gallery as profile / badge case). */
+/* LEA-119 / LEA-122: Plus and Education badges in the existing case. */
 var badgesSrc = fs.readFileSync(path.join(root, 'assets/js/badges.js'), 'utf8');
 var badgesCss = fs.readFileSync(path.join(root, 'assets/css/badges.css'), 'utf8');
 var inbox = fs.readFileSync(path.join(root, 'assets/js/admin-inbox.js'), 'utf8');
-assert(/id:\s*'premium'/.test(badgesSrc) && /entitlement:\s*'premium'/.test(badgesSrc),
-  'badges.js catalogues a Premium entitlement badge');
-assert(/art:\s*'mark'/.test(badgesSrc) && /fill:\s*true/.test(badgesSrc),
-  'Premium badge uses filled LearnGeo brand-mark art');
-assert(/syncPremium/.test(badgesSrc), 'badges.js exports syncPremium');
+var sql34 = fs.readFileSync(path.join(root, 'supabase/deployed/0034_plus_schools_plans.sql'), 'utf8');
+assert(/id:\s*'plus'/.test(badgesSrc) && /name:\s*'Plus'/.test(badgesSrc),
+  'badges.js catalogues a Plus entitlement badge');
+assert(/id:\s*'education'/.test(badgesSrc) && /name:\s*'Education'/.test(badgesSrc),
+  'badges.js catalogues a distinct Education badge');
+assert(/art:\s*'mark'/.test(badgesSrc) && /art:\s*'cap'/.test(badgesSrc) && /fill:\s*true/.test(badgesSrc),
+  'Plus uses the filled brand mark; Education uses a cap');
+assert(/syncPremium/.test(badgesSrc) && /syncPlans/.test(badgesSrc),
+  'badges.js exports syncPremium and syncPlans');
 assert(/Stripe glyph|Not a Stripe/i.test(badgesSrc) || /not a Stripe/i.test(badgesSrc),
-  'Premium art is documented as not a Stripe glyph');
-assert(/bdg--premium/.test(badgesCss) && /#12907B/.test(badgesCss),
-  'Premium tone uses LearnGeo brand teal');
+  'Plus art is documented as not a Stripe glyph');
+assert(/bdg--plus/.test(badgesCss) && /#12907B/.test(badgesCss),
+  'Plus tone uses LearnGeo brand teal');
+assert(/bdg--education/.test(badgesCss) && /#1E3A5F/.test(badgesCss),
+  'Education tone is navy, not the Plus teal');
+assert(/'invaders', 'breakout', 'typer', 'echo'/.test(sql34),
+  '0034 gates only the four Plus games');
+assert(/ultra_set_plan/.test(sql34) && /flags,plan/.test(sql34),
+  '0034 can grant a plan and freezes flags.plan');
 assert(/function W\(\)|global\.WW/.test(prem) && /core\.js loads after/.test(prem),
   'premium.js resolves WW at call time (core.js loads after it)');
 assert(/syncPremium/.test(prem), 'Premium.setLocal syncs the badge');

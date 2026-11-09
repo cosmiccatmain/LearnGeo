@@ -112,6 +112,10 @@ test('Premium flag skips ads even when the paywall preview is off', () => {
   assert.equal(ctx.window.LearnGeoAds.shouldShowAds(), false);
   assert.equal(ctx.window.LearnGeoAds.homeFooterHtml(), '');
   assert.equal(ctx.window.LearnGeoAds.hubSlotAfter(5), '');
+  ctx.window.WW.state.flags = { plan: 'schools', school: true, premium: false };
+  ctx.window.Premium.active = function () { return false; };
+  assert.equal(ctx.window.LearnGeoAds.shouldShowAds(), false);
+  assert.equal(ctx.window.LearnGeoAds.schoolAccount(), true);
 });
 
 test('100,000,000 gems skip uses economy.diamonds and fails clearly when broke', () => {

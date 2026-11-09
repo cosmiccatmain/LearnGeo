@@ -20,8 +20,11 @@
 .bdg--red    { --bdg-fg: #BE123C; --bdg-bg: #FEE9EF; --bdg-ring: #F7C3D2; }
 .bdg--teal   { --bdg-fg: #0E7490; --bdg-bg: #E2F4F9; --bdg-ring: #B3E0EC; }
 .bdg--indigo { --bdg-fg: #4338CA; --bdg-bg: #EBEBFC; --bdg-ring: #CACAF6; }
-/* Brand teal tile — LearnGeo mark, not Stripe. Ink stays teal on plates. */
+/* Plus: brand teal tile — LearnGeo mark, not Stripe. */
+.bdg--plus,
 .bdg--premium { --bdg-fg: #12907B; --bdg-bg: #E4F5F2; --bdg-ring: #B5E4DC; }
+/* Education: navy tile and gold cap, distinct from the Plus mark. */
+.bdg--education { --bdg-fg: #1E3A5F; --bdg-bg: #F4EFE6; --bdg-ring: #D9CBB2; }
 
 /* -------------------- the chip beside a name --------------------- */
 .bdg-row {
@@ -56,16 +59,29 @@
   box-shadow: inset 0 0 0 1px var(--bdg-ring), 0 1px 2px rgba(185,28,28,.18);
 }
 
-/* Premium chip: the teal brand tile with white mark geometry. */
+/* Plus chip: the teal brand tile with white mark geometry. */
+.bdg.bdg--plus:not(.bdg--plate),
 .bdg.bdg--premium:not(.bdg--plate) {
   background: #12907B;
   color: #fff;
   box-shadow: inset 0 0 0 1px #0E7A68, 0 1px 2px rgba(18,144,123,.22);
 }
+.bdg-card.is-held .bdg-card__plate.bdg--plus,
 .bdg-card.is-held .bdg-card__plate.bdg--premium {
   background: #12907B;
   color: #fff;
   box-shadow: inset 0 0 0 1px #0E7A68;
+}
+/* Education chip: navy tile, gold cap — not the Plus teal mark. */
+.bdg.bdg--education:not(.bdg--plate) {
+  background: #1E3A5F;
+  color: #F6E7C1;
+  box-shadow: inset 0 0 0 1px #152C49, 0 1px 2px rgba(30,58,95,.22);
+}
+.bdg-card.is-held .bdg-card__plate.bdg--education {
+  background: #1E3A5F;
+  color: #F6E7C1;
+  box-shadow: inset 0 0 0 1px #152C49;
 }
 
 /* -------------------------- the case ----------------------------- */
@@ -114,8 +130,12 @@
   background: var(--white);
 }
 .adm-bdg__row.is-on { border-color: var(--bdg-ring); background: var(--bdg-bg); }
+.adm-bdg__row.is-on.bdg--plus .adm-bdg__plate,
 .adm-bdg__row.is-on.bdg--premium .adm-bdg__plate {
   background: #12907B; color: #fff; box-shadow: inset 0 0 0 1px #0E7A68;
+}
+.adm-bdg__row.is-on.bdg--education .adm-bdg__plate {
+  background: #1E3A5F; color: #F6E7C1; box-shadow: inset 0 0 0 1px #152C49;
 }
 .adm-bdg__plate {
   width: 30px; height: 30px; border-radius: 9px; flex: none;

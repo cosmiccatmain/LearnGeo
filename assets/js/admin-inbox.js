@@ -154,12 +154,16 @@
         /* Wearing an effect you no longer hold would leave it on show
            with no way to pick it again. */
         if (!d.on && s.profile && s.profile.effect === 'staff') s.profile.effect = 'none';
-      } else if (r.action === 'premium') {
-        s.flags.premium = !!d.on;
-        premiumNow = !!d.on;
-        if (!d.on && global.Premium && global.Premium.stripUnearnedCosmetics) {
-          global.Premium.stripUnearnedCosmetics();
+      } else if (r.action === 'premium' || r.action === 'plan') {
+        var planId = d.plan === 'schools' || d.plan === 'plus' || d.plan === 'free' ? d.plan : (d.on ? 'plus' : 'free');
+        if (global.Premium && global.Premium.setPlan) {
+          global.Premium.setPlan(planId, { students: d.students });
+        } else {
+          s.flags.plan = planId;
+          s.flags.premium = planId !== 'free';
+          s.flags.school = planId === 'schools';
         }
+        premiumNow = planId !== 'free';
       }
       s.flags.adminAt = r.created_at;
     });
@@ -191,10 +195,10 @@
       W.toast('The LearnGeo Staff effect was removed', '', I.info, 4800);
     }
     if (premiumNow === true) {
-      W.toast('Premium unlocked',
-        'Premium Games and profile effects are available on this account.', I.sparkle, 6000);
+      W.toast('Plan updated',
+        'Plus or Schools is on for this account. No ads.', I.sparkle, 6000);
     } else if (premiumNow === false) {
-      W.toast('Premium removed', 'Premium Games and effects are locked again.', I.info, 4800);
+      W.toast('Back on Free', 'Plus games and looks are hidden again.', I.info, 4800);
     }
   }
 

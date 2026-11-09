@@ -32,7 +32,16 @@
     } catch (err) { /* insights script is absent on a local Python server */ }
   }
 
+  function schoolAccount() {
+    if (global.LearnGeoAds && typeof global.LearnGeoAds.schoolAccount === 'function') {
+      return !!global.LearnGeoAds.schoolAccount();
+    }
+    var f = global.WW && global.WW.state && global.WW.state.flags;
+    return !!(f && (f.plan === 'schools' || f.school === true));
+  }
+
   function loadGtag() {
+    if (schoolAccount()) return;
     if (!validGa(gaId) || gaReady) return;
     gaReady = true;
     global.dataLayer = global.dataLayer || [];
@@ -49,6 +58,7 @@
     path = path || (global.location.pathname + global.location.search);
     if (path === lastPath) return;
     lastPath = path;
+    if (schoolAccount()) return;
     vaEvent('page_view', { path: path });
     if (gaReady && typeof global.gtag === 'function') {
       global.gtag('event', 'page_view', { page_path: path, page_location: global.location.href });
@@ -74,6 +84,7 @@
   }
 
   function disablePageLevelAds() {
+    if (schoolAccount()) return;
     if (!validAds(adsId)) return;
     if (document.documentElement && document.documentElement.classList &&
         document.documentElement.classList.add) {

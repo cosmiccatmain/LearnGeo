@@ -682,6 +682,10 @@
   }
 
   function sendCard(tag, achievementId) {
+    if (global.Premium && global.Premium.blockStudentMessaging &&
+        global.Premium.blockStudentMessaging()) {
+      return Promise.resolve({ ok: false, error: 'school' });
+    }
     if (!signedIn()) return Promise.resolve({ ok: false, error: 'guest' });
     if (!tag || !/^[A-Za-z0-9_]{3,16}$/.test(tag)) {
       return Promise.resolve({ ok: false, error: 'invalid_tag' });
@@ -706,6 +710,10 @@
   }
 
   function sendWallet(tag) {
+    if (global.Premium && global.Premium.blockStudentMessaging &&
+        global.Premium.blockStudentMessaging()) {
+      return Promise.resolve({ ok: false, error: 'school' });
+    }
     if (!signedIn()) return Promise.resolve({ ok: false, error: 'guest' });
     if (!tag || !/^[A-Za-z0-9_]{3,16}$/.test(tag)) {
       return Promise.resolve({ ok: false, error: 'invalid_tag' });
@@ -1751,6 +1759,8 @@
   }
 
   function openFriendInbox() {
+    if (global.Premium && global.Premium.blockStudentMessaging &&
+        global.Premium.blockStudentMessaging()) return;
     if (!global.UI || !global.UI.modal) return;
     if (inboxModalRoot && inboxModalRoot.isConnected) {
       paintInboxModal();
