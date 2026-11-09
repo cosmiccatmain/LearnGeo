@@ -110,10 +110,13 @@
             '</div>' +
           '</div>' +
         '</div>' +
+        (global.LearnGeoAds && global.LearnGeoAds.homeFooterHtml
+          ? global.LearnGeoAds.homeFooterHtml() : '') +
       '</div>';
 
     global.WorldMap.paint(document.getElementById('home-map'));
     wire(host);
+    if (global.LearnGeoAds && global.LearnGeoAds.fill) global.LearnGeoAds.fill(host);
   }
 
   function tearPortalLive() {

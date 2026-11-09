@@ -140,10 +140,6 @@ def page(path, title, desc, body, crumbs, extra_ld=None):
 <main class="sp-main">
 <nav class="sp-crumbs" aria-label="Breadcrumb">%(nav)s</nav>
 %(body)s
-<aside class="ad-slot ad-slot--banner sp-ad" data-ad-slot="seo" aria-label="Advertisement">
-  <span class="ad-slot__label">Advertisement</span>
-  <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-6903921330074472" data-ad-format="auto" data-full-width-responsive="true"></ins>
-</aside>
 </main>
 <footer class="sp-foot">
   <span>© LearnGeo · Learn every country and capital, free.</span>

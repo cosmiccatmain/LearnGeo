@@ -72,7 +72,7 @@ class SeoTests(unittest.TestCase):
             self.assertIn('crossorigin="anonymous"', text)
             self.assertIn('/assets/js/metrics-config.js', text)
             self.assertIn('/assets/js/metrics.js', text)
-            self.assertIn('data-ad-slot="seo"', text)
+            self.assertNotIn('data-ad-slot="seo"', text)
             self.assertNotIn('gtag/js?id=G-', text)
 
 
