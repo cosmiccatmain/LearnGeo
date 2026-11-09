@@ -120,32 +120,58 @@
     /* Free solid effect — soft atlas sparks so Free accounts get a real
        animated look without touching the Premium catalogue. */
     { id: 'spark', name: 'Atlas Sparks', price: 0, shape: 'spark',
-      colors: ['#1B4DFF', '#22D3EE', '#F5B301'], motion: 'twinkle', count: 18,
+      colors: ['#1B4DFF', '#22D3EE', '#F5B301'], motion: 'twinkle', count: 22,
+      layers: ['glow', 'bokeh'], glow: ['#1B4DFF', '#22D3EE', '#F5B301'],
+      also: [{ shape: 'flare', colors: ['#FFFFFF', '#BFDBFE'], motion: 'glimmer', count: 8 }],
       blurb: 'Soft brand sparks across your card. Free for every explorer.' },
     { id: 'confetti', name: 'Confetti', price: 500, shape: 'rect',
-      colors: ['#1B4DFF', '#F5B301', '#0E9F6E', '#FB7185'], motion: 'tumble', count: 22 },
+      colors: ['#1B4DFF', '#F5B301', '#0E9F6E', '#FB7185'], motion: 'tumble', count: 30,
+      layers: ['glow', 'pop'], glow: ['#1B4DFF', '#F5B301', '#FB7185'],
+      also: [{ shape: 'streamer', colors: ['#1B4DFF', '#F5B301', '#0E9F6E', '#FB7185', '#A78BFA'], motion: 'tumble', count: 10 },
+             { shape: 'spark', colors: ['#FFFFFF', '#FDE68A'], motion: 'glimmer', count: 8 }] },
     { id: 'snow', name: 'Snowfall', price: 500, shape: 'dot',
-      colors: ['#BAE6FD', '#E0F2FE', '#FFFFFF'], motion: 'drift', count: 24 },
+      colors: ['#BAE6FD', '#E0F2FE', '#FFFFFF'], motion: 'drift', count: 34,
+      layers: ['frost', 'glow'], glow: ['#BAE6FD', '#E0F2FE', '#93C5FD'],
+      also: [{ shape: 'flake', colors: ['#FFFFFF', '#E0F2FE'], motion: 'drift', count: 10 },
+             { shape: 'flare', colors: ['#FFFFFF'], motion: 'glimmer', count: 6 }] },
     { id: 'stars', name: 'Starfall', price: 800, shape: 'star',
-      colors: ['#F5B301', '#FDE68A', '#FFF7ED'], motion: 'twinkle-fall', count: 16 },
+      colors: ['#F5B301', '#FDE68A', '#FFF7ED'], motion: 'twinkle-fall', count: 18,
+      layers: ['night', 'glow'], glow: ['#F5B301', '#6366F1', '#FDE68A'],
+      also: [{ shape: 'streak', colors: ['#FFFFFF', '#FDE68A'], motion: 'shoot', count: 4 },
+             { shape: 'flare', colors: ['#FFFFFF', '#FEF3C7'], motion: 'glimmer', count: 10 }] },
     { id: 'leaves', name: 'Drifting Leaves', price: 800, shape: 'leaf',
-      colors: ['#16A34A', '#84CC16', '#CA8A04'], motion: 'sway', count: 14 },
+      colors: ['#16A34A', '#84CC16', '#CA8A04'], motion: 'sway', count: 18,
+      layers: ['sunbeam', 'glow'], glow: ['#FDE68A', '#84CC16', '#CA8A04'],
+      also: [{ shape: 'orb', colors: ['#FEF9C3', '#D9F99D'], motion: 'glimmer', count: 8 }] },
     { id: 'petals', name: 'Cherry Drift', price: 900, shape: 'petal',
-      colors: ['#FB7185', '#F9A8D4', '#FDA4AF'], motion: 'sway', count: 16 },
+      colors: ['#FB7185', '#F9A8D4', '#FDA4AF'], motion: 'sway', count: 24,
+      layers: ['glow', 'bokeh'], glow: ['#FB7185', '#F9A8D4', '#FFE4E6'],
+      also: [{ shape: 'flare', colors: ['#FFFFFF', '#FBCFE8'], motion: 'glimmer', count: 8 }] },
     { id: 'bubbles', name: 'Deep Current', price: 1200, shape: 'ring',
-      colors: ['#0EA5E9', '#22D3EE', '#67E8F9'], motion: 'rise', count: 16, premium: true,
+      colors: ['#0EA5E9', '#22D3EE', '#67E8F9'], motion: 'rise', count: 22, premium: true,
+      layers: ['tide', 'bokeh'], glow: ['#0EA5E9', '#22D3EE', '#67E8F9'],
+      also: [{ shape: 'orb', colors: ['#A5F3FC', '#E0F2FE'], motion: 'rise', count: 10 }],
       blurb: 'Bubbles rising through deep water. Premium.' },
     { id: 'rain', name: 'Monsoon', price: 1200, shape: 'drop',
-      colors: ['#38BDF8', '#0284C7', '#7DD3FC'], motion: 'rain', count: 28, premium: true,
+      colors: ['#38BDF8', '#0284C7', '#7DD3FC'], motion: 'rain', count: 36, premium: true,
+      layers: ['mist', 'glow'], glow: ['#0284C7', '#38BDF8', '#1E3A8A'],
+      also: [{ shape: 'splash', colors: ['#BAE6FD', '#E0F2FE'], motion: 'splash', count: 10 }],
       blurb: 'Fast monsoon streaks. Premium.' },
     { id: 'embers', name: 'Embers', price: 1800, shape: 'ember',
-      colors: ['#F97316', '#DC2626', '#F5B301'], motion: 'embers', count: 20, premium: true,
+      colors: ['#F97316', '#DC2626', '#F5B301'], motion: 'embers', count: 26, premium: true,
+      layers: ['heat', 'glow'], glow: ['#F97316', '#DC2626', '#F5B301'],
+      also: [{ shape: 'spark', colors: ['#FDE047', '#FFFFFF'], motion: 'glimmer', count: 8 }],
       blurb: 'Glowing embers drifting upward. Premium.' },
     { id: 'wings', name: 'Chicken Wings', price: 900, shape: 'wing',
-      colors: ['#B45309', '#D97706', '#92400E', '#C2410C'], motion: 'flutter', count: 12, premium: true,
+      colors: ['#B45309', '#D97706', '#92400E', '#C2410C'], motion: 'flutter', count: 16, premium: true,
+      layers: ['glow', 'sunbeam'], glow: ['#F59E0B', '#FDE68A', '#C2410C'],
+      also: [{ shape: 'flare', colors: ['#FFFFFF', '#FDE68A'], motion: 'glimmer', count: 8 }],
       blurb: 'Fluttering wings across the card. Premium.' },
     { id: 'gambling', name: 'Gambling', price: 1500, shape: 'dice',
       colors: ['#FFFFFF', '#FEF3C7', '#F1F5F9'], motion: 'tumble', count: 14, premium: true,
+      layers: ['felt', 'sheen'], glow: ['#16A34A', '#F5B301', '#065F46'],
+      also: [{ shape: 'coin', colors: ['#FDE047', '#F5B301', '#FBBF24'], motion: 'tumble', count: 10 },
+             { shape: 'flare', colors: ['#FFFFFF', '#FDE68A'], motion: 'glimmer', count: 8 }],
       blurb: 'Dice tumbling over your profile. Premium.' },
 
     /* ------------------------- Luxe collection ------------------------
@@ -219,27 +245,31 @@
        `earn` is deliberately a string no achievement uses. If one ever
        did, holding that achievement would hand out the staff effect. */
     { id: 'staff', name: 'LearnGeo Staff', price: 0, shape: 'crest',
-      colors: ['#1B4DFF', '#F5B301', '#22D3EE'], motion: 'twinkle', count: 18,
+      colors: ['#1B4DFF', '#F5B301', '#22D3EE'], motion: 'twinkle', count: 22,
+      layers: ['glow', 'sheen'], glow: ['#1B4DFF', '#F5B301', '#22D3EE'],
+      also: [{ shape: 'flare', colors: ['#FFFFFF', '#FDE68A'], motion: 'glimmer', count: 10 }],
       earn: 'staff-grant', staff: true,
       blurb: 'Brand-mark sparks in LearnGeo blue and gold. Granted from the Administrator page and nowhere else.' },
     { id: 'fx-keeper', name: 'Secret Keeper', price: 0, shape: 'star',
-      colors: ['#F5B301', '#7C3AED', '#F472B6'], motion: 'twinkle-fall', count: 16,
+      colors: ['#F5B301', '#7C3AED', '#F472B6'], motion: 'twinkle-fall', count: 18,
+      layers: ['nebula', 'glow'], glow: ['#7C3AED', '#F5B301', '#F472B6'],
+      also: [{ shape: 'flare', colors: ['#FFFFFF', '#FDE68A'], motion: 'glimmer', count: 10 }],
       earn: 'secret', secret: '*' }
   ];
 
   /* Nameplates — the bar the display name sits on. */
   var NAMEPLATES = [
     { id: 'none', name: 'None', price: 0, css: 'transparent', text: '#0A0A0B' },
-    { id: 'parchment', name: 'Parchment', price: 0, css: 'linear-gradient(90deg,#F8F1E3,#E8D9C0)', text: '#3B2F1A' },
-    { id: 'slate', name: 'Slate', price: 200, css: 'linear-gradient(90deg,#111827,#374151)', text: '#FFFFFF' },
-    { id: 'cobalt', name: 'Cobalt', price: 400, css: 'linear-gradient(90deg,#1B4DFF,#4F7BFF)', text: '#FFFFFF' },
-    { id: 'forest', name: 'Forest', price: 400, css: 'linear-gradient(90deg,#065F46,#10B981)', text: '#FFFFFF' },
-    { id: 'harbor', name: 'Harbor', price: 450, css: 'linear-gradient(90deg,#0F766E,#14B8A6)', text: '#ECFEFF' },
-    { id: 'sunset', name: 'Sunset', price: 700, css: 'linear-gradient(90deg,#F97316,#EC4899)', text: '#FFFFFF' },
-    { id: 'lagoon', name: 'Lagoon', price: 700, css: 'linear-gradient(90deg,#0EA5E9,#22D3EE)', text: '#053345' },
-    { id: 'orchid', name: 'Orchid', price: 1000, css: 'linear-gradient(90deg,#7C3AED,#C084FC)', text: '#FFFFFF' },
-    { id: 'gilded', name: 'Gilded', price: 1600, css: 'linear-gradient(90deg,#B45309,#F5B301)', text: '#2A1A00' },
-    { id: 'antipodes', name: 'Antipodes', price: 0, css: 'linear-gradient(90deg,#DC2626,#0A0A0B 50%,#1B4DFF)', text: '#FFFFFF', earn: 'secret', secret: 'antipodes' }
+    { id: 'parchment', name: 'Parchment', price: 0, css: 'linear-gradient(90deg,#F8F1E3,#E8D9C0)', text: '#3B2F1A', glow: '#C8A97A' },
+    { id: 'slate', name: 'Slate', price: 200, css: 'linear-gradient(90deg,#111827,#374151)', text: '#FFFFFF', glow: '#94A3B8' },
+    { id: 'cobalt', name: 'Cobalt', price: 400, css: 'linear-gradient(90deg,#1B4DFF,#4F7BFF)', text: '#FFFFFF', glow: '#4F7BFF' },
+    { id: 'forest', name: 'Forest', price: 400, css: 'linear-gradient(90deg,#065F46,#10B981)', text: '#FFFFFF', glow: '#34D399' },
+    { id: 'harbor', name: 'Harbor', price: 450, css: 'linear-gradient(90deg,#0F766E,#14B8A6)', text: '#ECFEFF', glow: '#2DD4BF' },
+    { id: 'sunset', name: 'Sunset', price: 700, css: 'linear-gradient(90deg,#F97316,#EC4899)', text: '#FFFFFF', glow: '#F472B6' },
+    { id: 'lagoon', name: 'Lagoon', price: 700, css: 'linear-gradient(90deg,#0EA5E9,#22D3EE)', text: '#053345', glow: '#22D3EE' },
+    { id: 'orchid', name: 'Orchid', price: 1000, css: 'linear-gradient(90deg,#7C3AED,#C084FC)', text: '#FFFFFF', glow: '#C084FC' },
+    { id: 'gilded', name: 'Gilded', price: 1600, css: 'linear-gradient(90deg,#B45309,#F5B301)', text: '#2A1A00', glow: '#F5B301' },
+    { id: 'antipodes', name: 'Antipodes', price: 0, css: 'linear-gradient(90deg,#DC2626,#0A0A0B 50%,#1B4DFF)', text: '#FFFFFF', glow: '#F43F5E', earn: 'secret', secret: 'antipodes' }
   ];
 
   /* Banners — the strip behind the top of the profile card. */
@@ -598,6 +628,67 @@
     return slot.answered || 0;
   }
 
+  /* ------------------------ visual intensity ------------------------
+     One scale for every cosmetic so a 2000-diamond frame always looks
+     like more than a 300 one. 0 = free, 1 = rare, 2 = epic,
+     3 = legendary (and anything earned through a secret or staff),
+     4 = Luxe. cosmetics-plus.css keys its animation layers off it. */
+  function level(it) {
+    if (!it) return 0;
+    if (it.tier === 'luxe') return 4;
+    if (it.earn) return 3;
+    var p = it.price || 0;
+    if (p <= 0) return 0;
+    if (p < 500) return 1;
+    if (p < 1000) return 2;
+    return 3;
+  }
+  var RARITY = ['common', 'rare', 'epic', 'legendary', 'mythic'];
+  function rarity(it) {
+    if (it && it.earn) return it.secret ? 'secret' : (it.staff ? 'staff' : 'earned');
+    return RARITY[level(it)];
+  }
+
+  function attr(v) { return String(v == null ? '' : v).replace(/[^#0-9A-Za-z(),.% -]/g, ''); }
+
+  /* The frame drawn around an avatar. Shared by core.js avatarHtml and
+     the shop tile, so what you buy is exactly what everyone sees. */
+  function decoHtml(d) {
+    if (!d || d.kind === 'none') return '';
+    var lv = level(d);
+    var vars = '--d1:' + attr(d.c1) + ';--d2:' + attr(d.c2 || d.c1);
+    var key = attr(d.id).replace(/^ring-/, '');
+    var sparks = lv >= 2
+      ? '<span class="avatar__sparks" aria-hidden="true" style="' + vars + '"><i></i><i></i><i></i></span>' : '';
+    if (d.kind === 'ring') {
+      return '<span class="avatar__ring ar ar--l' + lv + ' ar--' + key + '" style="' + vars + '">' +
+        '<i class="ar__spin"></i>' + (lv >= 1 ? '<i class="ar__glint"></i>' : '') + '</span>' + sparks;
+    }
+    if (d.kind === 'orbit') {
+      return '<span class="avatar__orbit ao ao--l' + lv + '" style="' + vars + '">' +
+        '<i class="ao__c ao__c1"></i><i class="ao__c ao__c2"></i></span>' + sparks;
+    }
+    if (d.kind === 'badge') {
+      var Av = global.Avatars;
+      return '<span class="avatar__halo ah--l' + lv + '" aria-hidden="true" style="' + vars + '"></span>' +
+        '<span class="avatar__badge avatar__badge--fx" style="color:' + attr(d.c1) + ';' + vars + '">' +
+        (Av ? Av.badge(d.badge, d.c1) : '') + '</span>';
+    }
+    return '';
+  }
+
+  /* Animated scenery layered over a banner's gradient. */
+  function bannerScene(b) {
+    if (!b) return '';
+    return '<span class="bnr bnr--' + attr(b.id) + ' bnr--l' + level(b) + '" aria-hidden="true"><i></i><i></i><b></b></span>';
+  }
+
+  /* Classes + vars for a nameplate. 'none' gets nothing. */
+  function plateFx(n) {
+    if (!n || n.id === 'none') return { cls: '', style: '' };
+    return { cls: ' np np--l' + level(n) + ' np--' + attr(n.id), style: ';--np-glow:' + attr(n.glow || n.text) };
+  }
+
   global.Cosmetics = {
     decorations: DECORATIONS,
     effects: EFFECTS,
@@ -616,6 +707,12 @@
     duelAccents: DUEL_ACCENTS,
     achievements: ACHIEVEMENTS,
     earned: EARNED,
+
+    level: level,
+    rarity: rarity,
+    decoHtml: decoHtml,
+    bannerScene: bannerScene,
+    plateFx: plateFx,
 
     /* LEA-74 — seasonal / time-limited challenge windows. */
     seasonInWindow: seasonInWindow,
