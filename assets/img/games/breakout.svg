@@ -1,48 +1,81 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 644 296" width="644" height="296" role="img" aria-label="Flag Breakout">
   <!-- LEA-104 brand-new LearnGeo hub cover — vector, not a sheet crop -->
-  
-      <defs>
-        <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#1A2248"/><stop offset="100%" stop-color="#070A18"/>
-        </linearGradient>
-      </defs>
-      <rect width="644" height="296" fill="url(#bg)"/>
-      <rect x="48" y="36" width="60" height="28" rx="4" fill="#D7262B"
-        stroke="#0B1520" stroke-width="1.5"/><rect x="116" y="36" width="60" height="28" rx="4" fill="#1B4DFF"
-        stroke="#0B1520" stroke-width="1.5"/><rect x="184" y="36" width="60" height="28" rx="4" fill="#0E9F6E"
-        stroke="#0B1520" stroke-width="1.5"/><rect x="252" y="36" width="60" height="28" rx="4" fill="#F5B301"
-        stroke="#0B1520" stroke-width="1.5"/><rect x="320" y="36" width="60" height="28" rx="4" fill="#8B5CF6"
-        stroke="#0B1520" stroke-width="1.5"/><rect x="388" y="36" width="60" height="28" rx="4" fill="#22D3EE"
-        stroke="#0B1520" stroke-width="1.5"/><rect x="456" y="36" width="60" height="28" rx="4" fill="#F97316"
-        stroke="#0B1520" stroke-width="1.5"/><rect x="524" y="36" width="60" height="28" rx="4" fill="#EC4899"
-        stroke="#0B1520" stroke-width="1.5"/><rect x="48" y="72" width="60" height="28" rx="4" fill="#D7262B"
-        stroke="#0B1520" stroke-width="1.5"/><rect x="116" y="72" width="60" height="28" rx="4" fill="#1B4DFF"
-        stroke="#0B1520" stroke-width="1.5"/><rect x="184" y="72" width="60" height="28" rx="4" fill="#0E9F6E"
-        stroke="#0B1520" stroke-width="1.5"/><rect x="252" y="72" width="60" height="28" rx="4" fill="#F5B301"
-        stroke="#0B1520" stroke-width="1.5"/><rect x="320" y="72" width="60" height="28" rx="4" fill="#8B5CF6"
-        stroke="#FFD23F" stroke-width="3.5"/><rect x="388" y="72" width="60" height="28" rx="4" fill="#22D3EE"
-        stroke="#0B1520" stroke-width="1.5"/><rect x="456" y="72" width="60" height="28" rx="4" fill="#F97316"
-        stroke="#0B1520" stroke-width="1.5"/><rect x="524" y="72" width="60" height="28" rx="4" fill="#EC4899"
-        stroke="#0B1520" stroke-width="1.5"/><rect x="48" y="108" width="60" height="28" rx="4" fill="#D7262B"
-        stroke="#0B1520" stroke-width="1.5"/><rect x="116" y="108" width="60" height="28" rx="4" fill="#1B4DFF"
-        stroke="#0B1520" stroke-width="1.5"/><rect x="184" y="108" width="60" height="28" rx="4" fill="#0E9F6E"
-        stroke="#0B1520" stroke-width="1.5"/><rect x="252" y="108" width="60" height="28" rx="4" fill="#F5B301"
-        stroke="#0B1520" stroke-width="1.5"/><rect x="320" y="108" width="60" height="28" rx="4" fill="#8B5CF6"
-        stroke="#0B1520" stroke-width="1.5"/><rect x="388" y="108" width="60" height="28" rx="4" fill="#22D3EE"
-        stroke="#0B1520" stroke-width="1.5"/><rect x="456" y="108" width="60" height="28" rx="4" fill="#F97316"
-        stroke="#0B1520" stroke-width="1.5"/><rect x="524" y="108" width="60" height="28" rx="4" fill="#EC4899"
-        stroke="#0B1520" stroke-width="1.5"/>
-      <circle cx="360" cy="170" r="11" fill="#F8FAFC" stroke="#7CF3FF" stroke-width="3"/>
-      <rect x="270" y="240" width="100" height="14" rx="7" fill="#7CF3FF" stroke="#0B1520" stroke-width="2"/>
-    
-  <defs>
-    <linearGradient id="titleFade" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#0B1520" stop-opacity="0"/>
-      <stop offset="100%" stop-color="#0B1520" stop-opacity="0.72"/>
-    </linearGradient>
-  </defs>
-  <rect x="0" y="208" width="644" height="88" fill="url(#titleFade)"/>
-  <text x="28" y="268" font-family="system-ui,-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif"
-    font-size="34" font-weight="800" fill="#FFFFFF" letter-spacing="-0.5">Flag Breakout</text>
+  <!-- LEA-134 editorial plate: flag wall, one marked brick, putt of the ball -->
+  <rect width="644" height="296" fill="#E7EEF1"/>
+  <rect x="0" y="206" width="644" height="90" fill="#0B1520"/>
+  <rect x="0" y="206" width="644" height="3" fill="#0C8F7F"/>
+
+  <rect x="78" y="16" width="488" height="96" fill="none" stroke="#0B1520" stroke-opacity="0.18" stroke-width="1"/>
+
+  <!-- six by three specimen wall. Target is the Japan brick, ringed in teal. -->
+  <g stroke="#0B1520" stroke-width="1">
+    <g transform="translate(90,26)">
+      <rect width="70" height="22" fill="#0055A4"/><rect x="23.3" width="23.4" height="22" fill="#F7FBFC"/><rect x="46.7" width="23.3" height="22" fill="#EF4135"/>
+    </g>
+    <g transform="translate(168,26)">
+      <rect width="70" height="7.4" fill="#000"/><rect y="7.3" width="70" height="7.4" fill="#DD0000"/><rect y="14.6" width="70" height="7.4" fill="#FFCE00"/>
+    </g>
+    <g transform="translate(246,26)">
+      <rect width="70" height="22" fill="#F7FBFC"/><circle cx="35" cy="11" r="6" fill="#BC002D" stroke="none"/>
+    </g>
+    <g transform="translate(324,26)">
+      <rect width="23.3" height="22" fill="#008751"/><rect x="23.3" width="23.4" height="22" fill="#F7FBFC"/><rect x="46.7" width="23.3" height="22" fill="#008751"/>
+    </g>
+    <g transform="translate(402,26)">
+      <rect width="23.3" height="22" fill="#009246"/><rect x="23.3" width="23.4" height="22" fill="#F7FBFC"/><rect x="46.7" width="23.3" height="22" fill="#CE2B37"/>
+    </g>
+    <g transform="translate(480,26)">
+      <rect width="70" height="7.4" fill="#AE1C28"/><rect y="7.3" width="70" height="7.4" fill="#F7FBFC"/><rect y="14.6" width="70" height="7.4" fill="#21468B"/>
+    </g>
+
+    <g transform="translate(90,54)">
+      <rect width="23.3" height="22" fill="#009246"/><rect x="23.3" width="23.4" height="22" fill="#F7FBFC"/><rect x="46.7" width="23.3" height="22" fill="#CE2B37"/>
+    </g>
+    <g transform="translate(168,54)">
+      <rect width="70" height="7.4" fill="#AE1C28"/><rect y="7.3" width="70" height="7.4" fill="#F7FBFC"/><rect y="14.6" width="70" height="7.4" fill="#21468B"/>
+    </g>
+    <g transform="translate(246,54)">
+      <rect width="70" height="22" fill="#0055A4"/><rect x="23.3" width="23.4" height="22" fill="#F7FBFC"/><rect x="46.7" width="23.3" height="22" fill="#EF4135"/>
+    </g>
+    <g transform="translate(324,54)">
+      <rect width="23.3" height="22" fill="#009246"/><rect x="23.3" width="23.4" height="22" fill="#F7FBFC"/><rect x="46.7" width="23.3" height="22" fill="#CE2B37"/>
+    </g>
+    <g transform="translate(402,54)">
+      <rect width="70" height="7.4" fill="#000"/><rect y="7.3" width="70" height="7.4" fill="#DD0000"/><rect y="14.6" width="70" height="7.4" fill="#FFCE00"/>
+    </g>
+    <g transform="translate(480,54)">
+      <rect width="23.3" height="22" fill="#008751"/><rect x="23.3" width="23.4" height="22" fill="#F7FBFC"/><rect x="46.7" width="23.3" height="22" fill="#008751"/>
+    </g>
+
+    <g transform="translate(90,82)">
+      <rect width="70" height="7.4" fill="#000"/><rect y="7.3" width="70" height="7.4" fill="#DD0000"/><rect y="14.6" width="70" height="7.4" fill="#FFCE00"/>
+    </g>
+    <g transform="translate(168,82)">
+      <rect width="70" height="22" fill="#F7FBFC"/><circle cx="35" cy="11" r="6" fill="#BC002D" stroke="none"/>
+    </g>
+    <g transform="translate(246,82)">
+      <rect width="23.3" height="22" fill="#008751"/><rect x="23.3" width="23.4" height="22" fill="#F7FBFC"/><rect x="46.7" width="23.3" height="22" fill="#008751"/>
+    </g>
+    <g transform="translate(324,82)">
+      <rect width="70" height="22" fill="#F7FBFC"/><circle cx="35" cy="11" r="6" fill="#BC002D" stroke="none"/>
+    </g>
+    <g transform="translate(402,82)">
+      <rect width="70" height="22" fill="#0055A4"/><rect x="23.3" width="23.4" height="22" fill="#F7FBFC"/><rect x="46.7" width="23.3" height="22" fill="#EF4135"/>
+    </g>
+    <g transform="translate(480,82)">
+      <rect width="70" height="7.4" fill="#AE1C28"/><rect y="7.3" width="70" height="7.4" fill="#F7FBFC"/><rect y="14.6" width="70" height="7.4" fill="#21468B"/>
+    </g>
+  </g>
+  <rect x="320" y="78" width="78" height="30" fill="none" stroke="#0C8F7F" stroke-width="2"/>
+
+  <!-- trajectory stops short of the marked brick, in the open lane below the wall -->
+  <path d="M244 160 C292 156 328 146 348 134" fill="none" stroke="#0B1520" stroke-width="1.5" stroke-dasharray="2 5"/>
+  <polygon points="356,118 348,132 364,130" fill="#0B1520"/>
+  <circle cx="244" cy="168" r="8" fill="#0B1520"/>
+  <rect x="188" y="184" width="120" height="8" fill="#0C8F7F"/>
+  <line x1="150" y1="196" x2="494" y2="196" stroke="#0B1520" stroke-opacity="0.18" stroke-width="1"/>
+
+  <line x1="28" y1="232" x2="76" y2="232" stroke="#0C8F7F" stroke-width="3"/>
+  <text x="28" y="270" font-family="Inter, 'Noto Sans', 'Segoe UI', Helvetica, Arial, sans-serif" font-size="34" font-weight="600" fill="#F7FBFC" letter-spacing="-0.6">Flag Breakout</text>
 </svg>

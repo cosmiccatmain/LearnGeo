@@ -1,39 +1,42 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 644 296" width="644" height="296" role="img" aria-label="Geo Golf">
   <!-- LEA-104 brand-new LearnGeo hub cover — vector, not a sheet crop -->
-  
-      <defs>
-        <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#1E3A5F"/><stop offset="100%" stop-color="#0B1520"/>
-        </linearGradient>
-        <linearGradient id="fairway" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#22C55E"/><stop offset="100%" stop-color="#166534"/>
-        </linearGradient>
-      </defs>
-      <rect width="644" height="296" fill="url(#bg)"/>
-      <ellipse cx="360" cy="210" rx="240" ry="70" fill="url(#fairway)" opacity=".95"/>
-      <ellipse cx="200" cy="180" rx="90" ry="36" fill="#15803D" opacity=".7"/>
-      <path d="M140 200 Q220 140 320 160 T480 120" fill="none" stroke="#F8FAFC" stroke-width="3"
-        stroke-dasharray="8 10" opacity=".55"/>
-      <circle cx="160" cy="188" r="12" fill="#F8FAFC" stroke="#0B1520" stroke-width="2"/>
-      <g transform="translate(470,70)">
-        <line x1="0" y1="0" x2="0" y2="110" stroke="#F8FAFC" stroke-width="3"/>
-        <path d="M0 8 L48 22 L0 36 Z" fill="#EF4444"/>
-        <ellipse cx="0" cy="112" rx="14" ry="5" fill="#0B1520" opacity=".45"/>
-      </g>
-      <g transform="translate(70,48)">
-        <rect width="132" height="34" rx="17" fill="#0B1520" stroke="#86EFAC" stroke-width="2"/>
-        <text x="66" y="23" text-anchor="middle" font-family="system-ui,-apple-system,Segoe UI,sans-serif"
-          font-size="14" font-weight="700" fill="#EAF2FF">Putt to Kenya</text>
-      </g>
-    
+  <!-- LEA-134 editorial plate: map medallion, putt to the country -->
   <defs>
-    <linearGradient id="titleFade" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#0B1520" stop-opacity="0"/>
-      <stop offset="100%" stop-color="#0B1520" stop-opacity="0.72"/>
-    </linearGradient>
+    <clipPath id="medallion">
+      <circle cx="250" cy="102" r="80"/>
+    </clipPath>
   </defs>
-  <rect x="0" y="208" width="644" height="88" fill="url(#titleFade)"/>
-  <text x="28" y="268" font-family="system-ui,-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif"
-    font-size="34" font-weight="800" fill="#FFFFFF" letter-spacing="-0.5">Geo Golf</text>
+  <rect width="644" height="296" fill="#E7EEF1"/>
+  <rect x="0" y="206" width="644" height="90" fill="#0B1520"/>
+  <rect x="0" y="206" width="644" height="3" fill="#0C8F7F"/>
+
+  <g clip-path="url(#medallion)">
+    <circle cx="250" cy="102" r="80" fill="#D5EBE7"/>
+    <g fill="none" stroke="#0B1520" stroke-opacity="0.2" stroke-width="1">
+      <line x1="170" y1="102" x2="330" y2="102"/>
+      <line x1="250" y1="22" x2="250" y2="182"/>
+      <ellipse cx="250" cy="102" rx="80" ry="28"/>
+      <ellipse cx="250" cy="102" rx="28" ry="80"/>
+    </g>
+    <!-- Africa and Madagascar, drawn for this plate -->
+    <path fill="#0C8F7F" d="M207.4 41.4 L222.2 39.5 L237.1 39.5 L255.6 46.9 L264.8 48.8 L275.9 50.6 L279.6 58 L294.4 80.2 L312.9 85.8 L309.2 93.2 L299.9 104.3 L296.2 109.8 L294.4 119.1 L290.7 130.2 L285.1 141.3 L279.6 154.2 L277.8 163.5 L266.6 170.9 L251.8 170.9 L250 161.7 L244.4 148.7 L240.8 137.6 L242.6 122.8 L235.2 106.2 L233.3 100.6 L227.8 98.8 L218.6 98.8 L209.3 96.9 L203.8 98.8 L196.3 93.2 L188.9 85.8 L187.1 80.2 L188.9 71 L192.7 59.9 L200.1 48.8 L207.4 41.4 Z"/>
+    <path fill="#0A6F63" d="M298.1 130.2 L311.1 135.8 L307.4 154.2 L299.9 154.2 L298.1 137.6 Z"/>
+  </g>
+  <circle cx="250" cy="102" r="80" fill="none" stroke="#0B1520" stroke-width="1.5"/>
+
+  <!-- Kenya: a survey mark on the land, not a flagstick -->
+  <g stroke="#0B1520" stroke-width="1.5" fill="none">
+    <circle cx="284" cy="108" r="8"/>
+    <line x1="284" y1="96" x2="284" y2="120"/>
+    <line x1="272" y1="108" x2="296" y2="108"/>
+  </g>
+  <circle cx="284" cy="108" r="2.5" fill="#F4F1EA"/>
+
+  <path d="M478 156 C430 164 370 146 308 122" fill="none" stroke="#0B1520" stroke-width="1.5" stroke-dasharray="2 5"/>
+  <circle cx="478" cy="156" r="9" fill="#0B1520"/>
+  <line x1="430" y1="178" x2="530" y2="178" stroke="#0B1520" stroke-opacity="0.2" stroke-width="1"/>
+
+  <line x1="28" y1="232" x2="76" y2="232" stroke="#0C8F7F" stroke-width="3"/>
+  <text x="28" y="270" font-family="Inter, 'Noto Sans', 'Segoe UI', Helvetica, Arial, sans-serif" font-size="34" font-weight="600" fill="#F7FBFC" letter-spacing="-0.6">Geo Golf</text>
 </svg>
