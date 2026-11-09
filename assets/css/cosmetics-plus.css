@@ -614,59 +614,53 @@
               radial-gradient(circle at 70% 85%, rgba(0,0,0,.18), transparent 50%);
 }
 
-/* ============================== shop dopamine ====================== */
+/* ============================== shop labels ======================== */
 .shop-item__shine {
   position: absolute; inset: 0; border-radius: inherit; overflow: hidden;
   pointer-events: none; z-index: 2;
 }
-.shop-item__shine::before {
-  content: ''; position: absolute; top: -40%; bottom: -40%; width: 40%; left: -70%;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,.55), transparent);
-  transform: rotate(18deg);
-}
+.shop-item__shine::before { content: none; }
 @media (hover: hover) {
-  .shop-item:hover .shop-item__shine::before { left: 130%; transition: left .7s cubic-bezier(.3, 0, .2, 1); }
-  .shop-item:hover .shop-item__vis { transform: scale(1.08) rotate(-2deg); }
+  .shop-item:hover .shop-item__vis { transform: none; }
 }
 
 .shop-item__rar {
-  position: absolute; top: 6px; right: 6px; z-index: 3;
-  font-size: 8.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
-  padding: 1.5px 6px; border-radius: 999px; line-height: 1.4;
-  color: #fff; background: #64748B;
+  position: absolute; top: 8px; right: 8px; z-index: 3;
+  font-family: var(--sans, Inter, system-ui, sans-serif);
+  font-size: 10px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase;
+  padding: 0; border-radius: 0; line-height: 1.3;
+  color: var(--muted, #5C6B76);
+  background: none;
+  box-shadow: none;
+  animation: none;
 }
-.shop-item--r-rare      .shop-item__rar { background: #0EA5E9; }
-.shop-item--r-epic      .shop-item__rar { background: #5B6B76; }
+.shop-item--r-rare .shop-item__rar,
+.shop-item--r-epic .shop-item__rar,
 .shop-item--r-legendary .shop-item__rar,
-.shop-item--r-staff     .shop-item__rar { background: #0A6F63; color: #fff; animation: none; }
-.shop-item--r-mythic    .shop-item__rar,
-.shop-item--r-secret    .shop-item__rar { background: #0B1520; animation: none; }
-.shop-item--r-earned    .shop-item__rar { background: #16A34A; }
-
-.shop-item--r-rare:not(.is-equipped) { border-color: color-mix(in srgb, #0EA5E9 32%, var(--line)); }
-.shop-item--r-epic:not(.is-equipped) {
-  border-color: color-mix(in srgb, #8B5CF6 40%, var(--line));
-  box-shadow: 0 6px 18px -12px rgba(139, 92, 246, .6);
+.shop-item--r-staff .shop-item__rar,
+.shop-item--r-mythic .shop-item__rar,
+.shop-item--r-secret .shop-item__rar,
+.shop-item--r-earned .shop-item__rar {
+  background: none;
+  color: var(--muted, #5C6B76);
+  box-shadow: none;
+  animation: none;
 }
-.shop-item--r-legendary:not(.is-equipped), .shop-item--r-mythic:not(.is-equipped) {
+
+.shop-item--r-rare:not(.is-equipped),
+.shop-item--r-epic:not(.is-equipped),
+.shop-item--r-legendary:not(.is-equipped),
+.shop-item--r-mythic:not(.is-equipped) {
   border: 1px solid var(--line);
   background: var(--white);
   animation: none;
   box-shadow: none;
 }
-.shop-item--r-mythic:not(.is-equipped) {
-  background: var(--white);
-  border-color: var(--line);
-}
 @keyframes rar-spin { to { --rar-a: 360deg; } }
 
 /* equipping something: the tile pops and rings out */
 .shop-item.is-pop { animation: none; }
-.shop-item.is-pop .shop-item__shine::after {
-  content: ''; position: absolute; inset: 0; border-radius: inherit;
-  box-shadow: inset 0 0 0 2px var(--accent);
-  animation: shop-ring .7s ease-out forwards;
-}
+.shop-item.is-pop .shop-item__shine::after { content: none; animation: none; }
 @keyframes shop-pop {
   0%   { transform: scale(1); }
   35%  { transform: scale(1.09) rotate(-1.5deg); }
@@ -682,34 +676,27 @@
   100% { transform: scale(1); }
 }
 
-/* buy dialog: the item sits in a burst of light matching its rarity */
+/* buy dialog: the rarity is a plain label, with no sunburst */
 .buy-vis {
   position: relative; display: inline-flex; flex-direction: column; align-items: center; gap: 8px;
   padding: 14px 18px 8px; isolation: isolate;
 }
-.buy-vis::before {
-  content: ''; position: absolute; left: 50%; top: 40%; width: 130px; aspect-ratio: 1; z-index: -1;
-  translate: -50% -50%; border-radius: 50%;
-  background: repeating-conic-gradient(from 0deg, var(--rc, rgba(100, 116, 139, .18)) 0 10deg, transparent 10deg 24deg);
-  -webkit-mask: radial-gradient(circle, #000 20%, transparent 68%);
-          mask: radial-gradient(circle, #000 20%, transparent 68%);
-  animation: ar-spin 14s linear infinite;
-}
+.buy-vis::before { content: none; display: none; animation: none; }
 .buy-vis .shop-item__vis--bar { width: 140px; }
-.buy-vis__rar {
-  font-size: 10px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: #64748B;
+.buy-vis__rar,
+.buy-vis--r-rare .buy-vis__rar,
+.buy-vis--r-epic .buy-vis__rar,
+.buy-vis--r-legendary .buy-vis__rar,
+.buy-vis--r-staff .buy-vis__rar,
+.buy-vis--r-mythic .buy-vis__rar,
+.buy-vis--r-secret .buy-vis__rar {
+  font-family: var(--sans, Inter, system-ui, sans-serif);
+  font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase;
+  color: var(--muted, #5C6B76);
+  background: none;
+  animation: none;
 }
-.buy-vis--r-rare      { --rc: rgba(14, 165, 233, .28); }
-.buy-vis--r-rare .buy-vis__rar { color: #0284C7; }
-.buy-vis--r-epic      { --rc: rgba(139, 92, 246, .3); }
-.buy-vis--r-epic .buy-vis__rar { color: #7C3AED; }
-.buy-vis--r-legendary, .buy-vis--r-staff { --rc: rgba(245, 179, 1, .42); }
-.buy-vis--r-legendary .buy-vis__rar { color: #B45309; }
-.buy-vis--r-mythic, .buy-vis--r-secret { --rc: rgba(244, 63, 94, .3); }
-.buy-vis--r-mythic::before { animation-duration: 6s; }
-.buy-vis--r-mythic .buy-vis__rar {
-  background: none; color: var(--ink, #0B1520);
-}
+.buy-vis--r-mythic::before { animation: none; }
 
 /* game cosmetic tiles pick up the same polish */
 .shop-item[data-kind^="trail"] .shop-item__vis,

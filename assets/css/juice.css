@@ -1,9 +1,8 @@
 /* ==================================================================
    LearnGeo — juice layer (pairs with assets/js/juice.js)
-   Reward bursts, HUD pops, streak shout-outs, a calm level-up and a
-   springier feel on the answer states. Loaded last so it can refine
-   motion.css. html.jz-off (Reward animations off) and reduced motion
-   keep the looping bits still.
+   Reward moments stay still. Loaded last so it can quiet motion.css.
+   html.jz-off (Reward animations off) and reduced motion keep the
+   same quiet treatment. Selectors stay so the juice contract holds.
    ================================================================== */
 
 :root {
@@ -63,36 +62,23 @@
 
 /* floating "+12 XP" */
 .float-gain {
-  font-size: 17px; font-weight: 800; letter-spacing: -.01em;
-  text-shadow: 0 0 1px #fff, 0 1px 0 #fff, 0 2px 0 rgba(255, 255, 255, .9), 0 6px 14px rgba(10, 10, 11, .18);
-  animation: jzFloat 1.15s var(--jz-out) forwards;
+  font-size: 14px; font-weight: 600; letter-spacing: 0;
+  text-shadow: none;
+  animation: jzFloat .9s var(--ease, ease) forwards;
 }
 @keyframes jzFloat {
-  0%   { transform: translateY(6px) scale(.4); opacity: 0; }
-  22%  { transform: translateY(-14px) scale(1.25); opacity: 1; }
-  38%  { transform: translateY(-20px) scale(1); }
-  100% { transform: translateY(-70px) scale(.95); opacity: 0; }
+  0%   { opacity: 0; }
+  18%  { opacity: 1; }
+  100% { transform: translateY(-10px); opacity: 0; }
 }
 
 /* ----------------------------- HUD ------------------------------- */
-.hud__item.jz-hit { animation: jzHit .28s var(--ease, ease); }
-@keyframes jzHit {
-  0%   { transform: scale(1); }
-  40%  { transform: scale(1.03); }
-  100% { transform: scale(1); }
-}
-.hud__gem.jz-hit { animation-name: jzHitGem; }
-@keyframes jzHitGem {
-  0%   { transform: scale(1); }
-  40%  { transform: scale(1.03); }
-  100% { transform: scale(1); }
-}
-.hud__xp.jz-lvl { animation: jzLvlChip .4s var(--ease, ease); }
-@keyframes jzLvlChip {
-  0%   { transform: scale(1); }
-  40%  { transform: scale(1.04); }
-  100% { transform: scale(1); }
-}
+.hud__item.jz-hit { animation: none; }
+@keyframes jzHit { 0%, 100% { transform: none; } }
+.hud__gem.jz-hit { animation: none; }
+@keyframes jzHitGem { 0%, 100% { transform: none; } }
+.hud__xp.jz-lvl { animation: none; }
+@keyframes jzLvlChip { 0%, 100% { transform: none; } }
 #hud-xpbar {
   position: relative;
   background: var(--accent, #0C8F7F);
@@ -103,40 +89,23 @@
 #hud-xpbar.jz-lvl { animation: none; }
 
 /* ------------------------- answer states ------------------------- */
-.option.is-right {
-  animation: jzRight .55s var(--jz-spring);
-  box-shadow: 0 0 0 3px rgba(14, 159, 110, .16), 0 10px 26px -12px rgba(14, 159, 110, .7);
-}
-@keyframes jzRight {
-  0%   { transform: scale(1); }
-  30%  { transform: scale(1.035); }
-  55%  { transform: scale(.995); }
-  100% { transform: scale(1); }
-}
-.option.is-right .option__key { animation: jzKey .6s var(--jz-spring); }
-@keyframes jzKey { 0% { transform: scale(1); } 40% { transform: scale(1.35) rotate(-8deg); } 100% { transform: scale(1); } }
-.option.is-wrong { animation: jzShake .45s cubic-bezier(.36, .07, .19, .97); }
-@keyframes jzShake {
-  10%, 90% { transform: translateX(-2px); }
-  20%, 80% { transform: translateX(4px); }
-  30%, 50%, 70% { transform: translateX(-7px) rotate(-.4deg); }
-  40%, 60% { transform: translateX(7px) rotate(.4deg); }
-}
-.answer-input:disabled[style*="danger"] { animation: jzShake .45s cubic-bezier(.36, .07, .19, .97); }
-.answer-input:disabled[style*="success"] { animation: jzRight .55s var(--jz-spring); box-shadow: 0 0 0 3px rgba(14, 159, 110, .16); }
+.option.is-right { animation: none; box-shadow: none; }
+@keyframes jzRight { 0%, 100% { transform: none; } }
+.option.is-right .option__key { animation: none; }
+@keyframes jzKey { 0%, 100% { transform: none; } }
+.option.is-wrong { animation: none; }
+@keyframes jzShake { 0%, 100% { transform: none; } }
+.answer-input:disabled[style*="danger"] { animation: none; }
+.answer-input:disabled[style*="success"] { animation: none; box-shadow: none; }
 
-.feedback--right { box-shadow: inset 0 0 0 1px rgba(14, 159, 110, .22); position: relative; overflow: hidden; }
-.feedback--right::after {
-  content: ''; position: absolute; inset: 0; pointer-events: none;
-  background: linear-gradient(100deg, transparent 30%, rgba(255, 255, 255, .75) 50%, transparent 70%);
-  transform: translateX(-100%); animation: jzSheen .9s .12s var(--jz-out) forwards;
-}
-@keyframes jzSheen { to { transform: translateX(100%); } }
-.feedback--right > svg { animation: jzTick .6s var(--jz-spring) both; }
-@keyframes jzTick { from { transform: scale(0) rotate(-90deg); } }
-.feedback--wrong { box-shadow: inset 0 0 0 1px rgba(224, 36, 36, .18); }
-.feedback--wrong > svg { animation: jzShake .45s cubic-bezier(.36, .07, .19, .97); }
-.feedback__gain > .chip { animation-timing-function: var(--jz-spring); }
+.feedback--right { box-shadow: none; position: relative; overflow: hidden; }
+.feedback--right::after { content: none; animation: none; }
+@keyframes jzSheen { to { transform: none; } }
+.feedback--right > svg { animation: none; }
+@keyframes jzTick { from { transform: none; } }
+.feedback--wrong { box-shadow: none; }
+.feedback--wrong > svg { animation: none; }
+.feedback__gain > .chip { animation: none; }
 
 /* streak bar: warmer and alive */
 .combo {
@@ -162,39 +131,32 @@
   display: block; margin: 0 auto 14px; padding: 0;
   font-size: 13px; font-weight: 600; letter-spacing: .01em; text-transform: none;
   color: var(--muted); background: none; box-shadow: none;
-  animation: jzRise .5s .08s var(--jz-out) both;
+  animation: none;
 }
 .levelup .levelup__ring {
   position: relative; overflow: hidden;
   background: var(--accent); background-image: none;
-  box-shadow: 0 12px 28px -14px rgba(var(--accent-rgb), .5);
+  box-shadow: none;
   text-shadow: none;
-  animation: jzRingIn .75s var(--jz-spring) both;
+  animation: none;
 }
-@keyframes jzRingIn { from { transform: scale(0) rotate(-200deg); opacity: 0; } }
-.levelup__ring::after {
-  content: ''; position: absolute; inset: -20%;
-  background: linear-gradient(115deg, transparent 38%, rgba(255, 255, 255, .7) 50%, transparent 62%);
-  transform: translateX(-120%); animation: jzSheen 1.1s .55s var(--jz-out) forwards;
-}
-.levelup h3 {
-  color: var(--ink); background: none;
-  animation: jzRise .6s .25s var(--jz-out) both;
-}
-.levelup p { animation: jzRise .6s .35s var(--jz-out) both; }
-@keyframes jzRise { from { opacity: 0; transform: translateY(10px); } }
+@keyframes jzRingIn { from { transform: none; opacity: 1; } }
+.levelup__ring::after { content: none; animation: none; }
+.levelup h3 { color: var(--ink); background: none; animation: none; }
+.levelup p { animation: none; }
+@keyframes jzRise { from { opacity: 1; transform: none; } }
 
 /* -------------------------- game over ---------------------------- */
-.gd-card--over .gd-stats > div { animation: jzRise .5s var(--jz-out) both; }
-.gd-card--over .gd-stats > div:nth-child(2) { animation-delay: .08s; }
-.gd-card--over .gd-stats > div:nth-child(3) { animation-delay: .16s; }
+.gd-card--over .gd-stats > div { animation: none; }
+.gd-card--over .gd-stats > div:nth-child(2) { animation-delay: 0s; }
+.gd-card--over .gd-stats > div:nth-child(3) { animation-delay: 0s; }
 .gd-card--over .gd-stats b { display: block; }
-.gd-card.jz-best { box-shadow: 0 0 0 2px rgba(250, 204, 21, .7), 0 0 40px -6px rgba(250, 204, 21, .7), var(--shadow-xl, 0 20px 40px -12px rgba(0, 0, 0, .3)); }
-.gd-card.jz-best .gd-card__eyebrow { color: #B45309; font-weight: 700; animation: jzPop .6s var(--jz-spring); }
+.gd-card.jz-best { box-shadow: none; }
+.gd-card.jz-best .gd-card__eyebrow { color: var(--ink, #0B1520); font-weight: 650; animation: none; }
 
 /* ----------------------- looping, motion-ok ----------------------- */
 @media (prefers-reduced-motion: no-preference) {
-  html:not(.jz-off) .levelup .levelup__ring { animation: jzRingIn .75s var(--jz-spring) both, jzBreathe 2.6s 1s ease-in-out infinite; }
+  html:not(.jz-off) .levelup .levelup__ring { animation: none; }
 }
 @keyframes jzFlow { to { background-position: -200% 0; } }
 @keyframes jzPulse { 50% { box-shadow: 0 0 0 6px rgba(249, 115, 22, 0), 0 0 14px rgba(249, 115, 22, .55); transform: scale(1.06); } }

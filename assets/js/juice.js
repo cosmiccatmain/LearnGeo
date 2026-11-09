@@ -1,10 +1,9 @@
 /* ------------------------------------------------------------------
    LearnGeo — juice layer.
 
-   The payoff moments, made bigger. A right answer sends a shockwave,
-   sparkles and XP / gem orbs that fly into the top bar, where the
-   counter ticks up to the new total. Streaks get a shout-out, level-ups
-   get a plain label, and a game-over card counts its stats up.
+   Payoff moments stay quiet. A right answer does not throw a shockwave,
+   sparkles, or orbs. The HUD counter still ticks up. Level-up is a
+   plain label. A game-over card counts its stats up without confetti.
 
    It wraps WW.burstFrom, WW.Sound and UI.refreshHud and watches for the
    level-up and game-over cards; nothing calls into it. Honours the
@@ -61,135 +60,19 @@
   var W = global.WW;
   if (!doc || !W || !global.Element || !Element.prototype.animate) return;
 
-  var SPRING = 'cubic-bezier(.34,1.56,.64,1)';
-  var OUT = 'cubic-bezier(.16,1,.3,1)';
   var mq = global.matchMedia ? global.matchMedia('(prefers-reduced-motion: reduce)') : null;
 
   function on() {
     return !(mq && mq.matches) && !!(W.state && W.state.settings && W.state.settings.effects !== false);
   }
 
-  function layer() {
-    var el = doc.getElementById('fx-layer');
-    if (!el) { el = doc.createElement('div'); el.id = 'fx-layer'; doc.body.appendChild(el); }
-    return el;
-  }
-
-  function spawn(cls, x, y) {
-    var el = doc.createElement('div');
-    el.className = cls;
-    el.style.left = x + 'px';
-    el.style.top = y + 'px';
-    layer().appendChild(el);
-    return el;
-  }
-
-  function play(el, frames, opts) {
-    var a = el.animate(frames, opts);
-    var gone = function () { if (el.parentNode) el.remove(); };
-    a.onfinish = gone;
-    setTimeout(gone, (opts.duration || 600) + (opts.delay || 0) + 400);
-    return a;
-  }
-
   function haptic(p) {
     try { if (on() && global.navigator && navigator.vibrate) navigator.vibrate(p); } catch (e) { /* not allowed */ }
   }
 
-  function visible(el) {
-    if (!el || el.classList.contains('hidden')) return null;
-    var r = el.getBoundingClientRect();
-    return r.width && r.height ? r : null;
-  }
-
-  /* --------------------------- the burst --------------------------- */
-  function shockwave(x, y, big) {
-    var ring = spawn('jz-ring' + (big ? ' jz-ring--big' : ''), x, y);
-    play(ring, [
-      { transform: 'translate(-50%,-50%) scale(.2)', opacity: 0.9 },
-      { transform: 'translate(-50%,-50%) scale(' + (big ? 3.4 : 2.4) + ')', opacity: 0 }
-    ], { duration: big ? 720 : 560, easing: OUT });
-  }
-
-  function sparkles(x, y, n) {
-    for (var i = 0; i < n; i++) {
-      var s = spawn('jz-spark', x, y);
-      var ang = (Math.PI * 2 * i) / n + Math.random() * 0.4;
-      var dist = 46 + Math.random() * 46;
-      var dx = Math.cos(ang) * dist, dy = Math.sin(ang) * dist;
-      var size = 0.6 + Math.random() * 0.8;
-      play(s, [
-        { transform: 'translate(-50%,-50%) scale(0) rotate(0deg)', opacity: 1 },
-        { transform: 'translate(calc(-50% + ' + dx * 0.7 + 'px), calc(-50% + ' + dy * 0.7 + 'px)) scale(' + size + ') rotate(90deg)', opacity: 1, offset: 0.55 },
-        { transform: 'translate(calc(-50% + ' + dx + 'px), calc(-50% + ' + dy + 'px)) scale(0) rotate(180deg)', opacity: 0 }
-      ], { duration: 520 + Math.random() * 220, easing: OUT });
-    }
-  }
-
-  /* Orbs arc from the answer into a HUD chip; the chip pops as they land. */
-  function orbs(x, y, chipId, n, kind, onLand) {
-    var chip = doc.getElementById(chipId);
-    var r = visible(chip);
-    if (!r) return;
-    var tx = r.left + r.width / 2, ty = r.top + r.height / 2;
-    var landed = 0;
-    for (var i = 0; i < n; i++) {
-      (function (i) {
-        var o = spawn('jz-orb jz-orb--' + kind, x, y);
-        var sx = (Math.random() - 0.5) * 90, sy = -30 - Math.random() * 70;
-        var dx = tx - x, dy = ty - y;
-        var a = play(o, [
-          { transform: 'translate(-50%,-50%) scale(.3)', opacity: 0 },
-          { transform: 'translate(calc(-50% + ' + sx + 'px), calc(-50% + ' + sy + 'px)) scale(1.15)', opacity: 1, offset: 0.3 },
-          { transform: 'translate(calc(-50% + ' + dx + 'px), calc(-50% + ' + dy + 'px)) scale(.45)', opacity: 0.9 }
-        ], { duration: 640 + i * 40, delay: 60 + i * 55, easing: 'cubic-bezier(.5,0,.75,.2)' });
-        a.addEventListener('finish', function () {
-          landed += 1;
-          chip.classList.remove('jz-hit');
-          void chip.offsetWidth;
-          chip.classList.add('jz-hit');
-          if (landed === 1 && onLand) onLand();
-        });
-      })(i);
-    }
-  }
-
-  function shout(c, x, y) {
-    var el = spawn('jz-callout jz-callout--' + c.tone, 0, 0);
-    el.innerHTML = '<b>' + c.text + '</b><span>' + c.combo + ' in a row</span>';
-    var w = global.innerWidth;
-    var cx = Math.max(110, Math.min(w - 110, x));
-    var cy = Math.max(70, y - 70);
-    el.style.left = cx + 'px';
-    el.style.top = cy + 'px';
-    play(el, [
-      { transform: 'translate(-50%,-50%)', opacity: 0 },
-      { transform: 'translate(-50%,-50%)', opacity: 1, offset: 0.12 },
-      { transform: 'translate(-50%,-50%)', opacity: 1, offset: 0.75 },
-      { transform: 'translate(-50%,-62%)', opacity: 0 }
-    ], { duration: 1100, easing: 'ease-out' });
-  }
-
-  function edgeGlow(strong) {
-    var g = spawn('jz-edge' + (strong ? ' jz-edge--strong' : ''), 0, 0);
-    play(g, [{ opacity: 0 }, { opacity: 1, offset: 0.25 }, { opacity: 0 }], { duration: strong ? 900 : 620, easing: 'ease-out' });
-  }
-
   var baseBurst = W.burstFrom;
-  W.burstFrom = function (el, gains) {
+  W.burstFrom = function () {
     baseBurst.apply(this, arguments);
-    if (!el || !on()) return;
-    var r = el.getBoundingClientRect();
-    var x = r.left + r.width / 2, y = r.top + r.height / 2;
-    var combo = gains ? gains.combo | 0 : 0;
-    var c = callout(combo);
-    shockwave(x, y, false);
-    sparkles(x, y, combo >= 10 ? 4 : 3);
-    if (gains) {
-      orbs(x, y, 'hud-xp-chip', 2, 'xp');
-      if (gains.gems > 0) orbs(x, y, 'hud-gem-chip', 2, 'gem');
-      if (c) setTimeout(function () { shout(c, x, r.top); }, 90);
-    }
   };
 
   /* --------------------------- haptics ----------------------------- */
@@ -252,27 +135,6 @@
     tag.className = 'jz-lvl-tag';
     tag.textContent = 'Level up';
     card.insertBefore(tag, ring);
-    if (!on()) return;
-
-    var lvl = parseInt(ring.textContent, 10);
-    if (lvl > 1) {
-      ring.textContent = String(lvl - 1);
-      setTimeout(function () {
-        ring.animate([
-          { transform: 'scale(1)' }, { transform: 'scale(.82)', offset: 0.35 }, { transform: 'scale(1.14)', offset: 0.7 }, { transform: 'scale(1)' }
-        ], { duration: 520, easing: SPRING });
-        setTimeout(function () { ring.textContent = String(lvl); }, 180);
-        var r = ring.getBoundingClientRect();
-        shockwave(r.left + r.width / 2, r.top + r.height / 2, true);
-        sparkles(r.left + r.width / 2, r.top + r.height / 2, 16);
-      }, 420);
-    }
-    var h = global.innerHeight, w = global.innerWidth;
-    setTimeout(function () {
-      W.confetti({ x: 0, y: h, angle: -Math.PI / 3, spread: 0.7, count: 70, power: 520 });
-      W.confetti({ x: w, y: h, angle: -Math.PI * 2 / 3, spread: 0.7, count: 70, power: 520 });
-    }, 300);
-    haptic([30, 60, 30, 60, 60]);
   }
 
   /* -------------------------- game over ---------------------------- */
@@ -288,10 +150,7 @@
         var k = Math.min(1, (t - t0) / dur);
         el.textContent = formatCount(p, p.n * easeOut(k));
         if (k < 1) requestAnimationFrame(step);
-        else {
-          el.textContent = final;
-          el.animate([{ transform: 'scale(1.25)' }, { transform: 'scale(1)' }], { duration: 380, easing: SPRING });
-        }
+        else el.textContent = final;
       });
     }, delay);
   }
@@ -301,16 +160,7 @@
     card.jz = true;
     Array.prototype.forEach.call(card.querySelectorAll('.gd-stats b'), function (b, i) { countUp(b, 220 + i * 140); });
     var eb = card.querySelector('.gd-card__eyebrow');
-    if (eb && /new best/i.test(eb.textContent)) {
-      card.classList.add('jz-best');
-      setTimeout(function () {
-        var r = card.getBoundingClientRect();
-        if (W.calmConfetti) W.calmConfetti({ x: r.left + r.width / 2, y: r.top + 30, count: 16, power: 140 });
-        else W.confetti({ x: r.left + r.width / 2, y: r.top + 30, count: 16, power: 140, colors: ['#0C8F7F', '#0E9F6E', '#F5B301'] });
-        W.Sound.levelUp();
-        haptic([20, 40, 40]);
-      }, 260);
-    }
+    if (eb && /new best/i.test(eb.textContent)) card.classList.add('jz-best');
   }
 
   function scan(node) {
@@ -334,7 +184,7 @@
     }).observe(doc.body, { childList: true, subtree: true });
   }
 
-  api.burst = function (x, y, combo) { var c = callout(combo); shockwave(x, y, !!c); sparkles(x, y, 10); if (c) shout(c, x, y); };
+  api.burst = function () {};
 
   if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', start);
   else start();

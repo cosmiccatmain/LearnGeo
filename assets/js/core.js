@@ -644,89 +644,18 @@
     return el;
   }
 
-  var CONFETTI_COLORS = ['#1B4DFF', '#22D3EE', '#F5B301', '#0E9F6E', '#FB7185', '#8B5CF6'];
-  /* Everyday bursts stay on the brand palette. Level-up and the chest
-     still call confetti() with the full set. */
   var CALM_CONFETTI = ['#0C8F7F', '#0E9F6E', '#F5B301'];
 
-  function confetti(opts) {
-    if (!state.settings.effects) return;
-    opts = opts || {};
-    var layer = fxLayer();
-    var colors = opts.colors || CONFETTI_COLORS;
-    var n = opts.count || 42;
-    var ox = opts.x !== undefined ? opts.x : window.innerWidth / 2;
-    var oy = opts.y !== undefined ? opts.y : window.innerHeight / 2;
-
-    for (var i = 0; i < n; i++) {
-      var bit = document.createElement('div');
-      bit.className = 'confetti-bit';
-      bit.style.background = colors[(Math.random() * colors.length) | 0];
-      bit.style.left = ox + 'px';
-      bit.style.top = oy + 'px';
-      var shape = Math.random();
-      if (shape > 0.8) bit.classList.add('is-ribbon');
-      else if (shape > 0.58) bit.style.borderRadius = '50%';
-      layer.appendChild(bit);
-
-      /* opts.angle aims a cannon (radians, 0 = right); default is a full ring */
-      var angle = opts.angle !== undefined
-        ? opts.angle + (Math.random() - 0.5) * (opts.spread || 0.8)
-        : (Math.PI * 2 * i) / n + Math.random() * 0.5;
-      var power = (opts.power || 190) * (0.45 + Math.random() * 0.75);
-      var dx = Math.cos(angle) * power;
-      var dy = Math.sin(angle) * power - (opts.angle !== undefined ? 0 : 90);
-      var dur = 1000 + Math.random() * 900;
-      var depth = 0.7 + Math.random() * 0.6;
-      var flip = (Math.random() > 0.5 ? 1 : -1) * (540 + Math.random() * 900);
-
-      (function (node) {
-        var anim = node.animate([
-          { transform: 'translate(0,0) rotate(0deg) rotateX(0deg) scale(' + depth + ')', opacity: 1 },
-          { transform: 'translate(' + dx * 0.65 + 'px,' + (dy * 0.7) + 'px) rotate(' + (Math.random() * 260 - 130) + 'deg) rotateX(' + flip * 0.4 + 'deg) scale(' + depth + ')', opacity: 1, offset: 0.4 },
-          { transform: 'translate(' + (dx + (Math.random() - 0.5) * 60) + 'px,' + (dy + 380) + 'px) rotate(' + (Math.random() * 620 - 310) + 'deg) rotateX(' + flip + 'deg) scale(' + depth * 0.9 + ')', opacity: 0 }
-        ], { duration: dur, easing: 'cubic-bezier(.16,.72,.4,1)' });
-        anim.onfinish = function () { node.remove(); };
-        setTimeout(function () { if (node.parentNode) node.remove(); }, dur + 300);
-      })(bit);
-    }
+  /* Confetti stays callable so existing celebrations do not throw.
+     It no longer draws. Product chrome is a quiet label, not a party. */
+  function confetti() {
+    return;
   }
 
   /* Diamonds falling the full height of the window. Used when the daily
      goal lands, which should feel bigger than any single right answer. */
-  function diamondRain(opts) {
-    if (!state.settings.effects) return;
-    opts = opts || {};
-    var layer = fxLayer();
-    var n = opts.count || 60;
-    var w = window.innerWidth;
-
-    for (var i = 0; i < n; i++) {
-      (function (i) {
-        var gem = document.createElement('div');
-        gem.className = 'rain-gem';
-        gem.textContent = '💎';
-        var size = 15 + Math.random() * 20;
-        gem.style.left = (Math.random() * w) + 'px';
-        gem.style.fontSize = size + 'px';
-        gem.style.top = '-40px';
-        layer.appendChild(gem);
-
-        var delay = Math.random() * 900;
-        var dur = 1500 + Math.random() * 1400;
-        var drift = (Math.random() - 0.5) * 160;
-        var spin = (Math.random() - 0.5) * 540;
-
-        var anim = gem.animate([
-          { transform: 'translate(0,0) rotate(0deg)', opacity: 0 },
-          { opacity: 1, offset: 0.08 },
-          { opacity: 1, offset: 0.82 },
-          { transform: 'translate(' + drift + 'px,' + (window.innerHeight + 90) + 'px) rotate(' + spin + 'deg)', opacity: 0 }
-        ], { duration: dur, delay: delay, easing: 'cubic-bezier(.32,.16,.62,1)' });
-        anim.onfinish = function () { gem.remove(); };
-        setTimeout(function () { if (gem.parentNode) gem.remove(); }, dur + delay + 400);
-      })(i);
-    }
+  function diamondRain() {
+    return;
   }
 
   function calmConfetti(opts) {
@@ -740,8 +669,6 @@
   /* The daily-goal payout: a short banner and one quiet burst. */
   function celebrateGoal(bonus, dayStreak) {
     Sound.goal();
-    calmConfetti({ count: 18, power: 140, y: window.innerHeight * 0.34 });
-    diamondRain({ count: 12 });
 
     var banner = document.createElement('div');
     banner.className = 'goal-banner';
@@ -774,14 +701,11 @@
   }
 
   function burstFrom(el, gains) {
-    if (!el) return;
+    if (!el || !gains) return;
     var r = el.getBoundingClientRect();
     var cx = r.left + r.width / 2, cy = r.top + r.height / 2;
-    calmConfetti({ x: cx, y: cy, count: gains && gains.combo >= 5 ? 10 : 6, power: 90 });
-    if (gains) {
-      floatGain(cx - 46, cy - 12, '+' + gains.xp + ' XP', '#1B4DFF');
-      floatGain(cx + 22, cy - 12, '+' + gains.gems + ' \u25C6', '#0369A1');
-    }
+    floatGain(cx - 46, cy - 12, '+' + gains.xp + ' XP', '#0C8F7F');
+    if (gains.gems > 0) floatGain(cx + 22, cy - 12, '+' + gains.gems + ' \u25C6', '#0E7490');
   }
 
   /* --------------------------- toasts ------------------------------ */

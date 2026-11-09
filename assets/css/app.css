@@ -302,7 +302,7 @@ a { color: inherit; text-decoration: none; }
   transition: transform .2s var(--ease), box-shadow .2s var(--ease), border-color .2s;
   display: flex; flex-direction: column;
 }
-.mode-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); border-color: #D8DCE3; }
+.mode-card:hover { transform: none; box-shadow: var(--shadow); border-color: #D8DCE3; }
 .mode-card__icon {
   width: 40px; height: 40px; border-radius: 11px;
   display: grid; place-items: center; margin-bottom: 18px;
@@ -688,13 +688,13 @@ a { color: inherit; text-decoration: none; }
 .option__mark { flex: none; opacity: 0; transition: opacity .14s; }
 .option.is-right {
   border-color: var(--success); background: var(--success-soft); color: #0A5C42;
-  animation: rightPop .34s var(--ease);
+  animation: none;
 }
 .option.is-right .option__key { background: var(--success); color: #fff; }
 .option.is-right .option__mark { opacity: 1; color: var(--success); }
 .option.is-wrong {
   border-color: var(--danger); background: var(--danger-soft); color: #9B1C1C;
-  animation: shake .34s var(--ease);
+  animation: none;
 }
 .option.is-wrong .option__key { background: var(--danger); color: #fff; }
 .option.is-wrong .option__mark { opacity: 1; color: var(--danger); }
@@ -1177,7 +1177,7 @@ textarea.input:focus { outline: none; border-color: var(--accent); box-shadow: 0
   display: flex; flex-direction: column; align-items: center; gap: 8px;
   background: var(--white); transition: all .15s var(--ease); position: relative;
 }
-.shop-item:hover { border-color: #C9CFD9; transform: translateY(-2px); box-shadow: var(--shadow); }
+.shop-item:hover { border-color: #C9CFD9; transform: none; box-shadow: none; }
 .shop-item.is-equipped { border-color: var(--accent); background: var(--accent-soft); }
 .shop-item.is-locked .shop-item__vis { opacity: .55; }
 .shop-item__vis {
@@ -1423,7 +1423,7 @@ textarea.input:focus { outline: none; border-color: var(--accent); box-shadow: 0
 }
 @keyframes toastIn { from { opacity: 0; } }
 .toast.is-out { animation: toastOut .24s var(--ease) forwards; }
-@keyframes toastOut { to { opacity: 0; transform: translateX(28px) scale(.96); } }
+@keyframes toastOut { to { opacity: 0; } }
 .toast__i { width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center; flex: none; background: rgba(255,255,255,.14); }
 .toast b { display: block; font-weight: 620; }
 .toast span { color: rgba(255,255,255,.66); font-size: 12.5px; }
@@ -1434,15 +1434,13 @@ textarea.input:focus { outline: none; border-color: var(--accent); box-shadow: 0
 }
 .levelup__ring {
   width: 108px; height: 108px; margin: 0 auto 20px; border-radius: 50%;
-  background: linear-gradient(135deg, var(--accent), #22D3EE);
+  background: var(--accent);
   display: grid; place-items: center; color: #fff;
   font-family: var(--mono); font-size: 38px; font-weight: 660;
-  animation: rise .4s var(--ease), glow 2.4s ease-in-out infinite;
+  animation: none;
+  box-shadow: none;
 }
-@keyframes glow {
-  0%,100% { box-shadow: 0 0 0 0 rgba(var(--accent-rgb),.32); }
-  50%     { box-shadow: 0 0 0 20px rgba(var(--accent-rgb),0); }
-}
+@keyframes glow { 0%, 100% { box-shadow: none; } }
 .levelup h3 { font-size: 24px; letter-spacing: -.03em; }
 .levelup p  { margin-top: 8px; color: var(--muted); font-size: 14.5px; }
 
@@ -1748,7 +1746,7 @@ textarea.input:focus { outline: none; border-color: var(--accent); box-shadow: 0
   padding: 22px; text-align: left; display: flex; flex-direction: column;
   transition: transform .18s var(--ease), box-shadow .18s var(--ease), border-color .18s;
 }
-.portal-mode:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); border-color: #D5DAE2; }
+.portal-mode:hover { transform: none; box-shadow: var(--shadow); border-color: #D5DAE2; }
 .portal-mode__top { display: flex; align-items: center; gap: 12px; }
 .portal-mode__icon {
   width: 40px; height: 40px; border-radius: 12px; flex: none;
@@ -2829,7 +2827,7 @@ textarea.input:focus { outline: none; border-color: var(--accent); box-shadow: 0
   background: var(--white); border: 1px solid var(--line); border-radius: 16px;
   transition: transform .18s var(--ease), box-shadow .18s var(--ease), border-color .18s;
 }
-button.game-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); border-color: #D5DAE2; }
+button.game-card:hover { transform: none; box-shadow: var(--shadow); border-color: #D5DAE2; }
 button.game-card:focus-visible,
 button.game-card.is-picked {
   border-color: var(--accent);
