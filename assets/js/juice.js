@@ -162,14 +162,12 @@
     var cy = Math.max(70, y - 70);
     el.style.left = cx + 'px';
     el.style.top = cy + 'px';
-    var tilt = (Math.random() - 0.5) * 10;
     play(el, [
-      { transform: 'translate(-50%,-50%) scale(.2) rotate(' + (tilt - 14) + 'deg)', opacity: 0 },
-      { transform: 'translate(-50%,-50%) scale(1.18) rotate(' + tilt + 'deg)', opacity: 1, offset: 0.22 },
-      { transform: 'translate(-50%,-50%) scale(1) rotate(' + tilt + 'deg)', opacity: 1, offset: 0.36 },
-      { transform: 'translate(-50%,-50%) scale(1) rotate(' + tilt + 'deg)', opacity: 1, offset: 0.78 },
-      { transform: 'translate(-50%,-90%) scale(.9) rotate(' + tilt + 'deg)', opacity: 0 }
-    ], { duration: 1500, easing: 'ease-out' });
+      { transform: 'translate(-50%,-50%)', opacity: 0 },
+      { transform: 'translate(-50%,-50%)', opacity: 1, offset: 0.12 },
+      { transform: 'translate(-50%,-50%)', opacity: 1, offset: 0.75 },
+      { transform: 'translate(-50%,-62%)', opacity: 0 }
+    ], { duration: 1100, easing: 'ease-out' });
   }
 
   function edgeGlow(strong) {
@@ -185,12 +183,11 @@
     var x = r.left + r.width / 2, y = r.top + r.height / 2;
     var combo = gains ? gains.combo | 0 : 0;
     var c = callout(combo);
-    shockwave(x, y, !!c);
-    sparkles(x, y, combo >= 10 ? 14 : combo >= 5 ? 11 : 8);
-    edgeGlow(!!c);
+    shockwave(x, y, false);
+    sparkles(x, y, combo >= 10 ? 4 : 3);
     if (gains) {
-      orbs(x, y, 'hud-xp-chip', Math.min(8, 3 + Math.floor(combo / 3)), 'xp');
-      if (gains.gems > 0) orbs(x, y, 'hud-gem-chip', Math.min(6, 2 + Math.floor(combo / 4)), 'gem', function () { W.Sound.gem(); });
+      orbs(x, y, 'hud-xp-chip', 2, 'xp');
+      if (gains.gems > 0) orbs(x, y, 'hud-gem-chip', 2, 'gem');
       if (c) setTimeout(function () { shout(c, x, r.top); }, 90);
     }
   };
@@ -308,7 +305,8 @@
       card.classList.add('jz-best');
       setTimeout(function () {
         var r = card.getBoundingClientRect();
-        W.confetti({ x: r.left + r.width / 2, y: r.top + 30, count: 80, power: 300 });
+        if (W.calmConfetti) W.calmConfetti({ x: r.left + r.width / 2, y: r.top + 30, count: 16, power: 140 });
+        else W.confetti({ x: r.left + r.width / 2, y: r.top + 30, count: 16, power: 140, colors: ['#0C8F7F', '#0E9F6E', '#F5B301'] });
         W.Sound.levelUp();
         haptic([20, 40, 40]);
       }, 260);

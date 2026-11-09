@@ -264,11 +264,12 @@
 @keyframes lgMenuOut { to { opacity: 0; transform: scale(.95) translateY(-4px); } }
 
 .toast {
-  background-image: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,0) 60%);
-  box-shadow: var(--shadow-xl), inset 0 1px 0 rgba(255,255,255,.1);
-  animation: lgToastIn .55s var(--lg-spring);
+  background-image: none;
+  box-shadow: var(--shadow-lg);
+  animation: lgToastIn .2s var(--ease);
+  font-family: var(--sans);
 }
-@keyframes lgToastIn { from { opacity: 0; transform: translateX(32px) scale(.94); } }
+@keyframes lgToastIn { from { opacity: 0; } }
 
 .levelup__ring {
   background-image: radial-gradient(circle at 32% 26%, rgba(255,255,255,.5), rgba(255,255,255,0) 42%),
@@ -323,7 +324,7 @@
     radial-gradient(30% 38% at 52% 62%, rgba(99,102,241,.14), transparent 72%);
   filter: blur(30px);
   transform: translateX(-50%);
-  animation: lgAurora 19s ease-in-out infinite alternate;
+  animation: none;
 }
 .hero__wash::after {
   content: ''; position: absolute; z-index: 0; pointer-events: none;
@@ -331,17 +332,17 @@
   background: radial-gradient(34% 40% at 60% 44%, rgba(14,159,110,.13), transparent 70%);
   filter: blur(40px);
   transform: translateX(-50%);
-  animation: lgAuroraB 27s ease-in-out infinite alternate;
+  animation: none;
 }
 @keyframes lgAurora { to { transform: translateX(-46%) translateY(4%) rotate(4deg) scale(1.1); } }
 @keyframes lgAuroraB { to { transform: translateX(-56%) translateY(-5%) rotate(-6deg) scale(1.16); } }
 
 .hero h1 em {
-  background: linear-gradient(90deg, var(--accent) 0%, #1D8CF8 25%, var(--accent) 50%, #1D8CF8 75%, var(--accent) 100%);
-  background-size: 200% 100%;
-  -webkit-background-clip: text; background-clip: text;
-  -webkit-text-fill-color: transparent; color: transparent;
-  animation: lgTextShine 7s linear infinite;
+  background: none;
+  -webkit-text-fill-color: currentColor;
+  color: var(--accent);
+  animation: none;
+  font-family: var(--serif);
 }
 @keyframes lgTextShine { to { background-position: 200% 0; } }
 

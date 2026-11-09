@@ -1234,7 +1234,7 @@
       if (S.phase === 'ended') {
         var me = myPlace();
         if (me && me.place <= 3 && W.confetti) {
-          try { W.confetti({ count: 110, power: 260 }); } catch (e) { /* no party */ }
+          try { (W.calmConfetti || W.confetti)({ count: 16, power: 140 }); } catch (e) { /* no party */ }
         }
       }
     }

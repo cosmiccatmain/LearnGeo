@@ -645,11 +645,15 @@
   }
 
   var CONFETTI_COLORS = ['#1B4DFF', '#22D3EE', '#F5B301', '#0E9F6E', '#FB7185', '#8B5CF6'];
+  /* Everyday bursts stay on the brand palette. Level-up and the chest
+     still call confetti() with the full set. */
+  var CALM_CONFETTI = ['#0C8F7F', '#0E9F6E', '#F5B301'];
 
   function confetti(opts) {
     if (!state.settings.effects) return;
     opts = opts || {};
     var layer = fxLayer();
+    var colors = opts.colors || CONFETTI_COLORS;
     var n = opts.count || 42;
     var ox = opts.x !== undefined ? opts.x : window.innerWidth / 2;
     var oy = opts.y !== undefined ? opts.y : window.innerHeight / 2;
@@ -657,7 +661,7 @@
     for (var i = 0; i < n; i++) {
       var bit = document.createElement('div');
       bit.className = 'confetti-bit';
-      bit.style.background = CONFETTI_COLORS[(Math.random() * CONFETTI_COLORS.length) | 0];
+      bit.style.background = colors[(Math.random() * colors.length) | 0];
       bit.style.left = ox + 'px';
       bit.style.top = oy + 'px';
       var shape = Math.random();
@@ -725,17 +729,19 @@
     }
   }
 
-  /* The full daily-goal payout: banner, confetti volleys, diamond rain. */
+  function calmConfetti(opts) {
+    opts = opts || {};
+    if (!opts.colors) opts.colors = CALM_CONFETTI;
+    if (!opts.count) opts.count = 14;
+    if (!opts.power) opts.power = 120;
+    return confetti(opts);
+  }
+
+  /* The daily-goal payout: a short banner and one quiet burst. */
   function celebrateGoal(bonus, dayStreak) {
     Sound.goal();
-    confetti({ count: 120, power: 360, y: window.innerHeight * 0.34 });
-    setTimeout(function () {
-      confetti({ count: 80, power: 300, x: window.innerWidth * 0.25, y: window.innerHeight * 0.4 });
-    }, 220);
-    setTimeout(function () {
-      confetti({ count: 80, power: 300, x: window.innerWidth * 0.75, y: window.innerHeight * 0.4 });
-    }, 380);
-    diamondRain({ count: 70 });
+    calmConfetti({ count: 18, power: 140, y: window.innerHeight * 0.34 });
+    diamondRain({ count: 12 });
 
     var banner = document.createElement('div');
     banner.className = 'goal-banner';
@@ -771,7 +777,7 @@
     if (!el) return;
     var r = el.getBoundingClientRect();
     var cx = r.left + r.width / 2, cy = r.top + r.height / 2;
-    confetti({ x: cx, y: cy, count: gains && gains.combo >= 5 ? 56 : 34, power: 170 });
+    calmConfetti({ x: cx, y: cy, count: gains && gains.combo >= 5 ? 10 : 6, power: 90 });
     if (gains) {
       floatGain(cx - 46, cy - 12, '+' + gains.xp + ' XP', '#1B4DFF');
       floatGain(cx + 22, cy - 12, '+' + gains.gems + ' \u25C6', '#0369A1');
@@ -962,7 +968,7 @@
     checkBadges: checkBadges,
     touchDaily: touchDaily,
     Sound: Sound,
-    confetti: confetti, floatGain: floatGain, burstFrom: burstFrom, toast: toast, holdToasts: holdToasts,
+    confetti: confetti, calmConfetti: calmConfetti, floatGain: floatGain, burstFrom: burstFrom, toast: toast, holdToasts: holdToasts,
     diamondRain: diamondRain, celebrateGoal: celebrateGoal,
     gem: gem, verifiedMark: verifiedMark,
     escapeHtml: escapeHtml, normalise: normalise, matches: matches, tight: tight,

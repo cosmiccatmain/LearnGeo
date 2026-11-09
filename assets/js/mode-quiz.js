@@ -402,7 +402,7 @@
     Q.bonus = bonus;
     W.saveNow();
     W.Sound.finish();
-    if (pct >= 70) W.confetti({ count: 120, power: 340, y: window.innerHeight * 0.35 });
+    if (pct >= 70) (W.calmConfetti || W.confetti)({ count: 16, power: 130, y: window.innerHeight * 0.35 });
     global.UI.refreshHud(true);
     /* the quiz that was just counted may be the fifth, or the first
        perfect one, and neither is checked anywhere else on this path */

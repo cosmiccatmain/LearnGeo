@@ -316,7 +316,7 @@
     });
 
     if (got === qs.length && W.confetti && W.state.settings.effects) {
-      try { W.confetti({ count: 40, power: 170 }); } catch (e) {}
+      try { (W.calmConfetti || W.confetti)({ count: 12, power: 110 }); } catch (e) {}
     }
     clearTimeout(popTimer);
     popTimer = setTimeout(popup, 650);

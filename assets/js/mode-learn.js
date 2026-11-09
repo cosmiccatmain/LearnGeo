@@ -354,7 +354,7 @@
     job = null;
     setTimeout(function () {
       W.Sound.finish();
-      W.confetti({ count: 110, power: 320, y: window.innerHeight * 0.4 });
+      (W.calmConfetti || W.confetti)({ count: 16, power: 130, y: window.innerHeight * 0.4 });
     }, 250);
   }
 

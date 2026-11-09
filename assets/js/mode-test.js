@@ -636,7 +636,7 @@
     W.saveNow();
 
     W.Sound.finish();
-    if (pct >= 70) W.confetti({ count: 120, power: 340, y: window.innerHeight * 0.35 });
+    if (pct >= 70) (W.calmConfetti || W.confetti)({ count: 16, power: 130, y: window.innerHeight * 0.35 });
     global.UI.refreshHud(true);
     W.announceAchievements(W.checkAchievements());
     renderReport();

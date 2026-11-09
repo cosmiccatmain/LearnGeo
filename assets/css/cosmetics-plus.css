@@ -367,34 +367,21 @@
 }
 /* rare and up: a sheen that sweeps through every few seconds */
 .np--l1::before, .np--l2::before, .np--l3::before {
-  top: -60%; bottom: -60%; width: 34%; left: -50%;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,.65), transparent);
-  transform: rotate(20deg);
-  animation: np-sheen 4.4s cubic-bezier(.45, 0, .2, 1) infinite;
+  display: none;
 }
 .np--l1 { box-shadow: 0 0 0 1px color-mix(in srgb, var(--np-glow) 30%, transparent); }
-/* epic: the gradient flows and sparkles drift through */
+/* epic and legendary stay flat: solid plate, no living glow */
 .np--l2, .np--l3 {
-  background-size: 220% 100% !important;
-  animation: np-flow 6s ease-in-out infinite alternate;
-  text-shadow: 0 0 10px color-mix(in srgb, var(--np-glow) 55%, transparent);
+  background-size: 100% 100% !important;
+  animation: none;
+  text-shadow: none;
 }
-.np--l2::after, .np--l3::after {
-  inset: 0;
-  background:
-    radial-gradient(1.6px 1.6px at 14% 30%, #fff 98%, transparent),
-    radial-gradient(1.2px 1.2px at 38% 72%, #fff 98%, transparent),
-    radial-gradient(1.8px 1.8px at 66% 26%, #fff 98%, transparent),
-    radial-gradient(1.2px 1.2px at 88% 64%, #fff 98%, transparent);
-  animation: np-sparkle 2.6s ease-in-out infinite;
-}
+.np--l2::after, .np--l3::after { display: none; }
 .np--l2 { box-shadow: 0 0 0 1px color-mix(in srgb, var(--np-glow) 45%, transparent),
                       0 4px 14px -6px color-mix(in srgb, var(--np-glow) 70%, transparent); }
-/* legendary: a living glow round the plate */
 .np--l3 {
-  box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--np-glow) 75%, transparent),
-              0 0 16px -2px color-mix(in srgb, var(--np-glow) 80%, transparent);
-  animation: np-flow 6s ease-in-out infinite alternate, np-glow 2.4s ease-in-out infinite;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--np-glow) 45%, transparent);
+  animation: none;
 }
 .np--gilded { text-shadow: 0 1px 0 rgba(120, 53, 15, .35), 0 0 12px rgba(253, 230, 138, .8); }
 @keyframes np-sheen { 0%, 50% { left: -50%; } 100% { left: 130%; } }
@@ -649,11 +636,11 @@
   color: #fff; background: #64748B;
 }
 .shop-item--r-rare      .shop-item__rar { background: #0EA5E9; }
-.shop-item--r-epic      .shop-item__rar { background: linear-gradient(90deg, #8B5CF6, #D946EF); }
+.shop-item--r-epic      .shop-item__rar { background: #5B6B76; }
 .shop-item--r-legendary .shop-item__rar,
-.shop-item--r-staff     .shop-item__rar { background: linear-gradient(90deg, #D97706, #F5B301, #D97706); background-size: 200% 100%; animation: fxl-pan 2.5s linear infinite; color: #3B1D00; }
+.shop-item--r-staff     .shop-item__rar { background: #0A6F63; color: #fff; animation: none; }
 .shop-item--r-mythic    .shop-item__rar,
-.shop-item--r-secret    .shop-item__rar { background: linear-gradient(90deg, #F43F5E, #F59E0B, #22D3EE, #8B5CF6, #F43F5E); background-size: 300% 100%; animation: fxl-pan 3s linear infinite; }
+.shop-item--r-secret    .shop-item__rar { background: #0B1520; animation: none; }
 .shop-item--r-earned    .shop-item__rar { background: #16A34A; }
 
 .shop-item--r-rare:not(.is-equipped) { border-color: color-mix(in srgb, #0EA5E9 32%, var(--line)); }
@@ -662,23 +649,19 @@
   box-shadow: 0 6px 18px -12px rgba(139, 92, 246, .6);
 }
 .shop-item--r-legendary:not(.is-equipped), .shop-item--r-mythic:not(.is-equipped) {
-  border: 1.5px solid transparent;
-  background:
-    linear-gradient(var(--white), var(--white)) padding-box,
-    conic-gradient(from var(--rar-a), #F5B301, #FDE68A, #F97316, #FFFBEB, #F5B301) border-box;
-  animation: rar-spin 4s linear infinite;
-  box-shadow: 0 8px 22px -14px rgba(245, 179, 1, .8);
+  border: 1px solid var(--line);
+  background: var(--white);
+  animation: none;
+  box-shadow: none;
 }
 .shop-item--r-mythic:not(.is-equipped) {
-  background:
-    linear-gradient(180deg, #FFFBEB, var(--white) 60%) padding-box,
-    conic-gradient(from var(--rar-a), #F43F5E, #F59E0B, #FDE68A, #22D3EE, #8B5CF6, #F43F5E) border-box;
-  animation-duration: 2.6s;
+  background: var(--white);
+  border-color: var(--line);
 }
 @keyframes rar-spin { to { --rar-a: 360deg; } }
 
 /* equipping something: the tile pops and rings out */
-.shop-item.is-pop { animation: shop-pop .55s cubic-bezier(.2, 1.4, .4, 1); }
+.shop-item.is-pop { animation: none; }
 .shop-item.is-pop .shop-item__shine::after {
   content: ''; position: absolute; inset: 0; border-radius: inherit;
   box-shadow: inset 0 0 0 2px var(--accent);
@@ -725,8 +708,7 @@
 .buy-vis--r-mythic, .buy-vis--r-secret { --rc: rgba(244, 63, 94, .3); }
 .buy-vis--r-mythic::before { animation-duration: 6s; }
 .buy-vis--r-mythic .buy-vis__rar {
-  background: linear-gradient(90deg, #F43F5E, #F59E0B, #22D3EE, #8B5CF6);
-  -webkit-background-clip: text; background-clip: text; color: transparent;
+  background: none; color: var(--ink, #0B1520);
 }
 
 /* game cosmetic tiles pick up the same polish */

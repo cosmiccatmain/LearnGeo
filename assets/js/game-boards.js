@@ -312,7 +312,10 @@
   }
 
   function show(gameId) {
-    var games = catalogue();
+    var games = catalogue().filter(function (g) {
+      if (global.Premium && global.Premium.gameAllowed) return !!global.Premium.gameAllowed(g.id);
+      return !g.premium;
+    });
     if (!games.length) return;
     gameId = boardIdFor(gameId);
     var startId = games.some(function (g) { return g.id === gameId; }) ? gameId : ALL;

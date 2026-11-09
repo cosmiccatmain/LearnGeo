@@ -566,7 +566,7 @@
   }
 
   function gamesSection(kind, title, hint) {
-    var list = Cos[kind] || [];
+    var list = (Cos[kind] || []).filter(offerable);
     var slot = LISTS[kind];
     var owned = W.state.owned[kind] || [];
     var equipped = W.state.profile[slot];
@@ -618,14 +618,14 @@
   };
   var gamesPreviewMode = 'dash';
 
+  /* Paid cosmetics are left out of the grid. No locked tile, no crown. */
   function plusItemVisible(it) {
-    var needs = !!(it && it.premium) || !!(Cos.requiresPremium && Cos.requiresPremium(it));
-    if (!needs) return true;
+    if (!it) return false;
     if (global.Premium && global.Premium.catalogueVisible) return global.Premium.catalogueVisible(it);
-    var previewOn = !!(global.Premium && global.Premium.previewEnabled && global.Premium.previewEnabled());
-    if (!previewOn) return true;
-    return !!(global.Premium && global.Premium.active && global.Premium.active());
+    if (global.Premium && global.Premium.itemAllowed) return global.Premium.itemAllowed(it);
+    return !it.premium;
   }
+  function offerable(it) { return plusItemVisible(it); }
 
   function shopTile(kind, it, owned, equipped) {
     if (!plusItemVisible(it)) return '';
@@ -676,7 +676,7 @@
   }
 
   function shopPanel(kind) {
-    var list = Cos[kind];
+    var list = (Cos[kind] || []).filter(offerable);
     var slot = LISTS[kind];
     var owned = W.state.owned[kind] || [];
     var equipped = W.state.profile[slot];
@@ -701,7 +701,7 @@
     function hint(k) {
       if (k === 'effects') {
         return 'Tap a tile to preview it live on your card. Atlas Sparks is free. ' +
-          'Plus looks stay off this screen until the account has Plus or Schools. Achievement and staff effects are earned, not sold.';
+          'Achievement and staff effects are earned, not sold.';
       }
       if (k === 'decorations') {
         return 'Frames and badges sit on your avatar. Free frames unlock instantly; ' +
@@ -852,15 +852,7 @@
         var owned = btn.dataset.owned === '1';
         var item = Cos.find(Cos[kind], id);
 
-        var previewOn = !!(global.Premium && global.Premium.previewEnabled && global.Premium.previewEnabled());
-        if (previewOn && (btn.dataset.premium === '1' || (item && item.premium && !(global.Premium && global.Premium.active && global.Premium.active())))) {
-          W.Sound.wrong();
-          W.toast('Plus', (item && item.name ? item.name + ' needs' : 'Needs') + ' LearnGeo Plus', I.lock, 3600);
-          if (global.Premium && global.Premium.openUpgrade) {
-            global.Premium.openUpgrade((item && item.name ? item.name : 'This cosmetic') + ' needs LearnGeo Plus.');
-          }
-          return;
-        }
+        if (!plusItemVisible(item)) return;
 
         /* A locked badge is not for sale at any price. Tapping it says what
            to go and do instead of opening a buy dialog. */
@@ -883,14 +875,7 @@
        sold, whatever a caller passes as the price, so a badge cannot be
        bought by a stale button, a keyboard path or a console call. */
     if (item && item.earn) return;
-    if (item && item.premium &&
-        global.Premium && global.Premium.previewEnabled && global.Premium.previewEnabled() &&
-        !(global.Premium.active && global.Premium.active())) {
-      if (global.Premium.openUpgrade) {
-        global.Premium.openUpgrade((item.name || 'This cosmetic') + ' needs LearnGeo Plus.');
-      }
-      return;
-    }
+    if (item && !plusItemVisible(item)) return;
     if (W.state.economy.diamonds < price) {
       W.Sound.wrong();
       W.toast('Not enough diamonds', 'You need ' + (price - W.state.economy.diamonds).toLocaleString() + ' more', I.gem, 3400);
@@ -916,9 +901,8 @@
             W.saveNow();
             W.Sound.gem();
             var lv = Cos.level(item);
-            W.confetti({ count: [46, 60, 80, 110, 160][lv] || 46, power: 190 + lv * 30 });
-            if (lv >= 3 && W.diamondRain) W.diamondRain({ count: lv >= 4 ? 90 : 40 });
-            W.toast('Unlocked · ' + Cos.rarity(item).toUpperCase(), item.name + ' is yours', I.sparkle);
+            (W.calmConfetti || W.confetti)({ count: 12, power: 110 });
+            W.toast('Unlocked', item.name + ' is yours', I.check);
             equip(kind, id, root);
           } }
       ]
@@ -927,14 +911,7 @@
 
   function equip(kind, id, root) {
     var item = Cos.find(Cos[kind], id);
-    if (item && item.premium &&
-        global.Premium && global.Premium.previewEnabled && global.Premium.previewEnabled() &&
-        !(global.Premium.active && global.Premium.active())) {
-      if (global.Premium.openUpgrade) {
-        global.Premium.openUpgrade((item.name || 'This cosmetic') + ' needs LearnGeo Plus.');
-      }
-      return;
-    }
+    if (item && !plusItemVisible(item)) return;
     W.state.profile[LISTS[kind]] = id;
     W.saveNow();
     W.Sound.flip();
@@ -959,7 +936,7 @@
         tile.classList.add('is-pop');
         var r = tile.getBoundingClientRect();
         var lv = Cos.level(item);
-        if (r.width) W.confetti({ x: r.left + r.width / 2, y: r.top + r.height / 3, count: 14 + lv * 8, power: 110 + lv * 15 });
+        if (r.width) (W.calmConfetti || W.confetti)({ x: r.left + r.width / 2, y: r.top + r.height / 3, count: 8, power: 80 });
       }
     }
     drawPreview(root);

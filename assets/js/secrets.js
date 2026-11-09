@@ -101,7 +101,7 @@
     var extra = COSMETIC[id] ? ' · secret ' + COSMETIC[id] + ' unlocked' : '';
     setTimeout(function () {
       if (W.Sound && W.Sound.gem) W.Sound.gem();
-      try { W.confetti(); } catch (e) { /* decoration only */ }
+      try { (W.calmConfetti || W.confetti)({ count: 12, power: 100 }); } catch (e) { /* decoration only */ }
       var icon = global.Badges ? global.Badges.markup([badgeId], 18, true) : '';
       W.toast('🥚 You found a secret: ' + sec.name,
         sec.desc + ' · +' + r.gems + ' 💎 · +' + r.xp + ' XP' + extra +
@@ -109,7 +109,7 @@
       if (keeper) {
         setTimeout(function () {
           if (W.Sound && W.Sound.gem) W.Sound.gem();
-          try { W.confetti(); } catch (e) { /* decoration only */ }
+          try { (W.calmConfetti || W.confetti)({ count: 12, power: 100 }); } catch (e) { /* decoration only */ }
           W.toast('🗝️ Secret Keeper',
             'You found all ' + TOTAL + ' secrets. +1000 💎 and the Secret Keeper ring and effect are yours.',
             global.Badges ? global.Badges.markup(['secret-keeper'], 18, true) : '', 8000);

@@ -1780,20 +1780,12 @@
     askQuestion();
   }
 
-  /* Three volleys from where the podium stands, a beat apart, rather than
-     one burst from the middle of the window. */
+  /* One short burst at the podium. */
   function celebrate() {
     var box = view && view.el && view.el.getBoundingClientRect ? view.el.getBoundingClientRect() : null;
-    var shots = box
-      ? [[box.left + box.width * .5, box.top + box.height * .42],
-         [box.left + box.width * .3, box.top + box.height * .5],
-         [box.left + box.width * .7, box.top + box.height * .5]]
-      : [[undefined, undefined]];
-    shots.forEach(function (at, i) {
-      setTimeout(function () {
-        try { W.confetti({ count: i ? 70 : 120, power: i ? 220 : 300, x: at[0], y: at[1] }); } catch (e) {}
-      }, 250 + i * 380);
-    });
+    var x = box ? box.left + box.width * 0.5 : undefined;
+    var y = box ? box.top + box.height * 0.42 : undefined;
+    try { (W.calmConfetti || W.confetti)({ count: 14, power: 120, x: x, y: y }); } catch (e) {}
   }
 
   function closeRoom() {
