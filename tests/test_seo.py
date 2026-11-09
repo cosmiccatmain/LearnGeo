@@ -59,6 +59,22 @@ class SeoTests(unittest.TestCase):
             self.assertIn(s, sources)
         self.assertIn('Sitemap: %s/sitemap.xml' % SITE, (ROOT / 'robots.txt').read_text())
 
+    def test_adsense_snippet_and_metrics_on_seo_pages(self):
+        snippet = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6903921330074472'
+        samples = [
+            ROOT / 'countries' / 'index.html',
+            ROOT / 'countries' / 'france' / 'index.html',
+            ROOT / 'continents' / 'europe' / 'index.html',
+        ]
+        for page in samples:
+            text = page.read_text(encoding='utf-8')
+            self.assertIn(snippet, text)
+            self.assertIn('crossorigin="anonymous"', text)
+            self.assertIn('/assets/js/metrics-config.js', text)
+            self.assertIn('/assets/js/metrics.js', text)
+            self.assertIn('data-ad-slot="seo"', text)
+            self.assertNotIn('gtag/js?id=G-', text)
+
 
 if __name__ == '__main__':
     unittest.main()

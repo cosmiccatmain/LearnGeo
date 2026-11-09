@@ -2124,6 +2124,12 @@
     settleThumb();                     /* correct for any reflow the mode caused */
     global.GeoMap.invalidate();
     refreshHud();
+    if (global.LearnGeoMetrics) {
+      global.LearnGeoMetrics.syncGameplay();
+      if (!document.documentElement.classList.contains('ads-gameplay')) {
+        global.LearnGeoMetrics.fillSlots();
+      }
+    }
   }
 
   /* Asked once, the first time someone opens the app. Students never see
@@ -2227,6 +2233,7 @@
     VIEWS.forEach(function (v) { document.body.classList.remove('view-' + v); });
     window.scrollTo(0, 0);
     if (global.Demo) global.Demo.restart();
+    if (global.LearnGeoMetrics) global.LearnGeoMetrics.syncGameplay();
   }
 
   global.UI = {

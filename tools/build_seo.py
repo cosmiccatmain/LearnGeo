@@ -121,6 +121,14 @@ def page(path, title, desc, body, crumbs, extra_ld=None):
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/assets/css/seo.css">
+<link rel="stylesheet" href="/assets/css/ads.css">
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6903921330074472" crossorigin="anonymous"></script>
+<script>
+  window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+</script>
+<script defer src="/_vercel/insights/script.js"></script>
+<script src="/assets/js/metrics-config.js"></script>
+<script src="/assets/js/metrics.js"></script>
 <script type="application/ld+json">%(ld)s</script>
 </head>
 <body>
@@ -132,6 +140,10 @@ def page(path, title, desc, body, crumbs, extra_ld=None):
 <main class="sp-main">
 <nav class="sp-crumbs" aria-label="Breadcrumb">%(nav)s</nav>
 %(body)s
+<aside class="ad-slot ad-slot--banner sp-ad" data-ad-slot="seo" aria-label="Advertisement">
+  <span class="ad-slot__label">Advertisement</span>
+  <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-6903921330074472" data-ad-format="auto" data-full-width-responsive="true"></ins>
+</aside>
 </main>
 <footer class="sp-foot">
   <span>© LearnGeo · Learn every country and capital, free.</span>
