@@ -12,6 +12,9 @@
    LEA-110: Multi-tap rarity (upgrade or stay), bigger chest, one
    reward per tap then return to path.
    LEA-112: above-the-fold gift banner for admin-granted chests.
+   LEA-123: chest with depth, clasp, and lid highlight. Common is the
+   pewter low tier; Rare, Epic, and Legendary share that chest and
+   step the enamel, metal, and glow up. Original fonts.
    Original LearnGeo fonts. Respects prefers-reduced-motion.
 -------------------------------------------------------------------*/
 
@@ -1002,14 +1005,73 @@
   cursor: pointer;
 }
 .rt-chest {
-  --rt-chest-hue: #F59E0B;
-  --rt-chest-glow: rgba(245, 158, 11, .45);
+  --rt-chest-hue: #94A3B8;
+  --rt-chest-glow: rgba(148, 163, 184, .45);
+  /* Common — pewter atlas case, the low tier of the set. */
+  --ch-lid-0: #F7F9FB;
+  --ch-lid-1: #D5DEE7;
+  --ch-lid-2: #A7B6C4;
+  --ch-lid-3: #8494A4;
+  --ch-body-0: #C5D0DA;
+  --ch-body-1: #748594;
+  --ch-body-2: #516170;
+  --ch-plinth: #2C3A46;
+  --ch-metal-0: #F4F7F9;
+  --ch-metal-1: #C5CED6;
+  --ch-metal-2: #74818D;
+  --ch-sheen: .72;
+  --ch-rim: rgba(255, 255, 255, .5);
   position: relative;
   width: min(440px, 100%);
   text-align: center;
   color: #fff;
   font-family: var(--sans, inherit);
   cursor: default;
+}
+.rt-chest[data-rarity="rare"] {
+  --ch-lid-0: #F8FBFF;
+  --ch-lid-1: #DBEAFE;
+  --ch-lid-2: #3B82F6;
+  --ch-lid-3: #1D4ED8;
+  --ch-body-0: #93C5FD;
+  --ch-body-1: #1B4DFF;
+  --ch-body-2: #1E3A8A;
+  --ch-plinth: #172554;
+  --ch-metal-0: #F8FAFC;
+  --ch-metal-1: #E2E8F0;
+  --ch-metal-2: #64748B;
+  --ch-sheen: .62;
+  --ch-rim: rgba(219, 234, 254, .85);
+}
+.rt-chest[data-rarity="epic"] {
+  --ch-lid-0: #FAF5FF;
+  --ch-lid-1: #EDE9FE;
+  --ch-lid-2: #8B5CF6;
+  --ch-lid-3: #6D28D9;
+  --ch-body-0: #C4B5FD;
+  --ch-body-1: #7C3AED;
+  --ch-body-2: #4C1D95;
+  --ch-plinth: #2E1065;
+  --ch-metal-0: #FAF5FF;
+  --ch-metal-1: #DDD6FE;
+  --ch-metal-2: #6D28D9;
+  --ch-sheen: .7;
+  --ch-rim: rgba(237, 233, 254, .9);
+}
+.rt-chest[data-rarity="legendary"] {
+  --ch-lid-0: #FFFBEB;
+  --ch-lid-1: #FDE68A;
+  --ch-lid-2: #F59E0B;
+  --ch-lid-3: #D97706;
+  --ch-body-0: #FBBF24;
+  --ch-body-1: #EA580C;
+  --ch-body-2: #9A3412;
+  --ch-plinth: #7C2D12;
+  --ch-metal-0: #FFFBEB;
+  --ch-metal-1: #FDE68A;
+  --ch-metal-2: #B45309;
+  --ch-sheen: .85;
+  --ch-rim: rgba(255, 251, 235, .95);
 }
 .rt-chest__glow {
   position: absolute;
@@ -1022,6 +1084,10 @@
   pointer-events: none;
   transition: background .35s ease, opacity .35s ease, transform .35s ease;
 }
+.rt-chest[data-rarity="common"] .rt-chest__glow { opacity: .32; }
+.rt-chest[data-rarity="rare"] .rt-chest__glow { opacity: .7; }
+.rt-chest[data-rarity="epic"] .rt-chest__glow { opacity: .82; }
+.rt-chest[data-rarity="legendary"] .rt-chest__glow { opacity: .95; }
 .rt-chest[data-chest-stage="upgrade"] .rt-chest__glow,
 .rt-chest[data-chest-stage="crack"] .rt-chest__glow,
 .rt-chest[data-chest-stage="open"] .rt-chest__glow {
@@ -1056,48 +1122,155 @@
   padding: 0; border: 0; cursor: pointer;
   background: transparent;
   transform-origin: 50% 80%;
+  perspective: 520px;
 }
 .rt-chest__box:focus-visible {
   outline: 3px solid #fff;
   outline-offset: 10px;
   border-radius: 16px;
 }
+.rt-chest__box::before {
+  content: "";
+  position: absolute;
+  inset: -8px -6px 4px;
+  border-radius: 28px;
+  border: 2px solid var(--rt-chest-hue);
+  opacity: 0;
+  pointer-events: none;
+}
+.rt-chest[data-chest-stage="upgrade"] .rt-chest__box::before {
+  animation: rt-chest-ring .6s ease-out 1;
+}
+.rt-chest__shadow {
+  position: absolute;
+  left: 14%; right: 14%; bottom: 2px;
+  height: 16px;
+  border-radius: 50%;
+  background: rgba(8, 12, 20, .5);
+  filter: blur(5px);
+  z-index: 0;
+  pointer-events: none;
+}
+.rt-chest__well {
+  position: absolute;
+  left: 34px; right: 34px; top: 46%;
+  height: 22px;
+  border-radius: 4px 4px 0 0;
+  background: linear-gradient(180deg, #0B1520, #1A2836);
+  box-shadow: inset 0 6px 8px rgba(0,0,0,.45);
+  opacity: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+.rt-chest[data-chest-stage="crack"] .rt-chest__well,
+.rt-chest[data-chest-stage="open"] .rt-chest__well { opacity: 1; }
 .rt-chest__body {
   position: absolute;
-  left: 18px; right: 18px; bottom: 10px; height: 48%;
-  border-radius: 14px 14px 18px 18px;
-  background: linear-gradient(180deg, #FBBF24 0%, #D97706 55%, #B45309 100%);
-  box-shadow: 0 14px 0 #7C2D12, inset 0 3px 0 rgba(255,255,255,.35);
+  left: 28px; right: 28px; bottom: 16px; height: 44%;
+  border-radius: 6px 6px 18px 18px;
+  background:
+    linear-gradient(90deg, rgba(11,21,32,.28), transparent 16% 84%, rgba(255,255,255,.14)),
+    linear-gradient(180deg, var(--ch-body-0) 0%, var(--ch-body-1) 42%, var(--ch-body-2) 100%);
+  box-shadow:
+    0 14px 0 var(--ch-plinth),
+    0 22px 16px rgba(11, 21, 32, .28),
+    inset 0 1px 0 rgba(255,255,255,.38),
+    inset 0 -12px 14px rgba(11,21,32,.16);
+  z-index: 1;
+}
+.rt-chest__face {
+  position: absolute;
+  left: 10px; right: 10px; top: 16px; bottom: 12px;
+  border-radius: 4px 4px 12px 12px;
+  background: linear-gradient(180deg, rgba(255,255,255,.2), transparent 38%, rgba(11,21,32,.08));
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.18);
+  pointer-events: none;
 }
 .rt-chest__lid {
   position: absolute;
-  left: 12px; right: 12px; top: 18%; height: 32%;
-  border-radius: 16px 16px 8px 8px;
-  background: linear-gradient(180deg, #FDE68A 0%, #F59E0B 70%, #D97706 100%);
-  box-shadow: inset 0 3px 0 rgba(255,255,255,.45);
+  left: 14px; right: 14px; top: 8%; height: 42%;
+  border-radius: 90px 90px 10px 10px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.28), transparent 42%),
+    linear-gradient(168deg, var(--ch-lid-0) 0%, var(--ch-lid-1) 22%, var(--ch-lid-2) 68%, var(--ch-lid-3) 100%);
+  box-shadow:
+    inset 0 3px 0 var(--ch-rim),
+    inset 0 -9px 0 rgba(11,21,32,.18),
+    0 12px 16px rgba(11,21,32,.18);
   transform-origin: 50% 100%;
+  transform-style: preserve-3d;
   transition: transform .45s var(--rt-pop-ease);
   z-index: 2;
 }
+.rt-chest__shine {
+  position: absolute;
+  left: 16%; right: 40%; top: 14%;
+  height: 34%;
+  border-radius: 40px;
+  background: linear-gradient(180deg, #fff, rgba(255,255,255,0));
+  opacity: var(--ch-sheen);
+  pointer-events: none;
+}
+.rt-chest__strap,
+.rt-chest__band {
+  background: linear-gradient(180deg,
+    var(--ch-metal-0) 0%,
+    var(--ch-metal-1) 46%,
+    var(--ch-metal-2) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.75),
+    inset 0 -1px 0 rgba(11,21,32,.28),
+    0 1px 0 rgba(11,21,32,.12);
+}
+.rt-chest__strap {
+  position: absolute;
+  left: 10%; right: 10%; top: 58%;
+  height: 9px;
+  border-radius: 3px;
+  pointer-events: none;
+}
 .rt-chest__band {
   position: absolute;
-  left: 50%; bottom: 24%;
-  width: 42px; height: 36%;
-  margin-left: -21px;
-  border-radius: 6px;
-  background: linear-gradient(180deg, #FDE68A, #B45309);
-  box-shadow: inset 0 0 0 2px rgba(120, 53, 15, .35);
+  left: 40px; right: 40px; bottom: 28%;
+  height: 9px;
+  border-radius: 3px;
   z-index: 3;
+  pointer-events: none;
+}
+.rt-chest__clasp {
+  position: absolute;
+  left: 50%; top: 40%;
+  width: 44px; height: 58px;
+  margin-left: -22px;
+  border-radius: 8px;
+  background: linear-gradient(180deg, var(--ch-metal-0) 0%, var(--ch-metal-1) 48%, var(--ch-metal-2) 100%);
+  box-shadow:
+    0 5px 0 rgba(11,21,32,.32),
+    inset 0 1px 0 rgba(255,255,255,.85),
+    inset 0 0 0 1px rgba(11,21,32,.25);
+  z-index: 4;
+  pointer-events: none;
+}
+.rt-chest__clasp::after {
+  content: "";
+  position: absolute;
+  left: 50%; bottom: 8px;
+  width: 4px; height: 9px;
+  margin-left: -2px;
+  border-radius: 2px;
+  background: rgba(11,21,32,.42);
+  box-shadow: inset 0 1px 1px rgba(255,255,255,.3);
 }
 .rt-chest__lock {
   position: absolute;
-  left: 50%; bottom: 34%;
-  width: 32px; height: 32px;
-  margin-left: -16px;
+  left: 50%; top: 44.5%;
+  width: 24px; height: 24px;
+  margin-left: -12px;
   border-radius: 50%;
-  background: radial-gradient(circle at 35% 30%, #FEF3C7, #B45309);
-  box-shadow: 0 3px 0 #7C2D12;
-  z-index: 4;
+  background: radial-gradient(circle at 32% 28%, #fff 0%, var(--ch-metal-0) 28%, var(--ch-metal-1) 62%, var(--ch-metal-2) 100%);
+  box-shadow: 0 2px 0 rgba(11,21,32,.28), inset 0 1px 0 rgba(255,255,255,.85);
+  z-index: 5;
+  pointer-events: none;
 }
 .rt-chest__burst {
   position: absolute;
@@ -1110,15 +1283,17 @@
   pointer-events: none;
   z-index: 5;
 }
-.rt-chest[data-chest-stage="shake"] .rt-chest__box,
-.rt-chest[data-chest-stage="upgrade"] .rt-chest__box {
+.rt-chest[data-chest-stage="shake"] .rt-chest__box {
   animation: rt-chest-shake .42s ease-in-out infinite;
+}
+.rt-chest[data-chest-stage="upgrade"] .rt-chest__box {
+  animation: rt-chest-rise .55s var(--rt-pop-ease) 1;
 }
 .rt-chest[data-chest-stage="crack"] .rt-chest__box {
   animation: rt-chest-shake .2s ease-in-out infinite;
 }
 .rt-chest[data-chest-stage="open"] .rt-chest__lid {
-  transform: translateY(-28px) rotateX(48deg) skewX(-4deg);
+  transform: translateY(-34px) rotateX(70deg);
 }
 .rt-chest[data-chest-phase="rewards"] .rt-chest__box {
   width: min(180px, 48vw); height: min(158px, 42vw);
@@ -1132,28 +1307,6 @@
 .rt-chest[data-chest-stage="open"] .rt-chest__box {
   animation: rt-chest-settle .5s var(--rt-pop-ease) 1;
 }
-.rt-chest[data-rarity="rare"] .rt-chest__body {
-  background: linear-gradient(180deg, #60A5FA 0%, #1B4DFF 55%, #1E3A8A 100%);
-  box-shadow: 0 10px 0 #1E3A8A, inset 0 2px 0 rgba(255,255,255,.35);
-}
-.rt-chest[data-rarity="rare"] .rt-chest__lid {
-  background: linear-gradient(180deg, #BFDBFE 0%, #3B82F6 70%, #1B4DFF 100%);
-}
-.rt-chest[data-rarity="epic"] .rt-chest__body {
-  background: linear-gradient(180deg, #C4B5FD 0%, #7C3AED 55%, #5B21B6 100%);
-  box-shadow: 0 10px 0 #4C1D95, inset 0 2px 0 rgba(255,255,255,.35);
-}
-.rt-chest[data-rarity="epic"] .rt-chest__lid {
-  background: linear-gradient(180deg, #DDD6FE 0%, #8B5CF6 70%, #7C3AED 100%);
-}
-.rt-chest[data-rarity="legendary"] .rt-chest__body {
-  background: linear-gradient(180deg, #FDE68A 0%, #F59E0B 45%, #EA580C 100%);
-  box-shadow: 0 10px 0 #9A3412, inset 0 2px 0 rgba(255,255,255,.45);
-}
-.rt-chest[data-rarity="legendary"] .rt-chest__lid {
-  background: linear-gradient(180deg, #FFFBEB 0%, #FBBF24 60%, #F59E0B 100%);
-}
-
 .rt-chest__rarity {
   margin: 0 0 6px;
   font-family: var(--serif, Georgia, serif);
@@ -1162,6 +1315,33 @@
   letter-spacing: .02em;
   text-shadow: 0 2px 12px rgba(0,0,0,.35);
 }
+.rt-chest.is-upgrade-flash .rt-chest__rarity {
+  animation: rt-chest-label .55s var(--rt-pop-ease) 1;
+}
+.rt-chest__pips {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin: 2px 0 12px;
+  pointer-events: none;
+}
+.rt-chest__pips i {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.18);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.2);
+}
+.rt-chest[data-rarity="common"] .rt-chest__pips i:nth-child(1),
+.rt-chest[data-rarity="rare"] .rt-chest__pips i:nth-child(-n+2),
+.rt-chest[data-rarity="epic"] .rt-chest__pips i:nth-child(-n+3),
+.rt-chest[data-rarity="legendary"] .rt-chest__pips i {
+  background: var(--rt-chest-hue);
+  box-shadow: 0 0 8px var(--rt-chest-glow);
+}
+.rt-chest.is-upgrade-flash .rt-chest__pips i {
+  animation: rt-chest-pip .55s var(--rt-pop-ease) 1;
+}
+.rt-chest[data-chest-phase="rewards"] .rt-chest__pips { display: none; }
 .rt-chest__status {
   margin: 0 0 10px;
   font-size: 16px;
@@ -1262,6 +1442,25 @@
   from { opacity: 0; transform: translateY(14px) scale(.94); }
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
+@keyframes rt-chest-rise {
+  0% { transform: translateY(0) scale(1); }
+  42% { transform: translateY(-16px) scale(1.05); }
+  100% { transform: translateY(0) scale(1); }
+}
+@keyframes rt-chest-ring {
+  0% { opacity: .85; transform: scale(.88); }
+  100% { opacity: 0; transform: scale(1.16); }
+}
+@keyframes rt-chest-label {
+  0% { transform: scale(.94); }
+  46% { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+@keyframes rt-chest-pip {
+  0% { transform: scale(.7); }
+  45% { transform: scale(1.35); }
+  100% { transform: scale(1); }
+}
 
 @media (prefers-reduced-motion: reduce) {
   .rtpath--shell,
@@ -1304,7 +1503,10 @@
   .rt-chest__glow,
   .rt-chest__particles,
   .rt-chest__prize,
-  .rt-chest.is-upgrade-flash .rt-chest__glow {
+  .rt-chest.is-upgrade-flash .rt-chest__glow,
+  .rt-chest.is-upgrade-flash .rt-chest__rarity,
+  .rt-chest.is-upgrade-flash .rt-chest__pips i,
+  .rt-chest[data-chest-stage="upgrade"] .rt-chest__box::before {
     animation: none !important;
     transition: none !important;
   }
