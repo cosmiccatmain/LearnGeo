@@ -107,6 +107,7 @@
     var beatTimer = null;
     var listTimer = null;
     var openTag = null;
+    var skySig = '';
 
     host.innerHTML =
       '<div class="lobby-orbit" data-lobby-orbit>' +
@@ -121,8 +122,26 @@
     var pop = W.$('[data-lobby-pop]', host);
     var chatPanel = W.$('[data-lobby-chat]', host);
 
+    function peopleSig(list) {
+      if (!list || !list.length) return 'alone:' + (myTag() || '') + ':' + accentFor(lobby);
+      return list.map(function (p) {
+        return [
+          p.tag || '',
+          p.mine ? 1 : 0,
+          p.accent || '',
+          (p.initial || '').charAt(0)
+        ].join('~');
+      }).join('|');
+    }
+
     function paintSky() {
       if (!sky) return;
+      /* Replacing the sky on every presence poll restarts lobbyFloat,
+         so circles jump back to the top of the bob. Skip when the
+         roster has not changed. */
+      var sig = peopleSig(people);
+      if (sig === skySig && sky.querySelector('.lobby-circle')) return;
+      skySig = sig;
       var placed = placePeople(people);
       if (!placed.length) {
         sky.innerHTML =

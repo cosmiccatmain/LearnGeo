@@ -80,6 +80,39 @@
     el.style.setProperty('--duel-accent-soft', theme.soft || 'rgba(27,77,255,.08)');
   }
 
+  /* Postgres sometimes emits offsets Date.parse rejects ("...123456+00").
+     A failed parse froze the round clock on 18s. */
+  function parseTs(v) {
+    if (v == null || v === '') return 0;
+    if (typeof v === 'number' && isFinite(v)) return v;
+    var s = String(v).trim();
+    var t = Date.parse(s);
+    if (t) return t;
+    var fixed = s.replace(/([+-]\d{2})$/, '$1:00').replace(' ', 'T');
+    t = Date.parse(fixed);
+    return t || 0;
+  }
+
+  function inboxSignature(box) {
+    box = box || lastInbox;
+    function ids(list) {
+      return (list || []).map(function (inv) {
+        return inv && inv.id ? String(inv.id) : '';
+      }).join(',');
+    }
+    var act = '';
+    if (box.active && box.active.id) {
+      act = [
+        box.active.id,
+        box.active.status || '',
+        box.active.current_round,
+        box.active.host_score,
+        box.active.guest_score
+      ].join(':');
+    }
+    return ids(box.incoming) + '|' + ids(box.outgoing) + '|' + act;
+  }
+
   /* ========================= question pack ======================== */
   function typeFor(kind, c) {
     if (kind === 'flags') return c.flag ? (Math.random() < 0.5 ? 'flag' : 'flagpick') : 'capital';
@@ -301,19 +334,118 @@
     var cfg = typeof opts.cfg === 'function' ? opts.cfg() : (opts.cfg || {});
     var destroyed = false;
     var poll = null;
+    var tickTimer = null;
     var state = null;
     var localAnswered = false;
-    var roundStartedLocal = 0;
+    var selectedChoice = null;
+    var submitInFlight = false;
     var scoredWin = false;
     var entering = false;
+    var paintedSig = '';
+    var inboxSigSeen = '';
+    var refreshGen = 0;
 
     host.innerHTML = '<div class="duel" tabindex="-1"><div class="duel__body" data-duel-body></div></div>';
     var body = W.$('[data-duel-body]', host);
 
+    function remainingMs() {
+      if (!state || state.status !== 'active') return 0;
+      var start = parseTs(state.round_started_at);
+      var total = (state.round_seconds || 18) * 1000;
+      if (!start) return total;
+      return Math.max(0, total - (Date.now() - start));
+    }
+
+    function remainingSec() {
+      return Math.max(0, Math.ceil(remainingMs() / 1000));
+    }
+
+    function elapsedAnswerMs() {
+      var start = parseTs(state && state.round_started_at);
+      if (!start) return 0;
+      return Math.max(0, Math.min(60000, Math.round(Date.now() - start)));
+    }
+
+    function statusText() {
+      var locked = !!(state && state.answered_me) || localAnswered || remainingMs() <= 0;
+      if (locked) {
+        if (state && state.answered_them) return 'Both answered — scoring…';
+        if (remainingMs() <= 0 && !(state && state.answered_me) && !localAnswered) return 'Time\'s up.';
+        return 'Answer locked. Waiting for your opponent…';
+      }
+      return 'Answer faster than your opponent. Wrong answers score nothing.';
+    }
+
+    /* Question identity only. Timer, scores-in-place, and "answered"
+       flags must not rebuild the card — that replayed slideIn every poll. */
+    function liveSig(s) {
+      var r = (s && s.round) || {};
+      var choices = (r.choices || []).map(function (ch) {
+        return (ch && (ch.text || ch.flag || '')) + '';
+      }).join('\u001e');
+      return [
+        s.status || '',
+        s.current_round,
+        s.round_count,
+        s.role || '',
+        s.host_tag || '',
+        s.guest_tag || '',
+        r.prompt || '',
+        r.subject || '',
+        r.sub || '',
+        r.flag || '',
+        r.flag_choices ? 1 : 0,
+        choices
+      ].join('\u001f');
+    }
+
+    function lockChoices(choice) {
+      W.$$('[data-choice]', body).forEach(function (b) {
+        b.classList.add('is-locked');
+        var idx = +b.getAttribute('data-choice');
+        b.classList.toggle('is-selected', choice != null && idx === choice);
+      });
+    }
+
+    function updateRoundChrome() {
+      if (!state || state.status !== 'active') return;
+      var small = W.$('.duel-round small', body);
+      if (small) small.textContent = remainingSec() + 's';
+      var hs = W.$('[data-duel-host-score]', body);
+      var gs = W.$('[data-duel-guest-score]', body);
+      if (hs) hs.textContent = String(state.host_score);
+      if (gs) gs.textContent = String(state.guest_score);
+      var status = W.$('[data-duel-status]', body);
+      if (status) status.textContent = statusText();
+      var locked = !!(state.answered_me) || localAnswered || remainingMs() <= 0;
+      if (locked) lockChoices(selectedChoice);
+      else {
+        W.$$('[data-choice]', body).forEach(function (b) {
+          b.classList.remove('is-locked', 'is-selected');
+        });
+      }
+    }
+
+    function renderInbox() {
+      var slot = body && W.$('[data-duel-inbox]', body);
+      if (!slot) return;
+      var sig = inboxSignature(lastInbox);
+      if (sig === inboxSigSeen && slot.getAttribute('data-inbox-sig') === sig) return;
+      inboxSigSeen = sig;
+      slot.setAttribute('data-inbox-sig', sig);
+      slot.innerHTML = inboxHtml(lastInbox);
+      wireInbox(body, function (id) { enterMatch(id); });
+    }
+
     function paint() {
       if (destroyed || !body) return;
-      if (!matchId) return paintLobby();
+      if (!matchId) {
+        paintedSig = '';
+        return paintLobby();
+      }
       if (!state) {
+        if (paintedSig === 'loading') return;
+        paintedSig = 'loading';
         body.innerHTML = global.CookingLoader
           ? global.CookingLoader.host({ tall: true, note: 'Loading match…' })
           : '<div class="duel-wait"><div class="duel-wait__pulse"></div><p>Loading match…</p></div>';
@@ -322,6 +454,12 @@
       }
       if (state.status === 'seeding') return paintSeeding();
       if (state.status === 'finished') return paintFinished();
+      var sig = liveSig(state);
+      if (sig === paintedSig && W.$('[data-duel-q]', body)) {
+        updateRoundChrome();
+        return;
+      }
+      paintedSig = sig;
       return paintRound();
     }
 
@@ -337,10 +475,7 @@
         enterMatch(box.active.id);
         return;
       }
-      var inboxEl = body && W.$('[data-duel-inbox]', body);
-      if (!inboxEl) return;
-      inboxEl.innerHTML = inboxHtml(box || lastInbox);
-      wireInbox(body, function (id) { enterMatch(id); });
+      renderInbox();
     }
     global.addEventListener('learngeo:pvp-inbox', onInboxEvent);
 
@@ -393,6 +528,7 @@
 
     function paintLobby() {
       stopLobbyCircles();
+      inboxSigSeen = inboxSignature(lastInbox);
       body.innerHTML =
         '<div class="duel-lobby">' +
           '<div class="duel-lobby__hero">' +
@@ -422,7 +558,7 @@
           '</div>' +
           '<div class="duel-inbox panel">' +
             '<div class="panel__head"><h3>Invites</h3></div>' +
-            '<div data-duel-inbox>' + inboxHtml(lastInbox) + '</div>' +
+            '<div data-duel-inbox data-inbox-sig="' + esc(inboxSigSeen) + '">' + inboxHtml(lastInbox) + '</div>' +
           '</div>' +
         '</div>';
 
@@ -449,8 +585,7 @@
           enterMatch(lastInbox.active.id);
           return;
         }
-        var box = W.$('[data-duel-inbox]', body);
-        if (box) { box.innerHTML = inboxHtml(lastInbox); wireInbox(body, function (id) { enterMatch(id); }); }
+        renderInbox();
       });
       applyDuelAccent(body.firstChild);
 
@@ -476,25 +611,29 @@
 
     function paintSeeding() {
       var iAmHost = state.role === 'host';
-      var seedNote = iAmHost ? 'Building your question set…' : 'Waiting for the host to deal the questions…';
-      body.innerHTML =
-        '<div class="duel-wait">' +
-          '<div class="duel-vs">' +
-            '<span>' + esc(state.host_tag || 'Host') + '</span>' +
-            '<b>VS</b>' +
-            '<span>' + esc(state.guest_tag || 'Guest') + '</span>' +
-          '</div>' +
-          (global.CookingLoader
-            ? global.CookingLoader.html({ size: 'md' }) +
-              '<p class="cook-loader-host__note">' + esc(seedNote) + '</p>'
-            : '<div class="duel-wait__pulse"></div><p>' + esc(seedNote) + '</p>') +
-          '<div class="duel-play__foot" style="margin-top:18px">' +
-            '<button class="btn btn--ghost btn--sm" type="button" data-duel-forfeit>Leave match</button>' +
-          '</div>' +
-        '</div>';
-      var leave = W.$('[data-duel-forfeit]', body);
-      if (leave) leave.addEventListener('click', forfeit);
-      applyDuelAccent(body.firstChild);
+      var same = paintedSig === 'seeding' && W.$('[data-duel-seeding]', body);
+      if (!same) {
+        var seedNote = iAmHost ? 'Building your question set…' : 'Waiting for the host to deal the questions…';
+        paintedSig = 'seeding';
+        body.innerHTML =
+          '<div class="duel-wait" data-duel-seeding>' +
+            '<div class="duel-vs">' +
+              '<span>' + esc(state.host_tag || 'Host') + '</span>' +
+              '<b>VS</b>' +
+              '<span>' + esc(state.guest_tag || 'Guest') + '</span>' +
+            '</div>' +
+            (global.CookingLoader
+              ? global.CookingLoader.html({ size: 'md' }) +
+                '<p class="cook-loader-host__note">' + esc(seedNote) + '</p>'
+              : '<div class="duel-wait__pulse"></div><p>' + esc(seedNote) + '</p>') +
+            '<div class="duel-play__foot" style="margin-top:18px">' +
+              '<button class="btn btn--ghost btn--sm" type="button" data-duel-forfeit>Leave match</button>' +
+            '</div>' +
+          '</div>';
+        var leave = W.$('[data-duel-forfeit]', body);
+        if (leave) leave.addEventListener('click', forfeit);
+        applyDuelAccent(body.firstChild);
+      }
       if (iAmHost) seedIfNeeded();
     }
 
@@ -523,14 +662,6 @@
       });
     }
 
-    function remainingSec() {
-      if (!state || !state.round_started_at) return state && state.round_seconds || 18;
-      var start = Date.parse(state.round_started_at);
-      if (!start) return state.round_seconds || 18;
-      var left = (state.round_seconds || 18) - ((Date.now() - start) / 1000);
-      return Math.max(0, Math.ceil(left));
-    }
-
     function paintRound() {
       var r = state.round || {};
       var keys = 'ABCD';
@@ -540,13 +671,13 @@
         '<div class="duel-play">' +
           '<div class="duel-scoreboard">' +
             '<div class="duel-score' + (state.role === 'host' ? ' is-me' : '') + '">' +
-              '<span>' + esc(state.host_tag || 'Host') + '</span><b class="mono">' + esc(String(state.host_score)) + '</b></div>' +
+              '<span>' + esc(state.host_tag || 'Host') + '</span><b class="mono" data-duel-host-score>' + esc(String(state.host_score)) + '</b></div>' +
             '<div class="duel-round mono">Round ' + (state.current_round + 1) + ' / ' + state.round_count +
               '<small>' + left + 's</small></div>' +
             '<div class="duel-score' + (state.role === 'guest' ? ' is-me' : '') + '">' +
-              '<span>' + esc(state.guest_tag || 'Guest') + '</span><b class="mono">' + esc(String(state.guest_score)) + '</b></div>' +
+              '<span>' + esc(state.guest_tag || 'Guest') + '</span><b class="mono" data-duel-guest-score>' + esc(String(state.guest_score)) + '</b></div>' +
           '</div>' +
-          '<div class="qcard duel-q">' +
+          '<div class="qcard duel-q" data-duel-q>' +
             '<div class="qcard__prompt">' + esc(r.prompt || 'Question') + '</div>' +
             '<div class="qcard__subject">' +
               (r.flag
@@ -566,22 +697,15 @@
                   '</span></button>';
               }).join('') +
             '</div>' +
-            '<p class="duel-status t-sm t-muted">' +
-              (locked
-                ? (state.answered_them ? 'Both answered — scoring…' : 'Answer locked. Waiting for your opponent…')
-                : 'Answer faster than your opponent. Wrong answers score nothing.') +
-            '</p>' +
+            '<p class="duel-status t-sm t-muted" data-duel-status>' + esc(statusText()) + '</p>' +
           '</div>' +
           '<div class="duel-play__foot">' +
             '<button class="btn btn--ghost btn--sm" type="button" data-duel-forfeit>Forfeit</button>' +
           '</div>' +
         '</div>';
 
-      if (!roundStartedLocal) roundStartedLocal = Date.now();
-
       W.$$('[data-choice]', body).forEach(function (btn) {
         btn.addEventListener('click', function () {
-          if (locked || localAnswered) return;
           answer(+btn.getAttribute('data-choice'));
         });
       });
@@ -589,7 +713,7 @@
       if (ff) ff.addEventListener('click', forfeit);
 
       applyDuelAccent(body.firstChild);
-      global.addEventListener('keydown', onKey);
+      if (locked) lockChoices(selectedChoice);
     }
 
     function onKey(e) {
@@ -605,24 +729,49 @@
     }
 
     function answer(choice) {
-      if (!state || state.status !== 'active' || localAnswered || state.answered_me) return;
+      if (!state || state.status !== 'active' || submitInFlight) return;
+      if (localAnswered || state.answered_me) return;
       if (!state.round || !state.round.choices || choice < 0 || choice >= state.round.choices.length) return;
+      if (remainingMs() <= 0) {
+        updateRoundChrome();
+        return;
+      }
+      var sentRound = state.current_round;
       localAnswered = true;
-      var ms = Math.max(0, Date.now() - (roundStartedLocal || Date.now()));
-      W.$$('[data-choice]', body).forEach(function (b) {
-        b.classList.add('is-locked');
-        if (+b.getAttribute('data-choice') === choice) b.classList.add('is-selected');
-      });
+      selectedChoice = choice;
+      submitInFlight = true;
+      lockChoices(choice);
+      var status = W.$('[data-duel-status]', body);
+      if (status) status.textContent = statusText();
+      var ms = elapsedAnswerMs();
       rpc('pvp_submit_answer', {
         p_device: deviceId(),
         p_match: matchId,
-        p_round: state.current_round,
+        p_round: sentRound,
         p_choice: choice,
         p_ms: ms
-      }).then(function () { refresh(); });
+      }).then(function (res) {
+        submitInFlight = false;
+        var failed = !res || !res.ok;
+        var terminal = !!(res && (res.error === 'already' || res.error === 'wrong_round' || res.error === 'not_active'));
+        refresh().then(function () {
+          if (!failed || terminal) return;
+          if (!state || state.status !== 'active') return;
+          if (state.current_round !== sentRound) return;
+          if (state.answered_me) return;
+          localAnswered = false;
+          selectedChoice = null;
+          updateRoundChrome();
+        });
+      });
     }
 
     function paintFinished() {
+      var finSig = 'fin:' + state.host_score + ':' + state.guest_score + ':' +
+        (state.i_won ? 1 : 0) + ':' + (state.draw ? 1 : 0) + ':' + (state.winner_tag || '');
+      if (paintedSig === finSig && W.$('[data-duel-finished]', body)) return;
+      paintedSig = finSig;
+      stopPoll();
       var title = state.draw ? 'Draw' : (state.i_won ? 'You win!' : 'Defeat');
       var sub = state.draw
         ? 'Even score — rematch from the lobby.'
@@ -630,7 +779,7 @@
           ? 'Nice work. Invite them again, or challenge someone from another school.'
           : (state.winner_tag || 'Your opponent') + ' took it this time.');
       body.innerHTML =
-        '<div class="duel-end">' +
+        '<div class="duel-end" data-duel-finished>' +
           '<div class="duel-end__badge' + (state.i_won ? ' is-win' : state.draw ? '' : ' is-loss') + '">' +
             esc(title) + '</div>' +
           '<div class="duel-vs">' +
@@ -693,9 +842,12 @@
       matchId = id;
       state = null;
       localAnswered = false;
-      roundStartedLocal = 0;
+      selectedChoice = null;
+      submitInFlight = false;
       scoredWin = false;
       entering = true;
+      paintedSig = '';
+      refreshGen = 0;
       seedIfNeeded.busy = false;
       paint();
       refresh();
@@ -704,7 +856,10 @@
 
     function refresh() {
       if (destroyed || !matchId) return Promise.resolve();
-      return rpc('pvp_match_state', { p_device: deviceId(), p_match: matchId }).then(function (res) {
+      var gen = ++refreshGen;
+      var id = matchId;
+      return rpc('pvp_match_state', { p_device: deviceId(), p_match: id }).then(function (res) {
+        if (destroyed || gen !== refreshGen || matchId !== id) return;
         if (!res || !res.ok) {
           if (res && (res.error === 'not_found' || res.error === 'forbidden')) {
             matchId = null;
@@ -717,10 +872,17 @@
         }
         var prevRound = state && state.current_round;
         var prevStatus = state && state.status;
+        /* A late response must not rewind the question under the cursor. */
+        if (state && prevStatus === 'active' && res.status === 'active' &&
+            typeof res.current_round === 'number' && typeof prevRound === 'number' &&
+            res.current_round < prevRound) {
+          return;
+        }
         state = res;
         if (prevRound !== state.current_round || prevStatus !== state.status) {
+          submitInFlight = false;
           localAnswered = !!state.answered_me;
-          roundStartedLocal = Date.now();
+          if (!state.answered_me) selectedChoice = null;
         } else if (state.answered_me) {
           localAnswered = true;
         }
@@ -730,6 +892,10 @@
 
     function startPoll() {
       stopPoll();
+      tickTimer = setInterval(function () {
+        if (destroyed) return;
+        updateRoundChrome();
+      }, 250);
       poll = setInterval(function () {
         if (destroyed) return;
         refresh();
@@ -737,7 +903,12 @@
     }
     function stopPoll() {
       if (poll) { clearInterval(poll); poll = null; }
+      if (tickTimer) { clearInterval(tickTimer); tickTimer = null; }
     }
+
+    /* One listener for the life of the mount. paintRound used to add
+       another on every poll, so one keypress fired answer() many times. */
+    global.addEventListener('keydown', onKey);
 
     /* boot */
     startWatching();
@@ -803,22 +974,59 @@
     var destroyed = false;
     var poll = null;
     var state = null;
+    var paintedSig = '';
 
     host.innerHTML = '<div class="duel duel--spectate" tabindex="-1"><div class="duel__body" data-duel-body></div></div>';
     var body = W.$('[data-duel-body]', host);
 
+    function spectateSig(s) {
+      var r = (s && s.round) || {};
+      return [
+        s.status || '',
+        s.current_round,
+        s.host_score,
+        s.guest_score,
+        s.answered_host ? 1 : 0,
+        s.answered_guest ? 1 : 0,
+        r.prompt || '',
+        (r.choices || []).length
+      ].join('|');
+    }
+
     function paint() {
       if (destroyed || !body) return;
       if (!state) {
+        if (paintedSig === 'loading') return;
+        paintedSig = 'loading';
         body.innerHTML = global.CookingLoader
           ? global.CookingLoader.host({ tall: true, note: 'Loading duel…' })
           : '<div class="duel-wait"><div class="duel-wait__pulse"></div><p>Loading duel…</p></div>';
         applyDuelAccent(body.firstChild);
         return;
       }
-      if (state.status === 'seeding') return paintSeeding();
-      if (state.status === 'finished') return paintFinished();
-      if (state.status === 'cancelled') return paintClosed();
+      if (state.status === 'seeding') {
+        if (paintedSig === 'seeding' && W.$('[data-duel-seeding]', body)) return;
+        paintedSig = 'seeding';
+        return paintSeeding();
+      }
+      if (state.status === 'finished') {
+        var fin = 'fin:' + state.host_score + ':' + state.guest_score + ':' + (state.winner_tag || '');
+        if (paintedSig === fin && W.$('[data-duel-finished]', body)) return;
+        paintedSig = fin;
+        return paintFinished();
+      }
+      if (state.status === 'cancelled') {
+        if (paintedSig === 'cancelled' && W.$('[data-duel-closed]', body)) return;
+        paintedSig = 'cancelled';
+        return paintClosed();
+      }
+      var sig = spectateSig(state);
+      if (sig === paintedSig && W.$('[data-duel-q]', body)) {
+        var small = W.$('.duel-round small', body);
+        if (small) small.textContent = spectateRemainingSec(state) + 's';
+        return;
+      }
+      paintedSig = sig;
       return paintRound();
     }
 
@@ -831,7 +1039,7 @@
 
     function paintSeeding() {
       body.innerHTML =
-        '<div class="duel-wait">' +
+        '<div class="duel-wait" data-duel-seeding>' +
           paintBanner() +
           '<div class="duel-vs">' +
             '<span>' + esc(state.host_tag || 'Host') + '</span>' +
@@ -849,7 +1057,7 @@
 
     function paintClosed() {
       body.innerHTML =
-        '<div class="duel-end">' +
+        '<div class="duel-end" data-duel-closed>' +
           paintBanner() +
           '<div class="duel-end__badge">Match closed</div>' +
           '<p>This duel ended or was forfeited.</p>' +
@@ -889,7 +1097,7 @@
               '<b class="mono">' + esc(String(state.guest_score)) + '</b>' +
               '<small class="duel-ans-flag">' + (guestDone ? 'Answered' : 'Thinking…') + '</small></div>' +
           '</div>' +
-          '<div class="qcard duel-q">' +
+          '<div class="qcard duel-q" data-duel-q>' +
             '<div class="qcard__prompt">' + esc(r.prompt || 'Question') + '</div>' +
             '<div class="qcard__subject">' +
               (r.flag
@@ -921,7 +1129,7 @@
     function paintFinished() {
       var title = state.draw ? 'Draw' : ((state.winner_tag || 'Someone') + ' wins');
       body.innerHTML =
-        '<div class="duel-end">' +
+        '<div class="duel-end" data-duel-finished>' +
           paintBanner() +
           '<div class="duel-end__badge' + (state.draw ? '' : ' is-win') + '">' + esc(title) + '</div>' +
           '<div class="duel-vs">' +
