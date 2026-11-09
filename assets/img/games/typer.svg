@@ -1,54 +1,37 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 644 296" width="644" height="296" role="img" aria-label="Capital Typer">
   <!-- LEA-104 brand-new LearnGeo hub cover — vector, not a sheet crop -->
-  
-      <defs>
-        <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#12183A"/><stop offset="100%" stop-color="#04060F"/>
-        </linearGradient>
-      </defs>
-      <rect width="644" height="296" fill="url(#bg)"/>
-      <g transform="translate(90,50)">
-    <rect width="90" height="36" rx="10" fill="#101840"
-      stroke="rgba(124,243,255,.45)" stroke-width="2"/>
-    <text x="45" y="24" text-anchor="middle" font-family="system-ui,-apple-system,Segoe UI,sans-serif"
-      font-size="15" font-weight="700" fill="#EAF2FF">France</text>
-  </g>
-      <g transform="translate(280,70)">
-    <rect width="78" height="36" rx="10" fill="#1B4DFF"
-      stroke="#7CF3FF" stroke-width="2"/>
-    <text x="39" y="24" text-anchor="middle" font-family="system-ui,-apple-system,Segoe UI,sans-serif"
-      font-size="15" font-weight="700" fill="#EAF2FF">Japan</text>
-  </g>
-      <g transform="translate(460,45)">
-    <rect width="90" height="36" rx="10" fill="#101840"
-      stroke="rgba(124,243,255,.45)" stroke-width="2"/>
-    <text x="45" y="24" text-anchor="middle" font-family="system-ui,-apple-system,Segoe UI,sans-serif"
-      font-size="15" font-weight="700" fill="#EAF2FF">Brazil</text>
-  </g>
-      <g transform="translate(160,120)">
-    <rect width="78" height="36" rx="10" fill="#101840"
-      stroke="rgba(124,243,255,.45)" stroke-width="2"/>
-    <text x="39" y="24" text-anchor="middle" font-family="system-ui,-apple-system,Segoe UI,sans-serif"
-      font-size="15" font-weight="700" fill="#EAF2FF">Egypt</text>
-  </g>
-      <g transform="translate(400,130)">
-    <rect width="78" height="36" rx="10" fill="#101840"
-      stroke="rgba(124,243,255,.45)" stroke-width="2"/>
-    <text x="39" y="24" text-anchor="middle" font-family="system-ui,-apple-system,Segoe UI,sans-serif"
-      font-size="15" font-weight="700" fill="#EAF2FF">Kenya</text>
-  </g>
-      <rect x="48" y="220" width="548" height="44" rx="10" fill="#0B1520" stroke="#7CF3FF" stroke-width="2.5"/>
-      <text x="70" y="249" font-family="ui-monospace,SFMono-Regular,Menlo,monospace"
-        font-size="20" font-weight="600" fill="#7CF3FF">tokyo_</text>
-    
+  <!-- LEA-133 editorial atlas plate. Original geometry in LearnGeo teal. -->
   <defs>
-    <linearGradient id="titleFade" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#0B1520" stop-opacity="0"/>
-      <stop offset="100%" stop-color="#0B1520" stop-opacity="0.72"/>
-    </linearGradient>
+    <radialGradient id="wash" cx="0%" cy="40%" r="70%">
+      <stop offset="0%" stop-color="#0C8F7F" stop-opacity="0.24"/>
+      <stop offset="62%" stop-color="#0C8F7F" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="grat" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M40 0 H0 V40" fill="none" stroke="#14322E" stroke-width="1"/>
+    </pattern>
   </defs>
-  <rect x="0" y="208" width="644" height="88" fill="url(#titleFade)"/>
-  <text x="28" y="268" font-family="system-ui,-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif"
-    font-size="34" font-weight="800" fill="#FFFFFF" letter-spacing="-0.5">Capital Typer</text>
+  <rect width="644" height="296" fill="#07131A"/>
+  <rect width="644" height="228" fill="url(#grat)"/>
+  <rect width="644" height="296" fill="url(#wash)"/>
+  <rect x="28" y="16" width="588" height="198" fill="#0A161A" stroke="#1E3834" stroke-width="1.75"/>
+
+  <rect x="52" y="40" width="3" height="154" fill="#0C8F7F"/>
+
+  <g font-family="'Liberation Serif', 'Noto Serif', Georgia, 'Times New Roman', serif" fill="#7E9894">
+    <text x="70" y="64" font-size="26">France</text>
+    <text x="98" y="112" font-size="42" fill="#F4F7F6">Japan</text>
+    <line x1="98" y1="124" x2="194" y2="124" stroke="#0C8F7F" stroke-width="2.5"/>
+    <text x="126" y="158" font-size="26">Brazil</text>
+    <text x="154" y="192" font-size="22" fill="#5C7470">Egypt</text>
+  </g>
+
+  <text x="390" y="78" font-family="'JetBrains Mono', ui-monospace, 'Cascadia Mono', Menlo, Consolas, monospace" font-size="12" fill="#8FD4C8" letter-spacing="2.4">CAPITAL</text>
+  <text x="390" y="122" font-family="'JetBrains Mono', ui-monospace, 'Cascadia Mono', Menlo, Consolas, monospace" font-size="32" fill="#F4F7F6">tokyo</text>
+  <rect x="494" y="96" width="3" height="28" fill="#0C8F7F"/>
+  <line x1="390" y1="136" x2="548" y2="136" stroke="#0C8F7F" stroke-width="2.25"/>
+
+  <rect x="0" y="228" width="644" height="68" fill="#061014"/>
+  <rect x="0" y="228" width="644" height="3" fill="#0C8F7F"/>
+  <text x="28" y="272" font-family="'Liberation Serif', 'Noto Serif', Georgia, 'Times New Roman', serif" font-size="36" fill="#F4F7F6">Capital Typer</text>
 </svg>
