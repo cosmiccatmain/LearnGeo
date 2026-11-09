@@ -253,6 +253,9 @@
           try { global.ReferralTrial.maybeGrant(); } catch (eGrant) { /* ignore */ }
         }
         refreshUi();
+        if (global.SchoolDashboard && global.SchoolDashboard.loadRules) {
+          try { global.SchoolDashboard.loadRules(); } catch (eRules) {}
+        }
       })
       .catch(function () {
         applying = false;
@@ -273,6 +276,9 @@
     if (forget && uid) { try { localStorage.removeItem(W.userKey(uid)); } catch (e) {} }
     applying = true; W.replaceState(W.readSaved(W.GUEST_KEY)); applying = false;
     setStatus('off');
+    if (global.SchoolDashboard && global.SchoolDashboard.clearRules) {
+      try { global.SchoolDashboard.clearRules(); } catch (eRules) {}
+    }
     refreshUi();
   }
 

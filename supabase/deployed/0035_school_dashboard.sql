@@ -35,9 +35,13 @@ create table if not exists public.school_roster (
   student_id  uuid not null references public.profiles(id) on delete cascade,
   email       text not null,
   created_at  timestamptz not null default now(),
+  rules       jsonb not null default '{"outsideMessaging": true}'::jsonb,
   primary key (school_id, student_id),
   constraint school_roster_not_self check (school_id <> student_id)
 );
+
+alter table public.school_roster
+  add column if not exists rules jsonb not null default '{"outsideMessaging": true}'::jsonb;
 
 create unique index if not exists school_roster_student_idx
   on public.school_roster (student_id);
@@ -258,7 +262,8 @@ begin
              coalesce(private.journey_from_save(coalesce(pr.save::jsonb, '{}'::jsonb)) ->> 'journeyUnit', 'North Africa') as "journeyUnit",
              coalesce((private.journey_from_save(coalesce(pr.save::jsonb, '{}'::jsonb)) ->> 'lessonsDone')::int, 0) as "lessonsDone",
              nullif(a.screen, '') as screen,
-             a.seen_at as "seenAt"
+             a.seen_at as "seenAt",
+             coalesce(r.rules, '{"outsideMessaging": true}'::jsonb) as rules
         from public.school_roster r
         left join public.profiles pr on pr.id = r.student_id
         left join public.account_activity a on a.user_id = r.student_id
@@ -414,8 +419,8 @@ begin
         role = 'student',
         save = excluded.save;
 
-  insert into public.school_roster (school_id, student_id, email)
-  values (me, v_id, v_email);
+  insert into public.school_roster (school_id, student_id, email, rules)
+  values (me, v_id, v_email, '{"outsideMessaging": true}'::jsonb);
 
   used := used + 1;
   return jsonb_build_object(
@@ -600,5 +605,191 @@ $$;
 
 revoke all on function public.school_class_remove(uuid, uuid) from public, anon;
 grant execute on function public.school_class_remove(uuid, uuid) to authenticated;
+
+/* ============================== rules =============================
+   Per student, on the roster row the student cannot update.
+   Booleans: profile, avatar, skins, frames, effects, nameplates,
+   banners, themes, gameSkins, role, reset, messaging, outsideMessaging.
+   games is a list of game ids (duel, dash, …). outsideMessaging means
+   no messaging to accounts outside this school.
+==================================================================== */
+create or replace function private.school_flag(src jsonb, key text, fallback boolean)
+returns boolean
+language sql
+immutable
+as $$
+  select case
+    when src is null or jsonb_typeof(src) <> 'object' then fallback
+    when not (src ? key) then fallback
+    when jsonb_typeof(src -> key) = 'boolean' then (src ->> key)::boolean
+    when jsonb_typeof(src -> key) = 'string' and lower(src ->> key) in ('true', 'false')
+      then lower(src ->> key) = 'true'
+    else fallback
+  end;
+$$;
+
+revoke all on function private.school_flag(jsonb, text, boolean) from public, anon, authenticated;
+
+create or replace function private.school_clean_rules(p jsonb)
+returns jsonb
+language plpgsql
+immutable
+as $$
+declare
+  src jsonb := case when jsonb_typeof(p) = 'object' then p else '{}'::jsonb end;
+  games jsonb := '[]'::jsonb;
+  g text;
+  n integer := 0;
+begin
+  if jsonb_typeof(src -> 'games') = 'array' then
+    for g in select jsonb_array_elements_text(src -> 'games')
+    loop
+      exit when n >= 40;
+      if g ~ '^[a-z0-9]{1,24}$' and not (games ? g) then
+        games := games || to_jsonb(g);
+        n := n + 1;
+      end if;
+    end loop;
+  end if;
+  return jsonb_build_object(
+    'profile', private.school_flag(src, 'profile', false),
+    'avatar', private.school_flag(src, 'avatar', false),
+    'skins', private.school_flag(src, 'skins', false),
+    'frames', private.school_flag(src, 'frames', false),
+    'effects', private.school_flag(src, 'effects', false),
+    'nameplates', private.school_flag(src, 'nameplates', false),
+    'banners', private.school_flag(src, 'banners', false),
+    'themes', private.school_flag(src, 'themes', false),
+    'gameSkins', private.school_flag(src, 'gameSkins', false),
+    'role', private.school_flag(src, 'role', false),
+    'reset', private.school_flag(src, 'reset', false),
+    'messaging', private.school_flag(src, 'messaging', false),
+    'outsideMessaging', private.school_flag(src, 'outsideMessaging', true),
+    'games', games
+  );
+end;
+$$;
+
+revoke all on function private.school_clean_rules(jsonb) from public, anon, authenticated;
+
+create or replace function public.school_set_rules(p_student uuid, p_rules jsonb)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  me uuid;
+  cleaned jsonb;
+begin
+  me := private.school_buyer();
+  if p_student is null or p_student = me then
+    raise exception 'That student is not in this school' using errcode = 'P0002';
+  end if;
+  cleaned := private.school_clean_rules(p_rules);
+  update public.school_roster
+     set rules = cleaned
+   where school_id = me and student_id = p_student;
+  if not found then
+    raise exception 'That student is not in this school' using errcode = 'P0002';
+  end if;
+  return jsonb_build_object('ok', true, 'id', p_student, 'rules', cleaned);
+end;
+$$;
+
+revoke all on function public.school_set_rules(uuid, jsonb) from public, anon;
+grant execute on function public.school_set_rules(uuid, jsonb) to authenticated;
+
+create or replace function public.my_school_rules()
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+declare
+  me uuid := auth.uid();
+  sid uuid;
+  rules jsonb;
+  tags jsonb;
+begin
+  if me is null then
+    return jsonb_build_object('ok', false, 'message', 'Sign in first.');
+  end if;
+  select r.school_id, r.rules into sid, rules
+    from public.school_roster r
+   where r.student_id = me;
+  if sid is null then
+    return jsonb_build_object(
+      'ok', true,
+      'onRoster', false,
+      'rules', '{}'::jsonb,
+      'classmates', '[]'::jsonb
+    );
+  end if;
+  select coalesce(jsonb_agg(lower(p.save ->> 'gamertag')) filter (
+           where coalesce(p.save ->> 'gamertag', '') ~ '^[A-Za-z0-9_]{3,16}$'
+         ), '[]'::jsonb)
+    into tags
+    from public.school_roster r
+    join public.profiles p on p.id = r.student_id
+   where r.school_id = sid
+     and r.student_id <> me;
+  return jsonb_build_object(
+    'ok', true,
+    'onRoster', true,
+    'rules', private.school_clean_rules(rules),
+    'classmates', tags
+  );
+end;
+$$;
+
+revoke all on function public.my_school_rules() from public, anon;
+grant execute on function public.my_school_rules() to authenticated;
+
+/* True when this student may message that gamertag. Unknown tags count
+   as outside the school. Accounts with no roster row are not gated here. */
+create or replace function public.school_may_message(p_tag text)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+declare
+  me uuid := auth.uid();
+  sid uuid;
+  rules jsonb;
+  them uuid;
+begin
+  if me is null then
+    return jsonb_build_object('ok', true, 'allowed', false);
+  end if;
+  select r.school_id, r.rules into sid, rules
+    from public.school_roster r
+   where r.student_id = me;
+  if sid is null then
+    return jsonb_build_object('ok', true, 'allowed', true);
+  end if;
+  rules := private.school_clean_rules(rules);
+  if private.school_flag(rules, 'messaging', false) then
+    return jsonb_build_object('ok', true, 'allowed', false, 'reason', 'messaging');
+  end if;
+  if private.school_flag(rules, 'outsideMessaging', true) then
+    them := private.profile_id_for_gamertag(coalesce(p_tag, ''));
+    if them is not null and exists (
+      select 1 from public.school_roster r
+       where r.school_id = sid and r.student_id = them
+    ) then
+      return jsonb_build_object('ok', true, 'allowed', true);
+    end if;
+    return jsonb_build_object('ok', true, 'allowed', false, 'reason', 'outside');
+  end if;
+  return jsonb_build_object('ok', true, 'allowed', true);
+end;
+$$;
+
+revoke all on function public.school_may_message(text) from public, anon;
+grant execute on function public.school_may_message(text) to authenticated;
 
 commit;

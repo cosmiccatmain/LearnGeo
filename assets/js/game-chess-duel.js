@@ -216,7 +216,7 @@ import { Chess } from '../vendor/chess.js/chess.js';
 
   function sendInvite(tag) {
     if (global.Premium && global.Premium.blockStudentMessaging &&
-        global.Premium.blockStudentMessaging()) {
+        global.Premium.blockStudentMessaging(tag)) {
       return Promise.resolve({ ok: false, error: 'school' });
     }
     if (!tag || !/^[A-Za-z0-9_]{3,16}$/.test(tag)) {
@@ -225,12 +225,20 @@ import { Chess } from '../vendor/chess.js/chess.js';
     if (myTag() && tag.toLowerCase() === myTag().toLowerCase()) {
       return Promise.resolve({ ok: false, error: 'self' });
     }
-    return rpc('pvp_lookup_tag', { p_tag: tag }).then(function (rows) {
+    var lookup = function () { return rpc('pvp_lookup_tag', { p_tag: tag }).then(function (rows) {
       if (rows && rows.ok === false) return rows;
       var row = Array.isArray(rows) ? rows[0] : rows;
       var found = !!(row && (row.found === true || row.found === 't' || row.gamertag));
       if (!found) return { ok: false, error: 'not_found' };
       return rpc('chess_duel_send_invite', { p_device: deviceId(), p_to_tag: tag });
+    }); };
+    if (!(global.SchoolDashboard && global.SchoolDashboard.confirmMessage)) return lookup();
+    return global.SchoolDashboard.confirmMessage(tag).then(function (ok) {
+      if (ok) return lookup();
+      if (global.Premium && global.Premium.blockStudentMessaging) {
+        global.Premium.blockStudentMessaging(tag);
+      }
+      return { ok: false, error: 'school' };
     });
   }
 

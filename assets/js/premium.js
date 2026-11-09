@@ -213,9 +213,15 @@
      student whose enrolled class was marked by a Schools teacher. */
   function messagingAllowed() {
     if (isSchool()) return false;
+    var tag = arguments[0];
     var f = flags();
     /* Set by school_create_student and by joining a Schools class (0035). */
-    if (f.schoolStudent) return false;
+    if (f.schoolStudent) {
+      if (global.SchoolDashboard && global.SchoolDashboard.messagingOpen) {
+        return !!global.SchoolDashboard.messagingOpen(tag);
+      }
+      return false;
+    }
     var s = W() && W().state;
     if (!s) return true;
     if (s.role === 'student' && s.classroom && s.classroom.schoolPlan) return false;
@@ -224,11 +230,17 @@
   }
 
   function blockStudentMessaging() {
-    if (messagingAllowed()) return false;
+    var tag = arguments[0];
+    if (messagingAllowed(tag)) return false;
+    var managed = flags().schoolStudent &&
+      global.SchoolDashboard && global.SchoolDashboard.rulesReady &&
+      global.SchoolDashboard.rulesReady();
     var ww = W();
     if (ww && ww.toast) {
-      ww.toast('Schools',
-        'Schools plans do not include messaging between students.',
+      ww.toast(managed ? 'Managed by your school' : 'Schools',
+        managed
+          ? 'Managed by your school'
+          : 'Schools plans do not include messaging between students.',
         (ww.Icons && (ww.Icons.info || ww.Icons.lock)) || null, 4200);
     }
     return true;

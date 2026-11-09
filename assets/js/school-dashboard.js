@@ -25,6 +25,60 @@
   var noticeBad = false;
   var busy = false;
   var loading = false;
+  var query = '';
+  var focusId = '';
+  var ruleFocus = '';
+  var searchFocus = false;
+  var held = { ready: false, onRoster: false, rules: null, tags: {} };
+  var ruleWatchers = [];
+
+  var COSMETIC = ['frames', 'effects', 'nameplates', 'banners', 'themes', 'gameSkins'];
+  var GAME_LIST = [
+    ['duel', 'Geo Duel'],
+    ['chess', 'Geo Chess'],
+    ['dash', 'Geo Dash'],
+    ['orbit', 'Globe Defender'],
+    ['snake', 'Capital Snake'],
+    ['golf', 'Geo Golf'],
+    ['invaders', 'Geo Invaders'],
+    ['breakout', 'Flag Breakout'],
+    ['maze', 'Capital Maze'],
+    ['typer', 'Capital Typer'],
+    ['crossing', 'Border Crossing'],
+    ['whack', 'Capital Whack'],
+    ['match', 'Flag Match'],
+    ['sort', 'Continent Sort'],
+    ['stack', 'Capital Stack'],
+    ['echo', 'Flag Echo']
+  ];
+  var RULE_DEFS = [
+    { id: 'profile', group: 'Profile', name: 'Block profile customization',
+      detail: 'Name, pronouns, about, and status.' },
+    { id: 'avatar', group: 'Profile', name: 'Block avatar',
+      detail: 'The student keeps the current avatar.' },
+    { id: 'role', group: 'Profile', name: 'Block role change',
+      detail: 'The student cannot switch between student and teacher.' },
+    { id: 'skins', group: 'Customization', name: 'Block skins and effects',
+      detail: 'Frames, effects, nameplates, banners, themes, and game skins.' },
+    { id: 'frames', group: 'Customization', name: 'Block frames',
+      detail: 'Avatar frames.' },
+    { id: 'effects', group: 'Customization', name: 'Block effects',
+      detail: 'Profile effects and reward animations.' },
+    { id: 'nameplates', group: 'Customization', name: 'Block nameplates',
+      detail: 'Nameplates under the display name.' },
+    { id: 'banners', group: 'Customization', name: 'Block banners',
+      detail: 'Profile banners.' },
+    { id: 'themes', group: 'Customization', name: 'Block themes',
+      detail: 'Profile themes.' },
+    { id: 'gameSkins', group: 'Customization', name: 'Block game skins',
+      detail: 'Colours and pieces inside games.' },
+    { id: 'reset', group: 'Account', name: 'Block progress reset',
+      detail: 'The student cannot wipe progress from Settings.' },
+    { id: 'messaging', group: 'Messaging', name: 'Block all messaging',
+      detail: 'Friend inbox, lobby chat, and card sharing.' },
+    { id: 'outsideMessaging', group: 'Messaging', name: 'No messaging outside the school',
+      detail: 'The student can message classmates only. Other accounts stay closed.' }
+  ];
 
   function W() { return global.WW; }
 
@@ -71,10 +125,13 @@
       migrationMissing: false,
       loadError: '',
       students: [
-        student('s1', 'Amina Okonkwo', 'amina.okonkwo.4f2a91@students.learngeo.app', 3, 'East Africa', 7, 'Journey', '', '2 min ago'),
+        withRules(student('s1', 'Amina Okonkwo', 'amina.okonkwo.4f2a91@students.learngeo.app', 3, 'East Africa', 7, 'Journey', '', '2 min ago'),
+          { profile: true, avatar: true }),
         student('s2', 'Leo Martins', 'leo.martins.91c0de@students.learngeo.app', 1, 'North Africa', 2, 'Learn', '', '18 min ago'),
-        student('s3', 'Priya Shah', 'priya.shah.77ab10@students.learngeo.app', 6, 'Europe', 14, 'Games', '', '1 hr ago'),
-        student('s4', 'Jonah Ellis', 'jonah.ellis.b31e44@students.learngeo.app', 2, 'West Africa', 4, 'Practice test', '', 'Yesterday')
+        withRules(student('s3', 'Priya Shah', 'priya.shah.77ab10@students.learngeo.app', 6, 'Europe', 14, 'Games', '', '1 hr ago'),
+          { skins: true, frames: true, effects: true, nameplates: true, banners: true, themes: true, gameSkins: true, games: ['dash'] }),
+        withRules(student('s4', 'Jonah Ellis', 'jonah.ellis.b31e44@students.learngeo.app', 2, 'West Africa', 4, 'Practice test', '', 'Yesterday'),
+          { messaging: true, outsideMessaging: false })
       ],
       classes: [
         {
@@ -93,7 +150,7 @@
     };
   }
 
-  function student(id, name, email, level, unit, lessons, screen, seenAt, seenLabel) {
+  function student(id, name, email, level, unit, lessons, screen, seenAt, seenLabel, rules) {
     return {
       id: id,
       name: name,
@@ -103,8 +160,93 @@
       lessonsDone: lessons == null ? null : lessons,
       screen: screen || '',
       seenAt: seenAt || '',
-      seenLabel: seenLabel || ''
+      seenLabel: seenLabel || '',
+      rules: cleanRules(rules)
     };
+  }
+
+  function withRules(st, extra) {
+    st.rules = cleanRules(Object.assign(cleanRules(null), extra || {}));
+    return st;
+  }
+
+  function cleanRules(raw) {
+    raw = raw && typeof raw === 'object' ? raw : {};
+    var games = [];
+    var seen = {};
+    var list = Array.isArray(raw.games) ? raw.games : [];
+    list.forEach(function (id) {
+      id = String(id || '').toLowerCase();
+      if (!/^[a-z0-9]{1,24}$/.test(id) || seen[id] || games.length >= 40) return;
+      seen[id] = true;
+      games.push(id);
+    });
+    function flag(key, fallback) {
+      if (!Object.prototype.hasOwnProperty.call(raw, key)) return fallback;
+      return raw[key] === true || raw[key] === 'true';
+    }
+    return {
+      profile: flag('profile', false),
+      avatar: flag('avatar', false),
+      skins: flag('skins', false),
+      frames: flag('frames', false),
+      effects: flag('effects', false),
+      nameplates: flag('nameplates', false),
+      banners: flag('banners', false),
+      themes: flag('themes', false),
+      gameSkins: flag('gameSkins', false),
+      role: flag('role', false),
+      reset: flag('reset', false),
+      messaging: flag('messaging', false),
+      outsideMessaging: flag('outsideMessaging', true),
+      games: games
+    };
+  }
+
+  function ruleOn(rules, id) {
+    var r = cleanRules(rules);
+    if (String(id).indexOf('game:') === 0) return r.games.indexOf(String(id).slice(5)) !== -1;
+    if (id === 'skins') return !!r.skins || COSMETIC.every(function (k) { return r[k]; });
+    if (COSMETIC.indexOf(id) !== -1 && r.skins) return true;
+    return !!r[id];
+  }
+
+  function writeRule(rules, id, on) {
+    var next = cleanRules(rules);
+    if (id === 'skins') {
+      next.skins = !!on;
+      COSMETIC.forEach(function (k) { next[k] = !!on; });
+      return next;
+    }
+    if (String(id).indexOf('game:') === 0) {
+      var gid = String(id).slice(5);
+      next.games = next.games.filter(function (g) { return g !== gid; });
+      if (on) next.games.push(gid);
+      return next;
+    }
+    if (COSMETIC.indexOf(id) !== -1 && !on && next.skins) {
+      COSMETIC.forEach(function (k) { next[k] = true; });
+      next.skins = false;
+      next[id] = false;
+      return next;
+    }
+    next[id] = !!on;
+    if (COSMETIC.indexOf(id) !== -1) {
+      next.skins = COSMETIC.every(function (k) { return next[k]; });
+    }
+    return next;
+  }
+
+  function allRules() {
+    var games = GAME_LIST.map(function (pair) {
+      return {
+        id: 'game:' + pair[0],
+        group: 'Games',
+        name: 'Block ' + pair[1],
+        detail: 'The student cannot open this game.'
+      };
+    });
+    return RULE_DEFS.concat(games);
   }
 
   function wireSample(m) {
@@ -143,7 +285,8 @@
       lessons == null || lessons === '' ? null : Number(lessons),
       s.screen || '',
       s.seenAt || s.seen_at || '',
-      s.seenLabel || ''
+      s.seenLabel || '',
+      s.rules
     );
   }
 
@@ -269,6 +412,10 @@
     }
     preview = asPreview;
     section = opts.section || 'overview';
+    query = '';
+    focusId = '';
+    ruleFocus = '';
+    searchFocus = false;
     notice = '';
     noticeBad = false;
     busy = false;
@@ -340,11 +487,22 @@
         '<div class="schooldash__main">' +
           '<h1>' + esc(title()) + '</h1>' +
           '<p class="schooldash__lead">' + esc(lead(seat)) + '</p>' +
+          searchHtml() +
           noteHtml() +
           (loading ? '<p class="schooldash__empty">Loading the school…</p>' : panel(seat, pct)) +
         '</div>' +
       '</div>';
     bind();
+    var search = document.getElementById('sd-search');
+    if (search && searchFocus) {
+      search.focus();
+      var n = search.value.length;
+      try { search.setSelectionRange(n, n); } catch (e) {}
+    }
+    if (ruleFocus) {
+      var row = document.getElementById('sd-rule-' + ruleFocus);
+      if (row && row.scrollIntoView) row.scrollIntoView({ block: 'nearest' });
+    }
   }
 
   function navBtn(id, ic, label) {
@@ -354,7 +512,9 @@
   }
 
   function title() {
+    if (query.trim()) return 'Search';
     if (section === 'students') return 'Students';
+    if (section === 'account') return (findStudent(focusId) || {}).name || 'Student';
     if (section === 'classrooms') return 'Classrooms';
     if (section === 'roster') return 'Class roster';
     return 'School dashboard';
@@ -388,7 +548,9 @@
   }
 
   function panel(seat, pct) {
+    if (query.trim()) return hitsHtml();
     if (section === 'students') return studentsPanel(seat);
+    if (section === 'account') return accountPanel();
     if (section === 'classrooms') return classPanel();
     if (section === 'roster') return rosterPanel();
     return overviewPanel(seat, pct);
@@ -406,7 +568,7 @@
         '</section>' +
         '<section class="schooldash__card">' +
           '<h2>Messaging</h2>' +
-          '<p>Student messaging is off. Schools accounts cannot use friend inbox, lobby chat, or challenges between students.</p>' +
+          '<p>Student messaging is off for accounts outside the school. Classmates can still message each other unless you block all messaging on that account. Profile, customization, skins and effects, and individual games can be blocked the same way. A blocked control shows “Managed by your school” to the student.</p>' +
         '</section>' +
       '</div>' +
       '<div class="schooldash__table-wrap">' +
@@ -425,7 +587,7 @@
           (busy || full ? ' disabled' : '') + '>' +
           (full ? 'No seats left' : 'Create account') + '</button>' +
       '</form>' +
-      '<p class="t-sm t-muted" style="margin:-6px 0 14px">Uses one paid seat. LearnGeo shows the sign-in email here. It does not email the password. Messaging stays off for the new account.</p>' +
+      '<p class="t-sm t-muted" style="margin:-6px 0 14px">Uses one paid seat. LearnGeo shows the sign-in email here. It does not email the password. Messaging outside the school starts off.</p>' +
       '<div class="schooldash__table-wrap">' + progressTable(model.students, true) + '</div>';
   }
 
@@ -433,8 +595,7 @@
     if (!list || !list.length) {
       return '<div class="schooldash__empty">No student accounts yet.</div>';
     }
-    var head = '<tr><th>Student</th><th>Journey</th><th>Recent activity</th>' +
-      (withRemove ? '<th></th>' : '') + '</tr>';
+    var head = '<tr><th>Student</th><th>Journey</th><th>Recent activity</th><th></th></tr>';
     var rows = list.map(function (st) {
       return '<tr>' +
         '<td><b>' + esc(st.name) + '</b>' +
@@ -442,10 +603,16 @@
         '</td>' +
         '<td>' + esc(journeyLine(st)) + '</td>' +
         '<td>' + esc(activityLine(st)) + '</td>' +
-        (withRemove
-          ? '<td><button type="button" class="btn btn--ghost btn--sm schooldash__danger" data-do="remove-account" data-id="' +
-              esc(st.id) + '">Remove account</button></td>'
-          : '') +
+        '<td class="schooldash__row-actions">' +
+          (st.id
+            ? '<button type="button" class="btn btn--ghost btn--sm" data-do="manage" data-id="' +
+                esc(st.id) + '">Manage</button>'
+            : '') +
+          (withRemove && st.id
+            ? '<button type="button" class="btn btn--ghost btn--sm schooldash__danger" data-do="remove-account" data-id="' +
+                esc(st.id) + '">Remove account</button>'
+            : '') +
+        '</td>' +
         '</tr>';
     }).join('');
     return '<table class="schooldash__table"><thead>' + head + '</thead><tbody>' + rows + '</tbody></table>';
@@ -511,6 +678,90 @@
       '</div>';
   }
 
+  function searchHtml() {
+    return '<label class="schooldash__search">Search' +
+      '<input class="input" id="sd-search" type="search" autocomplete="off" ' +
+        'placeholder="Students, classrooms, or rules" value="' + esc(query) + '"></label>';
+  }
+
+  function hitsHtml() {
+    var found = searchHits(query);
+    var blocks = hitGroup('Students', found.students.map(function (st) {
+      return hitBtn('student', st.id, st.name, st.email || journeyLine(st));
+    })) + hitGroup('Classrooms', found.classes.map(function (c) {
+      return hitBtn('class', c.id, c.name, c.code || 'Classroom');
+    })) + hitGroup('Rules', found.rules.map(function (r) {
+      return hitBtn('rule', r.id, r.name, r.group);
+    }));
+    if (!blocks) return '<div class="schooldash__empty">Nothing matches that search.</div>';
+    return blocks;
+  }
+
+  function hitGroup(label, html) {
+    if (!html) return '';
+    return '<section class="schooldash__hits"><h2>' + esc(label) + '</h2>' + html + '</section>';
+  }
+
+  function hitBtn(kind, id, name, meta) {
+    return '<button type="button" class="schooldash__hit" data-do="hit" data-kind="' + esc(kind) +
+      '" data-id="' + esc(id) + '"><b>' + esc(name) + '</b><span>' + esc(meta) + '</span></button>';
+  }
+
+  function searchHits(text) {
+    var q = String(text || '').trim().toLowerCase();
+    if (!q) return { students: [], classes: [], rules: [] };
+    return {
+      students: (model.students || []).filter(function (st) {
+        return (st.name + ' ' + (st.email || '')).toLowerCase().indexOf(q) !== -1;
+      }),
+      classes: (model.classes || []).filter(function (c) {
+        return (c.name + ' ' + (c.code || '')).toLowerCase().indexOf(q) !== -1;
+      }),
+      rules: allRules().filter(function (r) {
+        return (r.name + ' ' + r.group + ' ' + (r.detail || '')).toLowerCase().indexOf(q) !== -1;
+      })
+    };
+  }
+
+  function accountPanel() {
+    var st = findStudent(focusId);
+    if (!st) return '<div class="schooldash__empty">Choose a student to manage.</div>';
+    var groups = {};
+    allRules().forEach(function (r) {
+      if (!groups[r.group]) groups[r.group] = [];
+      groups[r.group].push(r);
+    });
+    var order = ['Profile', 'Customization', 'Games', 'Messaging', 'Account'];
+    var body = order.map(function (name) {
+      var list = groups[name] || [];
+      if (!list.length) return '';
+      return '<section class="schooldash__rules"><h2>' + esc(name) + '</h2>' +
+        list.map(function (r) { return ruleRow(st, r); }).join('') +
+        '</section>';
+    }).join('');
+    return '<p class="t-sm t-muted" style="margin-top:0">Turn a rule on and that control is replaced with “Managed by your school”.</p>' +
+      '<div class="schooldash__account-meta">' +
+        '<div><b>' + esc(st.name) + '</b>' +
+          (st.email ? '<div class="mono t-sm t-muted">' + esc(st.email) + '</div>' : '') +
+        '</div>' +
+        '<div>' + esc(journeyLine(st)) + '</div>' +
+        '<div>' + esc(activityLine(st)) + '</div>' +
+      '</div>' + body;
+  }
+
+  function ruleRow(st, rule) {
+    var on = ruleOn(st.rules, rule.id);
+    return '<div class="setting-row' + (ruleFocus === rule.id ? ' is-hit' : '') +
+      '" id="sd-rule-' + esc(rule.id) + '">' +
+      '<div class="setting-row__t"><b>' + esc(rule.name) + '</b>' +
+        (rule.detail ? '<span>' + esc(rule.detail) + '</span>' : '') +
+      '</div>' +
+      '<button type="button" class="switch' + (on ? ' is-on' : '') + '" role="switch" ' +
+        'aria-checked="' + (on ? 'true' : 'false') + '" data-do="rule" data-id="' + esc(st.id) +
+        '" data-rule="' + esc(rule.id) + '" aria-label="' + esc(rule.name) + '"' +
+        (busy ? ' disabled' : '') + '></button></div>';
+  }
+
   function bind() {
     if (!root) return;
     root.onclick = function (e) {
@@ -525,6 +776,9 @@
       if (!btn || btn.closest('form')) return;
       var act = btn.getAttribute('data-do');
       if (act === 'close') return close();
+      if (act === 'manage') return openAccount(btn.getAttribute('data-id'), '');
+      if (act === 'hit') return openHit(btn.getAttribute('data-kind'), btn.getAttribute('data-id'));
+      if (act === 'rule') return toggleRule(btn.getAttribute('data-id'), btn.getAttribute('data-rule'));
       if (act === 'remove-account') return askRemove(btn.getAttribute('data-id'));
       if (act === 'rename-class') return renameClass(btn.getAttribute('data-class'));
       if (act === 'class-add') return classAdd(btn.getAttribute('data-class'));
@@ -536,6 +790,14 @@
         render();
       }
     };
+    var search = document.getElementById('sd-search');
+    if (search) {
+      search.addEventListener('input', function () {
+        query = search.value || '';
+        searchFocus = true;
+        render();
+      });
+    }
     root.onsubmit = function (e) {
       var form = e.target;
       if (!form || !form.getAttribute) return;
@@ -583,7 +845,7 @@
         local.slice(0, 24) + '.' + id.slice(-6) + '@students.learngeo.app',
         1, 'North Africa', 0, '', '', ''
       ));
-      say('Account ready for ' + name.slice(0, 60) + '. Share the email and the password you set. Messaging is off.');
+      say('Account ready for ' + name.slice(0, 60) + '. Share the email and the password you set. Messaging outside the school is off.');
       render();
       return;
     }
@@ -806,8 +1068,188 @@
     });
   }
 
+  function openAccount(id, ruleId) {
+    var st = findStudent(id);
+    if (!st) {
+      say('Choose a student first.', true);
+      render();
+      return;
+    }
+    focusId = st.id;
+    ruleFocus = ruleId || '';
+    section = 'account';
+    query = '';
+    searchFocus = false;
+    say(ruleId ? 'Showing ' + (ruleById(ruleId) || {}).name + ' for ' + st.name + '.' : '');
+    render();
+  }
+
+  function ruleById(id) {
+    var list = allRules();
+    for (var i = 0; i < list.length; i++) if (list[i].id === id) return list[i];
+    return null;
+  }
+
+  function openHit(kind, id) {
+    if (kind === 'student') return openAccount(id, '');
+    if (kind === 'class') {
+      var c = findClass(id);
+      if (!c) return;
+      rosterId = c.id;
+      section = 'roster';
+      query = '';
+      searchFocus = false;
+      ruleFocus = '';
+      say(c.name);
+      render();
+      return;
+    }
+    if (kind === 'rule') {
+      var st = findStudent(focusId) || (model.students || [])[0];
+      if (!st) {
+        say('Create a student account before setting rules.', true);
+        query = '';
+        render();
+        return;
+      }
+      return openAccount(st.id, id);
+    }
+  }
+
+  function toggleRule(id, ruleId) {
+    var st = findStudent(id);
+    if (!st || !ruleId) return;
+    var next = writeRule(st.rules, ruleId, !ruleOn(st.rules, ruleId));
+    st.rules = next;
+    if (preview) {
+      say((ruleOn(next, ruleId) ? 'On: ' : 'Off: ') + ((ruleById(ruleId) || {}).name || 'Rule') + ' for ' + st.name);
+      render();
+      return;
+    }
+    if (needLive()) return;
+    busy = true;
+    render();
+    rpc('school_set_rules', { p_student: id, p_rules: next }).then(function (res) {
+      busy = false;
+      if (!res || res.ok === false) {
+        say((res && res.message) || 'Could not save that rule.', true);
+        render();
+        return;
+      }
+      if (res.rules) st.rules = cleanRules(res.rules);
+      say('Saved for ' + st.name);
+      render();
+    });
+  }
+
+  function tell() {
+    ruleWatchers.slice().forEach(function (fn) {
+      try { fn(); } catch (e) {}
+    });
+  }
+
+  function clearHeld() {
+    held.ready = false;
+    held.onRoster = false;
+    held.rules = cleanRules(null);
+    held.tags = {};
+    tell();
+  }
+
+  function loadHeld() {
+    var C = global.Cloud;
+    if (!C || !C.signedIn || !C.sb || !C.sb.rpc) {
+      clearHeld();
+      return Promise.resolve();
+    }
+    return C.sb.rpc('my_school_rules').then(function (res) {
+      var data = res && res.data;
+      if (res && res.error) data = null;
+      if (typeof data === 'string') {
+        try { data = JSON.parse(data); } catch (e) { data = null; }
+      }
+      held.ready = true;
+      if (!data || data.onRoster !== true) {
+        held.onRoster = false;
+        held.rules = cleanRules(null);
+        held.tags = {};
+        tell();
+        return;
+      }
+      held.onRoster = true;
+      held.rules = cleanRules(data.rules);
+      held.tags = {};
+      (data.classmates || []).forEach(function (tag) {
+        if (tag) held.tags[String(tag).toLowerCase()] = true;
+      });
+      tell();
+    }, function () {
+      held.ready = true;
+      held.onRoster = false;
+      tell();
+    });
+  }
+
+  function featureBlocked(id) {
+    if (!held.ready || !held.onRoster) return false;
+    return ruleOn(held.rules, id);
+  }
+
+  function gameBlocked(id) {
+    if (!held.ready || !held.onRoster || !id) return false;
+    return ruleOn(held.rules, 'game:' + id);
+  }
+
+  function messagingOpen(tag) {
+    if (!held.ready || !held.onRoster) return false;
+    if (held.rules.messaging) return false;
+    if (held.rules.outsideMessaging) {
+      if (tag == null || tag === '') return false;
+      return !!held.tags[String(tag).toLowerCase()];
+    }
+    return true;
+  }
+
+  function outsideOnly() {
+    return !!(held.ready && held.onRoster && held.rules &&
+      !held.rules.messaging && held.rules.outsideMessaging);
+  }
+
+  function confirmMessage(tag) {
+    var C = global.Cloud;
+    if (!held.ready || !held.onRoster) return Promise.resolve(true);
+    if (!messagingOpen(tag)) return Promise.resolve(false);
+    if (!C || !C.sb || !C.sb.rpc) return Promise.resolve(messagingOpen(tag));
+    return C.sb.rpc('school_may_message', { p_tag: tag || '' }).then(function (res) {
+      var data = res && res.data;
+      if (res && res.error) return messagingOpen(tag);
+      if (typeof data === 'string') {
+        try { data = JSON.parse(data); } catch (e) { data = null; }
+      }
+      if (!data || data.allowed == null) return messagingOpen(tag);
+      return data.allowed === true;
+    }, function () { return messagingOpen(tag); });
+  }
+
+  if (global.Cloud && global.Cloud.signedIn) loadHeld();
+
   global.SchoolDashboard = {
     open: open,
-    close: close
+    close: close,
+    loadRules: loadHeld,
+    clearRules: clearHeld,
+    rulesReady: function () { return held.ready; },
+    featureBlocked: featureBlocked,
+    gameBlocked: gameBlocked,
+    customizationBlocked: function () {
+      return featureBlocked('profile') && featureBlocked('avatar') && featureBlocked('skins');
+    },
+    messagingOpen: messagingOpen,
+    outsideOnly: outsideOnly,
+    confirmMessage: confirmMessage,
+    onRules: function (fn) {
+      ruleWatchers.push(fn);
+      return function () { ruleWatchers = ruleWatchers.filter(function (w) { return w !== fn; }); };
+    }
   };
 })(window);

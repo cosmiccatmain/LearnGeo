@@ -319,11 +319,98 @@
   font-size: 14px;
 }
 
+.schooldash__search {
+  display: block;
+  margin: 0 0 16px;
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--ink);
+}
+.schooldash__search input {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+  font-weight: 450;
+}
+
+.schooldash__hits { margin: 0 0 16px; }
+.schooldash__hits h2 {
+  margin: 0 0 8px;
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.schooldash__hit {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  margin: 0 0 8px;
+  padding: 12px 14px;
+  text-align: left;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  font: inherit;
+  color: inherit;
+}
+.schooldash__hit b { font-weight: 650; }
+.schooldash__hit span {
+  color: var(--muted);
+  font-size: 13px;
+  font-family: var(--mono);
+}
+
+.schooldash__account-meta {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 14px 16px;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+}
+.schooldash__rules {
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  padding: 8px 16px 4px;
+  margin-bottom: 12px;
+}
+.schooldash__rules h2 {
+  margin: 8px 0 4px;
+  font-family: var(--sans);
+  font-size: 15px;
+  font-weight: 650;
+}
+.schooldash__rules .setting-row { border-bottom: 1px solid var(--line); }
+.schooldash__rules .setting-row:last-child { border-bottom: 0; }
+.schooldash__rules .is-hit { background: var(--accent-soft); }
+.schooldash__row-actions { display: flex; gap: 8px; justify-content: flex-end; }
+
+.school-managed {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  background: var(--white);
+  color: var(--ink-soft, var(--muted));
+  font-family: var(--sans);
+  font-size: 14px;
+}
+.menu .school-managed { margin: 6px 10px; }
+.game-card.is-school { cursor: default; }
+
 @media (max-width: 860px) {
   .schooldash__frame { flex-direction: column; }
   .schooldash__side { width: auto; }
   .schooldash__nav { flex-direction: row; flex-wrap: wrap; }
   .schooldash__grid { grid-template-columns: 1fr; }
+  .schooldash__account-meta { grid-template-columns: 1fr; }
   .schooldash__main { padding: 20px 16px 40px; }
 }
 

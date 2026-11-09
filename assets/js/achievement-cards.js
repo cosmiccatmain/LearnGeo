@@ -683,7 +683,7 @@
 
   function sendCard(tag, achievementId) {
     if (global.Premium && global.Premium.blockStudentMessaging &&
-        global.Premium.blockStudentMessaging()) {
+        global.Premium.blockStudentMessaging(tag)) {
       return Promise.resolve({ ok: false, error: 'school' });
     }
     if (!signedIn()) return Promise.resolve({ ok: false, error: 'guest' });
@@ -696,7 +696,7 @@
     if (haveIds().indexOf(achievementId) === -1) {
       return Promise.resolve({ ok: false, error: 'locked' });
     }
-    return rpc('pvp_lookup_tag', { p_tag: tag }).then(function (rows) {
+    return schoolMessageGate(tag, function () { return rpc('pvp_lookup_tag', { p_tag: tag }).then(function (rows) {
       if (rows && rows.ok === false) return rows;
       var row = Array.isArray(rows) ? rows[0] : rows;
       var found = !!(row && (row.found === true || row.found === 't' || row.gamertag));
@@ -706,12 +706,23 @@
         p_to_tag: tag,
         p_achievement_id: achievementId
       });
+    }); });
+  }
+
+  function schoolMessageGate(tag, next) {
+    if (!(global.SchoolDashboard && global.SchoolDashboard.confirmMessage)) return next();
+    return global.SchoolDashboard.confirmMessage(tag).then(function (ok) {
+      if (ok) return next();
+      if (global.Premium && global.Premium.blockStudentMessaging) {
+        global.Premium.blockStudentMessaging(tag);
+      }
+      return { ok: false, error: 'school' };
     });
   }
 
   function sendWallet(tag) {
     if (global.Premium && global.Premium.blockStudentMessaging &&
-        global.Premium.blockStudentMessaging()) {
+        global.Premium.blockStudentMessaging(tag)) {
       return Promise.resolve({ ok: false, error: 'school' });
     }
     if (!signedIn()) return Promise.resolve({ ok: false, error: 'guest' });
@@ -723,7 +734,7 @@
     }
     var unlocked = haveIds().slice();
     if (!unlocked.length) return Promise.resolve({ ok: false, error: 'invalid_wallet' });
-    return rpc('pvp_lookup_tag', { p_tag: tag }).then(function (rows) {
+    return schoolMessageGate(tag, function () { return rpc('pvp_lookup_tag', { p_tag: tag }).then(function (rows) {
       if (rows && rows.ok === false) return rows;
       var row = Array.isArray(rows) ? rows[0] : rows;
       var found = !!(row && (row.found === true || row.found === 't' || row.gamertag));
@@ -733,7 +744,7 @@
         p_to_tag: tag,
         p_card_ids: unlocked
       });
-    });
+    }); });
   }
 
   /* ============================ paint ============================= */
@@ -1759,8 +1770,13 @@
   }
 
   function openFriendInbox() {
-    if (global.Premium && global.Premium.blockStudentMessaging &&
-        global.Premium.blockStudentMessaging()) return;
+    if (global.SchoolDashboard && global.SchoolDashboard.featureBlocked &&
+        global.SchoolDashboard.featureBlocked('messaging')) return;
+    if (!(global.SchoolDashboard && global.SchoolDashboard.outsideOnly &&
+          global.SchoolDashboard.outsideOnly())) {
+      if (global.Premium && global.Premium.blockStudentMessaging &&
+          global.Premium.blockStudentMessaging()) return;
+    }
     if (!global.UI || !global.UI.modal) return;
     if (inboxModalRoot && inboxModalRoot.isConnected) {
       paintInboxModal();

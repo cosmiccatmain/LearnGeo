@@ -86,4 +86,20 @@ assert(/school_dashboard_0035/.test(sql), 'SQL names the MCP apply id');
 assert(!/SchoolDashboard|school_dashboard|schoolStudent/.test(duel),
   'Geo Duel is not part of this dashboard');
 
+assert(/id="sd-search"/.test(dash), 'the dashboard has a search field');
+assert(/Students, classrooms, or rules/.test(dash), 'search covers students, classrooms, and rules');
+assert(/Block profile customization/.test(dash), 'profile customization can be blocked');
+assert(/Block skins and effects/.test(dash), 'skins and effects can be blocked');
+assert(/No messaging outside the school/.test(dash), 'messaging outside the school can be blocked');
+assert(/'Block ' \+ pair\[1\]/.test(dash) && /Geo Duel/.test(dash) && /Geo Dash/.test(dash) && /Flag Echo/.test(dash),
+  'specific games can be blocked');
+assert(/school_set_rules/.test(sql) && /my_school_rules/.test(sql) && /school_may_message/.test(sql),
+  'rules are stored and read through the school functions');
+assert(/Managed by your school/.test(ui), 'a blocked customization control tells the student it is managed');
+assert(/Managed by your school/.test(read('assets/js/games.js')),
+  'a blocked game shows the managed line instead of play');
+assert(/gameBlocked/.test(read('assets/js/games.js')), 'the games hub asks the school rules');
+assert(!/SchoolDashboard|school_dashboard|schoolStudent/.test(duel),
+  'Geo Duel is still untouched');
+
 console.log('test_school_dashboard.js: ok');
