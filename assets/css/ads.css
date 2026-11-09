@@ -1,0 +1,88 @@
+/* ------------------------------------------------------------------
+   LearnGeo — AdSense reserved slots (LEA-117).
+   Original Inter / system fonts. Hidden on in-round canvases.
+-------------------------------------------------------------------*/
+
+.ad-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  margin: 18px auto;
+  max-width: 960px;
+  width: calc(100% - 40px);
+  min-height: 90px;
+  padding: 10px 12px 12px;
+  border: 1px dashed rgba(11, 21, 32, 0.16);
+  border-radius: 12px;
+  background: rgba(246, 248, 250, 0.9);
+  box-sizing: border-box;
+}
+
+.ad-slot__label {
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted, #64748B);
+}
+
+.ad-slot ins.adsbygoogle {
+  display: block;
+  min-height: 72px;
+  width: 100%;
+}
+
+.ad-slot--chrome {
+  margin: 0;
+  max-width: none;
+  width: 100%;
+  border-radius: 0;
+  border-left: 0;
+  border-right: 0;
+  border-top: 0;
+}
+
+.ad-slot--hub {
+  margin: 8px 0 0;
+  width: 100%;
+  max-width: none;
+}
+
+.landing .ad-slot {
+  position: relative;
+  z-index: 1;
+}
+
+.sp-ad {
+  max-width: 920px;
+  margin: 0 auto 20px;
+  width: calc(100% - 40px);
+}
+
+/* In-round canvases: no Auto ads, anchors, or reserved slots over the board. */
+html.ads-gameplay .ad-slot--chrome,
+html.ads-gameplay .google-auto-placed,
+html.ads-gameplay ins.adsbygoogle-noablate,
+body.view-learn .ad-slot--chrome,
+body.view-test .ad-slot--chrome,
+body.view-quiz .ad-slot--chrome,
+body.view-roadtrip .ad-slot--chrome,
+body.view-games .ad-slot--chrome,
+.games--play .ad-slot,
+.games--play .google-auto-placed,
+#games-stage .ad-slot,
+#games-stage .google-auto-placed,
+#games-stage ins.adsbygoogle,
+.map-pane .google-auto-placed,
+.map-pane ins.adsbygoogle {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+}

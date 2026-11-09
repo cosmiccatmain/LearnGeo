@@ -1014,6 +1014,10 @@
         '<div class="games__grid">' +
           GAMES.map(card).join('') +
         '</div>' +
+        '<aside class="ad-slot ad-slot--hub" id="ad-games-hub" data-ad-slot="games-hub" aria-label="Advertisement">' +
+          '<span class="ad-slot__label">Advertisement</span>' +
+          '<ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-6903921330074472" data-ad-format="auto" data-full-width-responsive="true"></ins>' +
+        '</aside>' +
         '<p class="games__hint"><kbd>\u2190</kbd> <kbd>\u2192</kbd> to choose · <kbd>Enter</kbd> to play</p>' +
       '</div>';
 
@@ -1065,6 +1069,10 @@
         cards[(i + step + cards.length) % cards.length].focus();
       });
     });
+    if (global.LearnGeoMetrics) {
+      global.LearnGeoMetrics.syncGameplay();
+      global.LearnGeoMetrics.fillSlots();
+    }
   }
 
   function signedIn() { return !!(global.Cloud && global.Cloud.signedIn); }
@@ -1481,6 +1489,7 @@
       '</div>';
     W.$('[data-setup]', el).addEventListener('click', toSetup);
     game = g.mount(W.$('#games-stage', el), r);
+    if (global.LearnGeoMetrics) global.LearnGeoMetrics.syncGameplay();
   }
 
   /* Read-only, for anything outside the arcade that wants to show the

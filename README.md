@@ -403,6 +403,8 @@ assets/js/game-orbit.js         Globe Defender: the orbit shooter, its globe and
 assets/js/game-snake.js         Capital Snake: the board, the snake and the answers it eats
 assets/js/game-golf.js          Geo Golf: the course drawn from the map, the putting and the holes
 assets/js/main.js               startup and routing
+assets/js/metrics-config.js     GA4 measurement ID (paste G-…) and AdSense publisher ID
+assets/js/metrics.js            gtag (when G- is set), in-app page_view, Vercel custom events, ad slots
 assets/js/demo.js               the three-question demo on the landing page
 assets/js/demo-shapes.js        country outlines for the demo
 assets/js/motion.js             ripples, entrances and scroll reveals
@@ -415,14 +417,39 @@ It's hosted on Vercel as a static site. You don't need a build command or an out
 
 ### Web Analytics
 
-Both public pages (`index.html` and `teachers.html`) load Vercel Web Analytics using
-`/_vercel/insights/script.js`. This is the plain HTML integration, so no npm package or
-build step is needed. Keep Web Analytics enabled in the Vercel project's **Analytics** tab.
-After deploying, visit the site and check that tab for visitors and page views. If data
-doesn't appear, try without a content blocker.
+Landing, teachers, SEO pages, and the app shell keep Vercel Web Analytics via
+`/_vercel/insights/script.js`. Custom events (`page_view` with the route path, plus
+`cta_click`) fire even before a GA4 ID is pasted, including in-app route changes
+(`/home`, `/games`, `/learn`, …). Keep Web Analytics enabled in the Vercel project's
+**Analytics** tab. The insights script is served by Vercel; a local Python server
+won't provide that endpoint.
 
-This tracks page loads, not the app's individual in-page study modes. The analytics script
-is served by Vercel; a local Python server won't provide that endpoint.
+### Google Analytics (GA4)
+
+1. In [Google Analytics](https://analytics.google.com/), create a GA4 property for
+   `www.learngeo.app` and copy the Measurement ID (`G-XXXXXXXX`).
+2. Paste it into `assets/js/metrics-config.js` as `GA4_MEASUREMENT_ID` (replace the
+   empty string). Do not invent an ID.
+3. Merge to `main`. On the next deploy, `metrics.js` loads gtag and sends `page_view`
+   for landing, teachers, SEO pages, and in-app routes.
+4. While the ID is empty, gtag is never requested — zero Google Analytics network calls.
+
+### Google AdSense
+
+Publisher ID `ca-pub-6903921330074472` is already in:
+
+- the official snippet in every page `<head>`
+  (`adsbygoogle.js?client=ca-pub-6903921330074472`)
+- `ads.txt` at the site root
+- `ADSENSE_PUBLISHER_ID` in `assets/js/metrics-config.js`
+
+After this ships to `www.learngeo.app`:
+
+1. Open AdSense → Sites → `www.learngeo.app`.
+2. Choose **I've placed the code** and hit **Verify**.
+3. Auto ads / display slots sit on landing, teachers, SEO pages, app chrome, and
+   the Games hub. They stay out of in-round gameplay canvases (Learn / test / quiz /
+   Journey maps, and live game boards such as chess).
 
 ## Screen sharing
 
