@@ -98,9 +98,16 @@ assert(/force:\s*true/.test(sub) || /openForced/.test(sub),
   'admin can force-open plans for TEST while preview is off');
 assert(/mock checkout/i.test(sub) && /Stripe is not connected/.test(sub),
   'checkout stays mock / TEST only');
-assert(/overflow:\s*visible/.test(fs.readFileSync(
-  path.join(root, 'assets/css/subscription-dev.css'), 'utf8')),
-  'Premium plan cards use overflow:visible so badges are not clipped');
+var subCss = fs.readFileSync(path.join(root, 'assets/css/subscription-dev.css'), 'utf8');
+assert(/overflow:\s*visible/.test(subCss),
+  'plan cards use overflow:visible so badges are not clipped');
+assert(/price:\s*6/.test(sub), 'Plus stays $6 per month');
+assert(!/sparkle|confetti|subdevPremGlow|subdevSpark|subdevBadgeShine|subdevCtaShimmer/i.test(sub),
+  'plans markup has no sparkle or celebration');
+assert(!/sparkle|confetti|rainbow|@keyframes|animation:|linear-gradient|radial-gradient|background-clip:\s*text/i.test(subCss),
+  'plans CSS is plain type and calm borders, no glow or animated gradient');
+assert(!/Syne|Plus Jakarta/i.test(subCss) && /var\(--sans\)/.test(subCss),
+  'plans UI keeps original LearnGeo fonts');
 
 /* LEA-54: Geo Dash trails + jumper skins */
 assert(/trails:\s*TRAILS/.test(cos), 'cosmetics exports trails');
