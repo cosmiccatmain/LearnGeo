@@ -502,7 +502,7 @@
     {
       id: 'invaders', title: 'Geo Invaders', art: 'invaders', premium: true,
       blurb: 'Space Invaders, where the formation is the answer sheet. Four pods march down carrying flags or capitals, and you shoot the one the banner names.',
-      meta: 'Premium · Steer and shoot · three lives',
+      meta: 'Plus · Steer and shoot · three lives',
       best: function (r) { return r.best ? 'Best ' + r.best + ' pts' : ''; },
       intro: 'Pods march across the sky and drop a step every time they reach the edge. Shoot the one the banner asks for. A wrong pod costs a life, and so does letting the formation reach your cannon, so a slow answer is punished by the game rather than by a timer.',
       keys: [[['←', '→'], 'or A / D, or the mouse, to steer'], [['Space'], 'fire'], [['Esc'], 'pause']],
@@ -524,7 +524,7 @@
     {
       id: 'breakout', title: 'Flag Breakout', art: 'breakout', premium: true,
       blurb: 'Breakout against a wall of flags. The banner names a country and rings its flag in the wall; knock that brick out without losing the ball.',
-      meta: 'Premium · Paddle and ball · flag wall',
+      meta: 'Plus · Paddle and ball · flag wall',
       best: function (r) { return r.best ? 'Best ' + r.best + ' pts' : ''; },
       intro: 'A wall of flags from your study set, with the one you are after ringed in gold. Aiming a bouncing ball at one brick is the skill, so a wrong brick is not punished with a life: it tells you whose flag you just hit and the hunt carries on. Only losing the ball costs you.',
       keys: [[['←', '→'], 'or the mouse, to move the paddle'], [['Space'], 'serve'], [['Esc'], 'pause']],
@@ -579,7 +579,7 @@
     {
       id: 'typer', title: 'Capital Typer', art: 'typer', premium: true,
       blurb: 'Countries fall and you shoot them down by typing their capital. The only game here that asks you to produce the answer rather than recognise it.',
-      meta: 'Premium · Typing · no multiple choice',
+      meta: 'Plus · Typing · no multiple choice',
       best: function (r) { return r.best ? 'Best ' + r.best + ' pts' : ''; },
       intro: 'Countries drift down the screen. Type the capital of one and it goes down, and a box lights up as soon as what you have typed could be it. Enter submits, and a wrong guess shows you the answer. Three reaching the bottom ends the run. Spelling is marked the way the rest of the app marks typed answers, so the usual slips are forgiven.',
       keys: [[['A', '–', 'Z'], 'type the capital'], [['Enter'], 'submit'], [['Esc'], 'pause']],
@@ -609,9 +609,9 @@
       playing: function () { return 'Capitals, typed, from ' + global.StudyFilters.label(gameCfg('typer')); }
     },
     {
-      id: 'crossing', title: 'Border Crossing', art: 'crossing', premium: true,
+      id: 'crossing', title: 'Border Crossing', art: 'crossing',
       blurb: 'Frogger with four border gates along the top. Cross five lanes of traffic and go through the gate with the right answer on it.',
-      meta: 'Premium · Hop the lanes · pick a gate',
+      meta: 'Hop the lanes · pick a gate',
       best: function (r) { return r.best ? 'Best ' + r.best + ' pts' : ''; },
       intro: 'Five lanes of traffic between you and four gates. The banner names a country; get across and through the right gate. Picking the wrong gate from the kerb is cheap, but realising halfway across is not, and a car costs a life.',
       keys: [[['←', '↑', '↓', '→'], 'or WASD, to hop'], [['Tap'], 'where you want to go'], [['Esc'], 'pause']],
@@ -631,9 +631,9 @@
       playing: function () { return whatKind(pick(FOODS, record('crossing').kind, 'capitals')) + ' from ' + global.StudyFilters.label(gameCfg('crossing')); }
     },
     {
-      id: 'whack', title: 'Capital Whack', art: 'whack', premium: true,
+      id: 'whack', title: 'Capital Whack', art: 'whack',
       blurb: 'Nine holes, answers popping out of them, and a clock. Whack the right one before it ducks back down.',
-      meta: 'Premium · Reflex · against the clock',
+      meta: 'Reflex · against the clock',
       best: function (r) { return r.best ? 'Best ' + r.best + ' pts' : ''; },
       intro: 'Answers pop out of nine holes and duck back down on their own. Whack the one the banner asks for, by clicking it or pressing 1 to 9. There are no lives: a wrong one costs you three seconds, and the clock is the whole game.',
       keys: [[['1', '–', '9'], 'whack that hole'], [['Click'], 'or tap a head'], [['Esc'], 'pause']],
@@ -695,9 +695,9 @@
       playing: function () { return 'Flags from ' + global.StudyFilters.label(gameCfg('match')); }
     },
     {
-      id: 'sort', title: 'Continent Sort', art: 'sort', premium: true,
+      id: 'sort', title: 'Continent Sort', art: 'sort',
       blurb: 'A belt brings countries along and six bins wait underneath. Drop each one into its region before it runs off the end.',
-      meta: 'Premium · Sorting · six regions',
+      meta: 'Sorting · six regions',
       best: function (r) { return r.best ? 'Best ' + r.best + ' pts' : ''; },
       intro: 'The only game here that asks about region rather than capitals or flags, which is the thing a map quiz always wants and no other mode drills on its own. Send each one to its bin by clicking it or pressing 1 to 6. A wrong bin costs two seconds; letting one run off the end just loses it.',
       keys: [[['1', '–', '6'], 'drop into that bin'], [['Click'], 'or tap a bin'], [['Esc'], 'pause']],
@@ -732,9 +732,9 @@
       playing: function () { return 'Regions from ' + global.StudyFilters.label(gameCfg('sort')); }
     },
     {
-      id: 'stack', title: 'Capital Stack', art: 'stack', premium: true,
+      id: 'stack', title: 'Capital Stack', art: 'stack',
       blurb: 'Four columns, each headed by a country. A capital falls; slide it under the country it belongs to before it lands.',
-      meta: 'Premium · Falling blocks · four columns',
+      meta: 'Falling blocks · four columns',
       best: function (r) { return r.best ? 'Best ' + r.best + ' pts' : ''; },
       intro: 'A wrong drop does not end anything: the block stays where it fell and that column grows. A right one clears the column and brings in a new country. The game ends when a column reaches the headers, so mistakes cost you room rather than a life.',
       keys: [[['←', '→'], 'or A / D, to slide'], [['Space'], 'drop it now'], [['1', '–', '4'], 'send it to that column'], [['Esc'], 'pause']],
@@ -766,7 +766,7 @@
     {
       id: 'echo', title: 'Flag Echo', art: 'echo', premium: true,
       blurb: 'Simon, played with flags. The board lights a sequence and you play it back, one longer every round.',
-      meta: 'Premium · Memory · one longer each round',
+      meta: 'Plus · Memory · one longer each round',
       best: function (r) { return r.longest ? 'Longest ' + r.longest : ''; },
       intro: 'The board lights a sequence of flags and you play it back in order. Each round adds one, and the flag that joins is named as it lights, so the name goes in with the picture. Playing a sequence back right counts as a right answer for every country in it, which is what makes a long chain worth chasing.',
       keys: [[['1', '–', '9'], 'press that flag'], [['Click'], 'or tap a flag'], [['Esc'], 'pause']],
@@ -972,9 +972,21 @@
      Same shell language as Home and Learn: eyebrow, heading, panels.
      Hub cards are cover-led (LEA-98 chrome + LEA-104 SVG covers).
      Arrow keys move focus between cards; Enter and Space are native. */
+  function gameShown(g) {
+    if (!g) return false;
+    var needs = !!g.premium || !!(global.Premium && global.Premium.gameRequires && global.Premium.gameRequires(g.id));
+    if (!needs) return true;
+    if (global.Premium && global.Premium.catalogueVisible) return global.Premium.catalogueVisible(g.id);
+    return !premiumPreviewOn();
+  }
+
+  function visibleGames() {
+    return GAMES.filter(gameShown);
+  }
+
   function hubGridHtml() {
     var html = '';
-    GAMES.forEach(function (g, i) {
+    visibleGames().forEach(function (g, i) {
       html += card(g);
       if (global.LearnGeoAds && global.LearnGeoAds.hubSlotAfter) {
         html += global.LearnGeoAds.hubSlotAfter(i + 1);
@@ -990,8 +1002,9 @@
     var el = host();
     if (!el) return;
 
+    var shown = visibleGames();
     var hi = 0;
-    GAMES.forEach(function (g) { hi = Math.max(hi, record(g.id).best || 0); });
+    shown.forEach(function (g) { hi = Math.max(hi, record(g.id).best || 0); });
     var guest = needsAccount();
 
     el.innerHTML =
@@ -999,7 +1012,7 @@
         '<div class="games__head">' +
           '<div class="eyebrow">Practice</div>' +
           '<h1>Games</h1>' +
-          '<p>' + GAMES.length + ' games · everything you answer counts toward mastery, XP, and gems, same as the study modes.</p>' +
+          '<p>' + shown.length + ' games · everything you answer counts toward mastery, XP, and gems, same as the study modes.</p>' +
         '</div>' +
         (guest
           ? '<div class="signin-hint" data-games-auth>' + I.user +
@@ -1058,12 +1071,12 @@
         if (needsAccount()) {
           var id = btn.dataset.game;
           promptAccount(function () {
-            if (isPremiumLocked(id)) { premiumToast(id); renderHub(); return; }
+            if (isPremiumLocked(id)) { renderHub(); return; }
             current = id; toSetup();
           });
           return;
         }
-        if (isPremiumLocked(btn.dataset.game)) { premiumToast(btn.dataset.game); return; }
+        if (isPremiumLocked(btn.dataset.game)) { return; }
         current = btn.dataset.game; toSetup();
       });
       btn.addEventListener('focus', function () {
@@ -1152,24 +1165,14 @@
     return !(global.Premium && global.Premium.gameAllowed && global.Premium.gameAllowed(id));
   }
 
-  function premiumToast(id) {
-    var g = byId(id);
-    var title = (g && g.title) || 'This game';
-    W.toast('Premium', title + ' needs LearnGeo Premium.', I.crown || I.lock, 3600);
-    if (global.Premium && global.Premium.openUpgrade) {
-      global.Premium.openUpgrade(title + ' is a Premium game.');
-    }
-  }
-
   function card(g) {
+    /* Plus games are omitted for Free while gating is on — never a locked teaser. */
+    if (!gameShown(g)) return '';
     var best = g.best(record(g.id));
     var off = isBlocked(g.id);
     var guest = !off && needsAccount();
-    var showPrem = premiumPreviewOn() && !!g.premium;
-    var prem = !off && !guest && isPremiumLocked(g.id);
-    var locked = off || prem || guest;
-    var meta = showPrem ? g.meta : String(g.meta || '').replace(/^Premium\s*·\s*/i, '');
-    var crown = I.crown || I.lock || '';
+    var locked = off || guest;
+    var meta = String(g.meta || '').replace(/^(Premium|Plus)\s*·\s*/i, '');
     var invites = 0;
     if (g.id === 'duel' && global.GeoDuel && global.GeoDuel.pendingCount) {
       invites = global.GeoDuel.pendingCount();
@@ -1179,26 +1182,21 @@
     /* Cover-led chrome. Title lives on the SVG cover; keep an
        sr-only h3 so the button name stays clear. */
     return '<button class="game-card game-card--cover' + (off ? ' is-blocked' : '') +
-      (prem ? ' is-premium-locked' : '') + (guest ? ' is-auth-locked' : '') +
+      (guest ? ' is-auth-locked' : '') +
       '" data-game="' + g.id + '" type="button"' +
       (locked ? ' aria-disabled="true"' : '') + '>' +
       '<div class="game-card__media">' +
         '<div class="game-card__art game-art--' + g.art + '" aria-hidden="true">' + art(g.art) +
-          (showPrem ? '<span class="game-card__prem-badge" title="Premium">' +
-            crown + '<span>Premium</span></span>' : '') +
           (invites ? '<span class="game-card__invite-badge">' + invites + ' invite' + (invites === 1 ? '' : 's') + '</span>' : '') +
         '</div>' +
       '</div>' +
       '<div class="game-card__body">' +
-        '<h3 class="game-card__title">' + esc(g.title) +
-          (prem ? ' <span class="game-card__crown" title="Premium" aria-hidden="true">' + crown + '</span>' : '') +
-        '</h3>' +
+        '<h3 class="game-card__title">' + esc(g.title) + '</h3>' +
         '<p class="game-card__blurb">' + esc(g.blurb) + '</p>' +
         '<div class="game-card__foot"><span>' + esc(meta) + '</span>' +
           (best ? '<span class="game-card__best">' + esc(best) + '</span>' : '') +
           (off ? '<span class="game-card__go">' + I.lock + ' Blocked by your teacher</span>'
                : guest ? '<span class="game-card__go">' + I.lock + ' Account to play</span>'
-               : prem ? '<span class="game-card__go">' + crown + ' Premium · Upgrade</span>'
                : '<span class="game-card__go">' +
                    (g.id === 'duel' ? 'Challenge ' : 'Play ') + I.arrowR + '</span>') + '</div>' +
       '</div>' +
@@ -1392,13 +1390,13 @@
     if (isBlocked(g.id)) { blockedToast(); renderHub(); return; }
     if (needsAccount()) {
       promptAccount(function () {
-        if (isPremiumLocked(g.id)) { premiumToast(g.id); renderHub(); return; }
+        if (isPremiumLocked(g.id)) { renderHub(); return; }
         renderSetup();
       });
       renderHub();
       return;
     }
-    if (isPremiumLocked(g.id)) { premiumToast(g.id); renderHub(); return; }
+    if (isPremiumLocked(g.id)) { renderHub(); return; }
     var r = record(g.id);
     /* Old Chess Duel deep-links / toasts open Geo Chess in Challenge mode. */
     if (g.id === 'chess' && (fromChessDuel || r._openPvp)) {
@@ -1478,12 +1476,12 @@
     if (isBlocked(g0.id)) { blockedToast(); renderHub(); return; }
     if (needsAccount()) {
       promptAccount(function () {
-        if (isPremiumLocked(g0.id)) { premiumToast(g0.id); renderHub(); return; }
+        if (isPremiumLocked(g0.id)) { renderHub(); return; }
         play();
       });
       return;
     }
-    if (isPremiumLocked(g0.id)) { premiumToast(g0.id); renderHub(); return; }
+    if (isPremiumLocked(g0.id)) { renderHub(); return; }
 
     function goPlay() {
       if (global.LearnGeoAds && global.LearnGeoAds.notePlayStarted) {
@@ -1519,7 +1517,7 @@
      or a drawing changed here shows up there without being retyped.
      Copies, so nothing out there can reach into GAMES. */
   function catalogue() {
-    return GAMES.map(function (g) {
+    return visibleGames().map(function (g) {
       return { id: g.id, title: g.title, blurb: g.blurb, meta: g.meta, art: g.art, premium: !!g.premium };
     });
   }

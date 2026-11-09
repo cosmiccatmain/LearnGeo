@@ -151,28 +151,28 @@
       colors: ['#0EA5E9', '#22D3EE', '#67E8F9'], motion: 'rise', count: 22, premium: true,
       layers: ['tide', 'bokeh'], glow: ['#0EA5E9', '#22D3EE', '#67E8F9'],
       also: [{ shape: 'orb', colors: ['#A5F3FC', '#E0F2FE'], motion: 'rise', count: 10 }],
-      blurb: 'Bubbles rising through deep water. Premium.' },
+      blurb: 'Bubbles rising through deep water. Plus.' },
     { id: 'rain', name: 'Monsoon', price: 1200, shape: 'drop',
-      colors: ['#38BDF8', '#0284C7', '#7DD3FC'], motion: 'rain', count: 36, premium: true,
+      colors: ['#38BDF8', '#0284C7', '#7DD3FC'], motion: 'rain', count: 36,
       layers: ['mist', 'glow'], glow: ['#0284C7', '#38BDF8', '#1E3A8A'],
       also: [{ shape: 'splash', colors: ['#BAE6FD', '#E0F2FE'], motion: 'splash', count: 10 }],
-      blurb: 'Fast monsoon streaks. Premium.' },
+      blurb: 'Fast monsoon streaks.' },
     { id: 'embers', name: 'Embers', price: 1800, shape: 'ember',
       colors: ['#F97316', '#DC2626', '#F5B301'], motion: 'embers', count: 26, premium: true,
       layers: ['heat', 'glow'], glow: ['#F97316', '#DC2626', '#F5B301'],
       also: [{ shape: 'spark', colors: ['#FDE047', '#FFFFFF'], motion: 'glimmer', count: 8 }],
-      blurb: 'Glowing embers drifting upward. Premium.' },
+      blurb: 'Glowing embers drifting upward. Plus.' },
     { id: 'wings', name: 'Chicken Wings', price: 900, shape: 'wing',
       colors: ['#B45309', '#D97706', '#92400E', '#C2410C'], motion: 'flutter', count: 16, premium: true,
       layers: ['glow', 'sunbeam'], glow: ['#F59E0B', '#FDE68A', '#C2410C'],
       also: [{ shape: 'flare', colors: ['#FFFFFF', '#FDE68A'], motion: 'glimmer', count: 8 }],
-      blurb: 'Fluttering wings across the card. Premium.' },
+      blurb: 'Fluttering wings across the card. Plus.' },
     { id: 'gambling', name: 'Gambling', price: 1500, shape: 'dice',
-      colors: ['#FFFFFF', '#FEF3C7', '#F1F5F9'], motion: 'tumble', count: 14, premium: true,
+      colors: ['#FFFFFF', '#FEF3C7', '#F1F5F9'], motion: 'tumble', count: 14,
       layers: ['felt', 'sheen'], glow: ['#16A34A', '#F5B301', '#065F46'],
       also: [{ shape: 'coin', colors: ['#FDE047', '#F5B301', '#FBBF24'], motion: 'tumble', count: 10 },
              { shape: 'flare', colors: ['#FFFFFF', '#FDE68A'], motion: 'glimmer', count: 8 }],
-      blurb: 'Dice tumbling over your profile. Premium.' },
+      blurb: 'Dice tumbling over your profile.' },
 
     /* ------------------------- Luxe collection ------------------------
        Very expensive on purpose, and never Premium-locked: anyone with
@@ -353,13 +353,13 @@
       blurb: 'Leaf flecks kicked up from the floor.' },
     { id: 'ember', name: 'Ember Wake', price: 900, colors: ['#F97316', '#DC2626', '#F5B301'], shape: 'ember',
       rate: 0.026, size: 0.15, air: true, premium: true,
-      blurb: 'Glowing embers that trail through jumps. Premium.' },
+      blurb: 'Glowing embers that trail through jumps. Plus.' },
     { id: 'neon', name: 'Neon Stream', price: 1200, colors: ['#F472B6', '#22D3EE', '#A78BFA'], shape: 'streak',
-      rate: 0.022, size: 0.22, air: true, premium: true,
-      blurb: 'Long neon streaks behind the cube. Premium.' },
+      rate: 0.022, size: 0.22, air: true,
+      blurb: 'Long neon streaks behind the cube.' },
     { id: 'aurora', name: 'Aurora Trail', price: 1600, colors: ['#22D3EE', '#8B5CF6', '#A3E635', '#F472B6'], shape: 'spark',
-      rate: 0.02, size: 0.2, air: true, premium: true,
-      blurb: 'Northern-light sparks in the air and on the ground. Premium.' }
+      rate: 0.02, size: 0.2, air: true,
+      blurb: 'Northern-light sparks in the air and on the ground.' }
   ];
 
   var JUMPERS = [
@@ -382,11 +382,11 @@
       fill: '#F97316', accent: '#EC4899', face: '#FFF7ED',
       blurb: 'Warm orange-to-pink gradient body.' },
     { id: 'aurora', name: 'Aurora Form', price: 1400, style: 'aurora',
-      fill: '#7C3AED', accent: '#22D3EE', face: '#F5F3FF', premium: true,
-      blurb: 'Violet body with aurora rim light. Premium.' },
+      fill: '#7C3AED', accent: '#22D3EE', face: '#F5F3FF',
+      blurb: 'Violet body with aurora rim light.' },
     { id: 'gilded', name: 'Gilded Cube', price: 1800, style: 'gilded',
       fill: '#B45309', accent: '#F5B301', face: '#FFFBEB', premium: true,
-      blurb: 'Meridian gold with a bright rim. Premium.' }
+      blurb: 'Meridian gold with a bright rim. Plus.' }
   ];
 
   /* --------------------- more Games cosmetics (LEA-59) ----------------
@@ -408,12 +408,12 @@
     { id: 'canopy', name: 'Canopy', price: 550,
       light: '#e4f0d4', dark: '#4f7a3c', border: '#2f4a24',
       blurb: 'Forest greens across the ranks.' },
-    { id: 'aurora', name: 'Aurora Board', price: 1400, premium: true,
+    { id: 'aurora', name: 'Aurora Board', price: 1400,
       light: '#e8ddff', dark: '#5b4fcf', border: '#7C3AED',
-      blurb: 'Violet aurora squares. Premium.' },
+      blurb: 'Violet aurora squares.' },
     { id: 'meridian', name: 'Meridian Gold', price: 1800, premium: true,
       light: '#fff3cc', dark: '#c4891a', border: '#8a5a08',
-      blurb: 'Gold and parchment. Premium.' }
+      blurb: 'Gold and parchment. Plus.' }
   ];
 
   var CHESS_PIECES = [
@@ -429,12 +429,12 @@
     { id: 'ember', name: 'Ember Set', price: 500,
       white: '#fff7ed', black: '#7c2d12', outline: '#9a3412',
       blurb: 'Warm cream and ember black.' },
-    { id: 'neon', name: 'Neon Set', price: 1200, premium: true,
+    { id: 'neon', name: 'Neon Set', price: 1200,
       white: '#f5f3ff', black: '#4c1d95', outline: '#7c3aed',
-      blurb: 'Bright violet pair. Premium.' },
-    { id: 'gilded', name: 'Gilded Set', price: 1600, premium: true,
+      blurb: 'Bright violet pair.' },
+    { id: 'gilded', name: 'Gilded Set', price: 1600,
       white: '#fffbeb', black: '#78350f', outline: '#b45309',
-      blurb: 'Meridian gold outline. Premium.' }
+      blurb: 'Meridian gold outline.' }
   ];
 
   /* Vector chess silhouettes for Customise → Games piece cards + live
@@ -481,12 +481,12 @@
     { id: 'sunset', name: 'Sunset Coil', price: 450,
       bands: ['#9a3412', '#f97316', '#fdba74'], face: '#fb923c',
       blurb: 'Warm orange coil.' },
-    { id: 'neon', name: 'Neon Coil', price: 1100, premium: true,
+    { id: 'neon', name: 'Neon Coil', price: 1100,
       bands: ['#6d28d9', '#a78bfa', '#f472b6'], face: '#c4b5fd',
-      blurb: 'Violet-pink neon. Premium.' },
-    { id: 'aurora', name: 'Aurora Coil', price: 1500, premium: true,
+      blurb: 'Violet-pink neon.' },
+    { id: 'aurora', name: 'Aurora Coil', price: 1500,
       bands: ['#0e7490', '#22d3ee', '#a3e635'], face: '#67e8f9',
-      blurb: 'Northern-light greens and cyan. Premium.' }
+      blurb: 'Northern-light greens and cyan.' }
   ];
 
   var MATCH_BACKS = [
@@ -502,12 +502,12 @@
     { id: 'meadow', name: 'Meadow Back', price: 400,
       down: '#166534', up: '#15803d', mark: 'rgba(187,247,208,.28)',
       blurb: 'Forest green backs.' },
-    { id: 'neon', name: 'Neon Back', price: 1000, premium: true,
+    { id: 'neon', name: 'Neon Back', price: 1000,
       down: '#5b21b6', up: '#7c3aed', mark: 'rgba(244,114,182,.35)',
-      blurb: 'Violet neon backs. Premium.' },
-    { id: 'aurora', name: 'Aurora Back', price: 1400, premium: true,
+      blurb: 'Violet neon backs.' },
+    { id: 'aurora', name: 'Aurora Back', price: 1400,
       down: '#0e7490', up: '#0891b2', mark: 'rgba(163,230,53,.32)',
-      blurb: 'Cyan aurora backs. Premium.' }
+      blurb: 'Cyan aurora backs.' }
   ];
 
   var MAZE_RUNNERS = [
@@ -523,12 +523,12 @@
     { id: 'meadow', name: 'Meadow Explorer', price: 400,
       fill: '#4ade80', glow: 'rgba(74,222,128,.4)',
       blurb: 'Fresh green runner.' },
-    { id: 'neon', name: 'Neon Explorer', price: 1100, premium: true,
+    { id: 'neon', name: 'Neon Explorer', price: 1100,
       fill: '#c084fc', glow: 'rgba(192,132,252,.5)',
-      blurb: 'Violet neon trail. Premium.' },
-    { id: 'aurora', name: 'Aurora Explorer', price: 1500, premium: true,
+      blurb: 'Violet neon trail.' },
+    { id: 'aurora', name: 'Aurora Explorer', price: 1500,
       fill: '#22d3ee', glow: 'rgba(34,211,238,.5)',
-      blurb: 'Aurora cyan glow. Premium.' }
+      blurb: 'Aurora cyan glow.' }
   ];
 
   var DUEL_ACCENTS = [
@@ -544,12 +544,12 @@
     { id: 'coral', name: 'Coral Accent', price: 450,
       accent: '#FB7185', soft: 'rgba(251,113,133,.12)',
       blurb: 'Warm coral duel highlight.' },
-    { id: 'neon', name: 'Neon Accent', price: 1100, premium: true,
+    { id: 'neon', name: 'Neon Accent', price: 1100,
       accent: '#A78BFA', soft: 'rgba(167,139,250,.14)',
-      blurb: 'Violet neon duel rim. Premium.' },
-    { id: 'aurora', name: 'Aurora Accent', price: 1500, premium: true,
+      blurb: 'Violet neon duel rim.' },
+    { id: 'aurora', name: 'Aurora Accent', price: 1500,
       accent: '#22D3EE', soft: 'rgba(34,211,238,.14)',
-      blurb: 'Aurora cyan duel rim. Premium.' }
+      blurb: 'Aurora cyan duel rim.' }
   ];
 
   /* Permanent diamond achievements, then seasonal / time-limited challenge

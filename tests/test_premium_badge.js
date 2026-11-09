@@ -58,76 +58,116 @@ var B = ctx.Badges;
 var P = ctx.Premium;
 assert(B && P, 'Badges and Premium load');
 
-var prem = B.find('premium');
-assert(prem, 'Premium badge exists');
-assert.strictEqual(prem.entitlement, 'premium', 'it is an entitlement, not grant/earn');
-assert.strictEqual(B.granted(prem), false, 'admin badge switch cannot grant it');
-assert.strictEqual(B.entitlement(prem), true, 'entitlement() is true');
-assert.strictEqual(prem.fill, true, 'uses filled brand-mark art');
-assert.strictEqual(prem.art, 'mark', 'art id is mark');
-assert.strictEqual(prem.tone, 'premium', 'tone is premium');
-assert(!/stripe/i.test(prem.desc), 'copy does not mention Stripe');
+var plus = B.find('plus');
+var edu = B.find('education');
+assert(plus && edu, 'Plus and Education badges exist');
+assert.strictEqual(plus.entitlement, 'plus', 'Plus is an entitlement, not grant/earn');
+assert.strictEqual(edu.entitlement, 'education', 'Education is an entitlement');
+assert.strictEqual(B.granted(plus), false, 'admin badge switch cannot grant Plus');
+assert.strictEqual(B.entitlement(plus), true, 'entitlement() is true');
+assert.strictEqual(plus.fill, true, 'Plus uses filled brand-mark art');
+assert.strictEqual(plus.art, 'mark', 'Plus art id is mark');
+assert.strictEqual(plus.tone, 'plus', 'Plus tone is plus');
+assert.strictEqual(edu.art, 'cap', 'Education art is a cap');
+assert.strictEqual(edu.tone, 'education', 'Education tone is distinct');
+assert.notStrictEqual(plus.tone, edu.tone, 'the two badges do not share a tone');
+assert(!/stripe/i.test(plus.desc), 'copy does not mention Stripe');
 
-var svg = B.svg(prem, 16);
+var svg = B.svg(plus, 16);
 assert(/^<svg /.test(svg), 'svg renders');
 assert(/fill="currentColor"/.test(svg), 'mark is filled currentColor');
 assert(!/stroke-width/.test(svg), 'mark is not a stroke glyph');
 assert(/<rect /.test(svg) && /<circle /.test(svg), 'mark has square + circle');
+var cap = B.svg(edu, 16);
+assert(/<path /.test(cap) && !/<rect /.test(cap), 'Education cap is not the brand mark');
 
-assert.strictEqual(B.has('premium'), false, 'not held by default');
-assert.strictEqual(B.grant('premium'), false, 'grant() refuses entitlements');
+assert.strictEqual(B.has('plus'), false, 'Plus not held by default');
+assert.strictEqual(B.has('education'), false, 'Education not held by default');
+assert.strictEqual(B.grant('plus'), false, 'grant() refuses entitlements');
 
 /* Award from flags.premium (mock subscribe / admin / Stripe later). */
 ctx.WW.state.flags.premium = true;
 var first = B.syncPremium({ announce: false, save: false, paint: false });
-assert(first && first.id === 'premium', 'sync awards the badge');
-assert.strictEqual(B.has('premium'), true, 'held after award');
-assert.strictEqual(ctx.WW.state.badges.filter(function (id) { return id === 'premium'; }).length, 1,
+assert(first && first.id === 'plus', 'sync awards the Plus badge');
+assert.strictEqual(B.has('plus'), true, 'held after award');
+assert.strictEqual(B.has('education'), false, 'premium flag alone is not Schools');
+assert.strictEqual(ctx.WW.state.badges.filter(function (id) { return id === 'plus'; }).length, 1,
   'awarded once');
 
 var again = B.syncPremium({ announce: false, save: false, paint: false });
 assert.strictEqual(again, null, 'second sync is idempotent');
-assert.strictEqual(ctx.WW.state.badges.filter(function (id) { return id === 'premium'; }).length, 1,
+assert.strictEqual(ctx.WW.state.badges.filter(function (id) { return id === 'plus'; }).length, 1,
   'still a single copy');
 
-assert.strictEqual(B.shown()[0], 'premium', 'auto-shown beside the name');
+assert.strictEqual(B.shown()[0], 'plus', 'auto-shown beside the name');
 
 var row = B.markup(null, 13);
-assert(/bdg--premium/.test(row), 'name chip uses premium tone');
-assert(/aria-label="Premium"/.test(row), 'name chip is labelled Premium');
+assert(/bdg--plus/.test(row), 'name chip uses plus tone');
+assert(/aria-label="Plus"/.test(row), 'name chip is labelled Plus');
 
 /* Lapse: hide beside the name, grey in the case (not held). */
 ctx.WW.state.flags.premium = false;
+ctx.WW.state.flags.plan = 'free';
 B.syncPremium({ announce: false, save: false, paint: false });
-assert.strictEqual(B.has('premium'), false, 'dropped on lapse');
-assert.strictEqual(B.shown().indexOf('premium'), -1, 'hidden beside the name');
+assert.strictEqual(B.has('plus'), false, 'dropped on lapse');
+assert.strictEqual(B.shown().indexOf('plus'), -1, 'hidden beside the name');
 assert.strictEqual(B.markup(null, 13), '', 'no chip while lapsed');
 
 /* Resubscribe restores a single copy. */
 ctx.WW.state.flags.premium = true;
 B.syncPremium({ announce: false, save: false, paint: false });
-assert.strictEqual(B.has('premium'), true, 'restored on resubscribe');
+assert.strictEqual(B.has('plus'), true, 'restored on resubscribe');
 
-/* Premium.setLocal is the mock-subscribe path. */
+/* Premium.setLocal is the mock Plus subscribe path. */
 ctx.WW.state.flags.premium = false;
+ctx.WW.state.flags.plan = 'free';
 ctx.WW.state.badges = [];
+ctx.WW.state.profile.badgeSlots = null;
 P.setLocal(true);
 assert.strictEqual(!!ctx.WW.state.flags.premium, true, 'setLocal turns the flag on');
-assert.strictEqual(B.has('premium'), true, 'setLocal awards the badge');
+assert.strictEqual(P.plan(), 'plus', 'setLocal is Plus');
+assert.strictEqual(B.has('plus'), true, 'setLocal awards the Plus badge');
+assert.strictEqual(B.has('education'), false, 'Plus does not award Education');
 P.setLocal(true);
-assert.strictEqual(ctx.WW.state.badges.filter(function (id) { return id === 'premium'; }).length, 1,
+assert.strictEqual(ctx.WW.state.badges.filter(function (id) { return id === 'plus'; }).length, 1,
   'setLocal stays idempotent');
 P.setLocal(false);
 assert.strictEqual(!!ctx.WW.state.flags.premium, false, 'setLocal can lapse');
-assert.strictEqual(B.has('premium'), false, 'setLocal greys/hides the badge');
+assert.strictEqual(B.has('plus'), false, 'setLocal greys/hides the Plus badge');
+
+/* Schools mock subscribe awards both badges, once. */
+P.setPlan('schools', { students: 40 });
+assert.strictEqual(P.plan(), 'schools', 'setPlan schools');
+assert.strictEqual(P.studentCount(), 40, 'slider count is stored');
+assert.strictEqual(B.has('plus'), true, 'Schools includes the Plus badge');
+assert.strictEqual(B.has('education'), true, 'Schools awards Education');
+P.setPlan('schools', { students: 40 });
+assert.strictEqual(ctx.WW.state.badges.filter(function (id) { return id === 'education'; }).length, 1,
+  'Education award is idempotent');
+assert.strictEqual(ctx.WW.state.badges.filter(function (id) { return id === 'plus'; }).length, 1,
+  'Plus award stays a single copy on Schools');
+var both = B.markup(null, 13);
+assert(/aria-label="Plus"/.test(both) && /aria-label="Education"/.test(both),
+  'both badges can show beside the name');
+assert(/bdg--plus/.test(both) && /bdg--education/.test(both), 'tones stay distinct in the row');
+
+/* Free hides them again. */
+P.setPlan('free');
+assert.strictEqual(B.has('plus'), false, 'Free drops Plus');
+assert.strictEqual(B.has('education'), false, 'Free drops Education');
 
 /* Referral trial is Premium.active but is not a subscribe — no badge. */
 ctx.WW.state.flags.premium = false;
+ctx.WW.state.flags.plan = 'free';
+ctx.WW.state.flags.school = false;
 ctx.WW.state.badges = [];
+ctx.WW.state.profile.badgeSlots = null;
 ctx.ReferralTrial = { trialActive: function () { return true; } };
 assert.strictEqual(P.active(), true, 'trial counts as Premium.active');
-assert.strictEqual(B.has('premium'), false, 'trial does not award the badge');
+assert.strictEqual(P.plan(), 'free', 'trial is not a Plus subscribe');
+assert.strictEqual(B.has('plus'), false, 'trial does not award Plus');
+assert.strictEqual(B.has('education'), false, 'trial does not award Education');
 B.syncPremium({ announce: false, save: false, paint: false });
-assert.strictEqual(B.has('premium'), false, 'sync still keys off flags.premium');
+assert.strictEqual(B.has('plus'), false, 'sync still keys off the plan, not the trial');
 
 console.log('test_premium_badge.js: ok');

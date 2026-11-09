@@ -1705,8 +1705,17 @@
   }
 
   function becomeTeacher() {
+    if (global.Premium && global.Premium.schoolsLock && global.Premium.schoolsLock()) {
+      if (global.Premium.openUpgrade) {
+        global.Premium.openUpgrade('Full Geo Classroom is included with LearnGeo Schools.');
+      }
+      return;
+    }
     W.state.role = 'teacher';
     W.state.roleChosen = true;
+    if (global.Premium && global.Premium.isSchool && global.Premium.isSchool()) {
+      cls().schoolPlan = true;
+    }
     W.saveNow();
     global.UI.refreshTabs();
     global.UI.go('teacher');

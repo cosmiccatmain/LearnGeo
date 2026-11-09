@@ -221,6 +221,8 @@
     }
 
     function openChat(tag) {
+      if (global.Premium && global.Premium.blockStudentMessaging &&
+          global.Premium.blockStudentMessaging()) return;
       if (!chatPanel) return;
       chatPanel.classList.remove('hidden');
       chatPanel.innerHTML =

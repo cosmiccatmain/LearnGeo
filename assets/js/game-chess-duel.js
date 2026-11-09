@@ -215,6 +215,10 @@ import { Chess } from '../vendor/chess.js/chess.js';
   }
 
   function sendInvite(tag) {
+    if (global.Premium && global.Premium.blockStudentMessaging &&
+        global.Premium.blockStudentMessaging()) {
+      return Promise.resolve({ ok: false, error: 'school' });
+    }
     if (!tag || !/^[A-Za-z0-9_]{3,16}$/.test(tag)) {
       return Promise.resolve({ ok: false, error: 'invalid_tag' });
     }

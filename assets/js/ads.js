@@ -33,12 +33,41 @@
   var skipThisPlay = false;
   var waitMs = WAIT_MS;
 
+  function schoolAccount() {
+    var ww = global.WW || W;
+    var f = ww && ww.state && ww.state.flags;
+    if (f && (f.plan === 'schools' || f.school === true)) return true;
+    if (global.Premium && typeof global.Premium.isSchool === 'function' && global.Premium.isSchool()) return true;
+    return false;
+  }
+
   function premium() {
     var ww = global.WW || W;
     var s = ww && ww.state;
-    if (s && s.flags && s.flags.premium) return true;
+    var f = s && s.flags;
+    if (f && (f.premium || f.plan === 'plus' || f.plan === 'schools' || f.school)) return true;
     if (global.Premium && typeof global.Premium.active === 'function' && global.Premium.active()) return true;
     return false;
+  }
+
+  /* Schools: no ad pixels and no cross-site ad tags. Does not add analytics. */
+  function syncSchoolTracking() {
+    if (!schoolAccount()) return false;
+    if (document.documentElement && document.documentElement.classList) {
+      document.documentElement.classList.add('ads-school-shield');
+      document.documentElement.classList.add('ads-off');
+      document.documentElement.classList.remove('ads-on');
+    }
+    if (!document.querySelectorAll) return true;
+    var nodes = document.querySelectorAll(
+      'script[src*="adsbygoogle"], script[src*="googletagmanager"], script[src*="google-analytics"], ' +
+      'script[src*="doubleclick"], script[src*="googlesyndication"], ' +
+      'iframe[src*="doubleclick"], iframe[src*="googlesyndication"], iframe[src*="googletagmanager"]'
+    );
+    for (var i = nodes.length - 1; i >= 0; i--) {
+      if (nodes[i].parentNode) nodes[i].parentNode.removeChild(nodes[i]);
+    }
+    return true;
   }
 
   function placementsOn() {
@@ -47,7 +76,7 @@
 
   function shouldShowAds() {
     if (!placementsOn()) return false;
-    if (premium()) return false;
+    if (premium() || schoolAccount()) return false;
     if (skipThisPlay) return false;
     return true;
   }
@@ -130,6 +159,7 @@
   }
 
   function disablePageLevelAds() {
+    if (schoolAccount()) return;
     global.adsbygoogle = global.adsbygoogle || [];
     try {
       global.adsbygoogle.push({
@@ -300,6 +330,7 @@
   }
 
   function boot() {
+    syncSchoolTracking();
     disablePageLevelAds();
     syncRoot();
     if (!placementsOn()) {
@@ -337,6 +368,8 @@
     closePregame: closePregame,
     notifyAdEnded: notifyAdEnded,
     syncRoot: syncRoot,
+    syncSchoolTracking: syncSchoolTracking,
+    schoolAccount: schoolAccount,
     /* tests only */
     _setWaitMs: function (ms) { waitMs = ms; },
     _skipThisPlay: function () { return skipThisPlay; },

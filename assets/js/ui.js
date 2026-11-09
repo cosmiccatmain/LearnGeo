@@ -618,7 +618,17 @@
   };
   var gamesPreviewMode = 'dash';
 
+  function plusItemVisible(it) {
+    var needs = !!(it && it.premium) || !!(Cos.requiresPremium && Cos.requiresPremium(it));
+    if (!needs) return true;
+    if (global.Premium && global.Premium.catalogueVisible) return global.Premium.catalogueVisible(it);
+    var previewOn = !!(global.Premium && global.Premium.previewEnabled && global.Premium.previewEnabled());
+    if (!previewOn) return true;
+    return !!(global.Premium && global.Premium.active && global.Premium.active());
+  }
+
   function shopTile(kind, it, owned, equipped) {
+    if (!plusItemVisible(it)) return '';
     /* An earned badge is owned by having done the thing and by no
        other route, so it never falls through to the price test. It
        carries no price, and without this it would read as costing 0
@@ -643,12 +653,9 @@
       '<span class="shop-item__shine" aria-hidden="true"></span>' +
       (Cos.level(it) >= 1 || earned ? '<span class="shop-item__rar mono">' + Cos.rarity(it) + '</span>' : '') +
       visual(kind, it) +
-      '<span class="shop-item__name">' + W.escapeHtml(it.name || it.id) +
-        (needsPrem ? '<span class="shop-item__prem" title="Premium">' +
-          (I.crown || I.lock || '') + '<span>Premium</span></span>' : '') + '</span>' +
+      '<span class="shop-item__name">' + W.escapeHtml(it.name || it.id) + '</span>' +
       (isEq ? '<span class="shop-item__eq mono">EQUIPPED</span>'
-            /* Prem pill above already says Premium — avoid a second crown label. */
-            : premLocked ? '<span class="shop-item__owned">Upgrade</span>'
+            : premLocked ? ''
             : isOwned ? '<span class="shop-item__owned">' + (earned ? 'earned' : 'owned') + '</span>'
             /* A locked badge says what to go and do. A grid of grey
                question marks is worth less than a list to aim at. */
@@ -693,8 +700,8 @@
     }
     function hint(k) {
       if (k === 'effects') {
-        return 'Tap a tile to preview it live on your card. Atlas Sparks is free; ' +
-          'Premium effects need LearnGeo Premium. Achievement and staff effects are earned, not sold.';
+        return 'Tap a tile to preview it live on your card. Atlas Sparks is free. ' +
+          'Plus looks stay off this screen until the account has Plus or Schools. Achievement and staff effects are earned, not sold.';
       }
       if (k === 'decorations') {
         return 'Frames and badges sit on your avatar. Free frames unlock instantly; ' +
@@ -848,9 +855,9 @@
         var previewOn = !!(global.Premium && global.Premium.previewEnabled && global.Premium.previewEnabled());
         if (previewOn && (btn.dataset.premium === '1' || (item && item.premium && !(global.Premium && global.Premium.active && global.Premium.active())))) {
           W.Sound.wrong();
-          W.toast('Premium', (item && item.name ? item.name + ' needs' : 'Needs') + ' LearnGeo Premium', I.crown || I.lock, 3600);
+          W.toast('Plus', (item && item.name ? item.name + ' needs' : 'Needs') + ' LearnGeo Plus', I.lock, 3600);
           if (global.Premium && global.Premium.openUpgrade) {
-            global.Premium.openUpgrade((item && item.name ? item.name : 'This cosmetic') + ' needs LearnGeo Premium.');
+            global.Premium.openUpgrade((item && item.name ? item.name : 'This cosmetic') + ' needs LearnGeo Plus.');
           }
           return;
         }
@@ -880,7 +887,7 @@
         global.Premium && global.Premium.previewEnabled && global.Premium.previewEnabled() &&
         !(global.Premium.active && global.Premium.active())) {
       if (global.Premium.openUpgrade) {
-        global.Premium.openUpgrade((item.name || 'This cosmetic') + ' needs LearnGeo Premium.');
+        global.Premium.openUpgrade((item.name || 'This cosmetic') + ' needs LearnGeo Plus.');
       }
       return;
     }
@@ -924,7 +931,7 @@
         global.Premium && global.Premium.previewEnabled && global.Premium.previewEnabled() &&
         !(global.Premium.active && global.Premium.active())) {
       if (global.Premium.openUpgrade) {
-        global.Premium.openUpgrade((item.name || 'This cosmetic') + ' needs LearnGeo Premium.');
+        global.Premium.openUpgrade((item.name || 'This cosmetic') + ' needs LearnGeo Plus.');
       }
       return;
     }
@@ -1535,6 +1542,8 @@
   /* LEA-84: Friend inbox lives in the profile menu (beside Customization),
      not under the Achievements tab. */
   function openFriendInbox() {
+    if (global.Premium && global.Premium.blockStudentMessaging &&
+        global.Premium.blockStudentMessaging()) return;
     if (global.AchievementCards && global.AchievementCards.openFriendInbox) {
       global.AchievementCards.openFriendInbox();
       return;
@@ -2031,16 +2040,32 @@
     return true;
   }
 
+  function schoolsLocked() {
+    return !!(global.Premium && global.Premium.schoolsLock && global.Premium.schoolsLock());
+  }
+
   function go(view, opts) {
     /* The tab strip already hides the wrong one, but guard the route too so
        a student cannot reach the teacher's class by any other path. */
     var isTeacher = W.state.role === 'teacher';
+    var askedTeacher = view === 'teacher';
     if (view === 'teacher' && !isTeacher) view = 'classroom';
-    /* previewing covers both a teacher trying an assignment and a
-       teacher looking at their class as a student; neither should be
-       bounced back out of the view they just asked for. */
-    if (view === 'classroom' && isTeacher && !previewing) view = 'teacher';
-    if (isTeacher && !previewing && (view === 'portal' || view === 'codex')) view = 'teacher';
+    /* Full Geo Classroom is Schools-only while the Development preview is on.
+       Joining as a student (class code) stays available on Free. */
+    if (schoolsLocked()) {
+      if (askedTeacher || view === 'teacher') {
+        view = 'portal';
+        if (global.Premium && global.Premium.openUpgrade) {
+          global.Premium.openUpgrade('Full Geo Classroom is included with LearnGeo Schools.');
+        }
+      }
+    } else {
+      /* previewing covers both a teacher trying an assignment and a
+         teacher looking at their class as a student; neither should be
+         bounced back out of the view they just asked for. */
+      if (view === 'classroom' && isTeacher && !previewing) view = 'teacher';
+      if (isTeacher && !previewing && (view === 'portal' || view === 'codex')) view = 'teacher';
+    }
 
     /* A click away from a live game cannot be undone by coming back: stop()
        destroys the canvas. History asks in blockHistoryLeave instead, and

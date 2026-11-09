@@ -456,7 +456,7 @@
     return '<section class="adminp__sec">' +
       '<h3>Commands</h3>' +
       '<p class="t-sm t-muted">Type <code>help</code> for the list. A command that needs an account uses the selected one. ' +
-        '<code>plans</code> opens the Premium plans TEST grant UI (mock checkout only). ' +
+        '<code>plans</code> opens Free / Plus / Schools (mock checkout only). ' +
         '<code>cooking</code> previews the cooking loader.</p>' +
       '<div class="adminp__search">' +
         '<input class="input mono" id="ap-cmd" type="text" placeholder="take 500" ' +
@@ -477,12 +477,12 @@
     return '<section class="adminp__sec">' +
       '<h3>Development</h3>' +
       '<p class="t-sm t-muted">TEST tools for owner <code>alexjschendel@gmail.com</code> and UltraAdmin. ' +
-        'Premium is <b>account / player</b> level — not teacher-based. Public checkout stays mock / TEST only. ' +
+        'Plans are <b>Free</b>, <b>Plus</b> (no ads), and <b>Schools</b> ($2 per student). Public checkout stays mock / TEST only. ' +
         'Referral trial is TEST only — not in the real public UI yet.</p>' +
       '<div class="adminp__warn adminp__warn--expired" style="margin-bottom:14px">' +
         '<div class="row" style="gap:10px;align-items:flex-start">' + (I.info || '') +
           '<div class="grow"><b>Not live billing.</b> Stripe is not connected. Turning the switch on only previews ' +
-            'Premium plans UI and client gates for testing. When off, learners do not see paywalls or plans as if live.</div>' +
+            'Free / Plus / Schools and client gates for testing. When off, learners do not see paywalls or plans as if live. Ads stay off until placements are turned back on.</div>' +
         '</div>' +
       '</div>' +
       '<div class="adminp__who" style="align-items:flex-start;margin-bottom:14px">' +
@@ -491,8 +491,8 @@
             '<span>Premium plans &amp; gating preview</span></div>' +
           '<p class="t-sm t-muted" style="margin:6px 0 0">' +
             (previewOn
-              ? 'Preview is <b>on</b>. Games hub and cosmetics show Premium locks and the polished plans upgrade path.'
-              : 'Preview is <b>off</b>. Premium paywalls, plan cards, and upgrade CTAs stay hidden from users.') +
+              ? 'Preview is <b>on</b>. Free accounts do not see Plus games or looks. Plus and Schools show the plans UI.'
+              : 'Preview is <b>off</b>. Plan cards and gates stay hidden. Ads stay off.') +
           '</p>' +
         '</div>' +
         '<button type="button" class="btn btn--sm' + (previewOn ? '' : ' btn--accent') +
@@ -502,13 +502,13 @@
       '<div class="adminp__who" style="align-items:flex-start">' +
         '<div class="grow">' +
           '<div class="adminp__nm">' + (I.shop || I.flask || '') +
-            '<span>Premium plans (Free / Premium)</span></div>' +
-          '<p class="t-sm t-muted" style="margin:6px 0 0">Account Premium UI for Games and profile effects. ' +
-            'This account is currently <b>' + (premOn ? 'Premium / trial' : 'Free') + '</b>. ' +
+            '<span>Plans (Free / Plus / Schools)</span></div>' +
+          '<p class="t-sm t-muted" style="margin:6px 0 0">Plus is no ads, a Plus badge, and ten extras. Schools is $2 per student with full Geo Classroom. ' +
+            'This account is currently <b>' + (premOn ? 'Plus, Schools, or a trial' : 'Free') + '</b>. ' +
             'Open always works here for owner/admin TEST grants.</p>' +
         '</div>' +
         '<button type="button" class="btn btn--accent btn--sm" data-do="subdev">' +
-          (I.arrowR || '') + ' Open Premium plans</button>' +
+          (I.arrowR || '') + ' Open plans</button>' +
       '</div>' +
       '<p class="t-sm t-muted" style="margin:0 0 18px">Also available from Commands: <code>plans</code> or <code>subscription</code>.</p>' +
       '<div class="adminp__who" style="align-items:flex-start;margin-bottom:14px">' +
@@ -1846,7 +1846,7 @@
       'stats              reload the numbers at the top',
       'log                reload the action list',
       'help               this',
-      'plans              open Premium plans (TEST grant for owner/admin)',
+      'plans              open Free / Plus / Schools (TEST grant for owner/admin)',
       'subscription       same as plans',
       'cooking            preview the cooking loader (TEST)',
       'loader             same as cooking',
@@ -1905,7 +1905,7 @@
     if (cmd === 'help') return say(helpText());
     if (cmd === 'plans' || cmd === 'subscription' || cmd === 'subdev') {
       openSubscriptionDev();
-      return say('Opened Premium plans. TEST grant available for owner/admin. No real charges.');
+      return say('Opened Free / Plus / Schools. TEST grant available for owner/admin. No real charges.');
     }
     if (cmd === 'cooking' || cmd === 'loader' || cmd === 'cookpreview') {
       previewCookingLoader();
