@@ -1116,6 +1116,7 @@
 }
 .rt-chest__box {
   position: relative;
+  z-index: 1;
   display: block;
   width: min(252px, 72vw); height: min(222px, 64vw);
   margin: 18px auto 20px;
@@ -1412,6 +1413,93 @@
 .rt-chest__prize-detail {
   grid-column: 2;
   font-size: 12px; color: rgba(255,255,255,.72); margin-top: 2px;
+}
+
+/* LEA-135 — stack behind the front chest + one Open all control.
+   Does not restyle the pewter chest itself. */
+.rt-chest__stack {
+  position: absolute;
+  left: 50%;
+  top: 18px;
+  width: min(252px, 72vw);
+  height: min(222px, 64vw);
+  transform: translateX(-50%);
+  pointer-events: none;
+  z-index: 0;
+}
+.rt-chest__stack-card {
+  position: absolute;
+  left: 28px; right: 28px; top: 34px; bottom: 22px;
+  border-radius: 18px 18px 14px 14px;
+  background: linear-gradient(180deg, var(--ch-lid-0) 0 42%, var(--ch-body-1) 43%, var(--ch-body-2) 100%);
+  box-shadow: 0 8px 0 var(--ch-plinth), 0 12px 22px rgba(0,0,0,.35);
+}
+.rt-chest__stack-card::before {
+  content: "";
+  position: absolute;
+  left: 10%; right: 10%; top: 42%;
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(255,255,255,.55);
+}
+.rt-chest__stack-card::after {
+  content: "";
+  position: absolute;
+  left: 50%; top: 42%;
+  width: 16px; height: 16px;
+  margin: -8px 0 0 -8px;
+  border-radius: 4px;
+  background: linear-gradient(180deg, var(--ch-metal-0), var(--ch-metal-2));
+}
+.rt-chest__stack-card:nth-child(1) { transform: translate(-78px, 10px) rotate(-9deg); }
+.rt-chest__stack-card:nth-child(2) { transform: translate(78px, 6px) rotate(8deg); }
+.rt-chest__stack-card:nth-child(3) { transform: translate(0, -34px) scale(.92); }
+.rt-chest__stack-count {
+  position: absolute;
+  top: 4px;
+  right: -36px;
+  z-index: 3;
+  min-width: 28px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #fff;
+  color: #115E59;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.1;
+  text-align: center;
+  box-shadow: 0 2px 0 rgba(15, 118, 110, .35);
+}
+.rt-chest__openall {
+  position: relative;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 16px auto 2px;
+  min-height: 52px;
+  padding: 0 26px;
+  border: 0;
+  border-radius: 999px;
+  background: #fff;
+  color: #115E59;
+  font-family: var(--sans, inherit);
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -.01em;
+  cursor: pointer;
+  box-shadow: 0 4px 0 #0F766E, 0 12px 28px rgba(0,0,0,.35);
+}
+.rt-chest__openall:hover { background: #F0FDFA; }
+.rt-chest__openall:focus-visible {
+  outline: 3px solid #FDE68A;
+  outline-offset: 3px;
+}
+.rt-chest[data-chest-phase="opening"] .rt-chest__openall,
+.rt-chest[data-chest-phase="opening"] .rt-chest__stack,
+.rt-chest[data-chest-phase="rewards"] .rt-chest__openall,
+.rt-chest[data-chest-phase="rewards"] .rt-chest__stack {
+  display: none;
 }
 
 @keyframes rt-chest-shake {

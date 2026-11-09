@@ -163,6 +163,96 @@ test('LEA-112 caps visible gift nodes and exposes refreshGiftChests', () => {
   assert.equal(typeof RoadTripMode.refreshGiftChests, 'function');
 });
 
+test('LEA-135 Open all takes the whole stack and leaves a single chest alone', () => {
+  const src = read('assets/js/mode-roadtrip.js');
+  const css = read('assets/css/roadtrip.css');
+  assert.match(src, /data-rt-open-all|Open all/);
+  assert.match(src, /function openWholeStack|openWholeStack/);
+  assert.match(src, /Tap to push rarity higher/);
+  assert.match(src, /function openChest|onRarityTap/);
+  assert.match(css, /\.rt-chest__openall/);
+  assert.match(css, /\.rt-chest__stack/);
+  /* Pewter common chest art stays the low tier. */
+  assert.match(css, /--ch-lid-0:\s*#F7F9FB/);
+
+  const { RoadTripMode, WW } = loadRoadtrip();
+  assert.equal(RoadTripMode.openAllButtonHtml(1), '');
+  assert.equal(RoadTripMode.chestStackArtHtml(1), '');
+  const btn = RoadTripMode.openAllButtonHtml(6);
+  assert.match(btn, /data-rt-open-all/);
+  assert.match(btn, /Open all 6 chests/);
+  assert.match(RoadTripMode.chestStackArtHtml(6), /rt-chest__stack/);
+  assert.match(RoadTripMode.chestStackArtHtml(6), /×6/);
+
+  const unit = RoadTripMode.units[0];
+  const solo = [{ id: 'solo-gift-chest', unit_id: null }];
+  RoadTripMode.applyPendingGrants(solo, { silent: true });
+  const gemsAtSolo = WW.state.economy.diamonds;
+  assert.equal(RoadTripMode.chestStack(unit).length, 1);
+  assert.equal(RoadTripMode.openWholeStack(unit, () => 0.99), null, 'one chest is not a stack');
+  assert.equal(WW.state.economy.diamonds, gemsAtSolo);
+  assert.equal(RoadTripMode.pendingGrants.length, 1);
+
+  /* A single claim still removes only that gift and does not pay the stack. */
+  const claimed = RoadTripMode.claimOneChest(unit, solo[0].id);
+  assert.equal(claimed.ok, true);
+  assert.equal(claimed.kind, 'grant');
+  assert.equal(RoadTripMode.pendingGrants.length, 0);
+  assert.equal(WW.state.economy.diamonds, gemsAtSolo);
+
+  const many = [];
+  for (let i = 0; i < 20; i++) {
+    many.push({
+      id: '00000000-0000-4000-8000-' + String(i).padStart(12, '0'),
+      unit_id: null
+    });
+  }
+  const west = { id: '00000000-0000-4000-8000-0000000000aa', unit_id: 'africa-west' };
+  many.push(west);
+  RoadTripMode.applyPendingGrants(many, { silent: true, force: true });
+
+  const stack = RoadTripMode.chestStack(unit);
+  assert.equal(stack.length, 20, 'whole pile, not the visible node cap');
+  assert.equal(stack.filter(item => item.kind === 'route').length, 0, 'locked route chest stays out');
+  assert.equal(RoadTripMode.buildPath(unit).filter(n => n.granted).length, RoadTripMode.MAX_GIFT_NODES);
+
+  const before = WW.state.economy.diamonds;
+  const opened = RoadTripMode.openWholeStack(unit, () => 0.99);
+  assert.ok(opened);
+  assert.equal(opened.count, 20);
+  assert.equal(opened.gems, 20 * 50);
+  assert.equal(opened.xp, 20 * 40);
+  assert.equal(WW.state.economy.diamonds, before + opened.gems);
+  assert.equal(WW.state.roadtrip.xpEarned, opened.xp);
+  assert.ok(WW.state.economy.level > 1, 'stacked XP still levels the player');
+  assert.equal(RoadTripMode.pendingGrants.length, 1);
+  assert.equal(RoadTripMode.pendingGrants[0].id, west.id);
+  assert.equal(WW.state.roadtrip.claimed['africa-north.chest'], undefined);
+
+  /* A later poll of the same grants must not resurrect chests already paid. */
+  RoadTripMode.applyPendingGrants(many, { silent: true, force: true });
+  assert.equal(RoadTripMode.pendingGrants.length, 1);
+  assert.equal(RoadTripMode.pendingGrants[0].id, west.id);
+  assert.equal(RoadTripMode.openWholeStack(unit, () => 0.99), null);
+
+  /* Route chest joins the stack once the path has unlocked it. */
+  WW.state.roadtrip.done['africa-north.l1'] = 'played';
+  WW.state.roadtrip.done['africa-north.l2'] = 'played';
+  RoadTripMode.applyPendingGrants([
+    { id: '00000000-0000-4000-8000-0000000000bb', unit_id: null },
+    { id: '00000000-0000-4000-8000-0000000000cc', unit_id: 'africa-north' },
+    west
+  ], { silent: true, force: true });
+  const withRoute = RoadTripMode.chestStack(unit);
+  assert.equal(withRoute.filter(item => item.kind === 'grant').length, 2);
+  assert.equal(withRoute.filter(item => item.kind === 'route').length, 1);
+  const both = RoadTripMode.openWholeStack(unit, () => 0.99);
+  assert.equal(both.count, 3);
+  assert.equal(WW.state.roadtrip.claimed['africa-north.chest'], true);
+  assert.equal(RoadTripMode.pendingGrants.length, 1);
+  assert.equal(RoadTripMode.pendingGrants[0].id, west.id);
+});
+
 test('deployed README documents 0033 / LEA-111', () => {
   const readme = read('supabase/deployed/README.md');
   assert.match(readme, /0033_journey_chest_grants/);

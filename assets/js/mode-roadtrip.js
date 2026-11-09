@@ -27,6 +27,10 @@
    LEA-123 — Richer chest art (depth, clasp, lid highlight) and a
    rarity rise. Common is the pewter low tier; Rare / Epic / Legendary
    share the same chest and step up. Tap-to-raise stays.
+   LEA-135 — A stack of chests (the open route chest plus every
+   admin-granted gift on this unit, including ones past the visible
+   node cap) gets one Open all control on the chest screen. One action
+   claims the whole stack. Opening a single chest is unchanged.
 -------------------------------------------------------------------*/
 (function (global) {
   'use strict';
@@ -53,6 +57,9 @@
 
   /* LEA-111 / LEA-112 — pending admin-granted gift chests for the signed-in player. */
   var pendingGrants = [];
+  /* LEA-135 — grant ids already paid this session. A poll must not put
+     them back on the path after Open all (or a single claim) fired. */
+  var paidGrantIds = {};
   var grantWatch = null; /* { timer, channel, uid, reading, onVis } */
   var grantsDirty = false; /* repaint path when a lesson/chest overlay finishes */
   var GRANT_POLL_MS = 3500;
@@ -373,13 +380,17 @@
     return true;
   }
 
-  function grantsForUnit(unit) {
+  function grantsOnUnit(unit) {
     var uid = unit && unit.id;
-    var all = (pendingGrants || []).filter(function (g) {
+    return (pendingGrants || []).filter(function (g) {
       if (!g || !g.id) return false;
       if (!g.unit_id) return true;
       return g.unit_id === uid;
     });
+  }
+
+  function grantsForUnit(unit) {
+    var all = grantsOnUnit(unit);
     if (all.length <= MAX_GIFT_NODES) return all;
     return all.slice(0, MAX_GIFT_NODES);
   }
@@ -603,7 +614,9 @@
   function applyPendingGrants(list, opts) {
     opts = opts || {};
     var prev = pendingGrants || [];
-    var next = Array.isArray(list) ? list.slice() : [];
+    var next = (Array.isArray(list) ? list.slice() : []).filter(function (g) {
+      return g && g.id && !paidGrantIds[String(g.id)];
+    });
     var before = grantsSignature(prev);
     var after = grantsSignature(next);
     pendingGrants = next;
@@ -1307,14 +1320,16 @@
     }).length;
     if (!total) return '';
     var shown = grantsForUnit(unit).length;
-    var more = total > shown ? (' · showing ' + shown + ' now') : '';
+    var more = total > shown ? (' · ' + shown + ' on the path') : '';
+    var hint = total === 1
+      ? 'Open the teal GIFT node below.'
+      : 'Open any chest, then Open all, to take the whole stack.';
     return '<div class="rt-gifts" id="rt-gifts" role="status">' +
       '<div class="rt-gifts__ic" aria-hidden="true">' + (I.chest || I.gem || '') + '</div>' +
       '<div class="rt-gifts__copy">' +
         '<b>Chest arrived</b>' +
         '<span>' + total + ' gift Journey chest' + (total === 1 ? '' : 's') +
-          ' on your path' + more + '. Open the teal GIFT node' +
-          (total === 1 ? '' : 's') + ' below.</span>' +
+          ' on your path' + more + '. ' + hint + '</span>' +
       '</div>' +
     '</div>';
   }
@@ -1870,6 +1885,143 @@
     return out;
   }
 
+  /* LEA-135 — every chest the player can open together on this unit.
+     Gifts are the whole pending pile (not the 15 drawn nodes). The route
+     chest joins only when the path has already unlocked it. */
+  function routeChestOpenable(unit) {
+    if (!unit) return false;
+    var key = nodeKey(unit.id, 'chest');
+    if (rtState().claimed[key]) return false;
+    var path = buildPath(unit);
+    var i;
+    for (i = 0; i < path.length; i++) {
+      var n = path[i];
+      if (n.kind === 'chest' && !n.granted) return n.state === 'current';
+    }
+    return false;
+  }
+
+  function chestStack(unit) {
+    var items = grantsOnUnit(unit).map(function (g) {
+      return { kind: 'grant', id: String(g.id), nodeId: 'grant-' + g.id };
+    });
+    if (routeChestOpenable(unit)) {
+      items.push({ kind: 'route', id: 'chest', nodeId: 'chest' });
+    }
+    return items;
+  }
+
+  function rememberPaidGrant(id) {
+    if (id) paidGrantIds[String(id)] = true;
+  }
+
+  /* Claim one chest. A grant id claims that gift; otherwise the route chest.
+     Does not roll loot — callers pay after a successful claim. */
+  function claimOneChest(unit, grantId) {
+    if (grantId) {
+      var id = String(grantId);
+      var stillPending = pendingGrants.some(function (g) { return g.id === id; });
+      if (!stillPending) return { ok: false, error: 'not_found' };
+      rememberPaidGrant(id);
+      pendingGrants = pendingGrants.filter(function (g) { return g.id !== id; });
+      rpc('claim_journey_chest', { p_id: id }).then(function (res) {
+        if (res && res.ok === false && res.error === 'not_found') {
+          /* already gone — loot still shows, same as a single open */
+        }
+      });
+      return { ok: true, kind: 'grant', id: id };
+    }
+    var key = nodeKey(unit.id, 'chest');
+    if (rtState().claimed[key]) return { ok: false, error: 'claimed' };
+    rtState().claimed[key] = true;
+    return { ok: true, kind: 'route', id: 'chest' };
+  }
+
+  function summarizeStackLoot(appliedList) {
+    var gems = 0, xp = 0, boosts = 0, level = false;
+    var cosmetics = [];
+    appliedList.forEach(function (a) {
+      gems += a.gems || 0;
+      xp += a.xp || 0;
+      if (a.boost && a.boost.bumps) boosts += 1;
+      if (a.level) level = a.level;
+      (a.cosmetics || []).forEach(function (c) { cosmetics.push(c); });
+    });
+    var count = appliedList.length;
+    var lines = [
+      {
+        type: 'gems', amount: gems, icon: 'gem',
+        label: '+' + gems + ' diamonds',
+        detail: count + (count === 1 ? ' chest' : ' chests')
+      },
+      { type: 'xp', amount: xp, label: '+' + xp + ' XP', icon: 'star' }
+    ];
+    if (boosts) {
+      lines.push({
+        type: 'boost', icon: 'globe',
+        label: 'Journey boosts ×' + boosts,
+        detail: 'Mastery nudge on this route'
+      });
+    }
+    if (cosmetics.length) {
+      var shown = cosmetics.slice(0, 3).map(function (c) { return c.name || c.label; });
+      var extra = cosmetics.length > shown.length ? (' +' + (cosmetics.length - shown.length)) : '';
+      lines.push({
+        type: 'cosmetic', icon: 'sparkle',
+        label: shown.join(', ') + extra,
+        detail: cosmetics.length + ' cosmetic' + (cosmetics.length === 1 ? '' : 's')
+      });
+    }
+    return {
+      count: count, gems: gems, xp: xp, boosts: boosts,
+      level: level, cosmetics: cosmetics, lines: lines
+    };
+  }
+
+  /* One action: claim every chest in the stack and pay each one's loot.
+     Returns null when there is nothing to batch (a single chest stays on
+     the tap-to-open flow). */
+  function openWholeStack(unit, rng) {
+    var stack = chestStack(unit);
+    if (!stack || stack.length < 2) return null;
+    var opened = [];
+    var i;
+    for (i = 0; i < stack.length; i++) {
+      var item = stack[i];
+      var claimed = claimOneChest(unit, item.kind === 'grant' ? item.id : null);
+      if (claimed.ok) opened.push(item);
+    }
+    if (!opened.length) return null;
+    var applied = [];
+    for (i = 0; i < opened.length; i++) {
+      var roll = rollChestRarity(rng);
+      var loot = buildChestLoot(roll.rarity, unit, rng);
+      applied.push(applyChestLoot(loot, unit, rng));
+    }
+    W.save();
+    if (global.UI && global.UI.refreshHud) global.UI.refreshHud();
+    return summarizeStackLoot(applied);
+  }
+
+  function chestStackArtHtml(count) {
+    var n = count | 0;
+    if (n < 2) return '';
+    var cards = '';
+    var shown = Math.min(3, n - 1);
+    var i;
+    for (i = 0; i < shown; i++) cards += '<span class="rt-chest__stack-card"></span>';
+    return '<div class="rt-chest__stack" aria-hidden="true" data-stack-count="' + n + '">' +
+      cards + '<b class="rt-chest__stack-count">×' + n + '</b></div>';
+  }
+
+  function openAllButtonHtml(count) {
+    var n = count | 0;
+    if (n < 2) return '';
+    var label = 'Open all ' + n + ' chests';
+    return '<button type="button" class="rt-chest__openall" data-rt-open-all aria-label="' +
+      esc(label) + '">' + esc(label) + '</button>';
+  }
+
   function closeChestOverlay() {
     var ov = document.querySelector('.rt-chest-overlay');
     if (ov && ov.parentNode) ov.parentNode.removeChild(ov);
@@ -1910,14 +2062,18 @@
     document.body.classList.add('no-scroll');
 
     var still = reduceMotion();
+    var stackNow = chestStack(unit);
     var ov = W.el('div', 'rt-chest-overlay' + (still ? ' is-reduced' : ''));
     ov.setAttribute('role', 'dialog');
     ov.setAttribute('aria-modal', 'true');
-    ov.setAttribute('aria-label', grantId ? 'Gift Journey chest' : 'Journey chest');
+    ov.setAttribute('aria-label', stackNow.length >= 2
+      ? (stackNow.length + ' Journey chests')
+      : (grantId ? 'Gift Journey chest' : 'Journey chest'));
     ov.innerHTML =
       '<div class="rt-chest" data-chest-stage="idle" data-rarity="common" data-chest-phase="rarity">' +
         '<div class="rt-chest__glow" aria-hidden="true"></div>' +
         '<div class="rt-chest__particles" aria-hidden="true"></div>' +
+        chestStackArtHtml(stackNow.length) +
         '<button type="button" class="rt-chest__box" aria-label="Tap Journey chest">' +
           '<span class="rt-chest__shadow" aria-hidden="true"></span>' +
           '<span class="rt-chest__well" aria-hidden="true"></span>' +
@@ -1934,6 +2090,7 @@
         '<p class="rt-chest__rarity">Common</p>' +
         '<div class="rt-chest__pips" aria-hidden="true"><i></i><i></i><i></i><i></i></div>' +
         '<p class="rt-chest__status">Tap to push rarity higher</p>' +
+        openAllButtonHtml(stackNow.length) +
         '<div class="rt-chest__rewards" hidden></div>' +
         '<p class="rt-chest__progress" hidden aria-live="polite"></p>' +
       '</div>';
@@ -2009,8 +2166,9 @@
       renderPath();
     }
 
-    function prizeHtml(r) {
-      return '<div class="rt-chest__prize rt-chest__prize--solo">' +
+    function prizeHtml(r, solo) {
+      var cls = solo === false ? 'rt-chest__prize' : 'rt-chest__prize rt-chest__prize--solo';
+      return '<div class="' + cls + '">' +
         '<span class="rt-chest__prize-ic" aria-hidden="true">' + rewardIcon(r.icon) + '</span>' +
         '<span class="rt-chest__prize-label">' + esc(r.label) + '</span>' +
         (r.detail ? '<span class="rt-chest__prize-detail">' + esc(r.detail) + '</span>' : '') +
@@ -2047,29 +2205,14 @@
       phase = 'opening';
       tapLocked = true;
 
-      if (grantId) {
-        /* LEA-111 — claim server-side first so a refresh cannot double-open. */
-        var stillPending = pendingGrants.some(function (g) { return g.id === grantId; });
-        if (!stillPending) {
-          closeChestOverlay();
-          W.toast('Already claimed', 'This gift Journey chest is empty.', I.chest || I.gem, 2600);
-          fetchPendingGrants();
-          return;
-        }
-        pendingGrants = pendingGrants.filter(function (g) { return g.id !== grantId; });
-        rpc('claim_journey_chest', { p_id: grantId }).then(function (res) {
-          if (res && res.ok === false && res.error === 'not_found') {
-            /* already gone — continue locally so the player still sees loot */
-          }
-        });
-      } else {
-        var key = nodeKey(unit.id, 'chest');
-        if (rtState().claimed[key]) {
-          closeChestOverlay();
-          W.toast('Already claimed', 'This Journey chest is empty.', I.chest || I.gem, 2600);
-          return;
-        }
-        rtState().claimed[key] = true;
+      var claimedOne = claimOneChest(unit, grantId || null);
+      if (!claimedOne.ok) {
+        closeChestOverlay();
+        W.toast('Already claimed',
+          grantId ? 'This gift Journey chest is empty.' : 'This Journey chest is empty.',
+          I.chest || I.gem, 2600);
+        if (grantId) fetchPendingGrants();
+        return;
       }
 
       var loot = buildChestLoot(currentRarity, unit);
@@ -2142,10 +2285,52 @@
       else if (phase === 'rewards') onRewardTap();
     }
 
+    /* LEA-135 — one control claims every waiting chest, including gifts
+       the player granted themselves, then shows the combined haul. */
+    function onOpenAll() {
+      if (phase !== 'rarity') return;
+      phase = 'opening';
+      tapLocked = true;
+      clearTimers();
+      var totals = openWholeStack(unit);
+      if (!totals) {
+        phase = 'rarity';
+        tapLocked = false;
+        setStage('idle', 'Tap to push rarity higher');
+        return;
+      }
+      appliedLoot = totals;
+      rewardList = totals.lines;
+      rewardIdx = totals.lines.length - 1;
+      phase = 'rewards';
+      rarityEl.hidden = false;
+      rarityEl.textContent = 'Stack opened';
+      rarityEl.style.color = '#fff';
+      rewardsEl.hidden = false;
+      progressEl.hidden = false;
+      rewardsEl.innerHTML = totals.lines.map(function (r) { return prizeHtml(r, false); }).join('');
+      progressEl.textContent = totals.count + ' chests opened';
+      setStage('open', 'Tap to return to Journey');
+      if (W.Sound && W.Sound.gem) W.Sound.gem();
+      if (totals.level && W.Sound && W.Sound.levelUp) W.Sound.levelUp();
+      if (W.state.settings && W.state.settings.effects !== false && !still && W.confetti) {
+        W.confetti({ count: 72, power: 220, y: window.innerHeight * 0.42 });
+      }
+      lockTaps(still ? 0 : 280);
+    }
+
     boxBtn.addEventListener('click', function (e) {
       e.stopPropagation();
       onAdvance();
     });
+    var openAllBtn = ov.querySelector('[data-rt-open-all]');
+    if (openAllBtn) {
+      openAllBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        onOpenAll();
+      });
+    }
     ov.addEventListener('click', function (e) {
       if (e.target === ov || e.target === stageEl || e.target === statusEl ||
           e.target === rarityEl || e.target === rewardsEl || e.target === progressEl ||
@@ -2154,6 +2339,7 @@
       }
     });
     ov.addEventListener('keydown', function (e) {
+      if (e.target && e.target.closest && e.target.closest('[data-rt-open-all]')) return;
       if (e.key === 'Escape' && phase === 'rewards') finishAndClose();
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
@@ -2500,6 +2686,12 @@
     buildChestLoot: buildChestLoot,
     applyChestLoot: applyChestLoot,
     openChest: openChest,
+    /* LEA-135 — open the whole waiting stack from the chest screen. */
+    chestStack: chestStack,
+    claimOneChest: claimOneChest,
+    openWholeStack: openWholeStack,
+    chestStackArtHtml: chestStackArtHtml,
+    openAllButtonHtml: openAllButtonHtml,
     /* LEA-111 / LEA-112 — admin gift chests. */
     applyPendingGrants: applyPendingGrants,
     grantsForUnit: grantsForUnit,
