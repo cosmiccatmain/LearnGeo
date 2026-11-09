@@ -929,23 +929,13 @@
     var deco = Cos.find(Cos.decorations, profile.decoration);
     var st = Cos.find(Cos.statuses, profile.status);
 
-    var decoHtml = '';
-    if (deco.kind === 'ring') {
-      decoHtml = '<span class="avatar__ring" style="background:linear-gradient(135deg,' +
-        deco.c1 + ',' + deco.c2 + ')"></span>';
-    } else if (deco.kind === 'badge') {
-      decoHtml = '<span class="avatar__badge" style="color:' + deco.c1 + '">' +
-        Av.badge(deco.badge, deco.c1) + '</span>';
-    } else if (deco.kind === 'orbit') {
-      decoHtml = '<span class="avatar__orbit" style="border-color:' + deco.c1 + '">' +
-        '<i style="background:' + deco.c2 + '"></i></span>';
-    }
+    var decoHtml = Cos.decoHtml(deco);
 
     var statusHtml = opts.status === false ? '' :
       '<span class="avatar__status" style="background:' +
       (profile.status === 'invisible' ? '#9CA3AF' : st.color) + '"></span>';
 
-    return '<span class="avatar">' + decoHtml +
+    return '<span class="avatar' + (deco && deco.kind !== 'none' ? ' avatar--deco' : '') + '">' + decoHtml +
       '<span class="avatar__img" style="color:' + av.color + '">' + Av.svg(av.art, av.color) + '</span>' +
       statusHtml + '</span>';
   }

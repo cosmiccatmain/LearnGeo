@@ -72,6 +72,7 @@
     flame:    '<path d="M12 21a6 6 0 0 0 6-6c0-4-3-6.5-4.5-9C12 8 11.5 9.5 11 11c-.8-1-1.5-2-1.5-3.5C7.5 9.5 6 12 6 15a6 6 0 0 0 6 6z"/>',
     bolt:     '<path d="M13 2 4 14h7l-1 8 9-12h-7z"/>',
     bullseye: '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.6"/><circle cx="12" cy="12" r="1"/>',
+    joystick: '<circle cx="12" cy="7" r="2.8"/><path d="M12 9.8v4.2"/><path d="M5.8 19.2a6.2 6.2 0 0 1 12.4 0z"/>',
     clipboard:'<rect x="6" y="4.5" width="12" height="16" rx="2"/><path d="M9.5 4.5h5v2.6h-5z"/><path d="M9.5 11.5h5M9.5 15.5h3.5"/>',
     cards:    '<rect x="3.5" y="7.5" width="10" height="12.5" rx="2"/><path d="M8 5.2h8.5a2 2 0 0 1 2 2v9.3"/>',
     region:   '<path d="M4 7.5 9.5 5l5 2.5L20 5v11.5L14.5 19l-5-2.5L4 19z"/><path d="M9.5 5v11.5M14.5 7.5V19"/>',

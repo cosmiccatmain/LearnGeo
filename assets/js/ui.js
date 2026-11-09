@@ -634,12 +634,14 @@
     var isEq = equipped === it.id;
     var how = earned ? Cos.unlockedBy(it) : null;
     return '<button class="shop-item' + (isEq ? ' is-equipped' : '') + (isOwned ? '' : ' is-locked') +
-      (it.tier ? ' shop-item--' + it.tier : '') +
+      (it.tier ? ' shop-item--' + it.tier : '') + ' shop-item--r-' + Cos.rarity(it) +
       (earned ? ' shop-item--earned' : '') + (premLocked ? ' shop-item--premium' : '') + '" ' +
       'data-kind="' + kind + '" data-id="' + it.id + '" data-price="' + (earned || premLocked ? '' : (it.price || 0)) + '" ' +
       'data-earn="' + (it.earn || '') + '" ' +
       'data-premium="' + (premLocked ? '1' : '0') + '" ' +
       'data-owned="' + (isOwned ? 1 : 0) + '">' +
+      '<span class="shop-item__shine" aria-hidden="true"></span>' +
+      (Cos.level(it) >= 1 || earned ? '<span class="shop-item__rar mono">' + Cos.rarity(it) + '</span>' : '') +
       visual(kind, it) +
       '<span class="shop-item__name">' + W.escapeHtml(it.name || it.id) +
         (needsPrem ? '<span class="shop-item__prem" title="Premium">' +
@@ -708,24 +710,13 @@
   function visual(kind, it) {
     var Av = global.Avatars;
     if (kind === 'avatars') {
-      return '<span class="shop-item__vis" style="background:var(--paper);color:' + it.color +
-        ';padding:13px">' + Av.svg(it.art, it.color) + '</span>';
+      return '<span class="shop-item__vis shop-item__vis--avatar" style="--av:' + it.color + ';color:' + it.color +
+        '">' + Av.svg(it.art, it.color) + '</span>';
     }
     if (kind === 'decorations') {
-      var inner = '<span class="shop-item__vis-inner">' + Av.svg('globe', 'var(--faint)') + '</span>';
-      if (it.kind === 'ring') {
-        return '<span class="shop-item__vis" style="background:linear-gradient(135deg,' + it.c1 + ',' + it.c2 +
-          ');padding:3px"><span class="shop-item__disc">' + inner + '</span></span>';
-      }
-      if (it.kind === 'badge') {
-        return '<span class="shop-item__vis" style="background:var(--paper);padding:13px">' + inner +
-          '<span class="shop-item__badge" style="color:' + it.c1 + '">' + Av.badge(it.badge, it.c1) + '</span></span>';
-      }
-      if (it.kind === 'orbit') {
-        return '<span class="shop-item__vis" style="background:var(--paper);border:1.5px dashed ' + it.c1 +
-          ';padding:13px">' + inner + '</span>';
-      }
-      return '<span class="shop-item__vis" style="background:var(--paper);padding:13px">' + inner + '</span>';
+      return '<span class="shop-item__vis shop-item__vis--deco"><span class="avatar' +
+        (it.kind !== 'none' ? ' avatar--deco' : '') + '">' + Cos.decoHtml(it) +
+        '<span class="avatar__img" style="color:var(--faint)">' + Av.svg('globe', 'var(--faint)') + '</span></span></span>';
     }
     if (kind === 'effects') {
       if (!it.shape) return '<span class="shop-item__vis shop-item__vis--fx" style="background:var(--paper);color:var(--faint)">—</span>';
@@ -736,24 +727,32 @@
           ';--g2:' + (g[1] || g[0]) + ';--g3:' + (g[2] || g[0]) + '"></span>';
       }).join('');
       return '<span class="shop-item__vis shop-item__vis--fx shop-item__vis--fx-live' +
-        (it.tier ? ' shop-item__vis--' + it.tier : '') + '" data-fx-motion="' + motion + '" style="background:var(--paper)">' + lux +
-        it.colors.slice(0, 4).map(function (c, i) {
-          var st = (it.shape === 'ring') ? 'border-color:' + c : 'background:' + c;
-          return '<i class="fx-' + it.shape + ' fx-motion-' + motion + ' fx-preview" style="' + st +
-            ';--fx-c:' + c + ';--fx-i:' + i + ';--fx-scale:' + (0.75 + i * 0.12).toFixed(2) +
-            (motion === 'burst' ? ';--fx-dx:' + [-26, 24, -18, 28][i] + 'px;--fx-dy:' + [-20, -16, 22, 18][i] + 'px' : '') +
-            '"></i>';
+        (it.tier ? ' shop-item__vis--' + it.tier : '') + ' shop-item__vis--fx-l' + Cos.level(it) +
+        '" data-fx-motion="' + motion + '" style="background:var(--paper)">' + lux +
+        [it].concat(it.also || []).map(function (g, gi) {
+          var m = g.motion || 'fall';
+          return g.colors.slice(0, gi ? 2 : 4).map(function (c, i) {
+            var k = gi ? i * 2 + 0.5 + (gi - 1) : i;
+            var st = (g.shape === 'ring') ? 'border-color:' + c : 'background:' + c;
+            return '<i class="fx-' + g.shape + ' fx-motion-' + m + ' fx-preview" style="' + st +
+              ';--fx-c:' + c + ';--fx-i:' + k + ';--fx-scale:' + (0.75 + (i % 4) * 0.12).toFixed(2) +
+              (m === 'burst' ? ';--fx-dx:' + [-26, 24, -18, 28][i] + 'px;--fx-dy:' + [-20, -16, 22, 18][i] + 'px' : '') +
+              '"></i>';
+          }).join('');
         }).join('') + '</span>';
     }
     if (kind === 'nameplates') {
-      return '<span class="shop-item__vis shop-item__vis--bar" style="background:' + it.css +
-        ';border:1px solid var(--line);color:' + it.text + ';font-size:11px;font-weight:600">Aa</span>';
+      var npf = Cos.plateFx(it);
+      return '<span class="shop-item__vis shop-item__vis--bar shop-item__vis--plate' + npf.cls + '" style="background:' + it.css +
+        ';color:' + it.text + npf.style + '"><span class="pc-name">Aa</span></span>';
     }
     if (kind === 'banners') {
-      return '<span class="shop-item__vis shop-item__vis--bar" style="background:' + it.css + ';border:1px solid var(--line)"></span>';
+      return '<span class="shop-item__vis shop-item__vis--bar shop-item__vis--banner" style="background:' + it.css + '">' +
+        Cos.bannerScene(it) + '</span>';
     }
     if (kind === 'themes') {
-      return '<span class="shop-item__vis" style="background:linear-gradient(135deg,' + it.c1 + ',' + it.c2 + ')"></span>';
+      return '<span class="shop-item__vis shop-item__vis--theme th--l' + Cos.level(it) + '" style="--t1:' + it.c1 + ';--t2:' + it.c2 + '">' +
+        '<i></i></span>';
     }
     if (kind === 'trails') {
       if (!it.shape || !it.colors || !it.colors.length) {
@@ -894,7 +893,8 @@
       title: 'Unlock ' + (item.name || id),
       icon: I.shop,
       body: '<div class="t-center" style="padding:8px 0 4px">' +
-        '<div style="display:inline-block">' + visual(kind, item) + '</div>' +
+        '<div class="buy-vis buy-vis--r-' + Cos.rarity(item) + '">' + visual(kind, item) +
+          '<span class="buy-vis__rar mono">' + Cos.rarity(item) + '</span></div>' +
         '<p style="margin-top:14px" class="t-muted">Unlock <b>' + W.escapeHtml(item.name) + '</b> for ' +
         '<b class="mono">' + price.toLocaleString() + ' 💎</b>? You have ' +
         '<b class="mono">' + W.state.economy.diamonds.toLocaleString() + ' 💎</b>.</p></div>',
@@ -908,8 +908,10 @@
             W.state.owned[kind] = have.concat([id]);
             W.saveNow();
             W.Sound.gem();
-            W.confetti({ count: 46, power: 190 });
-            W.toast('Unlocked', item.name + ' is yours', I.sparkle);
+            var lv = Cos.level(item);
+            W.confetti({ count: [46, 60, 80, 110, 160][lv] || 46, power: 190 + lv * 30 });
+            if (lv >= 3 && W.diamondRain) W.diamondRain({ count: lv >= 4 ? 90 : 40 });
+            W.toast('Unlocked · ' + Cos.rarity(item).toUpperCase(), item.name + ' is yours', I.sparkle);
             equip(kind, id, root);
           } }
       ]
@@ -945,8 +947,17 @@
          left every other panel's buttons holding one more click handler
          each time, so one click later fired the handler many times over. */
       wireShop(root, next);
+      var tile = W.$('.shop-item[data-kind="' + kind + '"][data-id="' + id + '"]', next);
+      if (tile) {
+        tile.classList.add('is-pop');
+        var r = tile.getBoundingClientRect();
+        var lv = Cos.level(item);
+        if (r.width) W.confetti({ x: r.left + r.width / 2, y: r.top + r.height / 3, count: 14 + lv * 8, power: 110 + lv * 15 });
+      }
     }
     drawPreview(root);
+    var pv = W.$('#cz-preview', root);
+    if (pv) { pv.classList.remove('cz-pop'); void pv.offsetWidth; pv.classList.add('cz-pop'); }
     refreshHud();
     var bal = W.$('#cz-balance', root);
     /* built with W.gem(), so put it back the same way rather than dropping
@@ -1373,17 +1384,18 @@
     var statusLabel = status && status.id !== 'invisible' ? status.name : 'Offline';
     var statusColor = (p.status === 'invisible' || !status) ? '#9CA3AF' : status.color;
     var fxId = p.effect || 'none';
+    var npf = Cos.plateFx(plate);
 
-    return '<div class="profile-card profile-card--popout" style="' + themeCard(theme) +
+    return '<div class="profile-card profile-card--popout th--l' + Cos.level(theme) + '" style="' + themeCard(theme) +
       ';--pc-accent:' + theme.c1 + ';--pc-ink:' + theme.c2 + '">' +
-      '<div class="profile-card__banner" style="background:' + banner.css + '">' +
+      '<div class="profile-card__banner" style="background:' + banner.css + '">' + Cos.bannerScene(banner) +
         '<span class="profile-card__accent" aria-hidden="true"></span>' +
       '</div>' +
       '<div class="profile-fx" data-effect="' + fxId + '"></div>' +
       '<div class="profile-card__body" style="' + themeBody(theme) + '">' +
         '<div class="profile-card__avatar">' + W.avatarHtml(p) + '</div>' +
         '<div class="profile-card__identity">' +
-          '<div class="profile-card__name" style="background:' + plate.css + ';color:' + plate.text + '">' +
+          '<div class="profile-card__name' + npf.cls + '" style="background:' + plate.css + ';color:' + plate.text + npf.style + '">' +
             '<span class="pc-name">' + W.escapeHtml(name) + '</span>' +
             '<span class="pc-marks">' + W.verifiedMark(p, 15) +
               (global.Badges ? global.Badges.markup(who ? whoBadges(who) : null, 13, false, true) : '') + '</span>' +
@@ -1487,6 +1499,8 @@
         } else {
           n.style.left = (Math.random() * 94) + '%';
           n.style.top = m === 'glimmer' ? (4 + Math.random() * 88) + '%'
+            : m === 'splash' ? (82 + Math.random() * 14) + '%'
+            : m === 'shoot' ? (-6 + Math.random() * 30) + '%'
             : m === 'rise' || m === 'embers' || m === 'twinkle'
               ? (55 + Math.random() * 40) + '%'
               : (-8 + Math.random() * 18) + '%';
@@ -1499,6 +1513,8 @@
 
     function durationFor(m) {
       if (m === 'glimmer') return (1.8 + Math.random() * 2.2).toFixed(2) + 's';
+      if (m === 'shoot') return (3.6 + Math.random() * 3).toFixed(2) + 's';
+      if (m === 'splash') return (0.9 + Math.random() * 0.6).toFixed(2) + 's';
       if (m === 'burst') return (2.6 + Math.random() * 1.2).toFixed(2) + 's';
       if (m === 'rain') return (0.7 + Math.random() * 0.55).toFixed(2) + 's';
       if (m === 'embers' || m === 'rise') return (2.4 + Math.random() * 2.2).toFixed(2) + 's';

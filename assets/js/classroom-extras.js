@@ -237,9 +237,9 @@
     var name = p.displayName || who.name || 'Explorer';
     var mine = who.id && who.id === me();
     return '<button class="pp-tile" data-pp="' + i + '">' +
-      '<span class="pp-tile__banner" style="background:' + banner.css + '"></span>' +
+      '<span class="pp-tile__banner" style="background:' + banner.css + '">' + Cos.bannerScene(banner) + '</span>' +
       '<span class="pp-tile__av">' + W.avatarHtml(p) + '</span>' +
-      '<span class="pp-tile__name" style="background:' + plate.css + ';color:' + plate.text + '">' +
+      '<span class="pp-tile__name' + Cos.plateFx(plate).cls + '" style="background:' + plate.css + ';color:' + plate.text + Cos.plateFx(plate).style + '">' +
         esc(name) + W.verifiedMark(p, 12) + '</span>' +
       '<span class="pp-tile__meta">Level ' + (who.level || 1) +
         (who.owner ? ' · owner' : '') + (mine ? ' · you' : '') +
