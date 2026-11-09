@@ -239,6 +239,9 @@
       acctBlock() +
       item('settings', I.gear, 'Settings') +
       item('custom', I.palette, 'Customization') +
+      (global.Premium && global.Premium.isSchool && global.Premium.isSchool()
+        ? item('school', I.users, 'School dashboard')
+        : '') +
       item('friend-inbox', I.inbox, 'Friend inbox') +
       item('achievements', I.trophy, 'Achievements') +
       item('badges', I.shield, 'Badges') +
@@ -263,6 +266,7 @@
         closeMenu();
         if (dest === 'settings') openSettings();
         else if (dest === 'custom') openCustomization();
+        else if (dest === 'school') openSchoolDashboard();
         else if (dest === 'friend-inbox') openFriendInbox();
         else if (dest === 'achievements') go('achievements');
         else if (dest === 'badges') global.Badges.openCase();
@@ -1514,6 +1518,16 @@
      name as a thin redirect so Home / older callers still work. */
   function openAchievements() {
     go('achievements');
+  }
+
+  /* LEA-128: Schools buyers only. Preview stays on Administrator → Development. */
+  function openSchoolDashboard() {
+    if (!(global.Premium && global.Premium.isSchool && global.Premium.isSchool())) return;
+    if (global.SchoolDashboard && global.SchoolDashboard.open) {
+      global.SchoolDashboard.open();
+      return;
+    }
+    W.toast('School dashboard', 'Reload the page to open the school dashboard.', I.users, 3200);
   }
 
   /* LEA-84: Friend inbox lives in the profile menu (beside Customization),

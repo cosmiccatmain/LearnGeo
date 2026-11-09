@@ -504,6 +504,9 @@
               ' · ' + c.results.length + ' result' + (c.results.length === 1 ? '' : 's') + ' in</p>' +
             switcher() +
             syncLine() +
+            (global.Premium && global.Premium.isSchool && global.Premium.isSchool()
+              ? '<p style="margin:8px 0 0"><button type="button" class="btn btn--ghost btn--sm" id="tm-school">School dashboard</button></p>'
+              : '') +
           '</div>' +
           '<div class="cr-banner__codes">' +
           (adminClass()
@@ -553,6 +556,10 @@
     if (nameBtn) nameBtn.addEventListener('click', askName);
     var swBtn = document.getElementById('tm-switch');
     if (swBtn) swBtn.addEventListener('click', function () { openSwitcher(swBtn); });
+    var schoolBtn = document.getElementById('tm-school');
+    if (schoolBtn) schoolBtn.addEventListener('click', function () {
+      if (global.SchoolDashboard && global.SchoolDashboard.open) global.SchoolDashboard.open();
+    });
     wirePanel();
 
     function crTab(id, icon, label, n) {

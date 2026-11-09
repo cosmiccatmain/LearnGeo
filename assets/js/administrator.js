@@ -221,6 +221,7 @@
         return sendMessage(box ? box.value : '', box);
       }
       if (d.do === 'subdev') return openSubscriptionDev();
+      if (d.do === 'schooldash') return previewSchoolDashboard();
       if (d.do === 'prempreview') return setPremiumPreview(d.on === '1');
       if (d.do === 'cookpreview') return previewCookingLoader();
       if (d.do === 'reftrial') return setReferralTrial(d.on === '1');
@@ -513,6 +514,17 @@
       '<p class="t-sm t-muted" style="margin:0 0 18px">Also available from Commands: <code>plans</code> or <code>subscription</code>.</p>' +
       '<div class="adminp__who" style="align-items:flex-start;margin-bottom:14px">' +
         '<div class="grow">' +
+          '<div class="adminp__nm">' + (I.users || I.flask || '') +
+            '<span>Preview school dashboard</span></div>' +
+          '<p class="t-sm t-muted" style="margin:6px 0 0">Opens the Schools dashboard with sample students, ' +
+            'the seat count, classrooms, and a class roster. Not shown in the public app. ' +
+            'A Schools buyer opens the real dashboard from their profile menu.</p>' +
+        '</div>' +
+        '<button type="button" class="btn btn--accent btn--sm" data-do="schooldash" id="ap-school-dash">' +
+          'Preview school dashboard</button>' +
+      '</div>' +
+      '<div class="adminp__who" style="align-items:flex-start;margin-bottom:14px">' +
+        '<div class="grow">' +
           '<div class="adminp__nm">' + (I.chest || I.gem || I.flask || '') +
             '<span>Grant Journey chests</span></div>' +
           '<p class="t-sm t-muted" style="margin:6px 0 0">' +
@@ -591,6 +603,14 @@
           '</div>'
         : '') +
     '</section>';
+  }
+
+  function previewSchoolDashboard() {
+    if (!global.SchoolDashboard || !global.SchoolDashboard.open) {
+      say('school-dashboard.js did not load.');
+      return;
+    }
+    global.SchoolDashboard.open({ preview: true });
   }
 
   function setPremiumPreview(on) {

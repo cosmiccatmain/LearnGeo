@@ -213,6 +213,9 @@
      student whose enrolled class was marked by a Schools teacher. */
   function messagingAllowed() {
     if (isSchool()) return false;
+    var f = flags();
+    /* Set by school_create_student and by joining a Schools class (0035). */
+    if (f.schoolStudent) return false;
     var s = W() && W().state;
     if (!s) return true;
     if (s.role === 'student' && s.classroom && s.classroom.schoolPlan) return false;
