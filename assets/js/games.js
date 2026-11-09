@@ -972,9 +972,21 @@
      Same shell language as Home and Learn: eyebrow, heading, panels.
      Hub cards are cover-led (LEA-98 chrome + LEA-104 SVG covers).
      Arrow keys move focus between cards; Enter and Space are native. */
+  function hubGridHtml() {
+    var html = '';
+    GAMES.forEach(function (g, i) {
+      html += card(g);
+      if (global.LearnGeoAds && global.LearnGeoAds.hubSlotAfter) {
+        html += global.LearnGeoAds.hubSlotAfter(i + 1);
+      }
+    });
+    return html;
+  }
+
   function renderHub() {
     stop();
     screen = 'hub';
+    if (global.LearnGeoAds && global.LearnGeoAds.closePregame) global.LearnGeoAds.closePregame();
     var el = host();
     if (!el) return;
 
@@ -1012,12 +1024,8 @@
             ' · ' + W.masteredCount() + ' / ' + global.GeoData.counts.total + ' mastered</span>' +
         '</div>' +
         '<div class="games__grid">' +
-          GAMES.map(card).join('') +
+          hubGridHtml() +
         '</div>' +
-        '<aside class="ad-slot ad-slot--hub" id="ad-games-hub" data-ad-slot="games-hub" aria-label="Advertisement">' +
-          '<span class="ad-slot__label">Advertisement</span>' +
-          '<ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-6903921330074472" data-ad-format="auto" data-full-width-responsive="true"></ins>' +
-        '</aside>' +
         '<p class="games__hint"><kbd>\u2190</kbd> <kbd>\u2192</kbd> to choose · <kbd>Enter</kbd> to play</p>' +
       '</div>';
 
@@ -1069,6 +1077,7 @@
         cards[(i + step + cards.length) % cards.length].focus();
       });
     });
+    if (global.LearnGeoAds && global.LearnGeoAds.fill) global.LearnGeoAds.fill(el);
     if (global.LearnGeoMetrics) {
       global.LearnGeoMetrics.syncGameplay();
       global.LearnGeoMetrics.fillSlots();
@@ -1374,6 +1383,7 @@
 
   function renderSetup() {
     stop();
+    if (global.LearnGeoAds && global.LearnGeoAds.closePregame) global.LearnGeoAds.closePregame();
     var el = host();
     if (!el) return;
     var fromChessDuel = (current === 'chessduel');
@@ -1474,22 +1484,34 @@
       return;
     }
     if (isPremiumLocked(g0.id)) { premiumToast(g0.id); renderHub(); return; }
-    stop();
-    screen = 'play';
-    var el = host();
-    var g = g0;
-    var r = record(g.id);
-    el.innerHTML =
-      '<div class="portal__inner games games--play">' +
-        '<div class="games__playbar">' +
-          '<button class="games__back" data-setup>' + I.arrowL + ' ' + esc(g.title) + '</button>' +
-          '<span class="t-sm t-muted">' + esc(typeof g.playing === 'function' ? g.playing(r) : '') + '</span>' +
-        '</div>' +
-        '<div class="games__stage" id="games-stage"></div>' +
-      '</div>';
-    W.$('[data-setup]', el).addEventListener('click', toSetup);
-    game = g.mount(W.$('#games-stage', el), r);
-    if (global.LearnGeoMetrics) global.LearnGeoMetrics.syncGameplay();
+
+    function goPlay() {
+      if (global.LearnGeoAds && global.LearnGeoAds.notePlayStarted) {
+        global.LearnGeoAds.notePlayStarted();
+      }
+      stop();
+      screen = 'play';
+      var el = host();
+      var g = g0;
+      var r = record(g.id);
+      el.innerHTML =
+        '<div class="portal__inner games games--play">' +
+          '<div class="games__playbar">' +
+            '<button class="games__back" data-setup>' + I.arrowL + ' ' + esc(g.title) + '</button>' +
+            '<span class="t-sm t-muted">' + esc(typeof g.playing === 'function' ? g.playing(r) : '') + '</span>' +
+          '</div>' +
+          '<div class="games__stage" id="games-stage"></div>' +
+        '</div>';
+      W.$('[data-setup]', el).addEventListener('click', toSetup);
+      game = g.mount(W.$('#games-stage', el), r);
+      if (global.LearnGeoMetrics) global.LearnGeoMetrics.syncGameplay();
+    }
+
+    if (global.LearnGeoAds && global.LearnGeoAds.showPregame) {
+      global.LearnGeoAds.showPregame({ title: g0.title, onPlay: goPlay });
+      return;
+    }
+    goPlay();
   }
 
   /* Read-only, for anything outside the arcade that wants to show the

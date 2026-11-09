@@ -3,8 +3,8 @@
 
    Empty GA4_MEASUREMENT_ID means zero gtag network calls. AdSense is
    loaded by the official <head> snippet (not from here) so Google's
-   site crawler can verify the publisher ID. Display slots are filled
-   here; Auto ads / overlays are hidden on in-round canvases.
+   site crawler can verify the publisher ID. Auto ads / page-level ads
+   stay off; LearnGeoAds fills the explicit slots (LEA-118).
 -------------------------------------------------------------------*/
 (function (global) {
   'use strict';
@@ -69,14 +69,37 @@
     var hide = inRound();
     document.documentElement.classList.toggle('ads-gameplay', hide);
     var chrome = document.getElementById('app-ad-chrome');
-    if (chrome) {
-      var view = currentView();
-      chrome.hidden = hide || view === 'games';
+    if (chrome) chrome.hidden = true;
+  }
+
+  function disablePageLevelAds() {
+    if (!validAds(adsId)) return;
+    if (document.documentElement && document.documentElement.classList &&
+        document.documentElement.classList.add) {
+      document.documentElement.classList.add('ads-explicit');
     }
+    if (global.LearnGeoAds && global.LearnGeoAds.disablePageLevelAds) {
+      global.LearnGeoAds.disablePageLevelAds();
+      return;
+    }
+    global.adsbygoogle = global.adsbygoogle || [];
+    try {
+      global.adsbygoogle.push({
+        google_ad_client: adsId,
+        enable_page_level_ads: false,
+        overlays: { bottom: false }
+      });
+    } catch (err) {}
   }
 
   function fillSlots() {
     if (!validAds(adsId) || inRound()) return;
+    if (global.LearnGeoAds && global.LearnGeoAds.fill) {
+      global.LearnGeoAds.fill();
+      return;
+    }
+    if (global.LearnGeoAds && global.LearnGeoAds.shouldShowAds &&
+        !global.LearnGeoAds.shouldShowAds()) return;
     global.adsbygoogle = global.adsbygoogle || [];
     var nodes = document.querySelectorAll('ins.adsbygoogle');
     for (var i = 0; i < nodes.length; i++) {
@@ -110,6 +133,7 @@
 
   function boot() {
     loadGtag();
+    disablePageLevelAds();
     wrapRouter();
     wireCtas();
     syncGameplay();
@@ -127,6 +151,7 @@
     pageView: pageView,
     fillSlots: fillSlots,
     syncGameplay: syncGameplay,
+    disablePageLevelAds: disablePageLevelAds,
     hasGa: function () { return validGa(gaId); },
     hasAds: function () { return validAds(adsId); }
   };

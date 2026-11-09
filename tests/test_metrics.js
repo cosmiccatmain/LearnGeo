@@ -65,25 +65,28 @@ test('in-app page_view and cta_click go to Vercel Insights even without G-', () 
   assert.match(metrics, /syncGameplay/);
 });
 
-test('Games hub has an ad slot; in-round play canvas does not', () => {
+test('Games hub has sparse ad slots; in-round play canvas does not', () => {
   const games = read('assets/js/games.js');
-  assert.match(games, /data-ad-slot="games-hub"/);
+  assert.match(games, /hubSlotAfter/);
+  assert.match(games, /LearnGeoAds\.showPregame/);
   const play = games.slice(games.indexOf('function play()'), games.indexOf('function catalogue()'));
   assert.doesNotMatch(play, /ad-slot/);
   assert.doesNotMatch(play, /adsbygoogle/);
   assert.match(play, /LearnGeoMetrics\.syncGameplay/);
 });
 
-test('landing, teachers, and app chrome expose display slots', () => {
+test('landing and teachers keep a single footer slot; chrome and heroes are gone', () => {
   const index = read('index.html');
   const teachers = read('teachers.html');
-  assert.match(index, /data-ad-slot="landing-hero"/);
+  assert.doesNotMatch(index, /data-ad-slot="landing-hero"/);
   assert.match(index, /data-ad-slot="landing-footer"/);
-  assert.match(index, /data-ad-slot="app-chrome"/);
-  assert.match(teachers, /data-ad-slot="teachers-hero"/);
+  assert.doesNotMatch(index, /data-ad-slot="app-chrome"/);
+  assert.doesNotMatch(index, /id="app-ad-chrome"/);
+  assert.match(index, /assets\/js\/ads\.js/);
+  assert.doesNotMatch(teachers, /data-ad-slot="teachers-hero"/);
   assert.match(teachers, /data-ad-slot="teachers-footer"/);
-  assert.doesNotMatch(teachers, /id="app-ad-chrome"/);
   assert.match(read('assets/css/ads.css'), /html\.ads-gameplay/);
+  assert.match(read('assets/css/ads.css'), /html\.ads-explicit/);
   assert.match(read('assets/css/ads.css'), /#games-stage/);
   assert.match(read('assets/css/ads.css'), /\.map-pane/);
 });
@@ -105,7 +108,7 @@ function documentLike() {
   const scripts = [];
   const document = {
     readyState: 'complete',
-    documentElement: { classList: { toggle() {}, contains() { return false; } } },
+    documentElement: { classList: { toggle() {}, add() {}, contains() { return false; } } },
     body: { className: '' },
     head: {
       appendChild(el) { if (el && el.src) scripts.push(el.src); }

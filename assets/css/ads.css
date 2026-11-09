@@ -1,6 +1,7 @@
 /* ------------------------------------------------------------------
-   LearnGeo — AdSense reserved slots (LEA-117).
-   Original Inter / system fonts. Hidden on in-round canvases.
+   LearnGeo — AdSense reserved slots (LEA-117 / LEA-118).
+   Original Inter / system fonts. Explicit slots only. Hidden on
+   in-round canvases and for Premium / one-play gem skip.
 -------------------------------------------------------------------*/
 
 .ad-slot {
@@ -34,18 +35,19 @@
   width: 100%;
 }
 
-.ad-slot--chrome {
-  margin: 0;
-  max-width: none;
-  width: 100%;
-  border-radius: 0;
-  border-left: 0;
-  border-right: 0;
-  border-top: 0;
-}
-
 .ad-slot--hub {
   margin: 8px 0 0;
+  width: 100%;
+  max-width: none;
+}
+
+.ad-slot--hub-row {
+  grid-column: 1 / -1;
+  margin: 2px 0;
+}
+
+.ad-slot--home {
+  margin: 28px 0 8px;
   width: 100%;
   max-width: none;
 }
@@ -61,8 +63,24 @@
   width: calc(100% - 40px);
 }
 
-/* In-round canvases: no Auto ads, anchors, or reserved slots over the board. */
-html.ads-gameplay .ad-slot--chrome,
+/* Auto ads / page-level / anchor overlays — explicit slots only. */
+html.ads-explicit .google-auto-placed,
+html.ads-explicit ins.adsbygoogle-noablate,
+html.ads-explicit [data-anchor-status],
+html.ads-explicit .google-anno-skip,
+html.ads-off .ad-slot {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+
+/* In-round canvases: never paint units over the board. */
+html.ads-gameplay .ad-slot:not(.ad-slot--pregame),
 html.ads-gameplay .google-auto-placed,
 html.ads-gameplay ins.adsbygoogle-noablate,
 body.view-learn .ad-slot--chrome,
@@ -85,4 +103,72 @@ body.view-games .ad-slot--chrome,
   margin: 0 !important;
   padding: 0 !important;
   overflow: hidden !important;
+}
+
+/* 20s pre-game interstitial. Original Inter. */
+.ad-pregame {
+  position: fixed;
+  inset: 0;
+  z-index: 190;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(11, 21, 32, 0.62);
+  box-sizing: border-box;
+}
+
+.ad-pregame__card {
+  width: min(560px, 100%);
+  background: #fff;
+  border-radius: 16px;
+  padding: 22px 22px 18px;
+  box-shadow: 0 24px 64px rgba(11, 21, 32, 0.28);
+  font-family: Inter, system-ui, sans-serif;
+}
+
+.ad-pregame__kicker {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted, #64748B);
+}
+
+.ad-pregame__count {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 10px 0 14px;
+}
+
+.ad-pregame__count span {
+  font-family: Inter, ui-monospace, monospace;
+  font-size: 44px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--ink, #0B1520);
+}
+
+.ad-pregame__count small {
+  font-size: 13px;
+  color: var(--muted, #64748B);
+}
+
+.ad-slot--pregame {
+  margin: 0 0 16px;
+  width: 100%;
+  max-width: none;
+}
+
+.ad-pregame__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ad-pregame__actions .btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
