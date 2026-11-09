@@ -1,4 +1,4 @@
-/* LEA-118: explicit AdSense slots, Premium skip, 100M gem one-play skip. */
+/* LEA-118 inventory, held off by ADS_ENABLED (LEA-121). Premium and 100M gem skip stay. */
 'use strict';
 const fs = require('fs');
 const path = require('path');
@@ -21,34 +21,24 @@ const ALLOWED = [
   'pregame'
 ];
 
-test('site-wide explicit slots stay inside the 15–20 cap and the allowed list', () => {
-  const files = [
-    'index.html', 'teachers.html',
-    'assets/js/ads.js', 'assets/js/games.js', 'assets/js/portal.js', 'assets/js/metrics.js'
-  ];
-  const found = new Set();
-  const re = /data-ad-slot="([a-z0-9-]+)"/g;
-  for (const rel of files) {
+test('site-wide explicit slots stay inside the cap and are not rendered in HTML', () => {
+  for (const rel of ['index.html', 'teachers.html']) {
     const text = read(rel);
-    let m;
-    while ((m = re.exec(text))) found.add(m[1]);
+    assert.doesNotMatch(text, /data-ad-slot="/, rel + ' still renders a slot');
+    assert.doesNotMatch(text, /class="ad-slot/, rel + ' still has an ad frame');
+    assert.doesNotMatch(text, /<ins class="adsbygoogle"/, rel + ' still has a placement tag');
   }
   const ads = read('assets/js/ads.js');
-  assert.match(ads, /home-footer/);
-  assert.match(ads, /games-hub-a/);
-  assert.match(ads, /games-hub-b/);
-  assert.match(ads, /games-hub-c/);
-  assert.match(ads, /pregame/);
-  found.add('home-footer');
-  found.add('games-hub-a');
-  found.add('games-hub-b');
-  found.add('games-hub-c');
-  found.add('pregame');
-  for (const id of found) {
-    assert.ok(ALLOWED.includes(id), 'unexpected slot ' + id);
+  const cfg = read('assets/js/metrics-config.js');
+  assert.match(cfg, /ADS_ENABLED:\s*false/);
+  for (const id of ALLOWED) {
+    assert.match(ads, new RegExp(id), 'missing inventory id ' + id);
   }
-  assert.ok(found.size <= 20, 'too many named slots: ' + found.size);
-  assert.ok(found.size >= 5, 'expected the AJ surfaces');
+  assert.match(ads, /cfg\.ADS_ENABLED === true/);
+  assert.match(ads, /\.ad-rail, \[data-ad-rail\]/);
+  assert.doesNotMatch(ads, /slotHtml\('ad-rail'|data-ad-slot="rail/);
+  assert.ok(ALLOWED.length <= 20);
+  assert.ok(ALLOWED.length >= 5);
 });
 
 test('SEO country/continent pages keep the head snippet and drop body units', () => {
@@ -87,9 +77,31 @@ test('Auto ads / page-level ads are turned off in code', () => {
   assert.match(css, /html\.ads-off/);
 });
 
+test('ADS_ENABLED false hides every placement and starts play immediately', () => {
+  const ctx = sandbox();
+  vm.runInNewContext(read('assets/js/metrics-config.js'), ctx);
+  vm.runInNewContext(read('assets/js/ads.js'), ctx);
+  const Ads = ctx.window.LearnGeoAds;
+  assert.equal(Ads.ADS_ENABLED, false);
+  assert.equal(Ads.shouldShowAds(), false);
+  assert.equal(Ads.homeFooterHtml(), '');
+  assert.equal(Ads.hubSlotAfter(5), '');
+  assert.equal(Ads.hubSlotAfter(10), '');
+  assert.equal(Ads.hubSlotAfter(15), '');
+  let played = 0;
+  Ads.showPregame({ title: 'Geo Dash', onPlay: function () { played += 1; } });
+  assert.equal(played, 1);
+  assert.equal(ctx.document.body.children.length, 0);
+  const fills = (ctx.window.adsbygoogle || []).filter(function (item) {
+    return item && item.enable_page_level_ads !== false;
+  });
+  assert.equal(fills.length, 0);
+});
+
 test('Premium flag skips ads even when the paywall preview is off', () => {
   const ctx = sandbox();
   vm.runInNewContext(read('assets/js/metrics-config.js'), ctx);
+  ctx.window.LearnGeoMetricsConfig.ADS_ENABLED = true;
   vm.runInNewContext(read('assets/js/ads.js'), ctx);
   assert.equal(ctx.window.LearnGeoAds.shouldShowAds(), true);
   ctx.window.WW.state.flags = { premium: true };
@@ -106,6 +118,7 @@ test('100,000,000 gems skip uses economy.diamonds and fails clearly when broke',
   const ctx = sandbox();
   ctx.window.WW.state.economy.diamonds = 50;
   vm.runInNewContext(read('assets/js/metrics-config.js'), ctx);
+  ctx.window.LearnGeoMetricsConfig.ADS_ENABLED = true;
   vm.runInNewContext(read('assets/js/ads.js'), ctx);
   const Ads = ctx.window.LearnGeoAds;
   assert.equal(Ads.GEM_SKIP, 100000000);
@@ -130,6 +143,7 @@ test('100,000,000 gems skip uses economy.diamonds and fails clearly when broke',
 test('pregame overlay waits 20s unless the unit ends sooner; Play starts the game', () => {
   const ctx = sandbox();
   vm.runInNewContext(read('assets/js/metrics-config.js'), ctx);
+  ctx.window.LearnGeoMetricsConfig.ADS_ENABLED = true;
   vm.runInNewContext(read('assets/js/ads.js'), ctx);
   const Ads = ctx.window.LearnGeoAds;
   Ads._setWaitMs(20);
@@ -146,6 +160,99 @@ test('pregame overlay waits 20s unless the unit ends sooner; Play starts the gam
   playBtn.click();
   assert.equal(played, 1);
   assert.equal(ctx.document.body.children.length, 0);
+});
+
+test('ADS_ENABLED true mounts landing-footer in front of the landing footer', () => {
+  const footer = { className: 'footer', parentNode: null, getAttribute() { return null; } };
+  const landing = {
+    id: 'landing',
+    children: [footer],
+    querySelector(sel) {
+      if (String(sel).indexOf('data-ad-slot') >= 0) {
+        return landing.children.find(function (c) {
+          return c.getAttribute && c.getAttribute('data-ad-slot') === 'landing-footer';
+        }) || null;
+      }
+      if (sel === ':scope > .footer' || sel === '.footer') return footer;
+      return null;
+    },
+    insertBefore(node, before) {
+      node.parentNode = landing;
+      const i = landing.children.indexOf(before);
+      landing.children.splice(i < 0 ? landing.children.length : i, 0, node);
+    },
+    removeChild(node) {
+      const i = landing.children.indexOf(node);
+      if (i >= 0) landing.children.splice(i, 1);
+    }
+  };
+  footer.parentNode = landing;
+  const document = {
+    readyState: 'complete',
+    documentElement: { classList: { toggle() {}, add() {} } },
+    body: { children: [], appendChild() {}, querySelectorAll() { return []; } },
+    getElementById(id) { return id === 'landing' ? landing : null; },
+    querySelector() { return null; },
+    querySelectorAll(sel) {
+      if (String(sel).indexOf('ad-slot') === -1) return [];
+      return landing.children.filter(function (c) { return c.className === 'ad-slot'; });
+    },
+    createElement() {
+      let child = null;
+      return {
+        innerHTML: '',
+        get firstChild() {
+          if (!this.innerHTML) return null;
+          if (!child) {
+            const attrs = {};
+            child = {
+              className: 'ad-slot',
+              parentNode: null,
+              setAttribute(k, v) { attrs[k] = String(v); },
+              getAttribute(k) { return attrs[k] == null ? null : attrs[k]; }
+            };
+            const m = this.innerHTML.match(/data-ad-slot="([^"]+)"/);
+            if (m) child.setAttribute('data-ad-slot', m[1]);
+          }
+          return child;
+        }
+      };
+    },
+    addEventListener() {}
+  };
+  const window = {
+    document: document,
+    WW: {
+      state: { economy: { diamonds: 0 } },
+      spend() { return false; },
+      toast() {},
+      escapeHtml(s) { return String(s); }
+    },
+    Premium: { active() { return false; } },
+    addEventListener() {}
+  };
+  window.window = window;
+  const ctx = {
+    window: window,
+    document: document,
+    setInterval() { return 1; },
+    clearInterval() {},
+    setTimeout() { return 1; },
+    clearTimeout() {},
+    Date: Date,
+    Math: Math,
+    Number: Number,
+    String: String
+  };
+  vm.runInNewContext(read('assets/js/metrics-config.js'), ctx);
+  ctx.window.LearnGeoMetricsConfig.ADS_ENABLED = true;
+  vm.runInNewContext(read('assets/js/ads.js'), ctx);
+  assert.equal(landing.children[0].getAttribute('data-ad-slot'), 'landing-footer');
+  assert.equal(landing.children[1], footer);
+  ctx.window.LearnGeoMetricsConfig.ADS_ENABLED = false;
+  ctx.window.LearnGeoAds.mountPageSlots();
+  assert.equal(landing.children.length, 1);
+  assert.equal(landing.children[0], footer);
 });
 
 test('original fonts, Games nav, no screen mirroring, Stripe mock untouched', () => {

@@ -443,13 +443,19 @@ Publisher ID `ca-pub-6903921330074472` is already in:
 - `ads.txt` at the site root
 - `ADSENSE_PUBLISHER_ID` in `assets/js/metrics-config.js`
 
+`ADS_ENABLED` in that same file is `false` while AdSense review is open.
+No footer, hub, or pre-game unit is rendered, and a game starts as soon
+as you press play. Set it to `true` to turn those placements back on.
+Auto ads stay off either way. Premium and the 100,000,000-gem one-play
+skip stay in `assets/js/ads.js` and apply only after that switch is on.
+
 After this ships to `www.learngeo.app`:
 
 1. Open AdSense → Sites → `www.learngeo.app`.
 2. Choose **I've placed the code** and hit **Verify**.
-3. Auto ads / display slots sit on landing, teachers, SEO pages, app chrome, and
-   the Games hub. They stay out of in-round gameplay canvases (Learn / test / quiz /
-   Journey maps, and live game boards such as chess).
+3. Leave `ADS_ENABLED` false until review finishes. Slots stay out of
+   in-round canvases (Learn / test / quiz / Journey maps, and live game
+   boards such as chess) even after the switch is on.
 
 ## Screen sharing
 

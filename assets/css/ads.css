@@ -1,8 +1,27 @@
 /* ------------------------------------------------------------------
-   LearnGeo — AdSense reserved slots (LEA-117 / LEA-118).
-   Original Inter / system fonts. Explicit slots only. Hidden on
-   in-round canvases and for Premium / one-play gem skip.
+   LearnGeo — AdSense reserved slots (LEA-117 / LEA-118 / LEA-121).
+   Original Inter / system fonts. Explicit slots only, and only while
+   html.ads-on (ADS_ENABLED). Hidden on in-round canvases and for
+   Premium / one-play gem skip. No side rails.
 -------------------------------------------------------------------*/
+
+/* Off until ads.js adds ads-on. Covers a slot that appears before boot. */
+html:not(.ads-on) .ad-slot,
+html:not(.ads-on) .ad-pregame,
+html:not(.ads-on) .ad-rail,
+html:not(.ads-on) [data-ad-rail],
+html:not(.ads-on) ins.adsbygoogle,
+html:not(.ads-on) .google-auto-placed {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  border: 0 !important;
+}
 
 .ad-slot {
   display: flex;
