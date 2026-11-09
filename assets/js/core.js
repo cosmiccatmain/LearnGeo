@@ -660,20 +660,27 @@
       bit.style.background = CONFETTI_COLORS[(Math.random() * CONFETTI_COLORS.length) | 0];
       bit.style.left = ox + 'px';
       bit.style.top = oy + 'px';
-      if (Math.random() > 0.62) bit.style.borderRadius = '50%';
+      var shape = Math.random();
+      if (shape > 0.8) bit.classList.add('is-ribbon');
+      else if (shape > 0.58) bit.style.borderRadius = '50%';
       layer.appendChild(bit);
 
-      var angle = (Math.PI * 2 * i) / n + Math.random() * 0.5;
+      /* opts.angle aims a cannon (radians, 0 = right); default is a full ring */
+      var angle = opts.angle !== undefined
+        ? opts.angle + (Math.random() - 0.5) * (opts.spread || 0.8)
+        : (Math.PI * 2 * i) / n + Math.random() * 0.5;
       var power = (opts.power || 190) * (0.45 + Math.random() * 0.75);
       var dx = Math.cos(angle) * power;
-      var dy = Math.sin(angle) * power - 90;
-      var dur = 900 + Math.random() * 700;
+      var dy = Math.sin(angle) * power - (opts.angle !== undefined ? 0 : 90);
+      var dur = 1000 + Math.random() * 900;
+      var depth = 0.7 + Math.random() * 0.6;
+      var flip = (Math.random() > 0.5 ? 1 : -1) * (540 + Math.random() * 900);
 
       (function (node) {
         var anim = node.animate([
-          { transform: 'translate(0,0) rotate(0deg)', opacity: 1 },
-          { transform: 'translate(' + dx * 0.65 + 'px,' + (dy * 0.7) + 'px) rotate(' + (Math.random() * 260 - 130) + 'deg)', opacity: 1, offset: 0.45 },
-          { transform: 'translate(' + dx + 'px,' + (dy + 340) + 'px) rotate(' + (Math.random() * 620 - 310) + 'deg)', opacity: 0 }
+          { transform: 'translate(0,0) rotate(0deg) rotateX(0deg) scale(' + depth + ')', opacity: 1 },
+          { transform: 'translate(' + dx * 0.65 + 'px,' + (dy * 0.7) + 'px) rotate(' + (Math.random() * 260 - 130) + 'deg) rotateX(' + flip * 0.4 + 'deg) scale(' + depth + ')', opacity: 1, offset: 0.4 },
+          { transform: 'translate(' + (dx + (Math.random() - 0.5) * 60) + 'px,' + (dy + 380) + 'px) rotate(' + (Math.random() * 620 - 310) + 'deg) rotateX(' + flip + 'deg) scale(' + depth * 0.9 + ')', opacity: 0 }
         ], { duration: dur, easing: 'cubic-bezier(.16,.72,.4,1)' });
         anim.onfinish = function () { node.remove(); };
         setTimeout(function () { if (node.parentNode) node.remove(); }, dur + 300);
