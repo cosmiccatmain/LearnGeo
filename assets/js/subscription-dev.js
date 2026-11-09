@@ -16,6 +16,9 @@
 
    Public paywall stays behind Administrator → Development →
    “Premium plans & gating preview”.
+
+   LEA-127: the plans and checkout screens stay plain. Prices and
+   plan rules are unchanged. Mock checkout only.
 -------------------------------------------------------------------*/
 (function (global) {
   'use strict';
@@ -230,7 +233,7 @@
 
     body.innerHTML =
       '<div class="subdev__hero">' +
-        '<div class="subdev__eyebrow">' + (I.sparkle || I.bolt || '') + ' Plans</div>' +
+        '<div class="subdev__eyebrow">Plans</div>' +
         '<h1>Free, Plus, and <em>Schools</em></h1>' +
         '<p>' + (gateReason
           ? esc(gateReason)
@@ -280,21 +283,8 @@
         paintStudents(body);
       });
     }
-    body.querySelectorAll('.subdev__plan--featured, .subdev__plan--schools').forEach(function (card) {
-      card.addEventListener('pointerenter', function () { card.classList.add('is-hot'); });
-      card.addEventListener('pointerleave', function () {
-        card.classList.remove('is-hot');
-        card.classList.remove('is-press');
-      });
-    });
     body.querySelectorAll('[data-plan]').forEach(function (btn) {
       btn.addEventListener('click', function () {
-        var card = btn.closest('.subdev__plan');
-        if (card && (card.classList.contains('subdev__plan--featured') ||
-            card.classList.contains('subdev__plan--schools'))) {
-          card.classList.add('is-press');
-          setTimeout(function () { card.classList.remove('is-press'); }, 180);
-        }
         openCheckout(btn.getAttribute('data-plan'));
       });
     });
@@ -328,17 +318,10 @@
         ? 'btn btn--primary subdev__cta--schools'
         : 'btn btn--ghost';
     var badge = tone === 'plus'
-      ? '<div class="subdev__plan-badge" aria-hidden="true">' +
-          (I.sparkle || '') + ' No ads</div>'
+      ? '<div class="subdev__plan-badge">No ads</div>'
       : tone === 'schools'
         ? '<div class="subdev__plan-badge subdev__plan-badge--edu">Education</div>'
         : '';
-    var sparkles = tone === 'plus'
-      ? '<div class="subdev__sparkles" aria-hidden="true">' +
-          '<span class="subdev__spark"></span><span class="subdev__spark"></span>' +
-          '<span class="subdev__spark"></span><span class="subdev__spark"></span>' +
-          '<span class="subdev__spark"></span></div>'
-      : '';
     var priceHtml;
     if (plan.id === 'schools') {
       var n = clampStudents(students);
@@ -364,7 +347,7 @@
         '<p class="subdev__price-note">Forever free for every account</p>';
     }
     return '<article class="' + cls + '">' +
-      badge + sparkles +
+      badge +
       '<div class="subdev__plan-top">' +
         '<h3 class="subdev__plan-name">' + esc(plan.name) + '</h3>' +
         '<p class="subdev__plan-blurb">' + esc(plan.blurb) + '</p>' +
@@ -478,7 +461,7 @@
               if (host) {
                 host.innerHTML =
                   '<div class="subdev-checkout__ok' + (paid ? ' subdev-checkout__ok--prem' : '') + '">' +
-                    (I.check || I.sparkle || '') +
+                    (I.check || '') +
                     '<b>' + esc(headline) + '</b>' +
                     '<p>' + esc(detail) + '</p>' +
                   '</div>';
