@@ -12,6 +12,12 @@
   'use strict';
   global.LearnGeoMetricsConfig = {
     GA4_MEASUREMENT_ID: '',
-    ADSENSE_PUBLISHER_ID: 'ca-pub-6903921330074472'
+    ADSENSE_PUBLISHER_ID: 'ca-pub-6903921330074472',
+    /* Numeric ids from AdSense → Ads → By ad unit. Leave blank until
+       those units exist — do not invent them. Display tags still
+       request with the publisher id, an explicit size, and push(). */
+    ADSENSE_UNIT_HORIZONTAL: '',
+    ADSENSE_UNIT_RECTANGLE: '',
+    ADSENSE_UNIT_VERTICAL: ''
   };
 })(window);

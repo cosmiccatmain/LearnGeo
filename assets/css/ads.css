@@ -1,7 +1,13 @@
 /* ------------------------------------------------------------------
-   LearnGeo — AdSense reserved slots (LEA-117 / LEA-118).
+   LearnGeo — AdSense reserved slots (LEA-117 / LEA-118 / LEA-120).
    Original Inter / system fonts. Explicit slots only. Hidden on
    in-round canvases and for Premium / one-play gem skip.
+
+   adsbygoogle.js stamps adsbygoogle-noablate on manual units as well
+   as auto ads. A blanket hide of that class collapsed every explicit
+   slot to 0×0 (availableWidth=0, no fill) — the pre-game popup and
+   the display slots looked empty. Only auto-placed / anchor units
+   are hidden here.
 -------------------------------------------------------------------*/
 
 .ad-slot {
@@ -29,10 +35,128 @@
   color: var(--muted, #64748B);
 }
 
-.ad-slot ins.adsbygoogle {
-  display: block;
-  min-height: 72px;
+.ad-slot__box {
+  position: relative;
+  margin: 0 auto;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.ad-slot__box--horizontal {
   width: 100%;
+  max-width: 728px;
+  height: 90px;
+}
+
+.ad-slot__box--rectangle {
+  width: min(300px, 100%);
+  height: 250px;
+}
+
+.ad-slot__box--vertical {
+  width: 160px;
+  height: 600px;
+}
+
+.ad-slot__fallback {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 8px 12px;
+  box-sizing: border-box;
+  background:
+    radial-gradient(circle at 18% 0%, rgba(12, 143, 127, 0.18), transparent 58%),
+    #f4fbf9;
+  border: 1px solid rgba(12, 143, 127, 0.38);
+  border-radius: 10px;
+  font-family: Inter, system-ui, sans-serif;
+  color: #0B1520;
+  text-align: left;
+}
+
+.ad-slot__mark {
+  width: 36px;
+  height: 36px;
+  flex: none;
+  display: block;
+}
+
+.ad-slot__fallback-copy {
+  margin: 0;
+  min-width: 0;
+}
+
+.ad-slot__fallback-copy strong {
+  display: block;
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.ad-slot__fallback-copy span {
+  display: block;
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 12px;
+  line-height: 1.35;
+  color: #5B6B76;
+}
+
+.ad-slot__box--horizontal .ad-slot__mark { width: 28px; height: 28px; }
+.ad-slot__box--horizontal .ad-slot__fallback-copy strong,
+.ad-slot__box--horizontal .ad-slot__fallback-copy span { display: inline; }
+.ad-slot__box--horizontal .ad-slot__fallback-copy span::before { content: " · "; }
+
+.ad-slot__box--rectangle .ad-slot__fallback,
+.ad-slot__box--vertical .ad-slot__fallback {
+  flex-direction: column;
+  text-align: center;
+  gap: 8px;
+}
+
+.ad-slot__box--rectangle .ad-slot__mark { width: 56px; height: 56px; }
+.ad-slot__box--rectangle .ad-slot__fallback-copy strong { font-size: 18px; }
+.ad-slot__box--vertical .ad-slot__mark { width: 48px; height: 48px; }
+
+.ad-slot ins.adsbygoogle {
+  position: relative;
+  z-index: 1;
+  display: inline-block;
+  vertical-align: top;
+  background: transparent;
+}
+
+.ad-slot__box--horizontal ins.adsbygoogle {
+  width: 100%;
+  height: 90px;
+  min-height: 90px;
+}
+
+.ad-slot__box--rectangle ins.adsbygoogle {
+  width: 300px;
+  max-width: 100%;
+  height: 250px;
+  min-height: 250px;
+}
+
+.ad-slot__box--vertical ins.adsbygoogle {
+  width: 160px;
+  height: 600px;
+  min-height: 600px;
+}
+
+/* House frame stays up until a creative actually fills the unit. */
+.ad-slot.is-unfilled ins.adsbygoogle {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.ad-slot.is-filled .ad-slot__fallback {
+  visibility: hidden;
 }
 
 .ad-slot--hub {
@@ -63,9 +187,12 @@
   width: calc(100% - 40px);
 }
 
-/* Auto ads / page-level / anchor overlays — explicit slots only. */
+/* Auto ads / page-level / anchor overlays — explicit slots only.
+   Do not match ins.adsbygoogle inside .ad-slot: Google adds
+   adsbygoogle-noablate to those too. */
 html.ads-explicit .google-auto-placed,
-html.ads-explicit ins.adsbygoogle-noablate,
+html.ads-explicit .google-auto-placed ins.adsbygoogle-noablate,
+html.ads-explicit body > ins.adsbygoogle-noablate,
 html.ads-explicit [data-anchor-status],
 html.ads-explicit .google-anno-skip,
 html.ads-off .ad-slot {
@@ -82,7 +209,7 @@ html.ads-off .ad-slot {
 /* In-round canvases: never paint units over the board. */
 html.ads-gameplay .ad-slot:not(.ad-slot--pregame),
 html.ads-gameplay .google-auto-placed,
-html.ads-gameplay ins.adsbygoogle-noablate,
+html.ads-gameplay body > ins.adsbygoogle-noablate,
 body.view-learn .ad-slot--chrome,
 body.view-test .ad-slot--chrome,
 body.view-quiz .ad-slot--chrome,
@@ -105,7 +232,82 @@ body.view-games .ad-slot--chrome,
   overflow: hidden !important;
 }
 
-/* 20s pre-game interstitial. Original Inter. */
+/* Shell rails: sticky side columns on wide home + Games hub.
+   Hidden under 900px so an iPad classroom is not squeezed. */
+.app.is-open {
+  height: 100vh;
+  max-height: 100vh;
+  overflow: hidden;
+}
+
+.app-stage {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  overflow: hidden;
+}
+
+.app-stage__main {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Portal and learn/test panes must be allowed to shrink so they scroll
+   inside the shell. Otherwise the side rails grow with the page and
+   scroll away. */
+.app-stage__main > .portal,
+.app-stage__main > .workspace {
+  min-height: 0;
+}
+
+.ad-rail {
+  display: none;
+  box-sizing: border-box;
+}
+
+.ad-rail[hidden],
+html.ads-off .ad-rail,
+html.ads-gameplay .ad-rail {
+  display: none !important;
+}
+
+@media (max-width: 899px) {
+  .ad-rail { display: none !important; }
+}
+
+@media (min-width: 900px) {
+  html.ads-rails .ad-rail {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 0 0 176px;
+    width: 176px;
+    padding: 12px 8px 16px;
+    background: rgba(252, 253, 254, 0.96);
+    overflow: auto;
+  }
+  html.ads-rails .ad-rail--left { border-right: 1px solid rgba(213, 224, 230, 0.95); }
+  html.ads-rails .ad-rail--right { border-left: 1px solid rgba(213, 224, 230, 0.95); }
+  html.ads-rails .ad-rail .ad-slot {
+    position: sticky;
+    top: 12px;
+    width: 160px;
+    max-width: 160px;
+    margin: 0;
+    padding: 0;
+    border: none;
+    background: transparent;
+    min-height: 0;
+  }
+}
+
+/* 20s pre-game display. Original Inter. Not a vignette auto ad. */
 .ad-pregame {
   position: fixed;
   inset: 0;
@@ -116,10 +318,13 @@ body.view-games .ad-slot--chrome,
   padding: 24px;
   background: rgba(11, 21, 32, 0.62);
   box-sizing: border-box;
+  overflow: auto;
 }
 
 .ad-pregame__card {
   width: min(560px, 100%);
+  max-height: calc(100vh - 48px);
+  overflow: auto;
   background: #fff;
   border-radius: 16px;
   padding: 22px 22px 18px;
@@ -160,6 +365,10 @@ body.view-games .ad-slot--chrome,
   margin: 0 0 16px;
   width: 100%;
   max-width: none;
+  min-height: 290px;
+  border-style: solid;
+  border-color: rgba(12, 143, 127, 0.35);
+  background: #fff;
 }
 
 .ad-pregame__actions {

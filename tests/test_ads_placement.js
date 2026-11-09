@@ -18,7 +18,9 @@ const ALLOWED = [
   'games-hub-a',
   'games-hub-b',
   'games-hub-c',
-  'pregame'
+  'pregame',
+  'shell-rail-left',
+  'shell-rail-right'
 ];
 
 test('site-wide explicit slots stay inside the 15–20 cap and the allowed list', () => {
@@ -44,6 +46,8 @@ test('site-wide explicit slots stay inside the 15–20 cap and the allowed list'
   found.add('games-hub-b');
   found.add('games-hub-c');
   found.add('pregame');
+  found.add('shell-rail-left');
+  found.add('shell-rail-right');
   for (const id of found) {
     assert.ok(ALLOWED.includes(id), 'unexpected slot ' + id);
   }
@@ -85,6 +89,17 @@ test('Auto ads / page-level ads are turned off in code', () => {
   assert.match(css, /adsbygoogle-noablate/);
   assert.match(css, /html\.ads-explicit/);
   assert.match(css, /html\.ads-off/);
+  assert.match(css, /\.google-auto-placed ins\.adsbygoogle-noablate/);
+  assert.match(css, /min-width:\s*900px/);
+  assert.match(css, /ad-slot__fallback/);
+  assert.match(css, /ad-slot__box--rectangle/);
+  assert.doesNotMatch(css, /html\.ads-explicit ins\.adsbygoogle-noablate[\s,{]/);
+  assert.doesNotMatch(css, /html\.ads-gameplay ins\.adsbygoogle-noablate/);
+  assert.match(ads, /shell-rail-left/);
+  assert.match(ads, /shell-rail-right/);
+  assert.match(ads, /width:\s*'300px',\s*height:\s*'250px'/);
+  assert.match(read('index.html'), /ad-rail--left/);
+  assert.match(read('index.html'), /ad-rail--right/);
 });
 
 test('Premium flag skips ads even when the paywall preview is off', () => {
@@ -138,6 +153,9 @@ test('pregame overlay waits 20s unless the unit ends sooner; Play starts the gam
   const overlay = ctx.document.body.children[0];
   assert.ok(overlay);
   assert.match(overlay.innerHTML, /data-ad-slot="pregame"/);
+  assert.match(overlay.innerHTML, /data-ad-format="rectangle"/);
+  assert.match(overlay.innerHTML, /width:300px;height:250px/);
+  assert.match(overlay.innerHTML, /ad-slot__fallback/);
   assert.match(overlay.innerHTML, /Before you play Geo Dash/);
   const playBtn = overlay.querySelector('[data-ad-play]');
   assert.equal(playBtn.disabled, true);

@@ -254,9 +254,15 @@
     </div>
   </section>
 
-  <aside class="ad-slot ad-slot--banner" data-ad-slot="teachers-footer" aria-label="Advertisement">
+  <aside class="ad-slot ad-slot--banner" data-ad-slot="teachers-footer" data-ad-shape="horizontal" aria-label="Advertisement">
     <span class="ad-slot__label">Advertisement</span>
-    <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-6903921330074472" data-ad-format="auto" data-full-width-responsive="true"></ins>
+    <div class="ad-slot__box ad-slot__box--horizontal">
+      <div class="ad-slot__fallback">
+        <img class="ad-slot__mark" src="assets/img/brand/mark.svg" alt="" width="36" height="36">
+        <p class="ad-slot__fallback-copy"><strong>LearnGeo</strong><span>Ad will show here</span></p>
+      </div>
+      <ins class="adsbygoogle" style="display:inline-block;width:100%;height:90px;max-width:100%" data-ad-client="ca-pub-6903921330074472" data-ad-format="horizontal" data-full-width-responsive="true"></ins>
+    </div>
   </aside>
 
   <footer class="footer">
@@ -271,6 +277,7 @@
   </footer>
 </div>
 
+<script src="assets/js/ads.js"></script>
 <script src="assets/js/relief.js"></script>
 </body>
 </html>

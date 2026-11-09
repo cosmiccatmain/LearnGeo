@@ -70,6 +70,7 @@
     document.documentElement.classList.toggle('ads-gameplay', hide);
     var chrome = document.getElementById('app-ad-chrome');
     if (chrome) chrome.hidden = true;
+    if (global.LearnGeoAds && global.LearnGeoAds.syncRails) global.LearnGeoAds.syncRails();
   }
 
   function disablePageLevelAds() {
