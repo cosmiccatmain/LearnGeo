@@ -1396,7 +1396,9 @@
     var level = who ? (who.level || 1) : s.economy.level;
     var statusLabel = status && status.id !== 'invisible' ? status.name : 'Offline';
     var statusColor = (p.status === 'invisible' || !status) ? '#9CA3AF' : status.color;
-    var fxId = p.effect || 'none';
+    /* Unknown ids (Chicken Wings was removed) resolve to None. */
+    var fxKnown = Cos.find(Cos.effects, p.effect || 'none');
+    var fxId = fxKnown && fxKnown.id === (p.effect || 'none') ? fxKnown.id : 'none';
     var npf = Cos.plateFx(plate);
 
     return '<div class="profile-card profile-card--popout th--l' + Cos.level(theme) + '" style="' + themeCard(theme) +
@@ -1532,7 +1534,6 @@
       if (m === 'rain') return (0.7 + Math.random() * 0.55).toFixed(2) + 's';
       if (m === 'embers' || m === 'rise') return (2.4 + Math.random() * 2.2).toFixed(2) + 's';
       if (m === 'twinkle') return (1.6 + Math.random() * 1.8).toFixed(2) + 's';
-      if (m === 'flutter') return (2.8 + Math.random() * 2.4).toFixed(2) + 's';
       if (m === 'tumble') return (2.2 + Math.random() * 1.8).toFixed(2) + 's';
       return (2.8 + Math.random() * 2.6).toFixed(2) + 's';
     }

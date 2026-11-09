@@ -214,7 +214,7 @@
         }
 
         applying = true;
-        W.replaceState(chosen);
+        var retiredFx = W.replaceState(chosen);
         if (!cloud && row) {
           /* first sign-in: the name given at sign-up is a deliberate choice,
              so it wins over whatever the guest profile said. The role only
@@ -241,7 +241,10 @@
         W.saveLocal();
         reconciled = true;
         setStatus('synced');
-        if (chosen !== cloud) push();
+        /* A cloud or cached save that still had Chicken Wings is now
+           `none`. Write that back so the account does not reapply it. */
+        if (retiredFx) W.saveNow();
+        else if (chosen !== cloud) push();
         /* LEA-49: credit referrer when this new account arrived via ?ref= (TEST). */
         if (global.ReferralTrial && global.ReferralTrial.creditPendingForNewUser) {
           try { global.ReferralTrial.creditPendingForNewUser(u.id); } catch (eRef) { /* ignore */ }
@@ -261,7 +264,10 @@
         applying = false;
         if (mine !== gen) return;
         /* keep working from this device's copy; try again when back online */
-        applying = true; W.replaceState(cached || guestCopy); applying = false;
+        applying = true;
+        var retiredOffline = W.replaceState(cached || guestCopy);
+        applying = false;
+        if (retiredOffline) W.saveLocal();
         setStatus('offline');
         refreshUi();
       });
@@ -274,7 +280,10 @@
     W.useAccount(null);
     /* on a shared computer the next person should not find your copy lying around */
     if (forget && uid) { try { localStorage.removeItem(W.userKey(uid)); } catch (e) {} }
-    applying = true; W.replaceState(W.readSaved(W.GUEST_KEY)); applying = false;
+    applying = true;
+    var retiredGuest = W.replaceState(W.readSaved(W.GUEST_KEY));
+    applying = false;
+    if (retiredGuest) W.saveLocal();
     setStatus('off');
     if (global.SchoolDashboard && global.SchoolDashboard.clearRules) {
       try { global.SchoolDashboard.clearRules(); } catch (eRules) {}

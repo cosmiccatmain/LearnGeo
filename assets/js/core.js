@@ -216,7 +216,29 @@
     };
   }
 
+  /* Chicken Wings (profile effect id `wings`) was removed. A save that
+     still has it equipped, or still lists it under owned effects, falls
+     back to no effect. Other cosmetics are left alone. */
+  function retireChickenWings(s) {
+    if (!s || typeof s !== 'object') return false;
+    var changed = false;
+    if (s.profile && s.profile.effect === 'wings') {
+      s.profile.effect = 'none';
+      changed = true;
+    }
+    var owned = s.owned && s.owned.effects;
+    if (Array.isArray(owned)) {
+      var at = owned.indexOf('wings');
+      if (at !== -1) {
+        owned.splice(at, 1);
+        changed = true;
+      }
+    }
+    return changed;
+  }
+
   var state = merge(defaultState(), readSaved(KEY));
+  var retiredOnLoad = retireChickenWings(state);
 
   function readSaved(key) {
     var raw = null;
@@ -257,8 +279,10 @@
      WW.state, so replacing the reference would strand them on a stale copy. */
   function replaceState(obj) {
     var fresh = merge(defaultState(), obj);
+    var retired = retireChickenWings(fresh);
     Object.keys(state).forEach(function (k) { delete state[k]; });
     Object.keys(fresh).forEach(function (k) { state[k] = fresh[k]; });
+    return retired;
   }
 
   var saveHooks = [];
@@ -975,4 +999,9 @@
     shuffle: shuffle, sample: sample, pick: pick,
     el: el, $: $, $$: $$, fmtTime: fmtTime, compact: compact, avatarHtml: avatarHtml
   };
+
+  /* Persist the fallback before cloud.js attaches, so a guest save does
+     not keep `wings` on disk. Signed-in copies are cleaned again when
+     the account save is adopted. */
+  if (retiredOnLoad) saveNow();
 })(window);

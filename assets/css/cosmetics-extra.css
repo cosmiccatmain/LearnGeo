@@ -6,21 +6,6 @@
    used by ui.js runEffect(), and locker preview polish.
 -------------------------------------------------------------------*/
 
-/* Chicken wing. The pale nub on the left is the bone: without it the
-   shape reads as a leaf at this size, which is already taken. */
-.fx-wing {
-  width: 12px; height: 9px;
-  border-radius: 10px 11px 5px 9px / 9px 8px 4px 8px;
-  box-shadow: inset -1px -1px 0 rgba(0, 0, 0, .14);
-}
-.fx-wing::after {
-  content: ''; position: absolute;
-  left: -3px; top: 50%; transform: translateY(-50%);
-  width: 5px; height: 3.2px; border-radius: 3px;
-  background: #F7EEDC;
-  box-shadow: 0 0 0 .5px rgba(0, 0, 0, .12);
-}
-
 /* A die. The face colour comes from the effect's list, so the pips
    are drawn over it in a fixed dark ink rather than being punched
    out of it — a transparent pip would show the profile card through
@@ -61,8 +46,7 @@
 .fx-motion-sway,
 .fx-motion-tumble,
 .fx-motion-twinkle-fall,
-.fx-motion-rain,
-.fx-motion-flutter {
+.fx-motion-rain {
   animation-name: fx-fall-base;
 }
 .fx-motion-drift { animation-name: fx-drift; animation-timing-function: ease-in-out; }
@@ -70,7 +54,6 @@
 .fx-motion-tumble { animation-name: fx-tumble; animation-timing-function: cubic-bezier(.22,.61,.36,1); }
 .fx-motion-twinkle-fall { animation-name: fx-twinkle-fall; animation-timing-function: ease-in-out; }
 .fx-motion-rain { animation-name: fx-rain; animation-timing-function: linear; }
-.fx-motion-flutter { animation-name: fx-flutter; animation-timing-function: ease-in-out; }
 .fx-motion-rise { animation-name: fx-rise; animation-timing-function: ease-out; }
 .fx-motion-embers { animation-name: fx-embers; animation-timing-function: ease-out; }
 .fx-motion-twinkle { animation-name: fx-twinkle; animation-timing-function: ease-in-out; }
@@ -114,15 +97,6 @@
   0%   { transform: translate3d(0, -20px, 0) scaleY(var(--fx-scale)); opacity: 0; }
   8%   { opacity: .75; }
   100% { transform: translate3d(6px, 260px, 0) scaleY(calc(var(--fx-scale) * 1.15)); opacity: 0; }
-}
-
-@keyframes fx-flutter {
-  0%   { transform: translate3d(0, 10px, 0) rotate(-8deg) scale(var(--fx-scale)); opacity: 0; }
-  12%  { opacity: 1; }
-  30%  { transform: translate3d(18px, -30px, 0) rotate(14deg) scale(var(--fx-scale)); }
-  55%  { transform: translate3d(-10px, -70px, 0) rotate(-10deg) scale(calc(var(--fx-scale) * 1.05)); }
-  80%  { transform: translate3d(22px, -120px, 0) rotate(18deg) scale(var(--fx-scale)); }
-  100% { transform: translate3d(var(--fx-drift), -170px, 0) rotate(-6deg) scale(calc(var(--fx-scale) * .9)); opacity: 0; }
 }
 
 @keyframes fx-rise {
@@ -190,8 +164,7 @@
   pointer-events: none;
 }
 .shop-item__vis--fx-live .fx-preview.fx-motion-rise,
-.shop-item__vis--fx-live .fx-preview.fx-motion-embers,
-.shop-item__vis--fx-live .fx-preview.fx-motion-flutter {
+.shop-item__vis--fx-live .fx-preview.fx-motion-embers {
   top: 58%;
 }
 .shop-item__vis--fx-live .fx-preview.fx-motion-twinkle {
