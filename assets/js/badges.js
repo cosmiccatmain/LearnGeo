@@ -7,15 +7,21 @@
    account has earned or been given, shown together beside the name and
    laid out in full in the badge case.
 
-   Two ways to hold one, and they never mix:
+   Three ways to hold one, and they never mix:
 
-     earned   a rule in EARN below returned true. Re-checked after every
-              answer, so it cannot be granted and cannot be revoked.
-     granted  an admin turned it on. No rule, no way to earn it, and the
-              only thing that can set it is the admin panel.
+     earned        a rule in EARN below returned true. Re-checked after
+                   every answer, so it cannot be granted and cannot be
+                   revoked.
+     granted       an admin turned it on. No rule, no way to earn it, and
+                   the only thing that can set it is the admin panel.
+     entitlement   follows an account flag (Premium). Awarded once when
+                   the flag is on (idempotent), greyed in the case and
+                   hidden beside the name when it lapses. Mock subscribe,
+                   admin grant, and a later Stripe path all land here
+                   because they all set flags.premium.
 
-   Admin is the reason the split exists. A badge that says somebody runs
-   this thing must not be reachable by playing well.
+   Admin is the reason the earned/granted split exists. A badge that says
+   somebody runs this thing must not be reachable by playing well.
 -------------------------------------------------------------------*/
 (function (global) {
   'use strict';
@@ -41,7 +47,14 @@
     moon:   '<path d="M20 14.4A8.6 8.6 0 0 1 9.6 4 8.6 8.6 0 1 0 20 14.4z"/>',
     sun:    '<circle cx="12" cy="12" r="4.4"/><path d="M12 2.6v2.6M12 18.8v2.6M2.6 12h2.6M18.8 12h2.6M5.4 5.4l1.9 1.9M16.7 16.7l1.9 1.9M18.6 5.4l-1.9 1.9M7.3 16.7l-1.9 1.9"/>',
     seed:   '<path d="M12 21c0-5 3.6-8.6 8.6-8.6C20.6 17.4 17 21 12 21z"/><path d="M12 21C12 16 8.4 12.4 3.4 12.4 3.4 17.4 7 21 12 21z"/><path d="M12 21v-7"/>',
-    joystick: '<circle cx="12" cy="6.4" r="3.2"/><path d="M12 9.6v5.2"/><path d="M5.4 20.4a6.6 6.6 0 0 1 13.2 0z"/>'
+    joystick: '<circle cx="12" cy="6.4" r="3.2"/><path d="M12 9.6v5.2"/><path d="M5.4 20.4a6.6 6.6 0 0 1 13.2 0z"/>',
+    /* LearnGeo brand mark geometry (LEA-115), scaled from mark.svg's
+       100-box: square, two quarter-disks, circle. Filled, not stroked,
+       so the chip can wear the teal tile. Not a Stripe glyph. */
+    mark: '<rect x="4.3" y="4.3" width="7.1" height="7.1" rx=".7"/>' +
+          '<path d="M12.5 11.4V4.3A7.1 7.1 0 0 1 19.6 11.4Z"/>' +
+          '<path d="M4.3 12.5h7.1v7.1A7.1 7.1 0 0 1 4.3 12.5Z"/>' +
+          '<circle cx="16.04" cy="16.04" r="3.55"/>'
   };
 
   function art(id) { return ART[id] || ART.star; }
@@ -50,6 +63,11 @@
      tone drives the plate colour in the case and the tint beside a name.
   ------------------------------------------------------------------ */
   var BADGES = [
+    /* ---- entitlement. Follows flags.premium; not an admin switch. ---- */
+    { id: 'premium', name: 'Premium', art: 'mark', tone: 'premium', fill: true,
+      entitlement: 'premium',
+      desc: 'Subscribe to LearnGeo Premium. Shows while Premium is active on this account.' },
+
     /* ---- granted only. No rule, so nothing here can be played into. ---- */
     { id: 'admin', name: 'Admin', art: 'key', tone: 'admin', grant: true,
       desc: 'Runs LearnGeo. Granted from the admin panel and nowhere else.' },
@@ -161,7 +179,9 @@
 
   function find(id) { return BY_ID[id] || null; }
   function all() { return BADGES.slice(); }
-  function granted(b) { return !!b.grant; }
+  function granted(b) { return !!(b && b.grant); }
+  function entitlement(b) { return !!(b && b.entitlement); }
+  function leads(b) { return granted(b) || entitlement(b); }
 
   /* ============================== state =============================
      state.badges holds the ids. Kept on the save rather than derived so
@@ -183,11 +203,11 @@
     var p = W.state.profile;
     var pick = Array.isArray(p.badgeSlots) ? p.badgeSlots : null;
     var list = (pick || owned()).filter(has);
-    /* granted badges lead, because that is the thing people look for */
+    /* granted / entitlement badges lead, because that is the thing people look for */
     if (!pick) {
       list = list.slice().sort(function (a, b) {
-        var ga = granted(find(a) || {}) ? 0 : 1;
-        var gb = granted(find(b) || {}) ? 0 : 1;
+        var ga = leads(find(a) || {}) ? 0 : 1;
+        var gb = leads(find(b) || {}) ? 0 : 1;
         if (ga !== gb) return ga - gb;
         return BADGES.indexOf(find(a)) - BADGES.indexOf(find(b));
       });
@@ -196,19 +216,24 @@
   }
 
   /* ============================ evaluation ==========================
-     Earned only. Never touches a granted badge, so an admin toggling one
-     off is not undone by the next answer.
+     Earned only, plus the Premium entitlement sync. Never touches a
+     granted badge, so an admin toggling one off is not undone by the
+     next answer. Entitlements re-check the flag so a lapse greys it.
   ------------------------------------------------------------------ */
   function evaluate() {
     var s = W.state, fresh = [];
+    var hadPrem = has('premium');
+    var prem = syncPremium({ announce: false, save: false, paint: false });
+    if (prem) fresh.push(prem);
     BADGES.forEach(function (b) {
-      if (granted(b) || !b.test) return;
+      if (granted(b) || entitlement(b) || !b.test) return;
       if (has(b.id)) return;
       var ok = false;
       try { ok = !!b.test(s); } catch (e) { ok = false; }
       if (ok) { owned().push(b.id); fresh.push(b); }
     });
-    if (fresh.length) W.save();
+    if (fresh.length || hadPrem !== has('premium')) W.save();
+    if (hadPrem !== has('premium')) paintHud();
     return fresh;
   }
 
@@ -237,10 +262,31 @@
      Admin only. Returns false when asked to grant something earnable,
      so a mis-wired caller cannot hand out an earned badge.
   ------------------------------------------------------------------ */
+  function addOwned(id) {
+    if (has(id)) return false;
+    owned().push(id);
+    var p = W.state.profile;
+    if (p && Array.isArray(p.badgeSlots) && p.badgeSlots.indexOf(id) === -1 &&
+        p.badgeSlots.length < SHOWN_MAX) {
+      p.badgeSlots = [id].concat(p.badgeSlots);
+    }
+    return true;
+  }
+
+  function dropOwned(id) {
+    if (!has(id)) return false;
+    W.state.badges = owned().filter(function (x) { return x !== id; });
+    var p = W.state.profile;
+    if (p && Array.isArray(p.badgeSlots)) {
+      p.badgeSlots = p.badgeSlots.filter(function (x) { return x !== id; });
+    }
+    return true;
+  }
+
   function grant(id) {
     var b = find(id);
     if (!b || !granted(b) || has(id)) return false;
-    owned().push(id);
+    addOwned(id);
     W.saveNow();
     return true;
   }
@@ -248,13 +294,50 @@
   function revoke(id) {
     var b = find(id);
     if (!b || !granted(b) || !has(id)) return false;
-    W.state.badges = owned().filter(function (x) { return x !== id; });
-    var p = W.state.profile;
-    if (Array.isArray(p.badgeSlots)) {
-      p.badgeSlots = p.badgeSlots.filter(function (x) { return x !== id; });
-    }
+    dropOwned(id);
     W.saveNow();
     return true;
+  }
+
+  /* LEA-119: award / grey the Premium badge from flags.premium.
+     Returns the badge when it was newly awarded, otherwise null. */
+  function premiumFlagOn() {
+    return !!(W.state && W.state.flags && W.state.flags.premium);
+  }
+
+  function paintHud() {
+    if (global.UI && global.UI.refreshHud) {
+      try { global.UI.refreshHud(); } catch (e) {}
+    }
+    if (global.Portal && global.Portal.render &&
+        document.body && document.body.classList.contains('view-portal')) {
+      try { global.Portal.render(); } catch (e2) {}
+    }
+  }
+
+  function persist(opts) {
+    if (opts && opts.save === false) return;
+    if (W.saveNow) W.saveNow();
+    else if (W.save) W.save();
+  }
+
+  function syncPremium(opts) {
+    opts = opts || {};
+    var b = find('premium');
+    if (!b || !W || !W.state) return null;
+    var on = premiumFlagOn();
+    if (on) {
+      if (!addOwned('premium')) return null;
+      persist(opts);
+      if (opts.announce) announce([b]);
+      if (opts.paint !== false) paintHud();
+      return b;
+    }
+    if (dropOwned('premium')) {
+      persist(opts);
+      if (opts.paint !== false) paintHud();
+    }
+    return null;
   }
 
   function setShown(ids) {
@@ -265,6 +348,10 @@
   /* ============================= rendering ========================== */
   function svg(b, size) {
     var s = size || 14;
+    if (b && b.fill) {
+      return '<svg class="bdg__art" width="' + s + '" height="' + s + '" viewBox="0 0 24 24" ' +
+        'fill="currentColor" aria-hidden="true">' + art(b.art) + '</svg>';
+    }
     return '<svg class="bdg__art" width="' + s + '" height="' + s + '" viewBox="0 0 24 24" ' +
       'fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" ' +
       'stroke-linejoin="round" aria-hidden="true">' + art(b.art) + '</svg>';
@@ -289,7 +376,10 @@
   /* =========================== the badge case ======================= */
   function openCase() {
     var have = owned();
-    var earned = BADGES.filter(function (b) { return !granted(b) && !b.secret; });
+    var membership = BADGES.filter(entitlement);
+    var earned = BADGES.filter(function (b) {
+      return !granted(b) && !entitlement(b) && !b.secret;
+    });
     var secret = BADGES.filter(function (b) { return !!b.secret; });
     var nFound = global.Secrets ? global.Secrets.count() : 0;
     var nTotal = global.Secrets ? global.Secrets.total : secret.length - 1;
@@ -302,6 +392,7 @@
           '<span class="eyebrow">' + have.length + ' of ' + BADGES.length + ' held</span>' +
           '<span class="t-sm t-muted">Up to ' + SHOWN_MAX + ' show beside your name</span>' +
         '</div>' +
+        section('Membership', membership) +
         section('Earned by playing', earned) +
         section('Given, not earned', role) +
         section('Secrets · ' + nFound + ' of ' + nTotal + ' found', secret) +
@@ -360,9 +451,12 @@
 
   global.Badges = {
     all: all, find: find, has: has, owned: owned, shown: shown, granted: granted,
+    entitlement: entitlement, syncPremium: syncPremium,
     evaluate: evaluate, announce: announce, noteAnswerTime: noteAnswerTime,
     grant: grant, revoke: revoke, setShown: setShown,
     markup: markup, svg: svg, openCase: openCase,
     get max() { return SHOWN_MAX; }
   };
+
+  try { syncPremium({ announce: false, paint: false }); } catch (e) {}
 })(window);
