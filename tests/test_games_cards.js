@@ -23,7 +23,7 @@ assert(/assets\/css\/games\.css/.test(html), 'index loads games.css');
 assert(/aspect-ratio:\s*644\s*\/\s*296/.test(css), 'art frame matches SVG cover ratio');
 assert(/image-rendering:\s*auto/.test(css), 'smooth scaling for vector covers');
 assert(/-webkit-line-clamp:\s*2/.test(css), 'blurb clamped to two lines');
-assert(/translateY\(-5px\)|translateY\(-4px\)/.test(css), 'hover lift motion');
+assert(/game-card--cover:hover[\s\S]{0,80}transform:\s*none/.test(css), 'hub cards stay flat on hover');
 assert(/game-card__title[\s\S]{0,200}clip:\s*rect\(0,\s*0,\s*0,\s*0\)/.test(css),
   'duplicate cover title is visually hidden');
 

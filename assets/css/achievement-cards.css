@@ -99,7 +99,7 @@
 }
 /* Motion 1 — gentle float after unfold settles (active card only) */
 .achv-stack.is-floating > .achv-card.is-front {
-  animation: achv-float 4.2s ease-in-out infinite;
+  animation: none;
 }
 @keyframes achv-float {
   0%, 100% { transform: translateY(0); }

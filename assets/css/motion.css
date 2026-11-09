@@ -92,15 +92,10 @@
 :where(.options > .option:nth-child(6)) { --lg-d: .2s; }
 @keyframes lgOptIn { from { opacity: 0; transform: translateY(8px); } }
 
-.option.is-right::after {
-  content: ''; position: absolute; inset: 0; pointer-events: none;
-  background: linear-gradient(100deg, transparent 30%, rgba(255,255,255,.75) 50%, transparent 70%);
-  transform: translateX(-100%);
-  animation: lgSweep .9s var(--lg-out) .05s forwards;
-}
-@keyframes lgSweep { to { transform: translateX(100%); } }
-.option.is-right .option__mark, .option.is-wrong .option__mark { animation: lgMarkIn .45s var(--lg-spring); }
-@keyframes lgMarkIn { from { transform: scale(0) rotate(-45deg); } }
+.option.is-right::after { content: none; animation: none; }
+@keyframes lgSweep { to { transform: none; } }
+.option.is-right .option__mark, .option.is-wrong .option__mark { animation: none; }
+@keyframes lgMarkIn { from { transform: none; } }
 
 .qcard { animation: lgCardIn .5s var(--lg-out); }
 @keyframes lgCardIn { from { opacity: 0; transform: translateY(12px); filter: blur(4px); } }
@@ -160,13 +155,13 @@
   :is(.mode-card, .portal-mode, .rec, .cw-row, .role-opt, .shop-item):hover::after { opacity: 1; }
   :is(.mode-card, .portal-mode, .rec, .role-opt, .cw-row):hover
     :is(.mode-card__icon, .portal-mode__icon, .rec__icon, .role-opt__i, .cw-row__i) {
-    transform: translateY(-2px) scale(1.07) rotate(-5deg);
-    box-shadow: inset 0 1px 0 rgba(255,255,255,.9), 0 6px 14px -6px rgba(var(--accent-rgb),.45);
+    transform: none;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.9);
   }
-  .portal-mode:hover .portal-mode__go svg, .rec:hover .rec__go { transform: translateX(3px); }
-  .shop-item:hover .shop-item__vis { transform: scale(1.08) rotate(-4deg); }
-  .cw-row:hover { transform: translateY(-2px); }
-  .shot:hover { transform: translateY(-4px); box-shadow: var(--shadow-xl); }
+  .portal-mode:hover .portal-mode__go svg, .rec:hover .rec__go { transform: none; }
+  .shop-item:hover .shop-item__vis { transform: none; }
+  .cw-row:hover { transform: none; }
+  .shot:hover { transform: none; box-shadow: none; }
 }
 :is(.portal-mode, .rec, .cw-row, .role-opt, .shop-item):active { transform: scale(.985); transition-duration: .09s; }
 
@@ -191,14 +186,8 @@
   background-image: linear-gradient(180deg, rgba(255,255,255,.9), rgba(255,255,255,0) 65%);
   box-shadow: inset 0 1px 0 rgba(255,255,255,.95), 0 1px 2px rgba(10,10,11,.05);
 }
-.hud__item.is-bumped { animation: lgBump .65s var(--ease); }
-@keyframes lgBump {
-  0%   { transform: scale(1); }
-  25%  { transform: scale(1.22) translateY(-1px); box-shadow: 0 0 0 6px color-mix(in srgb, currentColor 16%, transparent); }
-  55%  { transform: scale(.96); }
-  80%  { transform: scale(1.03); }
-  100% { transform: scale(1); }
-}
+.hud__item.is-bumped { animation: none; }
+@keyframes lgBump { 0%, 100% { transform: none; } }
 
 .chip {
   background-image: linear-gradient(180deg, rgba(255,255,255,.65), rgba(255,255,255,0) 70%);
@@ -215,13 +204,8 @@
   background-image: linear-gradient(180deg, rgba(255,255,255,.3), rgba(255,255,255,0) 70%);
   transition: width .7s var(--lg-out);
 }
-.pbar__fill::after {
-  content: ''; position: absolute; inset: 0;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,.5), transparent);
-  transform: translateX(-100%);
-  animation: lgShimmer 2.8s var(--ease) infinite;
-}
-@keyframes lgShimmer { 55%, 100% { transform: translateX(100%); } }
+.pbar__fill::after { content: none; animation: none; }
+@keyframes lgShimmer { 55%, 100% { transform: none; } }
 .an-bar__fill { transform-origin: left center; }
 .hist__bar { transform-origin: bottom center; }
 
@@ -249,7 +233,7 @@
 @keyframes lgItemIn { from { opacity: 0; transform: translateY(-5px); } }
 .menu__item { transition: background-color .13s, color .13s, transform .3s var(--lg-spring); }
 .menu__item svg { transition: transform .4s var(--lg-spring), color .13s; }
-@media (hover: hover) { .menu__item:hover svg { transform: scale(1.12) rotate(-6deg); } }
+@media (hover: hover) { .menu__item:hover svg { transform: none; } }
 .menu__item:active { transform: scale(.98); }
 
 /* exit copies left behind by motion.js when a modal or the menu is removed */
@@ -272,11 +256,12 @@
 @keyframes lgToastIn { from { opacity: 0; } }
 
 .levelup__ring {
-  background-image: radial-gradient(circle at 32% 26%, rgba(255,255,255,.5), rgba(255,255,255,0) 42%),
-                    linear-gradient(135deg, var(--accent), #22D3EE);
-  animation: lgRingIn .7s var(--lg-spring), glow 2.4s ease-in-out infinite;
+  background-image: none;
+  background: var(--accent);
+  animation: none;
+  box-shadow: none;
 }
-@keyframes lgRingIn { from { opacity: 0; transform: scale(.5) rotate(-20deg); } }
+@keyframes lgRingIn { from { opacity: 1; transform: none; } }
 .goal-banner__ring {
   background-image: radial-gradient(circle at 32% 26%, rgba(255,255,255,.5), rgba(255,255,255,0) 42%),
                     linear-gradient(135deg, var(--success), #34D399);
@@ -286,13 +271,8 @@
 .avatar-btn:active .avatar__img { transform: scale(.92); }
 
 /* ------------------------- class banner -------------------------- */
-.cr-banner::before {
-  content: ''; position: absolute; inset: 0; pointer-events: none;
-  background: linear-gradient(100deg, transparent 30%, rgba(255,255,255,.18) 50%, transparent 70%);
-  transform: translateX(-100%);
-  animation: lgBannerSweep 7s ease-in-out infinite;
-}
-@keyframes lgBannerSweep { 0% { transform: translateX(-100%); } 45%, 100% { transform: translateX(100%); } }
+.cr-banner::before { content: none; animation: none; }
+@keyframes lgBannerSweep { 0%, 100% { transform: none; } }
 
 /* ----------------------------- landing ---------------------------- */
 .lg-pre { opacity: 0; }
@@ -312,7 +292,7 @@
   box-shadow: inset 0 1px 0 rgba(255,255,255,.18), 0 2px 6px -2px rgba(10,10,11,.35);
   transition: transform .55s var(--lg-spring);
 }
-.brand:hover .brand__mark { transform: rotate(-14deg) scale(1.08); }
+.brand:hover .brand__mark { transform: none; }
 
 /* slow drifting colour behind the headline */
 .hero__wash::before {
@@ -346,8 +326,8 @@
 }
 @keyframes lgTextShine { to { background-position: 200% 0; } }
 
-.feature-list svg { transition: transform .45s var(--lg-spring); }
-@media (hover: hover) { .feature-list li:hover svg { transform: scale(1.18) rotate(-6deg); } }
+.feature-list svg { transition: none; }
+@media (hover: hover) { .feature-list li:hover svg { transform: none; } }
 
 /* ----------------------------- ripple ----------------------------- */
 .lg-ripple-wrap { position: fixed; overflow: hidden; pointer-events: none; z-index: 1; }
