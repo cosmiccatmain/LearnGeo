@@ -58,6 +58,17 @@ assert(/Seats/.test(dash) && /Student messaging is off/.test(dash),
   'dashboard shows seats used and that messaging is off');
 assert(/Class roster/.test(dash) && /navBtn\('roster'/.test(dash),
   'class roster is a real section');
+assert(/navBtn\('roster', 'clip', 'Roster'\) \+\s*navBtn\('rules', 'lock', 'Rules', 'roster'\)/.test(dash),
+  'Rules is its own nav item listed under Roster');
+assert(/data-under="' \+ under/.test(dash) && /if \(under\) cls\.push\('is-sub'\)/.test(dash),
+  'the Rules item is marked as sitting under Roster');
+assert(/if \(section === 'rules'\) return rulesPanel\(\)/.test(dash) &&
+  /if \(section === 'rules'\) return 'Rules'/.test(dash),
+  'Rules is its own panel');
+var rosterFn = dash.slice(dash.indexOf('function rosterPanel'), dash.indexOf('function searchHtml'));
+assert(rosterFn.indexOf('function rosterPanel') === 0 &&
+  !/schooldash__rules|data-do="rule"|Block profile|sd-rules-student/.test(rosterFn),
+  'rules are not mixed into the roster view');
 assert(/Sample students/.test(dash) && /Riverside Geography/.test(dash),
   'preview uses sample students');
 
@@ -87,6 +98,8 @@ assert(!/SchoolDashboard|school_dashboard|schoolStudent/.test(duel),
   'Geo Duel is not part of this dashboard');
 
 assert(/id="sd-search"/.test(dash), 'the dashboard has a search field');
+assert(/Array\.isArray\(html\) \? html\.join\(''\)/.test(dash),
+  'search groups render only when they have hits');
 assert(/Students, classrooms, or rules/.test(dash), 'search covers students, classrooms, and rules');
 assert(/Block profile customization/.test(dash), 'profile customization can be blocked');
 assert(/Block skins and effects/.test(dash), 'skins and effects can be blocked');
@@ -95,6 +108,8 @@ assert(/'Block ' \+ pair\[1\]/.test(dash) && /Geo Duel/.test(dash) && /Geo Dash/
   'specific games can be blocked');
 assert(/school_set_rules/.test(sql) && /my_school_rules/.test(sql) && /school_may_message/.test(sql),
   'rules are stored and read through the school functions');
+assert(/section = 'rules'/.test(dash) && !/section = 'account'/.test(dash),
+  'managing a student opens the Rules section');
 assert(/Managed by your school/.test(ui), 'a blocked customization control tells the student it is managed');
 assert(/Managed by your school/.test(read('assets/js/games.js')),
   'a blocked game shows the managed line instead of play');

@@ -12,6 +12,9 @@
 
    Preview opens from Administrator → Development while UltraAdmin is
    unlocked, with sample students. It is not in the public nav.
+
+   Rules are their own section, listed under Roster. The roster view
+   stays the class list.
 -------------------------------------------------------------------*/
 (function (global) {
   'use strict';
@@ -479,6 +482,7 @@
             navBtn('students', 'users', 'Students') +
             navBtn('classrooms', 'layers', 'Classrooms') +
             navBtn('roster', 'clip', 'Roster') +
+            navBtn('rules', 'lock', 'Rules', 'roster') +
           '</nav>' +
           '<div class="schooldash__foot">' +
             '<button type="button" data-do="close">Close</button>' +
@@ -505,18 +509,23 @@
     }
   }
 
-  function navBtn(id, ic, label) {
+  function navBtn(id, ic, label, under) {
+    var cls = [];
+    if (section === id) cls.push('is-on');
+    if (under) cls.push('is-sub');
     return '<button type="button" data-nav="' + id + '"' +
-      (section === id ? ' class="is-on" aria-current="page"' : '') + '>' +
+      (under ? ' data-under="' + under + '"' : '') +
+      (cls.length ? ' class="' + cls.join(' ') + '"' : '') +
+      (section === id ? ' aria-current="page"' : '') + '>' +
       icon(ic) + '<span>' + label + '</span></button>';
   }
 
   function title() {
     if (query.trim()) return 'Search';
     if (section === 'students') return 'Students';
-    if (section === 'account') return (findStudent(focusId) || {}).name || 'Student';
     if (section === 'classrooms') return 'Classrooms';
     if (section === 'roster') return 'Class roster';
+    if (section === 'rules') return 'Rules';
     return 'School dashboard';
   }
 
@@ -550,9 +559,9 @@
   function panel(seat, pct) {
     if (query.trim()) return hitsHtml();
     if (section === 'students') return studentsPanel(seat);
-    if (section === 'account') return accountPanel();
     if (section === 'classrooms') return classPanel();
     if (section === 'roster') return rosterPanel();
+    if (section === 'rules') return rulesPanel();
     return overviewPanel(seat, pct);
   }
 
@@ -698,6 +707,7 @@
   }
 
   function hitGroup(label, html) {
+    html = Array.isArray(html) ? html.join('') : html;
     if (!html) return '';
     return '<section class="schooldash__hits"><h2>' + esc(label) + '</h2>' + html + '</section>';
   }
@@ -723,9 +733,17 @@
     };
   }
 
-  function accountPanel() {
+  function rulesPanel() {
+    var students = model.students || [];
+    if (!students.length) {
+      return '<div class="schooldash__empty">Create a student account before setting rules.</div>';
+    }
+    if (!findStudent(focusId)) focusId = students[0].id;
     var st = findStudent(focusId);
-    if (!st) return '<div class="schooldash__empty">Choose a student to manage.</div>';
+    var options = students.map(function (s) {
+      return '<option value="' + esc(s.id) + '"' + (s.id === st.id ? ' selected' : '') + '>' +
+        esc(s.name) + '</option>';
+    }).join('');
     var groups = {};
     allRules().forEach(function (r) {
       if (!groups[r.group]) groups[r.group] = [];
@@ -739,7 +757,11 @@
         list.map(function (r) { return ruleRow(st, r); }).join('') +
         '</section>';
     }).join('');
-    return '<p class="t-sm t-muted" style="margin-top:0">Turn a rule on and that control is replaced with “Managed by your school”.</p>' +
+    return '<div class="schooldash__form">' +
+        '<label>Student<select class="input" id="sd-rules-student" aria-label="Student">' +
+          options + '</select></label>' +
+      '</div>' +
+      '<p class="t-sm t-muted" style="margin-top:0">Turn a rule on and that control is replaced with “Managed by your school”.</p>' +
       '<div class="schooldash__account-meta">' +
         '<div><b>' + esc(st.name) + '</b>' +
           (st.email ? '<div class="mono t-sm t-muted">' + esc(st.email) + '</div>' : '') +
@@ -787,6 +809,12 @@
     root.onchange = function (e) {
       if (e.target && e.target.id === 'sd-roster') {
         rosterId = e.target.value;
+        render();
+        return;
+      }
+      if (e.target && e.target.id === 'sd-rules-student') {
+        focusId = e.target.value;
+        ruleFocus = '';
         render();
       }
     };
@@ -1077,7 +1105,7 @@
     }
     focusId = st.id;
     ruleFocus = ruleId || '';
-    section = 'account';
+    section = 'rules';
     query = '';
     searchFocus = false;
     say(ruleId ? 'Showing ' + (ruleById(ruleId) || {}).name + ' for ' + st.name + '.' : '');

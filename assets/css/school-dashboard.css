@@ -108,6 +108,7 @@
 .schooldash__nav button svg { width: 18px; height: 18px; color: #9EC5FF; }
 .schooldash__nav button:hover { background: rgba(255,255,255,.08); }
 .schooldash__nav button.is-on { background: rgba(255,255,255,.16); }
+.schooldash__nav button.is-sub { padding-left: 41px; }
 .schooldash__foot {
   border-top: 1px solid rgba(255,255,255,.14);
   padding-top: 12px;
