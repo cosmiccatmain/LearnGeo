@@ -4,7 +4,7 @@
    The payoff moments, made bigger. A right answer sends a shockwave,
    sparkles and XP / gem orbs that fly into the top bar, where the
    counter ticks up to the new total. Streaks get a shout-out, level-ups
-   get rays and side cannons, and a game-over card counts its stats up.
+   get a plain label, and a game-over card counts its stats up.
 
    It wraps WW.burstFrom, WW.Sound and UI.refreshHud and watches for the
    level-up and game-over cards; nothing calls into it. Honours the
@@ -251,13 +251,9 @@
     card.jz = true;
     var ring = card.querySelector('.levelup__ring');
     if (!ring) return;
-    var rays = doc.createElement('div');
-    rays.className = 'jz-rays';
-    rays.setAttribute('aria-hidden', 'true');
-    card.insertBefore(rays, card.firstChild);
     var tag = doc.createElement('div');
     tag.className = 'jz-lvl-tag';
-    tag.textContent = 'Level up!';
+    tag.textContent = 'Level up';
     card.insertBefore(tag, ring);
     if (!on()) return;
 
