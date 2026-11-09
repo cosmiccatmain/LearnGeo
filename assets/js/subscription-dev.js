@@ -380,7 +380,7 @@
                       : 'Back on Free') + '</b>' +
                     '<p>' + (wantPremium
                       ? (grant
-                        ? 'flags.premium is set for this account. Premium Games and effects unlock.'
+                        ? 'flags.premium is set for this account. Premium Games, effects, and the Premium badge unlock.'
                         : 'Nothing was charged and no entitlement was granted. Ask the owner for a TEST grant, or wait for live billing.')
                       : 'Premium Games and effects stay locked until you upgrade.') +
                     '</p>' +

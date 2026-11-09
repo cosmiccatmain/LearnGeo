@@ -17,7 +17,8 @@
 -------------------------------------------------------------------*/
 (function (global) {
   'use strict';
-  var W = global.WW;
+  /* core.js loads after this file, so WW must be resolved at call time. */
+  function W() { return global.WW; }
 
   var PREVIEW_KEY = 'learngeo.dev.premiumPreview';
 
@@ -37,7 +38,8 @@
   };
 
   function flags() {
-    var s = W && W.state;
+    var ww = W();
+    var s = ww && ww.state;
     if (!s) return {};
     if (!s.flags || typeof s.flags !== 'object') s.flags = {};
     return s.flags;
@@ -99,7 +101,7 @@
   }
 
   function stripUnearnedCosmetics() {
-    var s = W && W.state;
+    var s = W() && W().state;
     if (!s || !s.profile || active() || !previewEnabled()) return false;
     var Cos = global.Cosmetics;
     if (!Cos) return false;
@@ -150,14 +152,14 @@
     if (global.UI && global.UI.modal) {
       global.UI.modal({
         title: 'Premium',
-        icon: (W && W.Icons && W.Icons.lock) || null,
-        body: '<p class="t-muted" style="margin:0">' + (W ? W.escapeHtml(why) : why) +
+        icon: (W() && W().Icons && W().Icons.lock) || null,
+        body: '<p class="t-muted" style="margin:0">' + (W() ? W().escapeHtml(why) : why) +
           '</p><p class="t-sm t-muted" style="margin:12px 0 0">Premium unlocks select Games and profile effects for your account — not a teacher plan. Checkout is mock / TEST only.</p>',
         actions: [{ label: 'Got it', cls: 'btn--primary', close: true }]
       });
       return;
     }
-    if (W && W.toast) W.toast('Premium', why, (W.Icons && W.Icons.lock) || null, 4200);
+    if (W() && W().toast) W().toast('Premium', why, (W().Icons && W().Icons.lock) || null, 4200);
   }
 
   global.Premium = {
@@ -172,11 +174,15 @@
     itemAllowed: itemAllowed,
     stripUnearnedCosmetics: stripUnearnedCosmetics,
     openUpgrade: openUpgrade,
-    /* Local TEST flip used by SubscriptionDev mock checkout before / without RPC. */
+    /* Local TEST flip used by SubscriptionDev mock checkout before / without RPC.
+       LEA-119: also awards / greys the Premium collection badge. */
     setLocal: function (on) {
       flags().premium = !!on;
       if (!on) stripUnearnedCosmetics();
-      if (W && W.saveNow) W.saveNow();
+      if (global.Badges && typeof global.Badges.syncPremium === 'function') {
+        global.Badges.syncPremium({ announce: !!on, save: false });
+      }
+      if (W() && W().saveNow) W().saveNow();
       return !!on;
     }
   };

@@ -20,6 +20,8 @@
 .bdg--red    { --bdg-fg: #BE123C; --bdg-bg: #FEE9EF; --bdg-ring: #F7C3D2; }
 .bdg--teal   { --bdg-fg: #0E7490; --bdg-bg: #E2F4F9; --bdg-ring: #B3E0EC; }
 .bdg--indigo { --bdg-fg: #4338CA; --bdg-bg: #EBEBFC; --bdg-ring: #CACAF6; }
+/* Brand teal tile — LearnGeo mark, not Stripe. Ink stays teal on plates. */
+.bdg--premium { --bdg-fg: #12907B; --bdg-bg: #E4F5F2; --bdg-ring: #B5E4DC; }
 
 /* -------------------- the chip beside a name --------------------- */
 .bdg-row {
@@ -52,6 +54,18 @@
 .bdg--admin:not(.bdg--plate) {
   background: linear-gradient(140deg, #FEE9E9, #FDD6D6);
   box-shadow: inset 0 0 0 1px var(--bdg-ring), 0 1px 2px rgba(185,28,28,.18);
+}
+
+/* Premium chip: the teal brand tile with white mark geometry. */
+.bdg.bdg--premium:not(.bdg--plate) {
+  background: #12907B;
+  color: #fff;
+  box-shadow: inset 0 0 0 1px #0E7A68, 0 1px 2px rgba(18,144,123,.22);
+}
+.bdg-card.is-held .bdg-card__plate.bdg--premium {
+  background: #12907B;
+  color: #fff;
+  box-shadow: inset 0 0 0 1px #0E7A68;
 }
 
 /* -------------------------- the case ----------------------------- */
@@ -100,6 +114,9 @@
   background: var(--white);
 }
 .adm-bdg__row.is-on { border-color: var(--bdg-ring); background: var(--bdg-bg); }
+.adm-bdg__row.is-on.bdg--premium .adm-bdg__plate {
+  background: #12907B; color: #fff; box-shadow: inset 0 0 0 1px #0E7A68;
+}
 .adm-bdg__plate {
   width: 30px; height: 30px; border-radius: 9px; flex: none;
   display: grid; place-items: center;

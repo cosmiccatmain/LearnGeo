@@ -320,14 +320,20 @@
       '<div class="adm-bdg" id="ua-badges">' +
         B.all().map(function (b) {
           var held = B.has(b.id), given = B.granted(b);
+          var status;
+          if (given) {
+            status = '<button class="switch' + (held ? ' is-on' : '') + '" data-ua-badge="' + b.id +
+              '" role="switch" aria-checked="' + (held ? 'true' : 'false') + '"></button>';
+          } else if (B.entitlement && B.entitlement(b)) {
+            status = '<span class="adm-bdg__earned">' + (held ? 'active' : 'off') + '</span>';
+          } else {
+            status = '<span class="adm-bdg__earned">' + (held ? 'earned' : 'locked') + '</span>';
+          }
           return '<div class="adm-bdg__row' + (held ? ' is-on' : '') + ' bdg--' + b.tone + '">' +
             '<span class="adm-bdg__plate">' + B.svg(b, 17) + '</span>' +
             '<span class="adm-bdg__t"><b>' + W.escapeHtml(b.name) + '</b>' +
               '<span>' + W.escapeHtml(b.desc) + '</span></span>' +
-            (given
-              ? '<button class="switch' + (held ? ' is-on' : '') + '" data-ua-badge="' + b.id +
-                '" role="switch" aria-checked="' + (held ? 'true' : 'false') + '"></button>'
-              : '<span class="adm-bdg__earned">' + (held ? 'earned' : 'locked') + '</span>') +
+            status +
           '</div>';
         }).join('') +
       '</div>',

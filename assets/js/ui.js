@@ -1838,6 +1838,9 @@
   /* Someone signed in or out, or the account's copy replaced this one:
      redraw everything that reads the save. */
   function afterAccountChange() {
+    if (global.Badges && global.Badges.syncPremium) {
+      try { global.Badges.syncPremium({ announce: false, paint: false }); } catch (ePrem) {}
+    }
     closeMenu();
     refreshLanding();
     refreshTabs();

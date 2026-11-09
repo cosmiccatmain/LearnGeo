@@ -164,6 +164,10 @@
       s.flags.adminAt = r.created_at;
     });
 
+    if (premiumNow !== null && global.Badges && global.Badges.syncPremium) {
+      global.Badges.syncPremium({ announce: premiumNow === true, save: false, paint: false });
+    }
+
     W.saveNow();                       /* and cloud.js pushes it from here */
     if (global.UI && global.UI.refreshHud) global.UI.refreshHud();
     if (global.Portal && global.Portal.render) { try { global.Portal.render(); } catch (e) {} }

@@ -174,4 +174,27 @@ assert(/cmd === 'cooking'|cmd === \"cooking\"/.test(admin),
   'Commands include cooking loader preview');
 assert(/ReferralTrial/.test(prem), 'premium.js honors referral trial');
 
+/* LEA-119: Premium collection badge (same gallery as profile / badge case). */
+var badgesSrc = fs.readFileSync(path.join(root, 'assets/js/badges.js'), 'utf8');
+var badgesCss = fs.readFileSync(path.join(root, 'assets/css/badges.css'), 'utf8');
+var inbox = fs.readFileSync(path.join(root, 'assets/js/admin-inbox.js'), 'utf8');
+assert(/id:\s*'premium'/.test(badgesSrc) && /entitlement:\s*'premium'/.test(badgesSrc),
+  'badges.js catalogues a Premium entitlement badge');
+assert(/art:\s*'mark'/.test(badgesSrc) && /fill:\s*true/.test(badgesSrc),
+  'Premium badge uses filled LearnGeo brand-mark art');
+assert(/syncPremium/.test(badgesSrc), 'badges.js exports syncPremium');
+assert(/Stripe glyph|Not a Stripe/i.test(badgesSrc) || /not a Stripe/i.test(badgesSrc),
+  'Premium art is documented as not a Stripe glyph');
+assert(/bdg--premium/.test(badgesCss) && /#12907B/.test(badgesCss),
+  'Premium tone uses LearnGeo brand teal');
+assert(/function W\(\)|global\.WW/.test(prem) && /core\.js loads after/.test(prem),
+  'premium.js resolves WW at call time (core.js loads after it)');
+assert(/syncPremium/.test(prem), 'Premium.setLocal syncs the badge');
+assert(/syncPremium/.test(inbox), 'admin-inbox grants/greys the badge with Premium');
+assert(/syncPremium/.test(ui), 'account adopt re-syncs the Premium badge');
+assert(/view:\s*'games'/.test(ui) && /label:\s*'Games'/.test(ui),
+  'Games stays in the main nav');
+assert(!/Screen monitoring/.test(ui) && !/Share screen/.test(ui),
+  'no screen mirroring copy in ui.js');
+
 console.log('test_premium.js: ok');
