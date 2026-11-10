@@ -149,7 +149,10 @@
     var s = W.state;
     var teacher = s.role === 'teacher';
 
-    set('hud-gems', s.economy.diamonds.toLocaleString());
+    /* Past a million the full figure crowds the tab bar, so wide screens
+       get the short spelling too; the chip's title keeps the exact one. */
+    set('hud-gems', s.economy.diamonds >= 1e6 ? W.compact(s.economy.diamonds)
+                                               : s.economy.diamonds.toLocaleString());
     set('hud-gems-short', W.compact(s.economy.diamonds));
     set('hud-level', 'Lv ' + s.economy.level);
     set('hud-streak', String(s.streak.current));

@@ -868,7 +868,7 @@
      gets typed — so anywhere the number shares a row with something else it
      has to be able to give ground: 100,241,768 → 100M. Under a thousand
      there is nothing to save, so the full figure stands. */
-  var UNITS = [[1e12, 'T'], [1e9, 'B'], [1e6, 'M'], [1e3, 'K']];
+  var UNITS = [[1e18, 'Qi'], [1e15, 'Qa'], [1e12, 'T'], [1e9, 'B'], [1e6, 'M'], [1e3, 'K']];
 
   function compact(n) {
     n = Number(n) || 0;
