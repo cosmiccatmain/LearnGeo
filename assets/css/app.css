@@ -65,6 +65,11 @@ html, body {
 
 body.no-scroll { overflow: hidden; }
 
+/* Nothing on the site is meant to scroll sideways. Avatar decorations and
+   effects orbit past their box, and in the top-right corner that used to
+   nudge the page 1px wide and flash scrollbars on and off. */
+html { overflow-x: hidden; }
+
 h1, h2, h3, h4 { margin: 0; font-weight: 640; letter-spacing: -0.022em; line-height: 1.15; }
 p  { margin: 0; }
 button, input, select, textarea { font-family: inherit; font-size: inherit; color: inherit; }
