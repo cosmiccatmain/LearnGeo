@@ -34,6 +34,13 @@
   content: ''; flex: 1; height: 1px; background: var(--line);
 }
 
+/* Turnstile stays invisible (interaction-only) unless Cloudflare asks
+   for a tap. Then it sits above the auth dialog, which is z-index 200. */
+.lg-turnstile {
+  position: fixed; z-index: 420; left: 50%; bottom: 18px;
+  transform: translateX(-50%);
+}
+
 /* ---- the passkey list ---- */
 .pk-list { display: grid; gap: 8px; }
 .pk-row {

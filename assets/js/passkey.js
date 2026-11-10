@@ -98,6 +98,10 @@
     if (code === 'webauthn_challenge_expired' || code === 'webauthn_challenge_not_found') {
       return 'That took too long. Try again.';
     }
+    if (/captcha|security check/i.test(all)) {
+      var C = cloud();
+      return (C && C.friendly) ? C.friendly(err) : 'The security check didn’t finish. Try again.';
+    }
     if (code === 'too_many_passkeys') return 'This account already has as many passkeys as it can hold.';
     if (name === 'SecurityError' || code === 'ERROR_INVALID_RP_ID' ||
         /relying party|rp id|origin/i.test(all)) {
@@ -124,9 +128,17 @@
     btn.disabled = true;
     btn.innerHTML = PASSKEY_ICON + ' Waiting for your device';
 
-    /* supabase-js hands failures back in res.error rather than rejecting,
-       so both endings are funnelled through the same place */
-    a.signInWithPasskey().then(function (res) {
+    /* The passkey challenge request (POST /passkeys/authentication/options)
+       is captcha-gated. Verification of the credential is not.
+       supabase-js hands API failures back in res.error rather than rejecting,
+       so both endings are funnelled through the same place. */
+    var C = cloud();
+    var attempt = (C && C.withCaptcha)
+      ? C.withCaptcha(function (token) {
+          return a.signInWithPasskey({ options: { captchaToken: token } });
+        })
+      : a.signInWithPasskey();
+    attempt.then(function (res) {
       if (res && res.error) throw res.error;
       return res;
     }).then(function (res) {
