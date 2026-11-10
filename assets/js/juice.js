@@ -88,11 +88,13 @@
     if (!el) return;
     cancelAnimationFrame(tween);
     var t0 = performance.now(), dur = Math.min(1100, 450 + (to - from) * 6);
+    /* match refreshHud: short spelling past a million */
+    var fmt = function (n) { return n >= 1e6 && W.compact ? W.compact(n) : n.toLocaleString(); };
     (function step(t) {
       var k = Math.min(1, (t - t0) / dur);
-      el.textContent = Math.round(from + (to - from) * easeOut(k)).toLocaleString();
+      el.textContent = fmt(Math.round(from + (to - from) * easeOut(k)));
       if (k < 1) tween = requestAnimationFrame(step);
-      else el.textContent = to.toLocaleString();
+      else el.textContent = fmt(to);
     })(t0);
   }
 
