@@ -154,15 +154,18 @@
       return Promise.reject(new Error('Accounts are not available right now.'));
     }
 
-    /* Prefer anonymous when the project has it on — no email at all. */
-    var tryAnon = client.auth.signInAnonymously
-      ? client.auth.signInAnonymously({
-          options: { data: { display_name: name, classroom_pass: true } }
-        })
+    /* Prefer anonymous when the project has it on — no email at all.
+       That call is still a signup, so it needs a captcha token once
+       protection is on. A failed check must not fall through into a
+       second account attempt. */
+    var tryAnon = C.signInAnonymously
+      ? C.signInAnonymously({ display_name: name, classroom_pass: true })
       : Promise.resolve({ error: { message: 'anonymous off' } });
 
     return tryAnon.then(function (res) {
       if (res && !res.error && res.data && res.data.session) return true;
+      var anonMsg = (res && res.error && (res.error.message || res.error.error_description)) || '';
+      if (/captcha|security check/i.test(anonMsg)) throw res.error;
       /* Throwaway mailbox the student never sees. Confirmations are off. */
       var email = 'pass.' + randomBits(10) + '@pass.learngeo.app';
       var password = randomBits(10) + randomBits(4);

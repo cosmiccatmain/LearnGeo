@@ -107,8 +107,34 @@
       return 'Google sign-in hit a redirect mismatch. Tell an admin to check the allow-list.';
     }
     if (/rate limit|too many/i.test(m)) return 'Too many tries. Give it a minute and try again.';
+    if (/security check couldn.t load/i.test(m)) {
+      return 'The security check couldn’t load. Check your connection and try again.';
+    }
+    if (/security check expired|timeout-or-duplicate/i.test(m)) {
+      return 'The security check expired. Try again.';
+    }
+    if (/captcha|security check/i.test(m)) {
+      return 'The security check didn’t finish. Try again.';
+    }
     if (/Failed to fetch|NetworkError|Load failed/i.test(m)) return "Couldn't reach the server. Check your internet connection.";
     return m || 'Something went wrong. Please try again.';
+  }
+
+  /* Supabase checks captcha on signup, password sign-in, anonymous
+     sign-in, password reset, and the passkey challenge request once
+     Bot and Abuse Protection is on. Tokens are single-use: checkout
+     holds the widget until this attempt settles, then resets it. */
+  function withCaptcha(run) {
+    var T = global.LearnGeoTurnstile;
+    if (!T || typeof T.checkout !== 'function') {
+      return Promise.reject(new Error('The security check couldn’t load. Check your connection and try again.'));
+    }
+    return T.checkout().then(function (held) {
+      return Promise.resolve().then(function () { return run(held.token); }).then(
+        function (value) { held.done(); return value; },
+        function (err) { held.done(); throw err; }
+      );
+    });
   }
 
   /* Google (and other OAuth) often ships full_name / name, not display_name. */
@@ -292,6 +318,9 @@
   }
 
   function init() {
+    if (global.LearnGeoTurnstile && global.LearnGeoTurnstile.preload) {
+      global.LearnGeoTurnstile.preload();
+    }
     if (!client()) return;
     sb.auth.onAuthStateChange(function (event, session) {
       /* deferred: calling back into supabase inside this callback can deadlock */
@@ -311,26 +340,54 @@
 
   function signUp(email, password, name, role) {
     if (!client()) return Promise.reject(new Error("Accounts aren't working right now. You can keep playing as a guest."));
-    return sb.auth.signUp({
-      email: email, password: password,
-      options: { data: { display_name: name, role: role }, emailRedirectTo: redirectUrl() }
-    }).then(function (res) {
-      if (res.error) throw res.error;
-      var u = res.data.user;
-      /* an existing address comes back as a user with no identities */
-      if (u && u.identities && !u.identities.length) throw new Error('already registered');
-      return { needsConfirm: !res.data.session };
+    return withCaptcha(function (token) {
+      return sb.auth.signUp({
+        email: email, password: password,
+        options: {
+          data: { display_name: name, role: role },
+          emailRedirectTo: redirectUrl(),
+          captchaToken: token
+        }
+      }).then(function (res) {
+        if (res.error) throw res.error;
+        var u = res.data.user;
+        /* an existing address comes back as a user with no identities */
+        if (u && u.identities && !u.identities.length) throw new Error('already registered');
+        return { needsConfirm: !res.data.session };
+      });
     });
   }
 
   function signIn(email, password) {
     if (!client()) return Promise.reject(new Error("Accounts aren't working right now. You can keep playing as a guest."));
-    return sb.auth.signInWithPassword({ email: email, password: password }).then(check);
+    return withCaptcha(function (token) {
+      return sb.auth.signInWithPassword({
+        email: email, password: password,
+        options: { captchaToken: token }
+      }).then(check);
+    });
+  }
+
+  /* Classroom pass tries anonymous auth before a throwaway mailbox.
+     POST /signup with no email still runs the captcha check, even when
+     anonymous users are disabled, so this has to send a token too. */
+  function signInAnonymously(data) {
+    if (!client() || !sb.auth.signInAnonymously) {
+      return Promise.resolve({ data: { user: null, session: null }, error: { message: 'anonymous off' } });
+    }
+    return withCaptcha(function (token) {
+      return sb.auth.signInAnonymously({
+        options: { data: data || {}, captchaToken: token }
+      });
+    });
   }
 
   /* LEA-113: Google OAuth. Same redirect root as email confirm / reset so the
      allow-list already covers production and local. detectSessionInUrl +
-     onAuthStateChange → adopt() pick the session up on return — no second path. */
+     onAuthStateChange → adopt() pick the session up on return — no second path.
+     GoTrue does not check captcha on /authorize, and the code exchange
+     (grant_type=pkce) is exempt, so this call cannot and does not send a token.
+     Session refresh (grant_type=refresh_token) is exempt the same way. */
   function signInWithGoogle() {
     if (!client()) return Promise.reject(new Error("Accounts aren't working right now. You can keep playing as a guest."));
     return sb.auth.signInWithOAuth({
@@ -356,9 +413,16 @@
 
   function resetPassword(email) {
     if (!client()) return Promise.reject(new Error("Accounts aren't working right now. Try again later."));
-    return sb.auth.resetPasswordForEmail(email, { redirectTo: redirectUrl() }).then(check);
+    return withCaptcha(function (token) {
+      return sb.auth.resetPasswordForEmail(email, {
+        redirectTo: redirectUrl(),
+        captchaToken: token
+      }).then(check);
+    });
   }
 
+  /* PUT /user is not captcha-gated. The recovery link already proved the
+     inbox, and the captcha ran on resetPasswordForEmail. */
   function updatePassword(password) {
     return sb.auth.updateUser({ password: password }).then(check);
   }
@@ -1373,8 +1437,10 @@
 
   global.Cloud = {
     init: init,
-    signUp: signUp, signIn: signIn, signInWithGoogle: signInWithGoogle, signOut: signOut,
+    signUp: signUp, signIn: signIn, signInAnonymously: signInAnonymously,
+    signInWithGoogle: signInWithGoogle, signOut: signOut,
     resetPassword: resetPassword, updatePassword: updatePassword,
+    withCaptcha: withCaptcha,
     push: push, onChange: onChange, friendly: friendly,
     teacherSync: teacherSync, saveAssignment: saveAssignment, deleteAssignment: deleteAssignment,
     renameClass: renameClass, recordResults: recordResults, clearResult: clearResult,
