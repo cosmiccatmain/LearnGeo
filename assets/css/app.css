@@ -1795,7 +1795,9 @@ textarea.input:focus { outline: none; border-color: var(--accent); box-shadow: 0
 .home-shot__map {
   position: relative; margin: 0 20px;
   background: linear-gradient(180deg, #F7F9FC, #F2F5F9);
-  border: 1px solid var(--line-soft); border-radius: var(--r-lg); min-height: 180px;
+  border: 1px solid var(--line-soft); border-radius: var(--r-lg);
+  /* reserve the map's shape before it lazy-loads so the page below doesn't jump */
+  aspect-ratio: 760 / 300;
 }
 .home-shot__map.is-loading::after {
   content: ''; position: absolute; inset: 0;
@@ -1834,6 +1836,7 @@ textarea.input:focus { outline: none; border-color: var(--accent); box-shadow: 0
 .mini__map {
   background: linear-gradient(180deg, #F7F9FC, #EDF1F6);
   position: relative; display: grid; place-items: center; overflow: hidden;
+  aspect-ratio: 1 / 1.15;
 }
 .mini__map .wm__svg { width: 100%; height: 100%; }
 .mini__eyebrow {
