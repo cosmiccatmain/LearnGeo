@@ -216,10 +216,11 @@
   font-size: .92em;
 }
 
-/* Each full "for …" line shares one grid cell; for-word centers the line. */
+/* Each full "for …" line shares one grid cell, sized to the longest
+   phrase. Phrases start at the left edge so "for" never jumps sideways. */
 .cycle {
   display: inline-grid;
-  justify-items: center;
+  justify-items: start;
   justify-content: center;
   color: var(--accent);
   text-align: center;
