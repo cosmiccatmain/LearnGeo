@@ -1,4 +1,4 @@
-/* Node smoke checks for Games hub card chrome + LEA-104 vector covers. */
+/* Node smoke checks for Games hub card chrome + LEA-136 vibrant covers. */
 var fs = require('fs');
 var path = require('path');
 var assert = require('assert');
@@ -15,11 +15,15 @@ assert(/game-card__blurb/.test(games), 'hub cards mark blurb for clamp');
 assert(/src="assets\/img\/games\/' \+ thumb/.test(games),
   'thumbs still load from assets/img/games');
 assert(/\.svg" alt="" width="644" height="296"/.test(games),
-  'thumbs are LEA-104 SVG covers at 644×296');
+  'thumbs are SVG covers at 644×296');
+assert(/games--hub/.test(games), 'hub wrapper carries the vibrant chrome class');
 assert(!/\.png" alt="" width="161" height="74"/.test(games),
   'legacy LEA-91 PNG crop wiring is gone');
 
 assert(/assets\/css\/games\.css/.test(html), 'index loads games.css');
+assert(/#7B3CFF/.test(css), 'hub chrome uses the shared violet');
+assert(/#FF3D6E/.test(css), 'hub chrome uses the shared coral');
+assert(/#FFF6EA/.test(css), 'hub chrome uses the shared paper');
 assert(/aspect-ratio:\s*644\s*\/\s*296/.test(css), 'art frame matches SVG cover ratio');
 assert(/image-rendering:\s*auto/.test(css), 'smooth scaling for vector covers');
 assert(/-webkit-line-clamp:\s*2/.test(css), 'blurb clamped to two lines');
@@ -35,8 +39,15 @@ ids.forEach(function (id) {
   assert(!fs.existsSync(path.join(root, 'assets/img/games', id + '.png')),
     'legacy crop PNG must be removed for ' + id);
   var body = fs.readFileSync(svg, 'utf8');
-  assert(/LEA-104/.test(body), id + '.svg should be marked LEA-104');
+  assert(/LEA-136/.test(body), id + '.svg should be marked LEA-136');
   assert(/viewBox="0 0 644 296"/.test(body), id + '.svg viewBox should be 644×296');
+  assert(/#FF3D6E/.test(body) || /#7B3CFF/.test(body) || /#C8F542/.test(body) || /#19D3FF/.test(body) || /#FFB703/.test(body) || /#FF2EC8/.test(body),
+    id + '.svg should use the shared vibrant palette');
+  assert(/font-family="Inter/.test(body), id + '.svg title should be Inter');
+  assert(/JetBrains Mono/.test(body), id + '.svg kicker should be JetBrains Mono');
+  assert(!/Georgia|Liberation Serif|Instrument Serif|Noto Serif/.test(body),
+    id + '.svg should not use a serif face');
+  assert(!/LEA-132|LEA-133|LEA-134/.test(body), id + '.svg should not keep the muted editorial plate');
 });
 
 console.log('test_games_cards.js: ok');

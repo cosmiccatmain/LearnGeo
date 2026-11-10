@@ -1,46 +1,26 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 644 296" width="644" height="296" role="img" aria-label="Geo Chess">
-  <!-- LEA-132 editorial hub cover. Replaces the LEA-104 illustration. Original vector, not a sheet crop. -->
-  <rect width="644" height="296" fill="#0B1520"/>
-  <!-- Cropped diagram: bone and deep-teal squares, one knight, one marked square. -->
-  <g>
-    <rect x="130" y="16" width="96" height="96" fill="#E4E0D6"/>
-    <rect x="226" y="16" width="96" height="96" fill="#145C52"/>
-    <rect x="322" y="16" width="96" height="96" fill="#E4E0D6"/>
-    <rect x="418" y="16" width="96" height="96" fill="#145C52"/>
-    <rect x="130" y="112" width="96" height="96" fill="#145C52"/>
-    <rect x="226" y="112" width="96" height="96" fill="#E4E0D6"/>
-    <rect x="322" y="112" width="96" height="96" fill="#145C52"/>
-    <rect x="418" y="112" width="96" height="96" fill="#E4E0D6"/>
+  <!-- LEA-136 vibrant hub cover. Shared saturated palette. Original vector, not a sheet crop. -->
+  <rect width="644" height="296" fill="#FF2EC8"/>
+  
+  <g stroke="#1A1033" stroke-width="3">
+    <rect x="150" y="16" width="86" height="86" fill="#FFF6EA"/>
+    <rect x="236" y="16" width="86" height="86" fill="#FF3D6E"/>
+    <rect x="322" y="16" width="86" height="86" fill="#FFF6EA"/>
+    <rect x="408" y="16" width="86" height="86" fill="#FF3D6E"/>
+    <rect x="150" y="102" width="86" height="86" fill="#FF3D6E"/>
+    <rect x="236" y="102" width="86" height="86" fill="#FFF6EA"/>
+    <rect x="322" y="102" width="86" height="86" fill="#FF3D6E"/>
+    <rect x="408" y="102" width="86" height="86" fill="#FFF6EA"/>
   </g>
-  <rect x="327" y="117" width="86" height="86" fill="none" stroke="#0C8F7F" stroke-width="2"/>
-  <!-- Original geometric knight. No eye, no mascot. Sits on the light square. -->
-  <g transform="translate(142,26) scale(0.39)" fill="#141C1A">
-    <path d="M34 200
-             L28 186
-             L38 174
-             C46 150 36 120 44 98
-             C50 78 48 60 60 46
-             L76 14
-             L90 40
-             L106 30
-             L120 44
-             L152 48
-             L168 60
-             L156 74
-             L128 84
-             L118 96
-             C138 108 152 130 140 156
-             L132 174
-             L148 174
-             L156 186
-             L160 200
-             Z"/>
+  <rect x="326" y="106" width="78" height="78" fill="none" stroke="#C8F542" stroke-width="5"/>
+  <g transform="translate(158,24)">
+    <path fill="#1A1033" d="M8 74 H64 V62 H56 C60 50 56 40 44 36 L66 28 L56 14 L46 22 C46 12 36 4 26 10 C16 4 6 16 10 28 C2 34 2 48 12 56 L10 62 H8 Z"/>
+    <circle cx="36" cy="22" r="3.5" fill="#C8F542"/>
   </g>
-  <rect x="0" y="208" width="644" height="88" fill="#0B1520"/>
-  <rect x="32" y="228" width="36" height="2" fill="#0C8F7F"/>
-  <text x="32" y="268" font-family="Georgia, 'Liberation Serif', 'Times New Roman', 'Noto Serif', serif"
-    font-size="42" font-weight="400" fill="#F4F7F6" letter-spacing="-0.6">Geo Chess</text>
-  <text x="612" y="264" text-anchor="end" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace"
-    font-size="14" font-weight="500" fill="#0C8F7F" letter-spacing="2.4">RATED</text>
+
+  <rect x="0" y="208" width="644" height="88" fill="#1A1033"/>
+  <rect x="0" y="208" width="644" height="6" fill="#C8F542"/>
+  <text x="28" y="264" font-family="Inter, system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="36" font-weight="700" fill="#FFF6EA" letter-spacing="-0.8">Geo Chess</text>
+  <text x="616" y="258" text-anchor="end" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" font-size="15" font-weight="600" fill="#C8F542" letter-spacing="1.8">RATED</text>
 </svg>

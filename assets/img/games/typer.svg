@@ -1,37 +1,24 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 644 296" width="644" height="296" role="img" aria-label="Capital Typer">
-  <!-- LEA-104 brand-new LearnGeo hub cover — vector, not a sheet crop -->
-  <!-- LEA-133 editorial atlas plate. Original geometry in LearnGeo teal. -->
-  <defs>
-    <radialGradient id="wash" cx="0%" cy="40%" r="70%">
-      <stop offset="0%" stop-color="#0C8F7F" stop-opacity="0.24"/>
-      <stop offset="62%" stop-color="#0C8F7F" stop-opacity="0"/>
-    </radialGradient>
-    <pattern id="grat" width="40" height="40" patternUnits="userSpaceOnUse">
-      <path d="M40 0 H0 V40" fill="none" stroke="#14322E" stroke-width="1"/>
-    </pattern>
-  </defs>
-  <rect width="644" height="296" fill="#07131A"/>
-  <rect width="644" height="228" fill="url(#grat)"/>
-  <rect width="644" height="296" fill="url(#wash)"/>
-  <rect x="28" y="16" width="588" height="198" fill="#0A161A" stroke="#1E3834" stroke-width="1.75"/>
-
-  <rect x="52" y="40" width="3" height="154" fill="#0C8F7F"/>
-
-  <g font-family="'Liberation Serif', 'Noto Serif', Georgia, 'Times New Roman', serif" fill="#7E9894">
-    <text x="70" y="64" font-size="26">France</text>
-    <text x="98" y="112" font-size="42" fill="#F4F7F6">Japan</text>
-    <line x1="98" y1="124" x2="194" y2="124" stroke="#0C8F7F" stroke-width="2.5"/>
-    <text x="126" y="158" font-size="26">Brazil</text>
-    <text x="154" y="192" font-size="22" fill="#5C7470">Egypt</text>
+  <!-- LEA-136 vibrant hub cover. Shared saturated palette. Original vector, not a sheet crop. -->
+  <rect width="644" height="296" fill="#1A1033"/>
+  
+  <text x="40" y="58" text-anchor="start" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" font-size="18" font-weight="600" fill="#19D3FF" letter-spacing="3" opacity="1">JAPAN</text>
+  <text x="36" y="148" text-anchor="start" font-family="Inter, system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="92" font-weight="700" fill="#FFF6EA" letter-spacing="-2" opacity="1">TOK</text>
+  <text x="268" y="148" text-anchor="start" font-family="Inter, system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="92" font-weight="700" fill="#FFB703" letter-spacing="-2" opacity="1">Y</text>
+  <rect x="332" y="68" width="8" height="84" rx="2" fill="#C8F542"/>
+  <text x="352" y="148" text-anchor="start" font-family="Inter, system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="92" font-weight="700" fill="#FFF6EA" letter-spacing="-2" opacity="0.28">O</text>
+  <g stroke="#1A1033" stroke-width="3">
+    <rect x="500" y="36" width="96" height="44" rx="8" fill="#FFF6EA"/>
+    <rect x="500" y="90" width="96" height="44" rx="8" fill="#FFB703"/>
+    <rect x="500" y="144" width="96" height="44" rx="8" fill="#FFF6EA"/>
   </g>
+  <text x="548" y="66" text-anchor="middle" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" font-size="22" font-weight="600" fill="#1A1033" letter-spacing="0" opacity="1">T</text>
+  <text x="548" y="120" text-anchor="middle" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" font-size="22" font-weight="600" fill="#1A1033" letter-spacing="0" opacity="1">Y</text>
+  <text x="548" y="174" text-anchor="middle" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" font-size="22" font-weight="600" fill="#1A1033" letter-spacing="0" opacity="1">O</text>
 
-  <text x="390" y="78" font-family="'JetBrains Mono', ui-monospace, 'Cascadia Mono', Menlo, Consolas, monospace" font-size="12" fill="#8FD4C8" letter-spacing="2.4">CAPITAL</text>
-  <text x="390" y="122" font-family="'JetBrains Mono', ui-monospace, 'Cascadia Mono', Menlo, Consolas, monospace" font-size="32" fill="#F4F7F6">tokyo</text>
-  <rect x="494" y="96" width="3" height="28" fill="#0C8F7F"/>
-  <line x1="390" y1="136" x2="548" y2="136" stroke="#0C8F7F" stroke-width="2.25"/>
-
-  <rect x="0" y="228" width="644" height="68" fill="#061014"/>
-  <rect x="0" y="228" width="644" height="3" fill="#0C8F7F"/>
-  <text x="28" y="272" font-family="'Liberation Serif', 'Noto Serif', Georgia, 'Times New Roman', serif" font-size="36" fill="#F4F7F6">Capital Typer</text>
+  <rect x="0" y="208" width="644" height="88" fill="#1A1033"/>
+  <rect x="0" y="208" width="644" height="6" fill="#FFB703"/>
+  <text x="28" y="264" font-family="Inter, system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="36" font-weight="700" fill="#FFF6EA" letter-spacing="-0.8">Capital Typer</text>
+  <text x="616" y="258" text-anchor="end" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" font-size="15" font-weight="600" fill="#FFB703" letter-spacing="1.8">TYPE</text>
 </svg>

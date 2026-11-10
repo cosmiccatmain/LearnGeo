@@ -2847,10 +2847,10 @@ button.game-card.is-picked {
 .game-card--soon { border-style: dashed; background: var(--paper); justify-content: center; }
 .game-card--soon h3 { color: var(--muted); }
 
-/* Hub card art: LEA-104 SVG covers, CSS art as fallback. */
+/* Hub card art: LEA-136 SVG covers, CSS art as fallback. */
 .game-card__art {
   position: relative; height: 150px; overflow: hidden;
-  background: #0B1520;
+  background: #1A1033;
 }
 .game-card__thumb {
   display: block; width: 100%; height: 100%;
@@ -2864,7 +2864,7 @@ button.game-card.is-picked {
 .game-card__art:has(.game-card__thumb).game-art--orbit,
 .game-card__art:has(.game-card__thumb).game-art--snake,
 .game-card__art:has(.game-card__thumb).game-art--golf {
-  background: #0B1520;
+  background: #1A1033;
 }
 .game-card__art:has(.game-card__thumb)::before,
 .game-card__art:has(.game-card__thumb)::after {
