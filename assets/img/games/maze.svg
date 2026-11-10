@@ -1,42 +1,25 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 644 296" width="644" height="296" role="img" aria-label="Capital Maze">
-  <!-- LEA-104 brand-new LearnGeo hub cover — vector, not a sheet crop -->
-  <!-- LEA-134 editorial plate: floor plan, route, two roamers -->
-  <rect width="644" height="296" fill="#E7EEF1"/>
-  <rect x="0" y="206" width="644" height="90" fill="#0B1520"/>
-  <rect x="0" y="206" width="644" height="3" fill="#0C8F7F"/>
-
-  <!-- walls. Gaps are intentional: the route never crosses a bar. -->
-  <g fill="#0B1520">
-    <rect x="40" y="24" width="564" height="12"/>
-    <rect x="40" y="166" width="564" height="12"/>
-    <rect x="40" y="24" width="12" height="154"/>
-    <rect x="592" y="24" width="12" height="154"/>
-    <rect x="190" y="24" width="12" height="100"/>
-    <rect x="190" y="112" width="160" height="12"/>
-    <rect x="338" y="60" width="12" height="80"/>
-    <rect x="350" y="60" width="140" height="12"/>
-    <rect x="478" y="24" width="12" height="72"/>
+  <!-- LEA-136 vibrant hub cover. Shared saturated palette. Original vector, not a sheet crop. -->
+  <rect width="644" height="296" fill="#FF2EC8"/>
+  
+  <g fill="#1A1033">
+    <rect x="40" y="16" width="564" height="16"/>
+    <rect x="40" y="176" width="564" height="16"/>
+    <rect x="40" y="16" width="16" height="176"/>
+    <rect x="588" y="16" width="16" height="176"/>
+    <rect x="196" y="16" width="16" height="104"/>
+    <rect x="360" y="84" width="16" height="108"/>
+    <rect x="196" y="104" width="180" height="16"/>
+    <rect x="80" y="78" width="80" height="16"/>
+    <rect x="472" y="16" width="16" height="96"/>
   </g>
+  <polyline points="92,52 176,52 176,142 332,142 332,52 452,52 452,142 552,142" fill="none" stroke="#FF3D6E" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="92" cy="52" r="12" fill="#19D3FF" stroke="#1A1033" stroke-width="3"/>
+  <rect x="536" y="126" width="32" height="32" rx="6" fill="#C8F542" stroke="#1A1033" stroke-width="3"/>
 
-  <!-- open corridor: down the left bay, along the bottom, up the right bay -->
-  <path d="M100 78 V156 H540 V110" fill="none" stroke="#0C8F7F" stroke-width="2.25" stroke-dasharray="4 5" stroke-linejoin="miter" stroke-linecap="square"/>
-
-  <rect x="84" y="68" width="16" height="16" fill="#0C8F7F"/>
-
-  <!-- roamers sit in side bays, off the route -->
-  <g fill="none" stroke="#0B1520" stroke-width="1.75">
-    <polygon points="268,62 280,74 268,86 256,74"/>
-    <line x1="260" y1="70" x2="276" y2="78"/>
-    <line x1="276" y1="70" x2="260" y2="78"/>
-    <polygon points="420,88 432,100 420,112 408,100"/>
-    <line x1="412" y1="96" x2="428" y2="104"/>
-    <line x1="428" y1="96" x2="412" y2="104"/>
-  </g>
-
-  <rect x="531" y="92" width="18" height="18" fill="none" stroke="#0C8F7F" stroke-width="2"/>
-  <rect x="537" y="98" width="6" height="6" fill="#0C8F7F"/>
-
-  <line x1="28" y1="232" x2="76" y2="232" stroke="#0C8F7F" stroke-width="3"/>
-  <text x="28" y="270" font-family="Inter, 'Noto Sans', 'Segoe UI', Helvetica, Arial, sans-serif" font-size="34" font-weight="600" fill="#F7FBFC" letter-spacing="-0.6">Capital Maze</text>
+  <rect x="0" y="208" width="644" height="88" fill="#1A1033"/>
+  <rect x="0" y="208" width="644" height="6" fill="#C8F542"/>
+  <text x="28" y="264" font-family="Inter, system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="36" font-weight="700" fill="#FFF6EA" letter-spacing="-0.8">Capital Maze</text>
+  <text x="616" y="258" text-anchor="end" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" font-size="15" font-weight="600" fill="#C8F542" letter-spacing="1.8">ROUTE</text>
 </svg>

@@ -1017,7 +1017,7 @@
     var guest = needsAccount();
 
     el.innerHTML =
-      '<div class="portal__inner games">' +
+      '<div class="portal__inner games games--hub">' +
         '<div class="games__head">' +
           '<div class="eyebrow">Practice</div>' +
           '<h1>Games</h1>' +
@@ -1219,7 +1219,7 @@
     '</' + tag + '>';
   }
 
-  /* LEA-104 brand-new vector hub covers (not LEA-91 sheet crops). */
+  /* LEA-136 vibrant vector hub covers (not sheet crops, not the muted plates). */
   var THUMB_ART = {
     duel: 1, chess: 1, dash: 1, orbit: 1, snake: 1, golf: 1, invaders: 1,
     breakout: 1, maze: 1, typer: 1, crossing: 1, whack: 1, match: 1, sort: 1,

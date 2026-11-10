@@ -1,9 +1,37 @@
 /* ------------------------------------------------------------------
-   Games hub card chrome (LEA-98 frame + LEA-104 vector covers)
-   Cover art: brand-new SVGs in assets/img/games/*.svg (not sheet crops).
-   This file frames covers: grid rhythm, borders/shadows, typography
-   strip, hover/press. Original LearnGeo fonts in UI chrome.
+   Games hub card chrome (LEA-136 vibrant covers)
+   Cover art: original SVGs in assets/img/games/*.svg.
+   One saturated palette on the covers and on this chrome:
+   plum #1A1033, paper #FFF6EA, coral #FF3D6E, amber #FFB703,
+   lime #C8F542, cyan #19D3FF, violet #7B3CFF, magenta #FF2EC8.
+   Inter and JetBrains Mono only. This file frames covers.
 -------------------------------------------------------------------*/
+
+/* Hub-only accent. Setup and play keep the app accent. Ads are not restyled. */
+.games--hub {
+  --accent: #7B3CFF;
+  --accent-ink: #4C1DB5;
+  --accent-soft: #EDE4FF;
+  --accent-rgb: 123, 60, 255;
+}
+
+#view-games:has(.games--hub) {
+  background:
+    radial-gradient(ellipse 72% 46% at 0% -10%, rgba(255, 61, 110, 0.18), transparent 58%),
+    radial-gradient(ellipse 58% 42% at 100% 0%, rgba(123, 60, 255, 0.2), transparent 54%),
+    radial-gradient(ellipse 42% 30% at 72% 100%, rgba(25, 211, 255, 0.14), transparent 56%),
+    #FFF6EA;
+}
+
+.games--hub .eyebrow { color: #FF3D6E; }
+.games--hub .games__head h1 { color: #1A1033; }
+.games--hub .games__toolbar { border-bottom-color: rgba(123, 60, 255, 0.22); }
+.games--hub .games__toolbar-label { color: #1A1033; }
+.games--hub .games__hint kbd {
+  color: #1A1033;
+  background: #FFF6EA;
+  border-color: rgba(123, 60, 255, 0.35);
+}
 
 .games .games__grid {
   display: grid;
@@ -20,12 +48,12 @@
   text-align: left;
   overflow: hidden;
   height: 100%;
-  background: var(--white);
-  border: 1px solid rgba(11, 21, 32, 0.1);
+  background: #FFF6EA;
+  border: 1px solid rgba(123, 60, 255, 0.28);
   border-radius: 14px;
   box-shadow:
-    0 1px 2px rgba(11, 21, 32, 0.04),
-    0 10px 28px rgba(11, 21, 32, 0.07);
+    0 1px 2px rgba(26, 16, 51, 0.05),
+    0 12px 28px rgba(123, 60, 255, 0.12);
   transition:
     transform 0.2s var(--ease),
     box-shadow 0.2s var(--ease),
@@ -35,17 +63,17 @@
 
 button.game-card.game-card--cover:hover {
   transform: none;
-  border-color: rgba(11, 21, 32, 0.18);
+  border-color: #7B3CFF;
   box-shadow:
-    0 1px 2px rgba(11, 21, 32, 0.04),
-    0 10px 28px rgba(11, 21, 32, 0.07);
+    0 1px 2px rgba(26, 16, 51, 0.06),
+    0 14px 32px rgba(255, 61, 110, 0.16);
 }
 
 button.game-card.game-card--cover:active {
   transform: none;
   box-shadow:
-    0 1px 2px rgba(11, 21, 32, 0.04),
-    0 10px 28px rgba(11, 21, 32, 0.07);
+    0 1px 2px rgba(26, 16, 51, 0.06),
+    0 8px 18px rgba(123, 60, 255, 0.14);
   transition-duration: 0.08s;
 }
 
@@ -54,7 +82,7 @@ button.game-card.game-card--cover.is-picked {
   border-color: var(--accent);
   box-shadow:
     0 0 0 2px var(--accent-soft),
-    0 10px 28px rgba(11, 21, 32, 0.1);
+    0 10px 28px rgba(123, 60, 255, 0.16);
   outline: none;
 }
 
@@ -63,7 +91,7 @@ button.game-card.game-card--cover.is-picked {
   padding: 9px 9px 0;
   flex: none;
   background:
-    linear-gradient(180deg, rgba(238, 243, 245, 0.65) 0%, rgba(252, 253, 254, 0) 100%);
+    linear-gradient(180deg, rgba(123, 60, 255, 0.1) 0%, rgba(255, 246, 234, 0) 100%);
 }
 
 .game-card--cover .game-card__art {
@@ -72,10 +100,10 @@ button.game-card.game-card--cover.is-picked {
   aspect-ratio: 644 / 296;
   border-radius: 10px;
   overflow: hidden;
-  background: #0B1520;
+  background: #1A1033;
   box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.08),
-    0 1px 2px rgba(11, 21, 32, 0.18);
+    inset 0 0 0 1px rgba(255, 255, 255, 0.16),
+    0 1px 2px rgba(26, 16, 51, 0.18);
 }
 
 .game-card--cover .game-card__art:has(.game-card__thumb),
@@ -83,7 +111,7 @@ button.game-card.game-card--cover.is-picked {
 .game-card--cover .game-card__art:has(.game-card__thumb).game-art--orbit,
 .game-card--cover .game-card__art:has(.game-card__thumb).game-art--snake,
 .game-card--cover .game-card__art:has(.game-card__thumb).game-art--golf {
-  background: #0B1520;
+  background: #1A1033;
 }
 
 .game-card--cover .game-card__thumb {
@@ -124,7 +152,7 @@ button.game-card.game-card--cover.is-picked {
   margin: 0;
   font-size: 13.25px;
   line-height: 1.42;
-  color: var(--muted);
+  color: #5C4B73;
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
@@ -135,12 +163,12 @@ button.game-card.game-card--cover.is-picked {
 .game-card--cover .game-card__foot {
   margin-top: 12px;
   padding-top: 11px;
-  border-top: 1px solid var(--line-soft);
+  border-top: 1px solid rgba(123, 60, 255, 0.16);
   display: flex;
   align-items: center;
   gap: 10px;
   font-size: 12px;
-  color: var(--faint);
+  color: #8A739E;
   line-height: 1.3;
 }
 
@@ -153,7 +181,7 @@ button.game-card.game-card--cover.is-picked {
 }
 
 .game-card--cover .game-card__best {
-  color: var(--ink);
+  color: #1A1033;
   font-weight: 600;
   font-family: var(--mono);
   font-size: 11.5px;
@@ -162,7 +190,7 @@ button.game-card.game-card--cover.is-picked {
 
 .game-card--cover .game-card__go {
   flex: none;
-  color: var(--accent-ink);
+  color: #4C1DB5;
   font-weight: 600;
   font-size: 12px;
   display: inline-flex;
@@ -170,13 +198,14 @@ button.game-card.game-card--cover.is-picked {
   gap: 5px;
   padding: 5px 9px;
   border-radius: 8px;
-  background: var(--accent-soft);
+  background: #EDE4FF;
   letter-spacing: -0.01em;
   transition: background 0.15s var(--ease), color 0.15s var(--ease);
 }
 
 button.game-card.game-card--cover:hover .game-card__go {
-  background: rgba(var(--accent-rgb), 0.18);
+  background: #C8F542;
+  color: #1A1033;
 }
 
 .game-card--cover .game-card__go svg {

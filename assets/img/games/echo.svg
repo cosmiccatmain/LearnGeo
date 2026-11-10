@@ -1,73 +1,49 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 644 296" width="644" height="296" role="img" aria-label="Flag Echo">
-  <!-- LEA-104 brand-new LearnGeo hub cover — vector, not a sheet crop -->
-  <!-- LEA-133 editorial atlas plate. Original geometry in LearnGeo teal. -->
+  <!-- LEA-136 vibrant hub cover. Shared saturated palette. Original vector, not a sheet crop. -->
+  <rect width="644" height="296" fill="#FF3D6E"/>
+  
   <defs>
-    <radialGradient id="wash" cx="88%" cy="30%" r="60%">
-      <stop offset="0%" stop-color="#0C8F7F" stop-opacity="0.22"/>
-      <stop offset="64%" stop-color="#0C8F7F" stop-opacity="0"/>
-    </radialGradient>
-    <pattern id="grat" width="40" height="40" patternUnits="userSpaceOnUse">
-      <path d="M40 0 H0 V40" fill="none" stroke="#14322E" stroke-width="1"/>
-    </pattern>
+    <clipPath id="e1"><rect x="28" y="32" width="120" height="156" rx="14"/></clipPath>
+    <clipPath id="e2"><rect x="164" y="32" width="120" height="156" rx="14"/></clipPath>
+    <clipPath id="e3"><rect x="300" y="32" width="120" height="156" rx="14"/></clipPath>
+    <clipPath id="e4"><rect x="436" y="32" width="120" height="156" rx="14"/></clipPath>
   </defs>
-  <rect width="644" height="296" fill="#07131A"/>
-  <rect width="644" height="228" fill="url(#grat)"/>
-  <rect width="644" height="296" fill="url(#wash)"/>
-  <rect x="28" y="16" width="588" height="198" fill="#0A161A" stroke="#1E3834" stroke-width="1.75"/>
-
-  <g fill="none" stroke="#0C8F7F">
-    <rect x="60" y="56" width="100" height="66" stroke-width="1" opacity="0.35"/>
-    <rect x="178" y="56" width="100" height="66" stroke-width="1" opacity="0.35"/>
-    <rect x="296" y="56" width="100" height="66" stroke-width="1.5" opacity="0.9"/>
-    <rect x="414" y="56" width="100" height="66" stroke-width="1" opacity="0.35"/>
+  <g clip-path="url(#e1)" stroke="#1A1033" stroke-width="3">
+    <rect x="28" y="32" width="120" height="78" fill="#FFB703"/>
+    <rect x="28" y="110" width="120" height="78" fill="#1A1033"/>
   </g>
-
-  <g stroke="#C9D4D0" stroke-width="1">
-    <g transform="translate(52,48)">
-      <rect width="100" height="66" fill="#F4F1EA"/>
-      <circle cx="50" cy="33" r="15" fill="#9C2F2F" stroke="none"/>
-    </g>
-    <g transform="translate(170,48)">
-      <rect width="34" height="66" fill="#1C3D6E" stroke="none"/>
-      <rect x="34" width="32" height="66" fill="#F4F1EA" stroke="none"/>
-      <rect x="66" width="34" height="66" fill="#8E2E2E" stroke="none"/>
-      <rect width="100" height="66" fill="none"/>
-    </g>
-    <g transform="translate(288,48)">
-      <rect width="100" height="66" fill="#1C4E82"/>
-      <rect x="30" width="16" height="66" fill="#E4D3A1" stroke="none"/>
-      <rect y="25" width="100" height="16" fill="#E4D3A1" stroke="none"/>
-      <rect width="100" height="66" fill="none" stroke="#0C8F7F" stroke-width="2"/>
-    </g>
-    <g transform="translate(406,48)">
-      <rect width="34" height="66" fill="#1E6B42" stroke="none"/>
-      <rect x="34" width="32" height="66" fill="#F4F1EA" stroke="none"/>
-      <rect x="66" width="34" height="66" fill="#1E6B42" stroke="none"/>
-      <rect width="100" height="66" fill="none"/>
-    </g>
+  <g clip-path="url(#e2)">
+    <rect x="164" y="32" width="120" height="156" fill="#19D3FF"/>
+    <rect x="214" y="32" width="22" height="156" fill="#C8F542"/>
   </g>
-
-  <g font-family="'JetBrains Mono', ui-monospace, 'Cascadia Mono', Menlo, Consolas, monospace" font-size="13" text-anchor="middle" fill="#7E9894">
-    <text x="102" y="140">01</text>
-    <text x="220" y="140">02</text>
-    <text x="338" y="140" fill="#8FD4C8">03</text>
-    <text x="456" y="140">04</text>
+  <g clip-path="url(#e3)">
+    <rect x="300" y="32" width="120" height="156" fill="#FFF6EA"/>
+    <circle cx="360" cy="110" r="34" fill="#7B3CFF"/>
   </g>
-
-  <line x1="102" y1="162" x2="456" y2="162" stroke="#234844" stroke-width="2"/>
-  <circle cx="102" cy="162" r="4" fill="#0C8F7F"/>
-  <circle cx="220" cy="162" r="4" fill="#234844"/>
-  <circle cx="338" cy="162" r="4" fill="#0C8F7F"/>
-  <circle cx="456" cy="162" r="4" fill="#234844"/>
-
-  <g transform="translate(548,108)" fill="none" stroke="#0C8F7F">
-    <circle r="16" stroke-width="1.35" stroke-dasharray="26 80" transform="rotate(-30)"/>
-    <circle r="28" stroke-width="1.35" opacity="0.62" stroke-dasharray="40 140" transform="rotate(-42)"/>
-    <circle r="40" stroke-width="1.35" opacity="0.36" stroke-dasharray="52 200" transform="rotate(-54)"/>
+  <g clip-path="url(#e4)">
+    <rect x="436" y="32" width="120" height="156" fill="#C8F542"/>
+    <rect x="436" y="74" width="120" height="22" fill="#FF3D6E"/>
+    <rect x="436" y="118" width="120" height="22" fill="#FF3D6E"/>
   </g>
+  <g fill="none" stroke="#1A1033" stroke-width="3">
+    <rect x="28" y="32" width="120" height="156" rx="14"/>
+    <rect x="164" y="32" width="120" height="156" rx="14"/>
+    <rect x="300" y="32" width="120" height="156" rx="14"/>
+    <rect x="436" y="32" width="120" height="156" rx="14"/>
+  </g>
+  <rect x="296" y="28" width="128" height="164" rx="16" fill="none" stroke="#19D3FF" stroke-width="5"/>
+  <g fill="none" stroke="#FFF6EA" stroke-width="5" stroke-linecap="round">
+    <path d="M576 74 a26 26 0 0 1 0 60"/>
+    <path d="M594 58 a44 44 0 0 1 0 92"/>
+  </g>
+  <text x="88" y="78" text-anchor="middle" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" font-size="22" font-weight="700" fill="#1A1033" letter-spacing="0" opacity="1">1</text>
+  <text x="224" y="78" text-anchor="middle" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" font-size="22" font-weight="700" fill="#1A1033" letter-spacing="0" opacity="1">2</text>
+  <text x="360" y="78" text-anchor="middle" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" font-size="22" font-weight="700" fill="#7B3CFF" letter-spacing="0" opacity="1">3</text>
+  <text x="496" y="66" text-anchor="middle" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" font-size="22" font-weight="700" fill="#1A1033" letter-spacing="0" opacity="1">4</text>
 
-  <rect x="0" y="228" width="644" height="68" fill="#061014"/>
-  <rect x="0" y="228" width="644" height="3" fill="#0C8F7F"/>
-  <text x="28" y="272" font-family="'Liberation Serif', 'Noto Serif', Georgia, 'Times New Roman', serif" font-size="36" fill="#F4F7F6">Flag Echo</text>
+  <rect x="0" y="208" width="644" height="88" fill="#1A1033"/>
+  <rect x="0" y="208" width="644" height="6" fill="#19D3FF"/>
+  <text x="28" y="264" font-family="Inter, system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="36" font-weight="700" fill="#FFF6EA" letter-spacing="-0.8">Flag Echo</text>
+  <text x="616" y="258" text-anchor="end" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" font-size="15" font-weight="600" fill="#19D3FF" letter-spacing="1.8">SEQUENCE</text>
 </svg>

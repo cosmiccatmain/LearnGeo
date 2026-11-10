@@ -1,65 +1,40 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 644 296" width="644" height="296" role="img" aria-label="Capital Stack">
-  <!-- LEA-104 brand-new LearnGeo hub cover — vector, not a sheet crop -->
-  <!-- LEA-133 editorial atlas plate. Original geometry in LearnGeo teal. -->
-  <defs>
-    <radialGradient id="wash" cx="30%" cy="0%" r="70%">
-      <stop offset="0%" stop-color="#0C8F7F" stop-opacity="0.24"/>
-      <stop offset="60%" stop-color="#0C8F7F" stop-opacity="0"/>
-    </radialGradient>
-    <pattern id="grat" width="40" height="40" patternUnits="userSpaceOnUse">
-      <path d="M40 0 H0 V40" fill="none" stroke="#14322E" stroke-width="1"/>
-    </pattern>
-  </defs>
-  <rect width="644" height="296" fill="#07131A"/>
-  <rect width="644" height="228" fill="url(#grat)"/>
-  <rect width="644" height="296" fill="url(#wash)"/>
-  <rect x="28" y="16" width="588" height="198" fill="#0A161A" stroke="#1E3834" stroke-width="1.75"/>
-
-  <g font-family="Inter, system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="14" font-weight="600" text-anchor="middle" fill="#F4F7F6">
-    <text x="112" y="44">FRANCE</text>
-    <line x1="58" y1="54" x2="166" y2="54" stroke="#234844" stroke-width="1.75"/>
-    <text x="250" y="44" fill="#F4F7F6">JAPAN</text>
-    <line x1="196" y1="54" x2="304" y2="54" stroke="#0C8F7F" stroke-width="2.5"/>
-    <text x="388" y="44">BRAZIL</text>
-    <line x1="334" y1="54" x2="442" y2="54" stroke="#234844" stroke-width="1.75"/>
-    <text x="526" y="44">EGYPT</text>
-    <line x1="472" y1="54" x2="580" y2="54" stroke="#234844" stroke-width="1.75"/>
+  <!-- LEA-136 vibrant hub cover. Shared saturated palette. Original vector, not a sheet crop. -->
+  <rect width="644" height="296" fill="#C8F542"/>
+  
+  <g fill="none" stroke="#1A1033" stroke-width="3" opacity="0.4">
+    <line x1="36" y1="28" x2="36" y2="186" stroke-dasharray="3 7"/>
+    <line x1="172" y1="28" x2="172" y2="186" stroke-dasharray="3 7"/>
+    <line x1="340" y1="28" x2="340" y2="186" stroke-dasharray="3 7"/>
+    <line x1="476" y1="28" x2="476" y2="186" stroke-dasharray="3 7"/>
+    <line x1="492" y1="28" x2="492" y2="186" stroke-dasharray="3 7"/>
+    <line x1="628" y1="28" x2="628" y2="186" stroke-dasharray="3 7"/>
   </g>
-
-  <g stroke="#1E3834" stroke-width="1.75">
-    <line x1="58" y1="62" x2="58" y2="198"/>
-    <line x1="166" y1="62" x2="166" y2="198"/>
-    <line x1="196" y1="62" x2="196" y2="198" stroke="#245650" stroke-dasharray="2 4"/>
-    <line x1="304" y1="62" x2="304" y2="198" stroke="#245650" stroke-dasharray="2 4"/>
-    <line x1="334" y1="62" x2="334" y2="198"/>
-    <line x1="442" y1="62" x2="442" y2="198"/>
-    <line x1="472" y1="62" x2="472" y2="198"/>
-    <line x1="580" y1="62" x2="580" y2="198"/>
+  <g fill="none" stroke="#7B3CFF" stroke-width="4">
+    <line x1="188" y1="28" x2="188" y2="186" stroke-dasharray="3 7"/>
+    <line x1="324" y1="28" x2="324" y2="186" stroke-dasharray="3 7"/>
   </g>
-  <line x1="58" y1="198" x2="580" y2="198" stroke="#234844" stroke-width="1.75"/>
-
-  <g font-family="Inter, system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="13" font-weight="600" text-anchor="middle">
-    <rect x="196" y="66" width="108" height="28" fill="#0C8F7F"/>
-    <text x="250" y="85" fill="#F4F7F6">TOKYO</text>
-
-    <rect x="58" y="168" width="108" height="26" fill="#101C20" stroke="#2A4742" stroke-width="1.5"/>
-    <text x="112" y="186" fill="#D5E3DF">LYON</text>
-    <rect x="58" y="138" width="108" height="26" fill="#101C20" stroke="#2A4742" stroke-width="1.5"/>
-    <text x="112" y="156" fill="#D5E3DF">PARIS</text>
-
-    <rect x="334" y="168" width="108" height="26" fill="#101C20" stroke="#2A4742" stroke-width="1.5"/>
-    <text x="388" y="186" fill="#D5E3DF">NATAL</text>
-    <rect x="334" y="138" width="108" height="26" fill="#101C20" stroke="#2A4742" stroke-width="1.5"/>
-    <text x="388" y="156" fill="#D5E3DF">RECIFE</text>
-    <rect x="334" y="108" width="108" height="26" fill="#101C20" stroke="#2A4742" stroke-width="1.5"/>
-    <text x="388" y="126" fill="#D5E3DF">RIO</text>
-
-    <rect x="472" y="168" width="108" height="26" fill="#101C20" stroke="#2A4742" stroke-width="1.5"/>
-    <text x="526" y="186" fill="#D5E3DF">ASWAN</text>
+  <line x1="36" y1="186" x2="628" y2="186" stroke="#1A1033" stroke-width="4"/>
+  <g stroke="#1A1033" stroke-width="3">
+    <rect x="188" y="36" width="136" height="34" rx="6" fill="#FFB703"/>
+    <rect x="36" y="148" width="136" height="34" rx="6" fill="#FFF6EA"/>
+    <rect x="36" y="110" width="136" height="34" rx="6" fill="#FFF6EA"/>
+    <rect x="340" y="148" width="136" height="34" rx="6" fill="#FFF6EA"/>
+    <rect x="340" y="110" width="136" height="34" rx="6" fill="#FFF6EA"/>
+    <rect x="340" y="72" width="136" height="34" rx="6" fill="#FFF6EA"/>
+    <rect x="492" y="148" width="136" height="34" rx="6" fill="#FFF6EA"/>
   </g>
+  <text x="256" y="59" text-anchor="middle" font-family="Inter, system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="16" font-weight="700" fill="#1A1033" letter-spacing="0" opacity="1">TOKYO</text>
+  <text x="104" y="171" text-anchor="middle" font-family="Inter, system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="16" font-weight="700" fill="#1A1033" letter-spacing="0" opacity="1">LYON</text>
+  <text x="104" y="133" text-anchor="middle" font-family="Inter, system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="16" font-weight="700" fill="#1A1033" letter-spacing="0" opacity="1">PARIS</text>
+  <text x="408" y="171" text-anchor="middle" font-family="Inter, system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="16" font-weight="700" fill="#1A1033" letter-spacing="0" opacity="1">NATAL</text>
+  <text x="408" y="133" text-anchor="middle" font-family="Inter, system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="16" font-weight="700" fill="#1A1033" letter-spacing="0" opacity="1">RECIFE</text>
+  <text x="408" y="95" text-anchor="middle" font-family="Inter, system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="16" font-weight="700" fill="#1A1033" letter-spacing="0" opacity="1">RIO</text>
+  <text x="560" y="171" text-anchor="middle" font-family="Inter, system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="16" font-weight="700" fill="#1A1033" letter-spacing="0" opacity="1">ASWAN</text>
 
-  <rect x="0" y="228" width="644" height="68" fill="#061014"/>
-  <rect x="0" y="228" width="644" height="3" fill="#0C8F7F"/>
-  <text x="28" y="272" font-family="'Liberation Serif', 'Noto Serif', Georgia, 'Times New Roman', serif" font-size="36" fill="#F4F7F6">Capital Stack</text>
+  <rect x="0" y="208" width="644" height="88" fill="#1A1033"/>
+  <rect x="0" y="208" width="644" height="6" fill="#7B3CFF"/>
+  <text x="28" y="264" font-family="Inter, system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="36" font-weight="700" fill="#FFF6EA" letter-spacing="-0.8">Capital Stack</text>
+  <text x="616" y="258" text-anchor="end" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" font-size="15" font-weight="600" fill="#7B3CFF" letter-spacing="1.8">COLUMNS</text>
 </svg>

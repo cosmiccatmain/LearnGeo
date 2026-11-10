@@ -1,81 +1,29 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 644 296" width="644" height="296" role="img" aria-label="Flag Breakout">
-  <!-- LEA-104 brand-new LearnGeo hub cover — vector, not a sheet crop -->
-  <!-- LEA-134 editorial plate: flag wall, one marked brick, putt of the ball -->
-  <rect width="644" height="296" fill="#E7EEF1"/>
-  <rect x="0" y="206" width="644" height="90" fill="#0B1520"/>
-  <rect x="0" y="206" width="644" height="3" fill="#0C8F7F"/>
-
-  <rect x="78" y="16" width="488" height="96" fill="none" stroke="#0B1520" stroke-opacity="0.18" stroke-width="1"/>
-
-  <!-- six by three specimen wall. Target is the Japan brick, ringed in teal. -->
-  <g stroke="#0B1520" stroke-width="1">
-    <g transform="translate(90,26)">
-      <rect width="70" height="22" fill="#0055A4"/><rect x="23.3" width="23.4" height="22" fill="#F7FBFC"/><rect x="46.7" width="23.3" height="22" fill="#EF4135"/>
-    </g>
-    <g transform="translate(168,26)">
-      <rect width="70" height="7.4" fill="#000"/><rect y="7.3" width="70" height="7.4" fill="#DD0000"/><rect y="14.6" width="70" height="7.4" fill="#FFCE00"/>
-    </g>
-    <g transform="translate(246,26)">
-      <rect width="70" height="22" fill="#F7FBFC"/><circle cx="35" cy="11" r="6" fill="#BC002D" stroke="none"/>
-    </g>
-    <g transform="translate(324,26)">
-      <rect width="23.3" height="22" fill="#008751"/><rect x="23.3" width="23.4" height="22" fill="#F7FBFC"/><rect x="46.7" width="23.3" height="22" fill="#008751"/>
-    </g>
-    <g transform="translate(402,26)">
-      <rect width="23.3" height="22" fill="#009246"/><rect x="23.3" width="23.4" height="22" fill="#F7FBFC"/><rect x="46.7" width="23.3" height="22" fill="#CE2B37"/>
-    </g>
-    <g transform="translate(480,26)">
-      <rect width="70" height="7.4" fill="#AE1C28"/><rect y="7.3" width="70" height="7.4" fill="#F7FBFC"/><rect y="14.6" width="70" height="7.4" fill="#21468B"/>
-    </g>
-
-    <g transform="translate(90,54)">
-      <rect width="23.3" height="22" fill="#009246"/><rect x="23.3" width="23.4" height="22" fill="#F7FBFC"/><rect x="46.7" width="23.3" height="22" fill="#CE2B37"/>
-    </g>
-    <g transform="translate(168,54)">
-      <rect width="70" height="7.4" fill="#AE1C28"/><rect y="7.3" width="70" height="7.4" fill="#F7FBFC"/><rect y="14.6" width="70" height="7.4" fill="#21468B"/>
-    </g>
-    <g transform="translate(246,54)">
-      <rect width="70" height="22" fill="#0055A4"/><rect x="23.3" width="23.4" height="22" fill="#F7FBFC"/><rect x="46.7" width="23.3" height="22" fill="#EF4135"/>
-    </g>
-    <g transform="translate(324,54)">
-      <rect width="23.3" height="22" fill="#009246"/><rect x="23.3" width="23.4" height="22" fill="#F7FBFC"/><rect x="46.7" width="23.3" height="22" fill="#CE2B37"/>
-    </g>
-    <g transform="translate(402,54)">
-      <rect width="70" height="7.4" fill="#000"/><rect y="7.3" width="70" height="7.4" fill="#DD0000"/><rect y="14.6" width="70" height="7.4" fill="#FFCE00"/>
-    </g>
-    <g transform="translate(480,54)">
-      <rect width="23.3" height="22" fill="#008751"/><rect x="23.3" width="23.4" height="22" fill="#F7FBFC"/><rect x="46.7" width="23.3" height="22" fill="#008751"/>
-    </g>
-
-    <g transform="translate(90,82)">
-      <rect width="70" height="7.4" fill="#000"/><rect y="7.3" width="70" height="7.4" fill="#DD0000"/><rect y="14.6" width="70" height="7.4" fill="#FFCE00"/>
-    </g>
-    <g transform="translate(168,82)">
-      <rect width="70" height="22" fill="#F7FBFC"/><circle cx="35" cy="11" r="6" fill="#BC002D" stroke="none"/>
-    </g>
-    <g transform="translate(246,82)">
-      <rect width="23.3" height="22" fill="#008751"/><rect x="23.3" width="23.4" height="22" fill="#F7FBFC"/><rect x="46.7" width="23.3" height="22" fill="#008751"/>
-    </g>
-    <g transform="translate(324,82)">
-      <rect width="70" height="22" fill="#F7FBFC"/><circle cx="35" cy="11" r="6" fill="#BC002D" stroke="none"/>
-    </g>
-    <g transform="translate(402,82)">
-      <rect width="70" height="22" fill="#0055A4"/><rect x="23.3" width="23.4" height="22" fill="#F7FBFC"/><rect x="46.7" width="23.3" height="22" fill="#EF4135"/>
-    </g>
-    <g transform="translate(480,82)">
-      <rect width="70" height="7.4" fill="#AE1C28"/><rect y="7.3" width="70" height="7.4" fill="#F7FBFC"/><rect y="14.6" width="70" height="7.4" fill="#21468B"/>
-    </g>
+  <!-- LEA-136 vibrant hub cover. Shared saturated palette. Original vector, not a sheet crop. -->
+  <rect width="644" height="296" fill="#FF3D6E"/>
+  
+  <g stroke="#1A1033" stroke-width="3">
+    <rect x="48" y="22" width="84" height="34" rx="4" fill="#FFB703"/>
+    <rect x="140" y="22" width="84" height="34" rx="4" fill="#C8F542"/>
+    <rect x="232" y="22" width="84" height="34" rx="4" fill="#19D3FF"/>
+    <rect x="324" y="22" width="84" height="34" rx="4" fill="#7B3CFF"/>
+    <rect x="416" y="22" width="84" height="34" rx="4" fill="#FFF6EA"/>
+    <rect x="508" y="22" width="84" height="34" rx="4" fill="#FF2EC8"/>
+    <rect x="48" y="64" width="84" height="34" rx="4" fill="#7B3CFF"/>
+    <rect x="140" y="64" width="84" height="34" rx="4" fill="#FFB703"/>
+    <rect x="232" y="64" width="84" height="34" rx="4" fill="#C8F542"/>
+    <rect x="324" y="64" width="84" height="34" rx="4" fill="#19D3FF"/>
+    <rect x="416" y="64" width="84" height="34" rx="4" fill="#FF2EC8"/>
+    <rect x="508" y="64" width="84" height="34" rx="4" fill="#FFF6EA"/>
   </g>
-  <rect x="320" y="78" width="78" height="30" fill="none" stroke="#0C8F7F" stroke-width="2"/>
+  <circle cx="458" cy="39" r="11" fill="#7B3CFF"/>
+  <rect x="412" y="18" width="92" height="42" fill="none" stroke="#C8F542" stroke-width="4" rx="6"/>
+  <circle cx="300" cy="132" r="13" fill="#FFF6EA" stroke="#1A1033" stroke-width="3"/>
+  <rect x="228" y="168" width="144" height="18" rx="9" fill="#FFB703" stroke="#1A1033" stroke-width="3"/>
 
-  <!-- trajectory stops short of the marked brick, in the open lane below the wall -->
-  <path d="M244 160 C292 156 328 146 348 134" fill="none" stroke="#0B1520" stroke-width="1.5" stroke-dasharray="2 5"/>
-  <polygon points="356,118 348,132 364,130" fill="#0B1520"/>
-  <circle cx="244" cy="168" r="8" fill="#0B1520"/>
-  <rect x="188" y="184" width="120" height="8" fill="#0C8F7F"/>
-  <line x1="150" y1="196" x2="494" y2="196" stroke="#0B1520" stroke-opacity="0.18" stroke-width="1"/>
-
-  <line x1="28" y1="232" x2="76" y2="232" stroke="#0C8F7F" stroke-width="3"/>
-  <text x="28" y="270" font-family="Inter, 'Noto Sans', 'Segoe UI', Helvetica, Arial, sans-serif" font-size="34" font-weight="600" fill="#F7FBFC" letter-spacing="-0.6">Flag Breakout</text>
+  <rect x="0" y="208" width="644" height="88" fill="#1A1033"/>
+  <rect x="0" y="208" width="644" height="6" fill="#FFB703"/>
+  <text x="28" y="264" font-family="Inter, system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="36" font-weight="700" fill="#FFF6EA" letter-spacing="-0.8">Flag Breakout</text>
+  <text x="616" y="258" text-anchor="end" font-family="'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace" font-size="15" font-weight="600" fill="#FFB703" letter-spacing="1.8">BRICKS</text>
 </svg>
